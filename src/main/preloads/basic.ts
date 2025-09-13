@@ -1,18 +1,8 @@
-import { contextBridge } from "electron";
 import log from "electron-log/renderer";
+import { contextBridge, ipcRenderer, webUtils } from "electron";
 import { RendererErrorHandler } from "@libs/unhandled/renderer";
 import { ipcRouter } from "@shared/ipc-router-client";
 import { isDevelopment } from "@shared/utils";
-
-// .transports.file.fileName
-
-log.scope("renderer")
-log.info("renderer 初刷");
-console.log(log,);
-
-ipcRouter.appGetName().then((res) => {
-  console.log("软件名称: ", res);
-});
 
 /**
  * 启用热重载
@@ -49,7 +39,7 @@ RendererErrorHandler.getInstance().install();
 const preloadStartTime = Date.now();
 console.log("Preload启动时间:", new Date(preloadStartTime).toLocaleTimeString());
 // 主要的preload脚本 shared\typings\global.d.ts
-const prefix = "[Renderer] "
+const prefix = "[Renderer] ";
 
 contextBridge.exposeInMainWorld("electronAPI", {
   // 日志 API - 使用 electron-log 内置功能
@@ -62,7 +52,33 @@ contextBridge.exposeInMainWorld("electronAPI", {
       RendererErrorHandler.getInstance().logError(error, options);
     },
   },
+  sendTo: {
+    windowMove: (id: number, x: number, y: number, width: number, height: number) => {
+      ipcRenderer.send("window-move", id, x, y, width, height);
+    },
+  },
   ipcRouter: ipcRouter,
+});
+
+// 暴露 webUtils 工具函数
+contextBridge.exposeInMainWorld("webUtils", {
+  /**
+   * 获取文件的实际路径
+   * @param file 文件对象
+   * @returns 文件的实际路径
+   */
+  getPathForFile: (file: File): string => {
+    return webUtils.getPathForFile(file);
+  },
+});
+
+// 监听全局快捷键触发事件
+ipcRenderer.on('global-hotkey-trigger', (event, data) => {
+  console.log('Preload收到全局快捷键事件:', data);
+  // 创建自定义事件并发送到渲染进程
+  const customEvent = new CustomEvent('global-hotkey-trigger', { detail: data });
+  // 发送到主窗口
+  window.dispatchEvent(customEvent);
 });
 
 console.log("✅ Preload脚本执行完成，耗时:", Date.now() - preloadStartTime, "ms");

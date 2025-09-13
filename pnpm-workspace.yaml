@@ -1,7 +1,12 @@
 packages:
   - src/renderer
-  - libs
+  - src/libs/**
 
 onlyBuiltDependencies:
+  - '@parcel/watcher'
+  - '@tailwindcss/oxide'
   - electron
+  - electron-winstaller
   - esbuild
+  - extract-file-icon
+  - javascript-obfuscator

@@ -8,6 +8,7 @@ import Tailwindcss from "@tailwindcss/vite";
 import Components from 'unplugin-vue-components/vite'
 import IconsResolver from 'unplugin-icons/resolver'
 import AutoImport from 'unplugin-auto-import/vite'
+import Renderer from 'vite-plugin-electron-renderer'
 
 // 从 package.json 读取开发服务器配置
 function getDevConfig() {
@@ -46,7 +47,9 @@ export default defineConfig({
     sourcemap: process.env.NODE_ENV === 'production' ? false : 'inline', // 生产环境不生成sourcemap
     minify: process.env.NODE_ENV === 'production', // 生产环境压缩代码
     rollupOptions: {
+      external: ['electron',],
       output: {
+        format: 'es',
         sourcemapExcludeSources: false // 包含源代码在source map中
       }
     }
@@ -84,5 +87,7 @@ export default defineConfig({
         }),
       ]
     }),
+
+    Renderer()
   ],
 })

@@ -1,8 +1,8 @@
 import { app } from 'electron';
 import Store from 'electron-store';
 import log from 'electron-log';
-import { AppConfig } from '../../shared/types';
-import { isProduction } from '../../shared/utils';
+import { AppConfig } from '@shared/types';
+import { isProduction } from '@shared/utils';
 
 /**
  * 应用配置管理类
@@ -19,8 +19,8 @@ export class AppConfigManager {
         theme: 'light',
         language: 'zh-CN',
         windowSize: {
-          width: 1200,
-          height: 800
+          width: 800,
+          height: 600
         },
         logLevel: isProduction() ? 'info' : 'debug'
       },
@@ -38,12 +38,12 @@ export class AppConfigManager {
         windowSize: {
           type: 'object',
           properties: {
-            width: { type: 'number', minimum: 400, maximum: 3840, default: 1200 },
-            height: { type: 'number', minimum: 300, maximum: 2160, default: 800 }
+            width: { type: 'number', minimum: 400, maximum: 3840, default: 800 },
+            height: { type: 'number', minimum: 50, maximum: 2160, default: 100 }
           },
           required: ['width', 'height'],
           additionalProperties: false,
-          default: { width: 1200, height: 800 }
+          default: { width: 800, height: 100 }
         },
         logLevel: {
           type: 'string',

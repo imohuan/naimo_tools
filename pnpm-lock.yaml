@@ -91,11 +91,32 @@ importers:
         specifier: ^8.18.3
         version: 8.18.3
 
+  src/libs/app-search:
+    devDependencies:
+      extract-file-icon:
+        specifier: ^0.3.2
+        version: 0.3.2
+
+  src/libs/update:
+    devDependencies:
+      '@types/ms':
+        specifier: ^2.1.0
+        version: 2.1.0
+      github-url-to-object:
+        specifier: ^4.0.6
+        version: 4.0.6
+      ms:
+        specifier: ^2.1.3
+        version: 2.1.3
+
   src/renderer:
     dependencies:
       '@vueuse/core':
         specifier: ^13.9.0
         version: 13.9.0(vue@3.5.21(typescript@5.8.3))
+      hotkeys-js:
+        specifier: ^3.13.15
+        version: 3.13.15
       lodash-es:
         specifier: ^4.17.21
         version: 4.17.21
@@ -108,6 +129,9 @@ importers:
       vue:
         specifier: ^3.5.18
         version: 3.5.21(typescript@5.8.3)
+      vue-draggable-plus:
+        specifier: ^0.6.0
+        version: 0.6.0(@types/sortablejs@1.15.8)
       vue-router:
         specifier: ^4.5.1
         version: 4.5.1(vue@3.5.21(typescript@5.8.3))
@@ -148,6 +172,9 @@ importers:
       vite:
         specifier: ^7.1.2
         version: 7.1.5(@types/node@24.3.1)(jiti@2.5.1)(lightningcss@1.30.1)(sass-embedded@1.92.1)(sass@1.92.1)(terser@5.44.0)
+      vite-plugin-electron-renderer:
+        specifier: ^0.14.6
+        version: 0.14.6
       vue-tsc:
         specifier: ^3.0.5
         version: 3.0.6(typescript@5.8.3)
@@ -1061,6 +1088,9 @@ packages:
   '@types/minimatch@3.0.5':
     resolution: {integrity: sha512-Klz949h02Gz2uZCMGwDUSDS1YBlTdDDgbWHi+81l29tQALUtvz4rAYi5uoVhE5Lagoq6DeqAUlbrHvW/mXDgdQ==}
 
+  '@types/ms@2.1.0':
+    resolution: {integrity: sha512-GsCCIZDE/p3i96vtEqx+7dBUGXrc7zeSK3wwPHIaRThS+9OhWIXRqzs4d6k1SVU8g91DrNRWxWUGhp5KXQb2VA==}
+
   '@types/mute-stream@0.0.4':
     resolution: {integrity: sha512-CPM9nzrCPPJHQNA9keH9CVkVI+WR5kMa+7XEs5jcGQ0VoAGnLv242w8lIVgwAEfmE4oufJRaTc9PNLQl0ioAow==}
 
@@ -1072,6 +1102,9 @@ packages:
 
   '@types/responselike@1.0.3':
     resolution: {integrity: sha512-H/+L+UkTV33uf49PH5pCAUBVPNj2nDBXTN+qS1dOwyyg24l3CcicicCA7ca+HMvJBZcFgl5r8e+RR6elsb4Lyw==}
+
+  '@types/sortablejs@1.15.8':
+    resolution: {integrity: sha512-b79830lW+RZfwaztgs1aVPgbasJ8e7AXtZYHTELNXZPsERt4ymJdjV4OccDbHQAvHrCcFpbF78jkm0R6h/pZVg==}
 
   '@types/validator@13.15.3':
     resolution: {integrity: sha512-7bcUmDyS6PN3EuD9SlGGOxM77F8WLVsrwkxyWxKnxzmXoequ6c7741QBrANq6htVRGOITJ7z72mTP6Z4XyuG+Q==}
@@ -1781,6 +1814,9 @@ packages:
     resolution: {integrity: sha512-hMQ4CX1p1izmuLYyZqLMO/qGNw10wSv9QDCPfzXfyFrOaCSSoRfqE1Kf1s5an66J5JZC62NewG+mK49jOCtQew==}
     engines: {node: '>=4'}
 
+  extract-file-icon@0.3.2:
+    resolution: {integrity: sha512-We5/HaMDlioOx3c9zDjit8RtKWEvT94sJF8jTujaKVOyWL8Kkqu4QGnwDr5fID6XsbKvWT0JJNuWuV2Tmr7yiw==}
+
   extract-zip@2.0.1:
     resolution: {integrity: sha512-GDhU9ntwuKyGXdZBUgTIe+vXnWj0fppUEtMDL0+idd5Sta8TGpHssn/eusA9mrPr9qNDym6SxAYZjNvCn/9RBg==}
     engines: {node: '>= 10.17.0'}
@@ -2005,6 +2041,9 @@ packages:
 
   hosted-git-info@2.8.9:
     resolution: {integrity: sha512-mxIDAb9Lsm6DoOJ7xH+5+X4y1LU/4Hi50L9C5sIswK3JzULS4bwk1FvjdBgvYR4bzT4tuUQiC15FE2f5HbLvYw==}
+
+  hotkeys-js@3.13.15:
+    resolution: {integrity: sha512-gHh8a/cPTCpanraePpjRxyIlxDFrIhYqjuh01UHWEwDpglJKCnvLW8kqSx5gQtOuSsJogNZXLhOdbSExpgUiqg==}
 
   http-cache-semantics@4.2.0:
     resolution: {integrity: sha512-dTxcvPXqPvXBQpq5dUr6mEMJX4oIEFv6bwom3FDwKRDsuIjjJGANqhBuoAn9c1RQJIdAKav33ED65E2ys+87QQ==}
@@ -2531,6 +2570,9 @@ packages:
   node-abi@3.77.0:
     resolution: {integrity: sha512-DSmt0OEcLoK4i3NuscSbGjOf3bqiDEutejqENSplMSFA/gmB8mkED9G4pKWnPl7MDU4rSHebKPHeitpDfyH0cQ==}
     engines: {node: '>=10'}
+
+  node-addon-api@1.7.1:
+    resolution: {integrity: sha512-2+DuKodWvwRTrCfKOeR24KIc5unKjOh8mz17NCzVnHWfjAdDqbfbjqh7gUT+BkXBRQM52+xCHciKWonJ3CbJMQ==}
 
   node-addon-api@7.1.1:
     resolution: {integrity: sha512-5m3bsyrjFWE1xf7nz7YXdN4udnVtXK6/Yfgn5qnahL6bCkf2yKt4k3nuTKAtT4r3IG8JNR2ncsIMdZuAzJjHQQ==}
@@ -3462,6 +3504,9 @@ packages:
   vite-plugin-dynamic-import@1.6.0:
     resolution: {integrity: sha512-TM0sz70wfzTIo9YCxVFwS8OA9lNREsh+0vMHGSkWDTZ7bgd1Yjs5RV8EgB634l/91IsXJReg0xtmuQqP0mf+rg==}
 
+  vite-plugin-electron-renderer@0.14.6:
+    resolution: {integrity: sha512-oqkWFa7kQIkvHXG7+Mnl1RTroA4sP0yesKatmAy0gjZC4VwUqlvF9IvOpHd1fpLWsqYX/eZlVxlhULNtaQ78Jw==}
+
   vite@7.1.5:
     resolution: {integrity: sha512-4cKBO9wR75r0BeIWWWId9XK9Lj6La5X846Zw9dFfzMRw38IlTk2iCcUt6hsyiDRcPidc55ZParFYDXi0nXOeLQ==}
     engines: {node: ^20.19.0 || >=22.12.0}
@@ -3504,6 +3549,15 @@ packages:
 
   vscode-uri@3.1.0:
     resolution: {integrity: sha512-/BpdSx+yCQGnCvecbyXdxHDkuk55/G3xwnC0GqY4gmQ3j+A+g8kzzgB4Nk/SINjqn6+waqw3EgbVF2QKExkRxQ==}
+
+  vue-draggable-plus@0.6.0:
+    resolution: {integrity: sha512-G5TSfHrt9tX9EjdG49InoFJbt2NYk0h3kgjgKxkFWr3ulIUays0oFObr5KZ8qzD4+QnhtALiRwIqY6qul4egqw==}
+    peerDependencies:
+      '@types/sortablejs': ^1.15.0
+      '@vue/composition-api': '*'
+    peerDependenciesMeta:
+      '@vue/composition-api':
+        optional: true
 
   vue-router@4.5.1:
     resolution: {integrity: sha512-ogAF3P97NPm8fJsE4by9dwSYtDwXIY1nFY9T6DyQnGHd1E2Da94w9JIolpe42LJGIl0DwOHBi8TcRPlPGwbTtw==}
@@ -4682,6 +4736,8 @@ snapshots:
 
   '@types/minimatch@3.0.5': {}
 
+  '@types/ms@2.1.0': {}
+
   '@types/mute-stream@0.0.4':
     dependencies:
       '@types/node': 24.3.1
@@ -4697,6 +4753,8 @@ snapshots:
   '@types/responselike@1.0.3':
     dependencies:
       '@types/node': 24.3.1
+
+  '@types/sortablejs@1.15.8': {}
 
   '@types/validator@13.15.3': {}
 
@@ -5508,6 +5566,10 @@ snapshots:
       iconv-lite: 0.4.24
       tmp: 0.0.33
 
+  extract-file-icon@0.3.2:
+    dependencies:
+      node-addon-api: 1.7.1
+
   extract-zip@2.0.1:
     dependencies:
       debug: 4.4.1(supports-color@5.5.0)
@@ -5784,6 +5846,8 @@ snapshots:
   hookable@5.5.3: {}
 
   hosted-git-info@2.8.9: {}
+
+  hotkeys-js@3.13.15: {}
 
   http-cache-semantics@4.2.0: {}
 
@@ -6295,6 +6359,8 @@ snapshots:
   node-abi@3.77.0:
     dependencies:
       semver: 7.7.2
+
+  node-addon-api@1.7.1: {}
 
   node-addon-api@7.1.1:
     optional: true
@@ -7199,6 +7265,8 @@ snapshots:
       fast-glob: 3.3.3
       magic-string: 0.30.19
 
+  vite-plugin-electron-renderer@0.14.6: {}
+
   vite@7.1.5(@types/node@24.3.1)(jiti@2.5.1)(lightningcss@1.30.1)(sass-embedded@1.92.1)(sass@1.92.1)(terser@5.44.0):
     dependencies:
       esbuild: 0.25.9
@@ -7217,6 +7285,10 @@ snapshots:
       terser: 5.44.0
 
   vscode-uri@3.1.0: {}
+
+  vue-draggable-plus@0.6.0(@types/sortablejs@1.15.8):
+    dependencies:
+      '@types/sortablejs': 1.15.8
 
   vue-router@4.5.1(vue@3.5.21(typescript@5.8.3)):
     dependencies:

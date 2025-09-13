@@ -3,7 +3,7 @@
  * 展示新的 IPC 路由系统使用方式
  */
 
-import { BrowserWindow, app } from 'electron';
+import { BrowserWindow, screen, globalShortcut } from 'electron';
 import { dirname, join } from 'path';
 import log from 'electron-log';
 import { fileURLToPath } from 'url';
@@ -53,6 +53,74 @@ export function close(): void {
 export function isMaximized(): boolean {
   const window = BrowserWindow.getFocusedWindow();
   return window ? window.isMaximized() : false;
+}
+
+/**
+ * 移动窗口
+ * @param deltaX X轴移动距离
+ * @param deltaY Y轴移动距离
+ */
+export function move(deltaX: number, deltaY: number): void {
+  const window = BrowserWindow.getFocusedWindow();
+  if (window && !window.isMaximized()) {
+    const [currentX, currentY] = window.getPosition();
+
+    // 计算新位置
+    const newX = currentX + deltaX;
+    const newY = currentY + deltaY;
+
+    // 获取屏幕边界，防止窗口移出屏幕
+    const { screen } = require('electron');
+    const primaryDisplay = screen.getPrimaryDisplay();
+    const { width: screenWidth, height: screenHeight } = primaryDisplay.workAreaSize;
+    const [windowWidth, windowHeight] = window.getSize();
+
+    // 限制窗口位置在屏幕范围内
+    const clampedX = Math.max(0, Math.min(newX, screenWidth - windowWidth));
+    const clampedY = Math.max(0, Math.min(newY, screenHeight - windowHeight));
+
+    // 使用 setPosition 的 animate 参数来减少频闪
+    window.setPosition(clampedX, clampedY, false);
+
+    // 减少日志输出频率，避免性能影响
+    if (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5) {
+      log.debug(`窗口已移动: deltaX=${deltaX}, deltaY=${deltaY}`);
+    }
+  }
+}
+
+/**
+ * 设置窗口大小
+ * @param width 窗口宽度
+ * @param height 窗口高度
+ */
+export function setSize(width: number, height: number): void {
+  const window = BrowserWindow.getFocusedWindow();
+  if (window) {
+    const [w, h] = window.getSize();
+    const nowW = width === -1 ? w : width;
+    const nowH = height === -1 ? h : height;
+
+    // 临时启用窗口可调整大小，以便能够修改窗口尺寸
+    const wasResizable = window.isResizable();
+    // if (!wasResizable) window.setResizable(true);
+    log.debug(`窗口大小已设置为: ${nowW}x${nowH}`);
+    window.setSize(nowW, nowH);
+    // 恢复原来的可调整大小状态
+    // if (!wasResizable) window.setResizable(false);
+  }
+}
+
+/**
+ * 设置窗口是否可调整大小
+ * @param resizable 是否可调整大小
+ */
+export function setResizable(resizable: boolean, windowId: number): void {
+  const window = BrowserWindow.fromId(windowId);
+  if (window) {
+    window.setResizable(resizable);
+    log.debug(`窗口可调整大小状态已设置为: ${resizable}`);
+  }
 }
 
 /**
@@ -106,6 +174,102 @@ export function openLogViewer(): void {
 
   // 开发环境下打开开发者工具
   if (process.env.NODE_ENV === 'development') {
-    logWindow.webContents.openDevTools();
+    logWindow.webContents.openDevTools({ mode: 'bottom' });
   }
+}
+
+// 全局快捷键管理
+const registeredGlobalShortcuts = new Map<string, string>();
+
+/**
+ * 注册全局快捷键
+ */
+export function registerGlobalHotkey(accelerator: string, id: string): boolean {
+  try {
+    // 检查是否已注册
+    if (registeredGlobalShortcuts.has(id)) {
+      log.warn(`全局快捷键 ${id} 已存在`);
+      return false;
+    }
+
+    // 检查快捷键是否已被其他应用使用
+    if (globalShortcut.isRegistered(accelerator)) {
+      log.warn(`快捷键 ${accelerator} 已被其他应用注册`);
+      return false;
+    }
+
+    // 注册全局快捷键
+    const success = globalShortcut.register(accelerator, () => {
+      log.debug(`触发全局快捷键: ${accelerator} (${id})`);
+      // 发送事件到渲染进程
+      const windows = BrowserWindow.getAllWindows();
+      windows.forEach(window => {
+        window.webContents.send('global-hotkey-trigger', { hotkeyId: id });
+      });
+    });
+
+    if (success) {
+      registeredGlobalShortcuts.set(id, accelerator);
+      log.info(`注册全局快捷键成功: ${accelerator} (${id})`);
+    } else {
+      log.error(`注册全局快捷键失败: ${accelerator} (${id})`);
+    }
+
+    return success;
+  } catch (error) {
+    log.error(`注册全局快捷键异常: ${accelerator} (${id})`, error);
+    return false;
+  }
+}
+
+/**
+ * 注销全局快捷键
+ */
+export function unregisterGlobalHotkey(id: string): boolean {
+  try {
+    const accelerator = registeredGlobalShortcuts.get(id);
+    if (!accelerator) {
+      log.warn(`全局快捷键 ${id} 不存在`);
+      return false;
+    }
+
+    globalShortcut.unregister(accelerator);
+    registeredGlobalShortcuts.delete(id);
+
+    log.info(`注销全局快捷键成功: ${accelerator} (${id})`);
+    return true;
+  } catch (error) {
+    log.error(`注销全局快捷键异常: ${id}`, error);
+    return false;
+  }
+}
+
+/**
+ * 注销所有全局快捷键
+ */
+export function unregisterAllGlobalHotkeys(): void {
+  try {
+    globalShortcut.unregisterAll();
+    registeredGlobalShortcuts.clear();
+    log.info('已注销所有全局快捷键');
+  } catch (error) {
+    log.error('注销所有全局快捷键异常', error);
+  }
+}
+
+/**
+ * 检查快捷键是否已注册
+ */
+export function isGlobalHotkeyRegistered(accelerator: string): boolean {
+  return globalShortcut.isRegistered(accelerator);
+}
+
+/**
+ * 获取所有已注册的全局快捷键
+ */
+export function getAllRegisteredGlobalHotkeys(): Array<{ id: string; accelerator: string }> {
+  return Array.from(registeredGlobalShortcuts.entries()).map(([id, accelerator]) => ({
+    id,
+    accelerator
+  }));
 }

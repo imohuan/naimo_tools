@@ -808,6 +808,18 @@ class DevServerManager {
   }
 
   /**
+   * 停止 Electron
+   */
+  stopElectron() {
+    if (!this.electronProcess || this.electronProcess.killed) return;
+    if (process.platform === 'win32') {
+      spawn('taskkill', ['/pid', this.electronProcess.pid, '/f', '/t'], { stdio: 'ignore' });
+    } else {
+      this.electronProcess.kill('SIGTERM');
+    }
+  }
+
+  /**
    * 重启 Electron（带防抖）
    */
   restartElectron() {
@@ -826,11 +838,7 @@ class DevServerManager {
 
         this.isElectronRestarting = true;
 
-        if (process.platform === 'win32') {
-          spawn('taskkill', ['/pid', this.electronProcess.pid, '/f', '/t'], { stdio: 'ignore' });
-        } else {
-          this.electronProcess.kill('SIGTERM');
-        }
+        this.stopElectron();
 
         setTimeout(() => {
           this.startElectron();

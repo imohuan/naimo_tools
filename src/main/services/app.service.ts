@@ -4,9 +4,18 @@ import { updateElectronApp, UpdateSourceType } from "@libs/update";
 import { AppConfigManager } from "../config/app.config";
 import { LogConfigManager } from "../config/log.config";
 import { WindowConfigManager } from "../config/window.config";
-import { isProduction } from "../../shared/utils";
+import { isProduction } from "@shared/utils";
 import { MainErrorHandler } from "@libs/unhandled/main";
 import { cleanupIpcRouter, initializeIpcRouter } from "../ipc-router";
+import { createIconWorker, getApps, } from "@libs/app-search";
+import { join } from "path";
+
+import { dirname } from "path";
+import { fileURLToPath } from "url";
+
+export function getDirname(): string {
+  return dirname(fileURLToPath(import.meta.url));
+}
 
 /**
  * 主应用服务类
@@ -48,6 +57,9 @@ export class AppService {
     // 初始化 IPC 处理器
     this.initializeIpcHandlers();
 
+    // 初始化图标工作进程
+    this.initializeIconWorker();
+
     // 设置应用事件监听器
     this.setupAppEvents();
 
@@ -67,10 +79,6 @@ export class AppService {
         // 可以在这里添加错误报告逻辑，如发送到服务器
       },
     });
-
-    log.error(new Error('test1'), 'test1', new Error('test11'))
-    log.error(new Error('test2'), 'test2', new Error('test22'))
-    log.error(new Error('test3'), 'test3', new Error('test33'))
 
     // 监听渲染进程崩溃
     app.on("render-process-gone", (event, webContents, details) => {
@@ -131,6 +139,30 @@ export class AppService {
   }
 
   /**
+   * 初始化图标工作进程
+   */
+  private initializeIconWorker(): void {
+    try {
+      // 确定图标工作进程的路径
+      let workerPath: string;
+      // if (isProduction()) {
+      //   // 生产环境：使用打包后的路径
+      //   workerPath = join(process.resourcesPath, 'app.asar', 'dist', 'main', 'preloads', 'icon-worker.js');
+      // } else {
+      //   // 开发环境：使用源码路径
+      //   workerPath = join(__dirname, 'preloads', 'icon-worker.js');
+      // }
+      workerPath = join(getDirname(), 'iconWorker.js');
+      log.info('🖼️ 初始化图标工作进程:', workerPath);
+      createIconWorker(workerPath, log);
+      log.info('✅ 图标工作进程初始化完成');
+      getApps(join(app.getPath('userData'), 'icons'));
+    } catch (error) {
+      log.error('❌ 图标工作进程初始化失败:', error);
+    }
+  }
+
+  /**
    * 设置应用事件监听器
    */
   private setupAppEvents(): void {
@@ -163,18 +195,33 @@ export class AppService {
    * 创建主窗口
    */
   private createMainWindow(): void {
+    this.configManager.set("windowSize", { width: 800, height: 66 });
+
     const config = this.configManager.getConfig();
     const options = WindowConfigManager.createMainWindowOptions(config);
 
+    log.info("创建主窗口: ", options);
     this.mainWindow = new BrowserWindow(options);
 
+    // 剧中显示
+    this.mainWindow.center();
+
     // 设置窗口事件监听器
-    WindowConfigManager.setupWindowEvents(this.mainWindow, (width, height) => {
-      this.configManager.set("windowSize", { width, height });
+    WindowConfigManager.setupWindowEvents(this.mainWindow, {
+      devToolOptions: { mode: "detach" },
+      onResize: (width, height) => {
+        this.configManager.set("windowSize", { width, height });
+      }
     });
 
     // 加载页面内容
     WindowConfigManager.loadContent(this.mainWindow);
+    this.mainWindow.setResizable(false);
+    this.mainWindow.webContents.on("did-finish-load", () => {
+      this.mainWindow!.webContents.executeJavaScript(`
+        window.id = ${this.mainWindow!.webContents.id};
+      `)
+    });
 
     // 监听窗口关闭
     this.mainWindow.on("closed", () => {

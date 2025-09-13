@@ -63,7 +63,10 @@
       "webRoot": "${workspaceFolder}",
       "sourceMaps": true,
       "sourceMapPathOverrides": {
-        "../../../src/*": "${workspaceFolder}/src/*"
+        "../../../src/main/*": "${workspaceFolder}/src/main/*",
+        // "../../../src/renderer/*": "${workspaceFolder}/src/renderer/*", // 不要加载渲染进程的源码1
+        "../../../src/shared/*": "${workspaceFolder}/src/shared/*",
+        "../../../src/libs/*": "${workspaceFolder}/src/libs/*"
       },
       "timeout": 30000,
       "trace": true

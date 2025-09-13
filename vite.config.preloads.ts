@@ -28,6 +28,8 @@ function getPreloadEntries() {
 const isDevelopment = process.env.NODE_ENV === 'development';
 const root = normalize(resolve(__dirname, 'src/main/preloads'))
 
+console.log('getPreloadEntries:', getPreloadEntries());
+
 export default defineConfig({
   root,
   mode: process.env.NODE_ENV || 'development',
@@ -58,6 +60,8 @@ export default defineConfig({
         'os',
         "ensure-error",
         'lodash-es',
+        "extract-file-icon",
+        'crypto',
         'clean-stack'
       ],
       output: {

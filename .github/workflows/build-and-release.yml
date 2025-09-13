@@ -12,7 +12,7 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: [windows-latest]
         # 默认只构建 Windows 和 Ubuntu 平台，如果需要构建 macOS 平台，可以取消注释
         # 注意：macOS 平台需要配置 macOS 签名，否则无法安装
         # os: [ubuntu-latest, windows-latest, macos-latest]

@@ -8,13 +8,20 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    AppItem: typeof import('./../src/components/AppItem.vue')['default']
+    ContextMenu: typeof import('./../src/components/ContextMenu.vue')['default']
+    DraggableArea: typeof import('./../src/components/DraggableArea.vue')['default']
+    HotkeyDemo: typeof import('./../src/components/HotkeyDemo.vue')['default']
+    HotkeyInterceptor: typeof import('./../src/components/HotkeyInterceptor.vue')['default']
     IconMdiApplication: typeof import('~icons/mdi/application')['default']
-    IconMdiBug: typeof import('~icons/mdi/bug')['default']
-    IconMdiDatabase: typeof import('~icons/mdi/database')['default']
-    IconMdiFileDocument: typeof import('~icons/mdi/file-document')['default']
-    IconMdiFolder: typeof import('~icons/mdi/folder')['default']
-    IconMdiWindowMaximize: typeof import('~icons/mdi/window-maximize')['default']
+    IconMdiCog: typeof import('~icons/mdi/cog')['default']
+    IconMdiComponent: typeof import('~icons/mdi/component')['default']
+    IconMdiFileUpload: typeof import('~icons/mdi/file-upload')['default']
+    IconMdiMagnify: typeof import('~icons/mdi/magnify')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
+    SearchCategories: typeof import('./../src/components/SearchCategories.vue')['default']
+    SearchInput: typeof import('./../src/components/SearchInput.vue')['default']
+    SearchResults: typeof import('./../src/components/SearchResults.vue')['default']
   }
 }

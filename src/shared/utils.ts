@@ -1,5 +1,4 @@
 // 共享工具函数
-
 export function formatDate(date: Date): string {
   return date.toISOString().replace('T', ' ').substring(0, 19);
 }
@@ -27,3 +26,4 @@ export function validateConfig(config: any): boolean {
     typeof config.windowSize.height === 'number'
   );
 }
+

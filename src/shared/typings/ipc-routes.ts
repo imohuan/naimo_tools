@@ -1,6 +1,6 @@
 /**
  * 自动生成的 IPC 类型定义
- * 生成时间: 2025-09-13T01:22:02.662Z
+ * 生成时间: 2025-09-13T15:39:42.030Z
  * 请勿手动修改此文件
  */
 
@@ -67,6 +67,43 @@ interface appInterface {
   "app-get-config": () => Promise<Record<string, any>>;
   /** 获取应用配置 */
   "appGetConfig": () => Promise<Record<string, any>>;
+
+  /**
+ * 搜索已安装的应用
+ * @returns 应用列表，包含名称、路径和图标
+ */
+  "app-search-apps": () => Promise<Array<AppPath>>;
+  /**
+ * 搜索已安装的应用
+ * @returns 应用列表，包含名称、路径和图标
+ */
+  "appSearchApps": () => Promise<Array<AppPath>>;
+
+  /**
+ * 启动应用
+ * @param 应用路径
+ * @returns 是否启动成功
+ */
+  "app-launch-app": (appPath: string) => Promise<boolean>;
+  /**
+ * 启动应用
+ * @param 应用路径
+ * @returns 是否启动成功
+ */
+  "appLaunchApp": (appPath: string) => Promise<boolean>;
+
+  /**
+ * 提取文件图标
+ * @param 文件路径
+ * @returns 图标的 Data URL 或 null
+ */
+  "app-extract-file-icon": (filePath: string) => Promise<string | null>;
+  /**
+ * 提取文件图标
+ * @param 文件路径
+ * @returns 图标的 Data URL 或 null
+ */
+  "appExtractFileIcon": (filePath: string) => Promise<string | null>;
 }
 
 interface filesystemInterface {
@@ -246,10 +283,72 @@ interface windowInterface {
  */
   "windowIsMaximized": () => Promise<boolean>;
 
+  /**
+ * 移动窗口
+ * @param X轴移动距离
+ * @param Y轴移动距离
+ */
+  "window-move": (deltaX: number, deltaY: number) => Promise<void>;
+  /**
+ * 移动窗口
+ * @param X轴移动距离
+ * @param Y轴移动距离
+ */
+  "windowMove": (deltaX: number, deltaY: number) => Promise<void>;
+
+  /**
+ * 设置窗口大小
+ * @param 窗口宽度
+ * @param 窗口高度
+ */
+  "window-set-size": (width: number, height: number) => Promise<void>;
+  /**
+ * 设置窗口大小
+ * @param 窗口宽度
+ * @param 窗口高度
+ */
+  "windowSetSize": (width: number, height: number) => Promise<void>;
+
+  /**
+ * 设置窗口是否可调整大小
+ * @param 是否可调整大小
+ */
+  "window-set-resizable": (resizable: boolean, windowId: number) => Promise<void>;
+  /**
+ * 设置窗口是否可调整大小
+ * @param 是否可调整大小
+ */
+  "windowSetResizable": (resizable: boolean, windowId: number) => Promise<void>;
+
   /** 打开日志查看器窗口 */
   "window-open-log-viewer": () => Promise<void>;
   /** 打开日志查看器窗口 */
   "windowOpenLogViewer": () => Promise<void>;
+
+  /** 注册全局快捷键 */
+  "window-register-global-hotkey": (accelerator: string, id: string) => Promise<boolean>;
+  /** 注册全局快捷键 */
+  "windowRegisterGlobalHotkey": (accelerator: string, id: string) => Promise<boolean>;
+
+  /** 注销全局快捷键 */
+  "window-unregister-global-hotkey": (id: string) => Promise<boolean>;
+  /** 注销全局快捷键 */
+  "windowUnregisterGlobalHotkey": (id: string) => Promise<boolean>;
+
+  /** 注销所有全局快捷键 */
+  "window-unregister-all-global-hotkeys": () => Promise<void>;
+  /** 注销所有全局快捷键 */
+  "windowUnregisterAllGlobalHotkeys": () => Promise<void>;
+
+  /** 检查快捷键是否已注册 */
+  "window-is-global-hotkey-registered": (accelerator: string) => Promise<boolean>;
+  /** 检查快捷键是否已注册 */
+  "windowIsGlobalHotkeyRegistered": (accelerator: string) => Promise<boolean>;
+
+  /** 获取所有已注册的全局快捷键 */
+  "window-get-all-registered-global-hotkeys": () => Promise<Array<{ id: string; accelerator: string }>>;
+  /** 获取所有已注册的全局快捷键 */
+  "windowGetAllRegisteredGlobalHotkeys": () => Promise<Array<{ id: string; accelerator: string }>>;
 }
 
 // 合并所有 IPC 路由类型
@@ -324,6 +423,24 @@ export const ROUTE_INFO: RouteInfo[] = [
     comment: "获取应用配置",
     module: "app",
     function: "getConfig"
+  },
+  {
+    route: "app-search-apps",
+    comment: "搜索已安装的应用",
+    module: "app",
+    function: "searchApps"
+  },
+  {
+    route: "app-launch-app",
+    comment: "启动应用",
+    module: "app",
+    function: "launchApp"
+  },
+  {
+    route: "app-extract-file-icon",
+    comment: "提取文件图标",
+    module: "app",
+    function: "extractFileIcon"
   },
   {
     route: "filesystem-select-file",
@@ -422,10 +539,58 @@ export const ROUTE_INFO: RouteInfo[] = [
     function: "isMaximized"
   },
   {
+    route: "window-move",
+    comment: "移动窗口",
+    module: "window",
+    function: "move"
+  },
+  {
+    route: "window-set-size",
+    comment: "设置窗口大小",
+    module: "window",
+    function: "setSize"
+  },
+  {
+    route: "window-set-resizable",
+    comment: "设置窗口是否可调整大小",
+    module: "window",
+    function: "setResizable"
+  },
+  {
     route: "window-open-log-viewer",
     comment: "打开日志查看器窗口",
     module: "window",
     function: "openLogViewer"
+  },
+  {
+    route: "window-register-global-hotkey",
+    comment: "注册全局快捷键",
+    module: "window",
+    function: "registerGlobalHotkey"
+  },
+  {
+    route: "window-unregister-global-hotkey",
+    comment: "注销全局快捷键",
+    module: "window",
+    function: "unregisterGlobalHotkey"
+  },
+  {
+    route: "window-unregister-all-global-hotkeys",
+    comment: "注销所有全局快捷键",
+    module: "window",
+    function: "unregisterAllGlobalHotkeys"
+  },
+  {
+    route: "window-is-global-hotkey-registered",
+    comment: "检查快捷键是否已注册",
+    module: "window",
+    function: "isGlobalHotkeyRegistered"
+  },
+  {
+    route: "window-get-all-registered-global-hotkeys",
+    comment: "获取所有已注册的全局快捷键",
+    module: "window",
+    function: "getAllRegisteredGlobalHotkeys"
   }
 ];
 

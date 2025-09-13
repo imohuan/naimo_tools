@@ -16,6 +16,7 @@
  * ```
  */
 import ms from 'ms';
+/** @ts-ignore */
 import gh from 'github-url-to-object';
 
 import fs from 'fs';

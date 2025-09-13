@@ -1,627 +1,880 @@
 <template>
-  <div class="app-container">
-    <header class="app-header">
-      <h1>🚀 Naimo 工具集</h1>
-      <p class="app-subtitle">Electron 应用工具方法展示平台</p>
-    </header>
-
-    <div class="tools-grid">
-      <!-- 应用管理工具 -->
-      <div class="tool-card app-card">
-        <div class="card-header">
-          <IconMdiApplication class="card-icon" />
-          <h2>应用管理</h2>
-        </div>
-        <div class="card-content">
-          <p class="card-description">应用信息获取、系统信息、应用控制等功能</p>
-          <div class="button-grid">
-            <button @click="getAppVersion" class="tool-btn">获取版本</button>
-            <button @click="getAppName" class="tool-btn">获取名称</button>
-            <button @click="getAppPath" class="tool-btn">获取路径</button>
-            <button @click="getUserDataPath" class="tool-btn">用户数据路径</button>
-            <button @click="getSystemInfo" class="tool-btn">系统信息</button>
-            <button @click="getAppConfig" class="tool-btn">应用配置</button>
-            <button @click="showAbout" class="tool-btn">关于对话框</button>
-            <button @click="restartApp" class="tool-btn danger">重启应用</button>
+  <div class="w-full h-full p-[4px]" @keydown="handleKeyNavigation" tabindex="0">
+    <!-- 主应用容器 -->
+    <div
+      class="w-full bg-transparent relative shadow-lg rounded-xl overflow-hidden"
+      style="box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5)"
+    >
+      <!-- 搜索框区域 -->
+      <DraggableArea
+        class="w-full flex items-center justify-center"
+        :style="{ height: headerHeight + 'px' }"
+        @click="handleClick"
+        @dragover="handleDragOver"
+        @dragenter="handleDragEnter"
+        @dragleave="handleDragLeave"
+        @drop="handleDrop"
+      >
+        <div
+          class="w-full h-full relative flex items-center bg-white border border-gray-200 transition-all duration-200"
+          :class="{ 'bg-indigo-50 border-indigo-400': isDragOver }"
+        >
+          <!-- 拖拽图标 -->
+          <div
+            class="h-full aspect-square flex items-center justify-center text-gray-400 transition-colors duration-200"
+            :class="{ 'text-indigo-500': isDragOver }"
+          >
+            <IconMdiFileUpload v-if="isDragOver" class="w-5 h-5" />
+            <IconMdiMagnify v-else class="w-5 h-5" />
           </div>
+
+          <!-- 搜索输入框组件 -->
+          <SearchInput
+            ref="searchInputRef"
+            v-model="searchText"
+            @enter="handleSearch"
+            @input="debouncedHandleSearch"
+            :placeholder="
+              isDragOver ? '释放文件以搜索...' : '搜索应用和指令 / 拖拽文件到此处...'
+            "
+          />
+
+          <!-- 内容切换按钮 -->
+          <div class="h-full aspect-square">
+            <button
+              class="w-full h-full p-3 text-gray-500 transition-colors duration-200 rounded-lg flex items-center justify-center"
+              title="切换内容区域"
+              @click="toggleContentArea"
+            >
+              <IconMdiCog class="w-5 h-5 hover:text-gray-700" />
+            </button>
+          </div>
+        </div>
+      </DraggableArea>
+
+      <!-- 内容呈现区域 -->
+      <div
+        ref="contentAreaRef"
+        class="flex-1 w-full overflow-hidden transition-all duration-300 bg-white"
+        :style="{ height: contentAreaVisible ? contentAreaHeight + 'px' : '0px' }"
+        v-if="contentAreaVisible"
+      >
+        <div id="content-scroll-container" class="w-full h-full overflow-y-auto">
+          <!-- 搜索结果 -->
+          <SearchCategories
+            v-if="searchCategories.length > 0"
+            :categories="searchCategories"
+            :selected-index="selectedIndex"
+            :flat-items="flatItems"
+            @app-click="launchApp"
+            @category-toggle="handleCategoryToggle"
+            @category-drag-end="handleCategoryDragEnd"
+            @app-delete="handleAppDelete"
+            @app-pin="handleAppPin"
+          />
+          <!-- 设置内容 -->
+          <HotkeyDemo v-else />
         </div>
       </div>
-
-      <!-- 文件系统工具 -->
-      <div class="tool-card filesystem-card">
-        <div class="card-header">
-          <IconMdiFolder class="card-icon" />
-          <h2>文件系统</h2>
-        </div>
-        <div class="card-content">
-          <p class="card-description">文件选择、文件夹选择、文件保存等操作</p>
-          <div class="button-grid">
-            <button @click="selectFile" class="tool-btn">选择文件</button>
-            <button @click="selectFolder" class="tool-btn">选择文件夹</button>
-            <button @click="saveFile" class="tool-btn">保存文件</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- 日志管理工具 -->
-      <div class="tool-card log-card">
-        <div class="card-header">
-          <IconMdiFileDocument class="card-icon" />
-          <h2>日志管理</h2>
-        </div>
-        <div class="card-content">
-          <p class="card-description">日志查看、清空、导出、日志查看器等功能</p>
-          <div class="button-grid">
-            <button @click="getLogs" class="tool-btn">获取日志</button>
-            <button @click="getRawLogContent" class="tool-btn">原始日志</button>
-            <button @click="getLogInfo" class="tool-btn">日志信息</button>
-            <button @click="clearLogs" class="tool-btn warning">清空日志</button>
-            <button @click="exportLogsTxt" class="tool-btn">导出TXT</button>
-            <button @click="exportLogsJson" class="tool-btn">导出JSON</button>
-            <button @click="openLogViewer" class="tool-btn log-btn">📋 日志查看器</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- 存储管理工具 -->
-      <div class="tool-card store-card">
-        <div class="card-header">
-          <IconMdiDatabase class="card-icon" />
-          <h2>存储管理</h2>
-        </div>
-        <div class="card-content">
-          <p class="card-description">应用配置存储、数据管理等功能</p>
-          <div class="button-grid">
-            <button @click="getAllConfig" class="tool-btn">获取所有配置</button>
-            <button @click="setTestConfig" class="tool-btn">设置测试配置</button>
-            <button @click="clearAllConfig" class="tool-btn danger">清空配置</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- 窗口管理工具 -->
-      <div class="tool-card window-card">
-        <div class="card-header">
-          <IconMdiWindowMaximize class="card-icon" />
-          <h2>窗口管理</h2>
-        </div>
-        <div class="card-content">
-          <p class="card-description">窗口控制、最小化、最大化、关闭等操作</p>
-          <div class="button-grid">
-            <button @click="minimizeWindow" class="tool-btn">最小化</button>
-            <button @click="maximizeWindow" class="tool-btn">最大化/还原</button>
-            <button @click="closeWindow" class="tool-btn danger">关闭窗口</button>
-            <button @click="checkMaximized" class="tool-btn">检查状态</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- 调试工具 -->
-      <div class="tool-card debug-card">
-        <div class="card-header">
-          <IconMdiBug class="card-icon" />
-          <h2>调试工具</h2>
-        </div>
-        <div class="card-content">
-          <p class="card-description">VSCode调试、错误处理、异步操作测试</p>
-          <div class="button-grid">
-            <button @click="handleClick" class="tool-btn">测试断点</button>
-            <button @click="handleAsyncClick" class="tool-btn">异步测试</button>
-            <button @click="testErrorHandling" class="tool-btn warning">错误处理</button>
-          </div>
-          <div class="debug-info">
-            <p>计数器: {{ counter }}</p>
-            <p>消息: {{ message }}</p>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 结果显示区域 -->
-    <div v-if="result" class="result-section">
-      <h3>执行结果</h3>
-      <pre class="result-content">{{ result }}</pre>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-// 响应式数据
-const counter = ref(0);
-const message = ref("准备调试");
-const result = ref("");
+import DraggableArea from "./components/DraggableArea.vue";
+import SearchInput from "./components/SearchInput.vue";
+import SearchCategories from "./components/SearchCategories.vue";
+import { useWindowSize } from "./composables/useWindowSize";
+import type { AppItem } from "../../shared/types";
 
-// 通用结果显示方法
-const showResult = (data: any, title: string = "执行结果") => {
-  result.value = `${title}:\n${JSON.stringify(data, null, 2)}`;
-  message.value = `${title}执行成功`;
+// 本地配置常量
+const headerHeight = 50;
+
+// ==================== 窗口大小管理 ====================
+const {
+  contentAreaRef,
+  contentAreaVisible,
+  contentAreaHeight,
+  updateWindowSize,
+  toggleContentArea,
+  showContentArea,
+  hideContentArea,
+  initializeWindowSize,
+} = useWindowSize({
+  /** 窗口头部高度 */
+  headerHeight: headerHeight,
+  /** 头部上下内边距 */
+  headerPadding: 6,
+  /** 内容区域最大高度 */
+  maxContentHeight: 400,
+  /** 内容区域默认高度 */
+  defaultContentHeight: 100,
+});
+
+// ==================== 类型定义 ====================
+interface SearchCategory {
+  id: string;
+  name: string;
+  items: AppItem[];
+  isDragEnabled: boolean;
+  maxDisplayCount: number;
+  isExpanded: boolean;
+  customSearch?: (searchText: string, items: AppItem[]) => AppItem[];
+}
+
+// ==================== 响应式数据 ====================
+let appApps: AppItem[] = [];
+const searchText = ref("");
+const searchInputRef = ref<InstanceType<typeof SearchInput>>();
+const searchCategories = ref<SearchCategory[]>([]);
+const originalCategories = ref<SearchCategory[]>([]); // 存储原始分类数据
+const isSearching = ref(false);
+const isDragOver = ref(false);
+
+// 键盘导航状态
+const selectedIndex = ref(0); // 当前选中的项目索引
+const flatItems = ref<Array<AppItem & { categoryId: string }>>([]); // 扁平化的所有项目列表，包含分类信息
+
+// ==================== 方法 ====================
+const handleClick = () => {
+  searchInputRef.value?.focus();
 };
 
-// 通用错误处理方法
-const handleError = (error: any, operation: string) => {
-  console.error(`${operation}失败:`, error);
-  message.value = `${operation}失败: ${error.message}`;
-  result.value = `错误: ${error.message}`;
-};
+// 更新扁平化项目列表
+const updateFlatItems = () => {
+  const items: Array<AppItem & { categoryId: string }> = [];
+  for (const category of searchCategories.value) {
+    // 根据展开状态决定显示的项目数量
+    const displayItems =
+      category.isExpanded || category.items.length <= category.maxDisplayCount
+        ? category.items
+        : category.items.slice(0, category.maxDisplayCount);
 
-// ==================== 应用管理工具 ====================
-const getAppVersion = async () => {
-  try {
-    const version = await api.ipcRouter.appGetVersion();
-    showResult(version, "应用版本");
-  } catch (error) {
-    handleError(error, "获取应用版本");
+    // 为每个项目添加分类信息
+    const itemsWithCategory = displayItems.map((item) => ({
+      ...item,
+      categoryId: category.id,
+    }));
+    items.push(...itemsWithCategory);
+  }
+  flatItems.value = items;
+
+  // 确保选中索引在有效范围内
+  if (selectedIndex.value >= items.length) {
+    selectedIndex.value = Math.max(0, items.length - 1);
   }
 };
 
-const getAppName = async () => {
-  try {
-    const name = await api.ipcRouter.appGetName();
-    showResult(name, "应用名称");
-  } catch (error) {
-    handleError(error, "获取应用名称");
+// 滚动到选中的项目（现在由AppItem组件自动处理）
+const scrollToSelectedItem = () => {
+  // 滚动逻辑现在由AppItem组件处理，这里只需要确保DOM更新
+  nextTick(() => {
+    // AppItem组件会监听isSelected变化并自动滚动
+  });
+};
+
+// 智能键盘导航处理
+const handleKeyNavigation = (event: KeyboardEvent) => {
+  if (flatItems.value.length === 0) return;
+
+  // 根据响应式设计，动态计算每行项目数
+  const getItemsPerRow = () => {
+    const container = document.getElementById("content-scroll-container");
+    if (!container) return 8; // 默认值
+
+    const containerWidth = container.clientWidth;
+    // 根据容器宽度估算每行项目数（考虑gap和padding）
+    if (containerWidth < 640) return 6; // sm:grid-cols-6
+    if (containerWidth < 768) return 7; // sm:grid-cols-7
+    if (containerWidth < 1024) return 8; // md:grid-cols-8
+    return 9; // lg:grid-cols-9
+  };
+
+  const itemsPerRow = getItemsPerRow();
+  const currentItem = flatItems.value[selectedIndex.value];
+  if (!currentItem) return;
+
+  // 找到当前项目所在的分类和位置
+  const currentCategory = searchCategories.value.find(
+    (cat) => cat.id === currentItem.categoryId
+  );
+  if (!currentCategory) return;
+
+  // 计算当前项目在分类中的位置
+  const categoryStartIndex = flatItems.value.findIndex(
+    (item) => item.categoryId === currentItem.categoryId
+  );
+  const categoryItemIndex = selectedIndex.value - categoryStartIndex;
+  const categoryRow = Math.floor(categoryItemIndex / itemsPerRow);
+  const categoryCol = categoryItemIndex % itemsPerRow;
+  const categoryTotalRows = Math.ceil(currentCategory.items.length / itemsPerRow);
+
+  switch (event.key) {
+    case "ArrowUp":
+      event.preventDefault();
+      if (categoryRow > 0) {
+        // 在同一分类内向上移动
+        const newIndex =
+          categoryStartIndex + (categoryRow - 1) * itemsPerRow + categoryCol;
+        if (newIndex >= 0 && newIndex < flatItems.value.length) {
+          selectedIndex.value = newIndex;
+          scrollToSelectedItem();
+        }
+      } else {
+        // 尝试移动到上一个分类
+        const currentCategoryIndex = searchCategories.value.findIndex(
+          (cat) => cat.id === currentItem.categoryId
+        );
+        if (currentCategoryIndex > 0) {
+          const prevCategory = searchCategories.value[currentCategoryIndex - 1];
+          const prevCategoryStartIndex = flatItems.value.findIndex(
+            (item) => item.categoryId === prevCategory.id
+          );
+          if (prevCategoryStartIndex >= 0) {
+            // 计算目标位置：上一分类的对应列位置
+            const targetIndex =
+              prevCategoryStartIndex +
+              Math.min(
+                categoryCol,
+                Math.floor(prevCategory.items.length / itemsPerRow) * itemsPerRow +
+                  (prevCategory.items.length % itemsPerRow) -
+                  1
+              );
+            if (targetIndex < flatItems.value.length) {
+              selectedIndex.value = targetIndex;
+              scrollToSelectedItem();
+            }
+          }
+        }
+      }
+      break;
+    case "ArrowDown":
+      event.preventDefault();
+      if (categoryRow < categoryTotalRows - 1) {
+        // 在同一分类内向下移动
+        const newIndex =
+          categoryStartIndex + (categoryRow + 1) * itemsPerRow + categoryCol;
+        if (newIndex < flatItems.value.length) {
+          selectedIndex.value = newIndex;
+          scrollToSelectedItem();
+        }
+      } else {
+        // 尝试移动到下一个分类
+        const currentCategoryIndex = searchCategories.value.findIndex(
+          (cat) => cat.id === currentItem.categoryId
+        );
+        if (currentCategoryIndex < searchCategories.value.length - 1) {
+          const nextCategory = searchCategories.value[currentCategoryIndex + 1];
+          const nextCategoryStartIndex = flatItems.value.findIndex(
+            (item) => item.categoryId === nextCategory.id
+          );
+          if (nextCategoryStartIndex >= 0) {
+            // 移动到下一分类的第一行对应列
+            const targetIndex =
+              nextCategoryStartIndex + Math.min(categoryCol, itemsPerRow - 1);
+            if (targetIndex < flatItems.value.length) {
+              selectedIndex.value = targetIndex;
+              scrollToSelectedItem();
+            }
+          }
+        }
+      }
+      break;
+    case "ArrowLeft":
+      event.preventDefault();
+      if (categoryCol > 0) {
+        // 在同一行内向左移动
+        selectedIndex.value = selectedIndex.value - 1;
+      } else if (categoryRow > 0) {
+        // 如果已经在行的最左侧，移动到上一行的最右侧
+        const newIndex =
+          categoryStartIndex + (categoryRow - 1) * itemsPerRow + (itemsPerRow - 1);
+        if (newIndex >= 0) {
+          selectedIndex.value = newIndex;
+        }
+      }
+      scrollToSelectedItem();
+      break;
+    case "ArrowRight":
+      event.preventDefault();
+      const categoryItemsInRow = Math.min(
+        itemsPerRow,
+        currentCategory.items.length - categoryRow * itemsPerRow
+      );
+      if (categoryCol < categoryItemsInRow - 1) {
+        // 在同一行内向右移动
+        selectedIndex.value = selectedIndex.value + 1;
+      } else if (categoryRow < categoryTotalRows - 1) {
+        // 如果已经在行的最右侧，移动到下一行的最左侧
+        const newIndex = categoryStartIndex + (categoryRow + 1) * itemsPerRow;
+        if (newIndex < flatItems.value.length) {
+          selectedIndex.value = newIndex;
+        }
+      }
+      scrollToSelectedItem();
+      break;
+    case "Enter":
+      event.preventDefault();
+      if (flatItems.value[selectedIndex.value]) {
+        launchApp(flatItems.value[selectedIndex.value]);
+      }
+      break;
+    case "Escape":
+      event.preventDefault();
+      searchText.value = "";
+      performSearch();
+      break;
   }
 };
 
-const getAppPath = async () => {
-  try {
-    const path = await api.ipcRouter.appGetAppPath();
-    showResult(path, "应用路径");
-  } catch (error) {
-    handleError(error, "获取应用路径");
+// 序列化应用项目，确保只包含可序列化的属性（不保存图标数据）
+const serializeAppItems = (items: AppItem[]): AppItem[] => {
+  return items.map((item) => ({
+    name: item.name,
+    path: item.path,
+    icon: null, // 不保存图标数据，使用时重新获取
+    ...(item.lastUsed && { lastUsed: item.lastUsed }),
+    ...(item.usageCount && { usageCount: item.usageCount }),
+  }));
+};
+
+// 辅助函数：同时更新原始数据和搜索结果中的分类
+const updateCategoryInBoth = (
+  categoryId: string,
+  updater: (category: SearchCategory) => void
+) => {
+  // 更新原始数据
+  const originalCategory = originalCategories.value.find((cat) => cat.id === categoryId);
+  if (originalCategory) {
+    updater(originalCategory);
+  }
+
+  // 更新搜索结果
+  const searchCategory = searchCategories.value.find((cat) => cat.id === categoryId);
+  if (searchCategory) {
+    updater(searchCategory);
   }
 };
 
-const getUserDataPath = async () => {
-  try {
-    const path = await api.ipcRouter.appGetUserDataPath();
-    showResult(path, "用户数据路径");
-  } catch (error) {
-    handleError(error, "获取用户数据路径");
+// 拖拽处理方法
+const handleDragOver = (event: DragEvent) => {
+  event.preventDefault();
+  event.dataTransfer!.dropEffect = "copy";
+};
+
+const handleDragEnter = (event: DragEvent) => {
+  event.preventDefault();
+  isDragOver.value = true;
+};
+
+const handleDragLeave = (event: DragEvent) => {
+  event.preventDefault();
+  // 只有当离开整个拖拽区域时才设置为false
+  if (!(event.currentTarget as Element)?.contains(event.relatedTarget as Node)) {
+    isDragOver.value = false;
   }
 };
 
-const getSystemInfo = async () => {
-  try {
-    const info = await api.ipcRouter.appGetSystemInfo();
-    showResult(info, "系统信息");
-  } catch (error) {
-    handleError(error, "获取系统信息");
-  }
-};
+const handleDrop = async (event: DragEvent) => {
+  event.preventDefault();
+  isDragOver.value = false;
 
-const getAppConfig = async () => {
-  try {
-    const config = await api.ipcRouter.appGetConfig();
-    showResult(config, "应用配置");
-  } catch (error) {
-    handleError(error, "获取应用配置");
-  }
-};
+  const files = event.dataTransfer?.files;
+  if (files && files.length > 0) {
+    const file = files[0];
+    console.log("拖入文件:", file.name);
 
-const showAbout = async () => {
-  try {
-    await api.ipcRouter.appShowAbout();
-    message.value = "关于对话框已显示";
-    result.value = "关于对话框已显示";
-  } catch (error) {
-    handleError(error, "显示关于对话框");
-  }
-};
+    // 获取文件的实际路径
+    const filePath = webUtils.getPathForFile(file);
+    console.log("文件路径:", filePath);
+    console.log("webUtils 可用:", typeof webUtils.getPathForFile === "function");
 
-const restartApp = async () => {
-  try {
-    await api.ipcRouter.appRestart();
-    message.value = "应用即将重启";
-    result.value = "应用即将重启";
-  } catch (error) {
-    handleError(error, "重启应用");
-  }
-};
-
-// ==================== 文件系统工具 ====================
-const selectFile = async () => {
-  try {
-    const files = await api.ipcRouter.filesystemSelectFile({
-      title: "选择文件",
-      filters: [
-        { name: "所有文件", extensions: ["*"] },
-        { name: "图片", extensions: ["jpg", "png", "gif"] },
-        { name: "文档", extensions: ["txt", "md", "pdf"] },
-      ],
-    });
-    showResult(files, "选择的文件");
-  } catch (error) {
-    handleError(error, "选择文件");
-  }
-};
-
-const selectFolder = async () => {
-  try {
-    const folders = await api.ipcRouter.filesystemSelectFolder({
-      title: "选择文件夹",
-    });
-    showResult(folders, "选择的文件夹");
-  } catch (error) {
-    handleError(error, "选择文件夹");
-  }
-};
-
-const saveFile = async () => {
-  try {
-    const path = await api.ipcRouter.filesystemSaveFile({
-      title: "保存文件",
-      defaultPath: "untitled.txt",
-      filters: [
-        { name: "文本文件", extensions: ["txt"] },
-        { name: "所有文件", extensions: ["*"] },
-      ],
-    });
-    showResult(path, "保存文件路径");
-  } catch (error) {
-    handleError(error, "保存文件");
-  }
-};
-
-// ==================== 日志管理工具 ====================
-const getLogs = async () => {
-  try {
-    const logs = await api.ipcRouter.logGetLogs();
-    showResult(logs, "日志数据");
-  } catch (error) {
-    handleError(error, "获取日志");
-  }
-};
-
-const getRawLogContent = async () => {
-  try {
-    const content = await api.ipcRouter.logGetRawLogContent();
-    showResult(content, "原始日志内容");
-  } catch (error) {
-    handleError(error, "获取原始日志内容");
-  }
-};
-
-const getLogInfo = async () => {
-  try {
-    const info = await api.ipcRouter.logGetLogInfo();
-    showResult(info, "日志信息");
-  } catch (error) {
-    handleError(error, "获取日志信息");
-  }
-};
-
-const clearLogs = async () => {
-  try {
-    await api.ipcRouter.logClearLogs();
-    message.value = "日志已清空";
-    result.value = "日志已清空";
-  } catch (error) {
-    handleError(error, "清空日志");
-  }
-};
-
-const exportLogsTxt = async () => {
-  try {
-    const content = await api.ipcRouter.logExportLogs("txt");
-    showResult(content, "导出TXT格式日志");
-  } catch (error) {
-    handleError(error, "导出TXT日志");
-  }
-};
-
-const exportLogsJson = async () => {
-  try {
-    const content = await api.ipcRouter.logExportLogs("json");
-    showResult(content, "导出JSON格式日志");
-  } catch (error) {
-    handleError(error, "导出JSON日志");
-  }
-};
-
-const openLogViewer = async () => {
-  try {
-    await api.ipcRouter.windowOpenLogViewer();
-    message.value = "日志查看器已打开";
-    result.value = "日志查看器已打开";
-  } catch (error) {
-    handleError(error, "打开日志查看器");
-  }
-};
-
-// ==================== 存储管理工具 ====================
-const getAllConfig = async () => {
-  try {
-    // 不传参数获取所有配置
-    const config = await (api.ipcRouter as any).storeGet();
-    showResult(config, "所有配置");
-  } catch (error) {
-    handleError(error, "获取所有配置");
-  }
-};
-
-const setTestConfig = async () => {
-  try {
-    const testData = {
-      theme: "dark" as const,
-      language: "zh-CN",
-      windowSize: {
-        width: 1200,
-        height: 800,
-      },
-      logLevel: "info" as const,
+    // 创建文件项
+    const fileItem: AppItem = {
+      name: file.name,
+      path: filePath, // 使用实际的文件路径
+      icon: null, // 初始设置为 null，稍后提取图标
+      lastUsed: Date.now(),
+      usageCount: 1,
     };
-    await api.ipcRouter.storeSet("theme", testData.theme);
-    showResult(testData, "设置测试配置");
-  } catch (error) {
-    handleError(error, "设置测试配置");
+
+    // 提取文件图标
+    try {
+      console.log("开始提取文件图标:", filePath);
+      const icon = await api.ipcRouter.appExtractFileIcon(filePath);
+      if (icon) {
+        fileItem.icon = icon;
+        console.log("文件图标提取成功");
+      } else {
+        console.log("文件图标提取失败，使用默认图标");
+      }
+    } catch (error) {
+      console.error("提取文件图标时出错:", error);
+    }
+
+    // 添加到文件列表
+    updateCategoryInBoth("files", (filesCategory) => {
+      // 检查是否已存在相同文件
+      const existingIndex = filesCategory.items.findIndex(
+        (item) => item.path === fileItem.path
+      );
+      if (existingIndex >= 0) {
+        // 更新已存在文件的使用次数和最后使用时间
+        filesCategory.items[existingIndex].lastUsed = Date.now();
+        filesCategory.items[existingIndex].usageCount =
+          (filesCategory.items[existingIndex].usageCount || 0) + 1;
+      } else {
+        // 添加新文件到列表开头
+        filesCategory.items.unshift(fileItem);
+        // 限制文件列表长度
+        if (filesCategory.items.length > filesCategory.maxDisplayCount) {
+          filesCategory.items = filesCategory.items.slice(
+            0,
+            filesCategory.maxDisplayCount
+          );
+        }
+      }
+    });
+
+    // 保存到 electron-store
+    const originalFilesCategory = originalCategories.value.find(
+      (cat) => cat.id === "files"
+    );
+    if (originalFilesCategory) {
+      try {
+        await api.ipcRouter.storeSet(
+          "fileList",
+          serializeAppItems(originalFilesCategory.items)
+        );
+        console.log("文件列表已保存到 electron-store");
+      } catch (error) {
+        console.error("保存文件列表失败:", error);
+      }
+    }
+
+    // 将文件名设置到搜索框中
+    searchText.value = file.name;
+    // 执行搜索
+    await handleSearch(file.name);
   }
 };
 
-const clearAllConfig = async () => {
+// 处理搜索
+const handleSearch = async (_value: string) => {
+  // 重置选中索引
+  selectedIndex.value = 0;
+  await performSearch();
+};
+
+const debouncedHandleSearch = useDebounceFn(() => handleSearch(searchText.value), 100);
+
+// 为应用项目重新获取图标
+const loadAppIcons = async (items: AppItem[]): Promise<AppItem[]> => {
+  const itemsWithIcons = await Promise.all(
+    items.map(async (item) => {
+      if (item.icon) {
+        // 如果已经有图标，直接返回
+        return item;
+      }
+
+      try {
+        // 重新获取图标
+        const icon = await api.ipcRouter.appExtractFileIcon(item.path);
+        return { ...item, icon };
+      } catch (error) {
+        console.warn(`获取应用图标失败: ${item.name}`, error);
+        return { ...item, icon: null };
+      }
+    })
+  );
+
+  return itemsWithIcons;
+};
+
+const initAppApps = async () => {
+  appApps = await api.ipcRouter.appSearchApps();
+
+  // 从 electron-store 获取存储的数据
+  const recentApps = (await api.ipcRouter.storeGet("recentApps")) || [];
+  const pinnedApps = (await api.ipcRouter.storeGet("pinnedApps")) || [];
+  const fileList = (await api.ipcRouter.storeGet("fileList")) || [];
+
+  // 为存储的应用重新获取图标
+  const recentAppsWithIcons = await loadAppIcons(recentApps);
+  const pinnedAppsWithIcons = await loadAppIcons(pinnedApps);
+  const fileListWithIcons = await loadAppIcons(fileList);
+
+  // 初始化原始分类数据
+  originalCategories.value = [
+    {
+      id: "recent",
+      name: "最近使用",
+      items: recentAppsWithIcons,
+      isDragEnabled: false,
+      maxDisplayCount: 16,
+      isExpanded: false,
+    },
+    {
+      id: "pinned",
+      name: "已固定",
+      items: pinnedAppsWithIcons,
+      isDragEnabled: true,
+      maxDisplayCount: 16,
+      isExpanded: false,
+    },
+    {
+      id: "files",
+      name: "文件",
+      items: fileListWithIcons,
+      isDragEnabled: true,
+      maxDisplayCount: 16,
+      isExpanded: false,
+      customSearch: (searchText: string, items: AppItem[]) => {
+        // 自定义文件搜索逻辑，可以按文件名、扩展名等搜索
+        return items.filter((item) => {
+          const name = item.name.toLowerCase();
+          const query = searchText.toLowerCase();
+          return name.includes(query) || name.split(".").pop()?.includes(query);
+        });
+      },
+    },
+    {
+      id: "applications",
+      name: "应用",
+      items: [...appApps],
+      isDragEnabled: false,
+      maxDisplayCount: 24,
+      isExpanded: false,
+    },
+  ];
+};
+
+// 执行搜索
+const performSearch = async () => {
   try {
-    await api.ipcRouter.storeClear();
-    message.value = "所有配置已清空";
-    result.value = "所有配置已清空";
+    isSearching.value = true;
+    console.log("开始搜索应用...");
+
+    const searchQuery = searchText.value.trim();
+    const filteredCategories: SearchCategory[] = [];
+
+    // 遍历原始分类数据进行搜索
+    for (const category of originalCategories.value) {
+      let filteredItems: AppItem[] = [];
+
+      if (searchQuery.length === 0) {
+        // 没有搜索条件时显示所有项目
+        filteredItems = [...category.items];
+      } else {
+        // 有搜索条件时进行过滤
+        if (category.customSearch) {
+          // 使用自定义搜索逻辑
+          filteredItems = category.customSearch(searchQuery, category.items);
+        } else {
+          // 使用默认搜索逻辑（名称包含搜索文本）
+          filteredItems = category.items.filter((item) =>
+            item.name.toLowerCase().includes(searchQuery.toLowerCase())
+          );
+        }
+      }
+
+      // 只有当分类有搜索结果时才添加到结果中
+      if (filteredItems.length > 0) {
+        filteredCategories.push({
+          ...category,
+          items: filteredItems,
+        });
+      }
+    }
+
+    searchCategories.value = filteredCategories;
+
+    // 更新扁平化项目列表并重置选中索引
+    updateFlatItems();
+    selectedIndex.value = 0; // 重置为第一项
+
+    showContentArea();
+
+    // 滚动到选中的项目
+    scrollToSelectedItem();
+
+    console.log(`搜索完成，找到 ${filteredCategories.length} 个分类`);
   } catch (error) {
-    handleError(error, "清空所有配置");
+    console.error("搜索失败:", error);
+    searchCategories.value = [];
+    flatItems.value = [];
+    selectedIndex.value = 0;
+  } finally {
+    isSearching.value = false;
   }
 };
 
-// ==================== 窗口管理工具 ====================
-const minimizeWindow = async () => {
+// 启动应用
+const launchApp = async (app: AppItem) => {
   try {
-    await api.ipcRouter.windowMinimize();
-    message.value = "窗口已最小化";
-    result.value = "窗口已最小化";
+    console.log("启动应用:", app.name, app.path);
+    // 调用主进程的启动应用 API
+    const success = await api.ipcRouter.appLaunchApp(app.path);
+    if (success) {
+      console.log("应用启动成功");
+
+      // 更新最近使用记录
+      await updateRecentApps(app);
+
+      // 启动成功后可以关闭窗口或清空搜索结果
+      searchCategories.value = [];
+    } else {
+      console.error("应用启动失败");
+    }
   } catch (error) {
-    handleError(error, "最小化窗口");
+    console.error("启动应用失败:", error);
   }
 };
 
-const maximizeWindow = async () => {
+// 更新最近使用应用记录
+const updateRecentApps = async (app: AppItem) => {
   try {
-    await api.ipcRouter.windowMaximize();
-    message.value = "窗口状态已切换";
-    result.value = "窗口状态已切换";
+    // 创建应用项副本，添加使用信息
+    const appWithUsage: AppItem = {
+      ...app,
+      lastUsed: Date.now(),
+      usageCount: 1,
+    };
+
+    updateCategoryInBoth("recent", (recentCategory) => {
+      // 检查是否已存在于最近使用列表中
+      const existingIndex = recentCategory.items.findIndex(
+        (item) => item.path === app.path
+      );
+      if (existingIndex >= 0) {
+        // 更新已存在应用的使用信息
+        recentCategory.items[existingIndex].lastUsed = Date.now();
+        recentCategory.items[existingIndex].usageCount =
+          (recentCategory.items[existingIndex].usageCount || 0) + 1;
+
+        // 移动到列表开头
+        const updatedApp = recentCategory.items.splice(existingIndex, 1)[0];
+        recentCategory.items.unshift(updatedApp);
+      } else {
+        // 添加新应用到列表开头
+        recentCategory.items.unshift(appWithUsage);
+      }
+
+      // 限制最近使用列表长度
+      if (recentCategory.items.length > recentCategory.maxDisplayCount) {
+        recentCategory.items = recentCategory.items.slice(
+          0,
+          recentCategory.maxDisplayCount
+        );
+      }
+    });
+
+    // 保存到 electron-store
+    const originalRecentCategory = originalCategories.value.find(
+      (cat) => cat.id === "recent"
+    );
+    if (originalRecentCategory) {
+      await api.ipcRouter.storeSet(
+        "recentApps",
+        serializeAppItems(originalRecentCategory.items)
+      );
+      console.log("最近使用应用记录已更新");
+    }
   } catch (error) {
-    handleError(error, "最大化/还原窗口");
+    console.error("更新最近使用应用记录失败:", error);
   }
 };
 
-const closeWindow = async () => {
+// 处理分类展开/收起
+const handleCategoryToggle = (categoryId: string) => {
+  updateCategoryInBoth(categoryId, (category) => {
+    category.isExpanded = !category.isExpanded;
+  });
+  // 更新扁平化项目列表
+  updateFlatItems();
+};
+
+// 处理分类内拖拽排序
+const handleCategoryDragEnd = async (categoryId: string, newItems: AppItem[]) => {
+  updateCategoryInBoth(categoryId, (category) => {
+    category.items = newItems;
+  });
+
+  // 根据分类类型保存到对应的 electron-store 字段
   try {
-    await api.ipcRouter.windowClose();
-    message.value = "窗口已关闭";
-    result.value = "窗口已关闭";
+    const serializableItems = serializeAppItems(newItems);
+
+    switch (categoryId) {
+      case "pinned":
+        await api.ipcRouter.storeSet("pinnedApps", serializableItems);
+        console.log("已固定应用排序已保存到 electron-store");
+        break;
+      case "recent":
+        await api.ipcRouter.storeSet("recentApps", serializableItems);
+        console.log("最近使用应用排序已保存到 electron-store");
+        break;
+      case "files":
+        await api.ipcRouter.storeSet("fileList", serializableItems);
+        console.log("文件列表排序已保存到 electron-store");
+        break;
+      default:
+        console.log(`分类 ${categoryId} 排序已更新，但无需保存到存储`);
+    }
   } catch (error) {
-    handleError(error, "关闭窗口");
+    console.error(`保存分类 ${categoryId} 排序失败:`, error);
   }
 };
 
-const checkMaximized = async () => {
+// 处理应用删除
+const handleAppDelete = async (app: AppItem, categoryId: string) => {
+  updateCategoryInBoth(categoryId, (category) => {
+    const index = category.items.findIndex((item) => item.path === app.path);
+    if (index > -1) {
+      category.items.splice(index, 1);
+    }
+  });
+
+  // 根据分类类型保存到对应的 electron-store 字段
   try {
-    const isMaximized = await api.ipcRouter.windowIsMaximized();
-    showResult({ isMaximized }, "窗口状态");
+    const category = originalCategories.value.find((cat) => cat.id === categoryId);
+    if (category) {
+      const serializableItems = serializeAppItems(category.items);
+
+      switch (categoryId) {
+        case "pinned":
+          await api.ipcRouter.storeSet("pinnedApps", serializableItems);
+          console.log("已固定应用删除后已保存到 electron-store");
+          break;
+        case "recent":
+          await api.ipcRouter.storeSet("recentApps", serializableItems);
+          console.log("最近使用应用删除后已保存到 electron-store");
+          break;
+        case "files":
+          await api.ipcRouter.storeSet("fileList", serializableItems);
+          console.log("文件列表删除后已保存到 electron-store");
+          break;
+        default:
+          console.log(`分类 ${categoryId} 删除后已更新，但无需保存到存储`);
+      }
+    }
   } catch (error) {
-    handleError(error, "检查窗口状态");
-  }
-};
-
-// ==================== 调试工具 ====================
-const handleClick = async () => {
-  api.log.info(Math.random().toString(), await window.electronAPI.ipcRouter.appGetName());
-  console.log("按钮被点击了");
-
-  counter.value++;
-  message.value = `点击了 ${counter.value} 次`;
-
-  if (counter.value > 5) {
-    message.value = "计数器超过5了！";
+    console.error(`保存分类 ${categoryId} 删除后状态失败:`, error);
   }
 
-  showResult({ counter: counter.value, message: message.value }, "调试测试");
+  // 删除后重新执行搜索，以更新显示的分类（隐藏空分类）
+  await performSearch();
 };
 
-const handleAsyncClick = async () => {
-  console.log("开始异步操作");
-  message.value = "异步操作中...";
+// 处理应用固定
+const handleAppPin = async (app: AppItem, _categoryId: string) => {
+  // 创建应用的深拷贝，避免克隆错误
+  const appCopy = {
+    name: app.name,
+    path: app.path,
+    icon: app.icon,
+    // 只复制可序列化的属性
+    ...(app.lastUsed && { lastUsed: app.lastUsed }),
+    ...(app.usageCount && { usageCount: app.usageCount }),
+  };
 
+  // 添加到固定分类（不移除原分类中的应用）
+  updateCategoryInBoth("pinned", (pinnedCategory) => {
+    // 检查是否已经固定
+    const existingIndex = pinnedCategory.items.findIndex(
+      (item) => item.path === app.path
+    );
+    if (existingIndex === -1) {
+      pinnedCategory.items.unshift(appCopy);
+    }
+  });
+
+  // 保存到 electron-store
   try {
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    counter.value += 10;
-    message.value = "异步操作完成";
-    showResult({ counter: counter.value, message: message.value }, "异步操作测试");
+    const pinnedCategory = originalCategories.value.find((cat) => cat.id === "pinned");
+    if (pinnedCategory) {
+      const serializableItems = serializeAppItems(pinnedCategory.items);
+      await api.ipcRouter.storeSet("pinnedApps", serializableItems);
+      console.log("应用固定后已保存到 electron-store");
+    }
   } catch (error) {
-    console.error("异步操作失败", error);
-    message.value = "异步操作失败";
-    handleError(error, "异步操作");
-  }
-};
-
-const testErrorHandling = () => {
-  console.log("开始测试错误处理...");
-  message.value = "测试错误处理中...";
-
-  try {
-    throw new Error("手动测试错误 - 同步");
-  } catch (error) {
-    console.log("捕获到同步错误，调用错误处理器");
-    window.electronAPI.log.throw_error(error, { title: "手动测试错误 - 同步2" });
+    console.error("保存应用固定状态失败:", error);
   }
 
-  setTimeout(() => {
-    console.log("抛出未捕获的同步错误");
-    throw new Error("未捕获的同步错误");
-  }, 500);
-
-  setTimeout(() => {
-    console.log("抛出未捕获的异步错误");
-    Promise.reject(new Error("未捕获的异步错误"));
-  }, 1000);
-
-  message.value = "错误测试已启动，请查看控制台和错误对话框";
-  result.value = "错误测试已启动，请查看控制台和错误对话框";
+  // 固定后重新执行搜索，以更新显示的分类
+  await performSearch();
 };
 
-// 组件挂载时
-onMounted(() => {
-  console.log("App组件已挂载");
-  message.value = "App组件已挂载，可以开始调试了";
+// ==================== 监听器 ====================
+// 监听搜索结果变化，自动调整窗口大小
+watchDebounced(
+  () => searchCategories.value.length,
+  () => {
+    const hasResults = searchCategories.value.some(
+      (category) => category.items.length > 0
+    );
+    if (!hasResults) {
+      hideContentArea();
+    } else {
+      showContentArea();
+    }
+
+    if (contentAreaVisible.value) {
+      nextTick(() => {
+        updateWindowSize();
+      });
+    }
+  },
+  { debounce: 100 }
+);
+
+// 监听搜索文本变化，如果搜索文本为空，则隐藏内容区域
+// watchDebounced(searchText, () => {
+//   if (searchText.value.trim().length === 0) {
+//     hideContentArea();
+//     nextTick(() => {
+//       updateWindowSize();
+//     });
+//   }
+// });
+// ==================== 窗口焦点管理 ====================
+// 处理窗口获得焦点时的行为
+const handleWindowFocus = () => {
+  // 当窗口获得焦点时，自动聚焦到搜索输入框
+  nextTick(() => {
+    searchInputRef.value?.focus();
+  });
+};
+
+// ==================== 生命周期 ====================
+onMounted(async () => {
+  await initAppApps();
+  console.log("应用已挂载");
+  initializeWindowSize();
+
+  searchText.value = "";
+  performSearch();
+
+  // 监听窗口焦点事件
+  window.addEventListener("focus", handleWindowFocus);
+
+  // 确保容器可以获得焦点以接收键盘事件
+  nextTick(() => {
+    const container = document.querySelector(".w-full.h-full.p-\\[4px\\]") as HTMLElement;
+    if (container) {
+      container.focus();
+    }
+  });
+});
+
+onUnmounted(() => {
+  // 清理事件监听器
+  window.removeEventListener("focus", handleWindowFocus);
 });
 </script>
 
 <style scoped>
-@reference "@/style.css";
-
-.app-container {
-  @apply min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6;
-}
-
-.app-header {
-  @apply text-center mb-8;
-}
-
-.app-header h1 {
-  @apply text-4xl font-bold text-gray-800 mb-2;
-}
-
-.app-subtitle {
-  @apply text-lg text-gray-600;
-}
-
-.tools-grid {
-  @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-7xl mx-auto;
-}
-
-.tool-card {
-  @apply bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden;
-}
-
-.app-card {
-  @apply border-l-4 border-blue-500;
-}
-
-.filesystem-card {
-  @apply border-l-4 border-green-500;
-}
-
-.log-card {
-  @apply border-l-4 border-orange-500;
-}
-
-.store-card {
-  @apply border-l-4 border-purple-500;
-}
-
-.window-card {
-  @apply border-l-4 border-red-500;
-}
-
-.debug-card {
-  @apply border-l-4 border-gray-500;
-}
-
-.card-header {
-  @apply flex items-center p-4 bg-gray-50 border-b;
-}
-
-.card-icon {
-  @apply w-6 h-6 mr-3 text-gray-600;
-}
-
-.card-header h2 {
-  @apply text-xl font-semibold text-gray-800;
-}
-
-.card-content {
-  @apply p-4;
-}
-
-.card-description {
-  @apply text-sm text-gray-600 mb-4;
-}
-
-.button-grid {
-  @apply grid grid-cols-2 gap-2;
-}
-
-.tool-btn {
-  @apply px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200;
-  @apply bg-blue-500 text-white hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2;
-}
-
-.tool-btn.warning {
-  @apply bg-yellow-500 hover:bg-yellow-600 focus:ring-yellow-500;
-}
-
-.tool-btn.danger {
-  @apply bg-red-500 hover:bg-red-600 focus:ring-red-500;
-}
-
-.tool-btn.log-btn {
-  @apply bg-green-500 hover:bg-green-600 focus:ring-green-500;
-}
-
-.debug-info {
-  @apply mt-4 p-3 bg-gray-50 rounded-lg;
-}
-
-.debug-info p {
-  @apply text-sm text-gray-700 mb-1;
-}
-
-.result-section {
-  @apply mt-8 max-w-7xl mx-auto;
-}
-
-.result-section h3 {
-  @apply text-xl font-semibold text-gray-800 mb-3;
-}
-
-.result-content {
-  @apply bg-gray-900 text-green-400 p-4 rounded-lg overflow-auto text-sm font-mono;
-  @apply max-h-96 border border-gray-700;
-}
-
-/* 响应式设计 */
-@media (max-width: 768px) {
-  .tools-grid {
-    @apply grid-cols-1;
-  }
-
-  .button-grid {
-    @apply grid-cols-1;
-  }
-
-  .app-header h1 {
-    @apply text-3xl;
-  }
-}
-
-/* 动画效果 */
-.tool-card:hover {
-  @apply transform -translate-y-1;
-}
-
-.tool-btn:active {
-  @apply transform scale-95;
-}
-
-/* 滚动条样式 */
-.result-content::-webkit-scrollbar {
-  @apply w-2;
-}
-
-.result-content::-webkit-scrollbar-track {
-  @apply bg-gray-800;
-}
-
-.result-content::-webkit-scrollbar-thumb {
-  @apply bg-gray-600 rounded;
-}
-
-.result-content::-webkit-scrollbar-thumb:hover {
-  @apply bg-gray-500;
+/* 只保留特殊的样式，如 -webkit-app-region 等无法通过 TailwindCSS 实现的样式 */
+.no-drag {
+  -webkit-app-region: no-drag;
 }
 </style>

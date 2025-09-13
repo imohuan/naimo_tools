@@ -16,6 +16,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: resolve(__dirname, 'src/main/main.ts'),
+        iconWorker: resolve(__dirname, 'src/main/workers/icon-worker.ts'),
       },
       external: [
         'electron',
@@ -34,9 +35,12 @@ export default defineConfig({
         'events',
         'stream',
         'buffer',
+        'child_process',
         'clean-stack',
         'ensure-error',
         'lodash-es',
+        "extract-file-icon",
+        'crypto',
         'serialize-error'
       ],
       output: {
@@ -47,7 +51,7 @@ export default defineConfig({
         // 强制将所有代码打包到单个文件中
         manualChunks: undefined,
         // 禁用代码分割，确保所有代码都在一个文件中
-        inlineDynamicImports: true,
+        inlineDynamicImports: false,
       }
     },
     target: 'node18'

@@ -1,11 +1,11 @@
-import { BrowserWindow, BrowserWindowConstructorOptions } from 'electron';
+import { BrowserWindow, BrowserWindowConstructorOptions, shell } from 'electron';
 import { join } from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import { readFileSync } from 'fs';
 import log from 'electron-log';
-import { AppConfig } from '../../shared/types';
-import { isProduction } from '../../shared/utils';
+import { AppConfig } from '@shared/types';
+import { isProduction } from '@shared/utils';
 
 // 从 package.json 读取渲染进程URL配置
 function getRendererUrl(): string {
@@ -53,6 +53,11 @@ export class WindowConfigManager {
       },
       show: false,
       titleBarStyle: 'default',
+      frame: false, // 无边框窗口，支持自定义拖拽区域
+      resizable: false,
+      minimizable: true,
+      maximizable: false, // 禁用最大化，保持搜索框界面
+      transparent: true,
       icon: isProduction() ? join(__dirname, '../../setup/exe.ico') : undefined
     };
   }
@@ -60,7 +65,10 @@ export class WindowConfigManager {
   /**
    * 设置窗口事件监听器
    */
-  static setupWindowEvents(window: BrowserWindow, onResize?: (width: number, height: number) => void): void {
+  static setupWindowEvents(window: BrowserWindow, options: {
+    devToolOptions?: Electron.OpenDevToolsOptions,
+    onResize?: (width: number, height: number) => void
+  } = {}): void {
     // 窗口准备好后显示
     window.once('ready-to-show', () => {
       window.show();
@@ -68,22 +76,22 @@ export class WindowConfigManager {
     });
 
     // 监听窗口大小变化
-    if (onResize) {
+    if (options.onResize) {
       window.on('resize', () => {
         const [width, height] = window.getSize();
-        onResize(width, height);
+        options.onResize!(width, height);
       });
     }
 
     // 开发环境下打开开发者工具
     if (!isProduction()) {
-      window.webContents.openDevTools();
+      window.webContents.openDevTools(options.devToolOptions);
     }
 
     // 处理外部链接
     window.webContents.setWindowOpenHandler(({ url }) => {
       // 在默认浏览器中打开外部链接
-      require('electron').shell.openExternal(url);
+      shell.openExternal(url);
       return { action: 'deny' };
     });
   }
