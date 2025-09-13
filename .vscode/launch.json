@@ -1,0 +1,84 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "🔧 启动开发服务器",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/scripts/dev.js",
+      "args": ["--debug", "--renderer-debug"],
+      "console": "integratedTerminal",
+      "env": {
+        "NODE_ENV": "development",
+        "ELECTRON_ENABLE_LOGGING": "true"
+      },
+      "skipFiles": ["<node_internals>/**"],
+      "sourceMaps": true,
+      "outFiles": ["${workspaceFolder}/dist/**/*.js"],
+      "resolveSourceMapLocations": [
+        "${workspaceFolder}/src/**",
+        "${workspaceFolder}/dist/**",
+        "!**/node_modules/**"
+      ],
+      "autoAttachChildProcesses": false,
+      "timeout": 60000,
+      "outputCapture": "console"
+    },
+    {
+      "name": "🔧 Electron: 主进程",
+      "type": "node",
+      "request": "attach",
+      "port": 9229,
+      "restart": true,
+      "sourceMaps": true,
+      "outFiles": ["${workspaceFolder}/dist/main/**/*.js"],
+      "resolveSourceMapLocations": [
+        "${workspaceFolder}/src/main/**",
+        "${workspaceFolder}/dist/main/**",
+        "!**/node_modules/**"
+      ],
+      // "skipFiles": ["<node_internals>/**", "**/node_modules/**"],
+      "localRoot": "${workspaceFolder}",
+      "remoteRoot": "${workspaceFolder}",
+      "timeout": 30000,
+      "continueOnAttach": true,
+      "attachExistingChildren": false
+    },
+    {
+      "name": "🔧 Electron: 渲染进程",
+      "type": "chrome",
+      "request": "attach",
+      "port": 9222,
+      "webRoot": "${workspaceFolder}/src/renderer",
+      "sourceMaps": true,
+      "sourceMapPathOverrides": {},
+      "timeout": 30000,
+      "trace": true
+    },
+    {
+      "name": "🔧 Electron: Preload",
+      "type": "chrome",
+      "request": "attach",
+      "port": 9222,
+      "webRoot": "${workspaceFolder}",
+      "sourceMaps": true,
+      "sourceMapPathOverrides": {
+        "../../../src/*": "${workspaceFolder}/src/*"
+      },
+      "timeout": 30000,
+      "trace": true
+    }
+  ],
+  "compounds": [
+    {
+      "name": "🚀 开始调试",
+      "configurations": [
+        "🔧 启动开发服务器",
+        "🔧 Electron: 主进程",
+        "🔧 Electron: 渲染进程",
+        "🔧 Electron: Preload"
+      ],
+      "stopAll": true
+    }
+  ]
+}
