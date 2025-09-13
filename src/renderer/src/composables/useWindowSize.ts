@@ -1,4 +1,4 @@
-import { ref, computed, nextTick } from "vue";
+import { ref, computed, nextTick, type Ref } from "vue";
 import { useResizeObserver, useDebounceFn, watchDebounced } from "@vueuse/core";
 
 export interface WindowSizeConfig {
@@ -8,11 +8,11 @@ export interface WindowSizeConfig {
   defaultContentHeight: number;
 }
 
-export function useWindowSize(config: WindowSizeConfig) {
+export function useWindowSize(config: WindowSizeConfig, externalContentAreaRef?: Ref<HTMLElement | undefined>) {
   const { headerHeight, headerPadding, maxContentHeight, defaultContentHeight } = config;
 
   // ==================== 响应式数据 ====================
-  const contentAreaRef = ref<HTMLElement>();
+  const contentAreaRef = externalContentAreaRef || ref<HTMLElement>();
   const contentAreaVisible = ref(false);
   const contentAreaHeight = ref(defaultContentHeight);
 
@@ -23,7 +23,7 @@ export function useWindowSize(config: WindowSizeConfig) {
 
   // 使用 useResizeObserver 监听内容区域尺寸变化
   useResizeObserver(contentAreaRef, () => {
-    if (contentAreaVisible.value) {
+    if (contentAreaVisible.value && contentAreaRef.value) {
       updateWindowSizeDebounced();
     }
   });

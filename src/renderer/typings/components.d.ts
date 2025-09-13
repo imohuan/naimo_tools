@@ -9,6 +9,7 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     AppItem: typeof import('./../src/components/AppItem.vue')['default']
+    ContentArea: typeof import('./../src/components/ContentArea.vue')['default']
     ContextMenu: typeof import('./../src/components/ContextMenu.vue')['default']
     DraggableArea: typeof import('./../src/components/DraggableArea.vue')['default']
     HotkeyDemo: typeof import('./../src/components/HotkeyDemo.vue')['default']
@@ -21,6 +22,7 @@ declare module 'vue' {
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     SearchCategories: typeof import('./../src/components/SearchCategories.vue')['default']
+    SearchHeader: typeof import('./../src/components/SearchHeader.vue')['default']
     SearchInput: typeof import('./../src/components/SearchInput.vue')['default']
     SearchResults: typeof import('./../src/components/SearchResults.vue')['default']
   }
