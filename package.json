@@ -1,0 +1,76 @@
+{
+  "name": "naimo",
+  "version": "0.0.13",
+  "description": "A minimal Electron app with TypeScript, Vite, logging and storage",
+  "main": "dist/main/main.js",
+  "type": "module",
+  "scripts": {
+    "dev": "node scripts/dev.js --enable-ipc-types",
+    "dev:ui": "CHCP 65001 & node scripts/start-dev-ui.js",
+    "build": "node scripts/build.js",
+    "build:renderer": "vite build src/renderer --config src/renderer/vite.config.ts",
+    "build:main": "vite build --config vite.config.ts",
+    "build:preloads": "cross-env PRELOAD_ENTRY=basic NODE_ENV=development vite build --config vite.config.preloads.ts",
+    "kill": "taskkill /f /im naimo.exe",
+    "package": "npm run build && electron-forge package --platform=win32 --arch=x64",
+    "test-package": "node scripts/test-package.js",
+    "make": "npm run build && electron-forge make --platform=win32 --arch=x64",
+    "publish": "electron-forge publish",
+    "start": "CHCP 65001 & electron-forge start",
+    "forge:import": "electron-forge import",
+    "build:nsis-win64": "pnpm make && ./setup/NSIS/nsis-3.08/makensis.exe ./setup/NSIS/win-setup-x64.nsi",
+    "generate:ipc-types": "node scripts/generate-ipc-types.js",
+    "prebuild": "npm run generate:ipc-types",
+    "version:tag": "node scripts/version.js patch"
+  },
+  "keywords": [
+    "electron",
+    "typescript",
+    "vite"
+  ],
+  "author": "imohuan",
+  "license": "MIT",
+  "config": {
+    "dev": {
+      "rendererPort": 5173,
+      "rendererHost": "localhost"
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/imohuan/electron-vue3-template.git",
+    "owner": "imohuan",
+    "name": "electron-vue3-template"
+  },
+  "devDependencies": {
+    "@electron-forge/cli": "^7.9.0",
+    "@electron-forge/maker-deb": "^7.9.0",
+    "@electron-forge/maker-dmg": "^7.9.0",
+    "@electron-forge/maker-rpm": "^7.9.0",
+    "@electron-forge/maker-squirrel": "^7.9.0",
+    "@electron-forge/maker-zip": "^7.9.0",
+    "@electron-forge/plugin-auto-unpack-natives": "^7.9.0",
+    "@electron-forge/plugin-fuses": "^7.9.0",
+    "@electron-forge/publisher-github": "^7.9.0",
+    "@types/node": "^24.3.1",
+    "chokidar": "^4.0.3",
+    "concurrently": "^9.2.1",
+    "electron": "^38.0.0",
+    "javascript-obfuscator": "^4.1.1",
+    "nodemon": "^3.1.10",
+    "terser": "^5.44.0",
+    "ts-morph": "^27.0.0",
+    "typescript": "^5.9.2",
+    "vite": "^7.1.5",
+    "vite-plugin-commonjs": "^0.10.4",
+    "ws": "^8.18.3"
+  },
+  "dependencies": {
+    "@sentry/vue": "^10.11.0",
+    "clean-stack": "^5.2.0",
+    "electron-log": "^5.4.3",
+    "electron-store": "^10.1.0",
+    "update-electron-app": "^3.1.1",
+    "word-wrap": "^1.2.5"
+  }
+}

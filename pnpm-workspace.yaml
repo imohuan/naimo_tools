@@ -1,0 +1,7 @@
+packages:
+  - src/renderer
+  - libs
+
+onlyBuiltDependencies:
+  - electron
+  - esbuild

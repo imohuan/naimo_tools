@@ -1,0 +1,70 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        # 默认只构建 Windows 和 Ubuntu 平台，如果需要构建 macOS 平台，可以取消注释
+        # 注意：macOS 平台需要配置 macOS 签名，否则无法安装
+        # os: [ubuntu-latest, windows-latest, macos-latest]
+
+    runs-on: ${{ matrix.os }}
+
+    # =========================================================
+    # ▼▼▼ 新增此部分来授予工作流创建 Release 的权限 ▼▼▼
+    permissions:
+      contents: write
+    # =========================================================
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build application
+        run: pnpm run build
+
+      - name: Publish application
+        # 这里的 '&& matrix.os != 'macos-latest'' 是基于我们上次讨论的临时方案
+        # 如果您已经配置好了 macOS 签名，可以移除这个条件
+        if: startsWith(github.ref, 'refs/tags/v') && matrix.os != 'macos-latest'
+        run: pnpm run publish
+        env:
+          NODE_ENV: production
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Package application (non-release)
+        if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+        run: pnpm run make
+        env:
+          NODE_ENV: production
+
+      - name: Upload artifacts (non-release)
+        if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.os }}-build
+          path: out/
+          retention-days: 7
