@@ -176,7 +176,6 @@ export default {
       platforms: ['win32'],
       config: {
         name: pkg.name,
-        iconUrl: './setup/exe.ico',
         setupIcon: './setup/exe.ico',
       },
     },
