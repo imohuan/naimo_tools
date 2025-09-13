@@ -1,0 +1,1821 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>日志阅读器</title>
+
+  <!-- Editor CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs/loader.js"></script>
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: "Consolas", "Monaco", "Courier New", monospace;
+      background: #1e1e1e;
+      color: #d4d4d4;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .header {
+      background: #2d2d30;
+      padding: 12px 20px;
+      border-bottom: 1px solid #3e3e42;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+      -webkit-app-region: drag;
+      user-select: none;
+    }
+
+    .header h1 {
+      color: #569cd6;
+      font-size: 18px;
+      margin: 0;
+    }
+
+    .upload-section {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      -webkit-app-region: no-drag;
+    }
+
+    .file-input-wrapper {
+      position: relative;
+      display: inline-block;
+    }
+
+    .file-input {
+      position: absolute;
+      left: -9999px;
+      opacity: 0;
+    }
+
+    .file-input-label {
+      display: inline-block;
+      padding: 8px 16px;
+      background: #007acc;
+      color: white;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background 0.2s;
+    }
+
+    .file-input-label:hover {
+      background: #005a9e;
+    }
+
+    .file-info {
+      color: #cccccc;
+      font-size: 14px;
+    }
+
+    .window-controls {
+      display: flex;
+      gap: 8px;
+      -webkit-app-region: no-drag;
+    }
+
+    .window-btn {
+      width: 32px;
+      height: 32px;
+      border: none;
+      background: rgba(255, 255, 255, 0.2);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 4px;
+      transition: all 0.2s;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    }
+
+    .window-btn:hover {
+      background: rgba(255, 255, 255, 0.4);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+    }
+
+    .window-btn.close:hover {
+      background: #e81123;
+      box-shadow: 0 4px 8px rgba(232, 17, 35, 0.4);
+    }
+
+    .window-btn svg {
+      width: 18px;
+      height: 18px;
+      fill: #ffffff;
+      opacity: 1;
+      filter: brightness(1.2) contrast(1.2);
+    }
+
+    .window-btn:hover svg {
+      filter: brightness(1.4) contrast(1.4);
+    }
+
+    .window-btn.close:hover svg {
+      fill: white;
+      filter: brightness(1.4) contrast(1.4);
+    }
+
+    .controls {
+      background: #252526;
+      padding: 10px 20px;
+      border-bottom: 1px solid #3e3e42;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+      flex-wrap: wrap;
+      gap: 15px;
+    }
+
+    .controls-left {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      flex-wrap: wrap;
+      flex: 1;
+    }
+
+    .search-box {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .search-input {
+      background: #3c3c3c;
+      border: 1px solid #555;
+      color: #d4d4d4;
+      padding: 6px 12px;
+      border-radius: 4px;
+      font-size: 14px;
+      width: 250px;
+    }
+
+    .search-input:focus {
+      outline: none;
+      border-color: #007acc;
+    }
+
+    .search-input:disabled {
+      background: #2d2d30;
+      color: #666;
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+
+    .date-range-box {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .control-label {
+      color: #cccccc;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .date-range-container {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .date-input {
+      background: #3c3c3c;
+      border: 1px solid #555;
+      color: #d4d4d4;
+      padding: 4px 8px;
+      border-radius: 3px;
+      font-size: 12px;
+      width: 140px;
+    }
+
+    .date-input:focus {
+      outline: none;
+      border-color: #007acc;
+    }
+
+    .date-input:disabled {
+      background: #2d2d30;
+      color: #666;
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+
+    .date-separator {
+      color: #808080;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .log-level-box {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .log-level-filters {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .search-stats {
+      color: #808080;
+      font-size: 12px;
+      white-space: nowrap;
+      margin-left: auto;
+    }
+
+    .view-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+
+
+    .level-filter-tag {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 8px;
+      background: #3c3c3c;
+      border: 1px solid #555;
+      border-radius: 4px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+      user-select: none;
+    }
+
+    .level-filter-tag:hover {
+      background: #4a4a4a;
+    }
+
+    .level-filter-tag.active {
+      background: #007acc;
+      border-color: #007acc;
+      color: white;
+    }
+
+    .level-filter-tag.active.error {
+      background: #f44747;
+      border-color: #f44747;
+      color: white;
+    }
+
+    .level-filter-tag.active.warn {
+      background: #ffcc02;
+      border-color: #ffcc02;
+      color: #1e1e1e;
+    }
+
+    .level-filter-tag.active.info {
+      background: #75beff;
+      border-color: #75beff;
+      color: white;
+    }
+
+    .level-filter-tag.active.debug {
+      background: #4ec9b0;
+      border-color: #4ec9b0;
+      color: white;
+    }
+
+    .level-filter-tag.active.trace {
+      background: #9cdcfe;
+      border-color: #9cdcfe;
+      color: #1e1e1e;
+    }
+
+    .level-filter-tag.error {
+      border-color: #f44747;
+    }
+
+    .level-filter-tag.warn {
+      border-color: #ffcc02;
+    }
+
+    .level-filter-tag.info {
+      border-color: #75beff;
+    }
+
+    .level-filter-tag.debug {
+      border-color: #4ec9b0;
+    }
+
+    .level-filter-tag.trace {
+      border-color: #9cdcfe;
+    }
+
+    .level-filter-tag.all {
+      border-color: #9cdcfe;
+      font-weight: bold;
+    }
+
+    .level-filter-tag.active.all {
+      background: #9cdcfe;
+      border-color: #9cdcfe;
+      color: #1e1e1e;
+    }
+
+    .search-stats {
+      color: #808080;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .view-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-left: auto;
+    }
+
+    .btn {
+      padding: 6px 12px;
+      border: 1px solid #555;
+      background: #3c3c3c;
+      color: #d4d4d4;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      transition: all 0.2s;
+    }
+
+    .btn:hover {
+      background: #4a4a4a;
+    }
+
+    .btn.active {
+      background: #007acc;
+      border-color: #007acc;
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .btn.primary {
+      background: #007acc;
+      border-color: #007acc;
+      color: white;
+    }
+
+    .btn.primary:hover {
+      background: #005a9e;
+    }
+
+    .btn.active {
+      background: #4caf50;
+      border-color: #4caf50;
+      color: white;
+    }
+
+    .btn.active:hover {
+      background: #45a049;
+    }
+
+    .filter-input {
+      background: #3c3c3c;
+      border: 1px solid #555;
+      color: #d4d4d4;
+      padding: 4px 8px;
+      border-radius: 3px;
+      font-size: 12px;
+    }
+
+    .filter-input:focus {
+      outline: none;
+      border-color: #007acc;
+    }
+
+    .editor-container {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .loading-spinner {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      z-index: 1000;
+    }
+
+    .spinner {
+      width: 24px;
+      height: 24px;
+      border: 3px solid #3c3c3c;
+      border-top: 3px solid #007acc;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% {
+        transform: rotate(0deg);
+      }
+
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+
+    .empty-state {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      color: #808080;
+      font-size: 16px;
+    }
+
+    .progress-bar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 3px;
+      background: #007acc;
+      transition: width 0.3s ease;
+      z-index: 1000;
+    }
+
+    /* 响应式设计 */
+    @media (max-width: 1200px) {
+      .controls-left {
+        gap: 15px;
+      }
+
+      .search-input {
+        width: 200px;
+      }
+
+      .date-input {
+        width: 120px;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .header {
+        flex-direction: column;
+        gap: 10px;
+        align-items: stretch;
+      }
+
+      .upload-section {
+        justify-content: center;
+      }
+
+      .controls {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 15px;
+      }
+
+      .controls-left {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 15px;
+      }
+
+      .search-box,
+      .date-range-box,
+      .log-level-box {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+      }
+
+      .search-input {
+        width: 100%;
+      }
+
+      .date-range-container {
+        justify-content: center;
+      }
+
+      .date-input {
+        width: 100%;
+      }
+
+      .log-level-filters {
+        justify-content: center;
+      }
+
+      .search-stats {
+        margin-left: 0;
+        text-align: center;
+      }
+
+      .view-controls {
+        justify-content: center;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="header">
+    <h1>📄 日志阅读器</h1>
+    <div class="h-upload-section" style="display: none;">
+      <div class="file-input-wrapper">
+        <input type="file" id="fileInput" class="file-input" accept=".log,.txt,.json,.csv">
+        <label for="fileInput" class="file-input-label">选择日志文件</label>
+      </div>
+      <div class="file-info" id="fileInfo">未选择文件</div>
+    </div>
+    <div class="window-controls">
+      <button class="window-btn minimize" id="minimizeBtn" title="最小化">
+        <svg viewBox="0 0 12 12">
+          <rect x="2" y="5.5" width="8" height="1" fill="currentColor" />
+        </svg>
+      </button>
+      <button class="window-btn maximize" id="maximizeBtn" title="最大化">
+        <svg viewBox="0 0 12 12">
+          <rect x="2" y="2" width="8" height="8" fill="none" stroke="currentColor" stroke-width="1" />
+        </svg>
+      </button>
+      <button class="window-btn close" id="closeBtn" title="关闭">
+        <svg viewBox="0 0 12 12">
+          <path d="M3 3l6 6M9 3l-6 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <div class="controls">
+    <div class="controls-left">
+      <div class="search-box">
+        <label class="control-label">搜索:</label>
+        <input type="text" id="searchInput" class="search-input" placeholder="搜索日志内容..." disabled>
+        <button class="btn" id="regexToggleBtn" disabled title="切换正则表达式模式">.*</button>
+      </div>
+
+      <div class="date-range-box">
+        <label class="control-label">时间范围:</label>
+        <div class="date-range-container">
+          <input type="datetime-local" id="startTime" class="date-input" disabled>
+          <span class="date-separator">至</span>
+          <input type="datetime-local" id="endTime" class="date-input" disabled>
+        </div>
+      </div>
+
+      <div class="log-level-box">
+        <label class="control-label">日志级别:</label>
+        <div class="log-level-filters">
+          <div class="level-filter-tag error" data-level="error">ERROR</div>
+          <div class="level-filter-tag warn" data-level="warn">WARN</div>
+          <div class="level-filter-tag info" data-level="info">INFO</div>
+          <div class="level-filter-tag debug" data-level="debug">DEBUG</div>
+          <div class="level-filter-tag trace" data-level="trace">TRACE</div>
+          <div class="level-filter-tag all" data-level="all" title="显示所有日志">*</div>
+        </div>
+      </div>
+
+      <div class="search-stats" id="searchStats"></div>
+    </div>
+    <div class="view-controls">
+      <button class="btn" id="clearLogs">清空日志</button>
+      <button class="btn" id="exportLogs">导出日志</button>
+      <button class="btn primary" id="refreshLogs">刷新</button>
+      <button class="btn" id="autoRefreshBtn">自动刷新</button>
+      <select id="refreshInterval" class="filter-input">
+        <option value="1" selected>1秒</option>
+        <option value="2">2秒</option>
+        <option value="3">3秒</option>
+        <option value="4">4秒</option>
+        <option value="5">5秒</option>
+        <option value="10">10秒</option>
+        <option value="30">30秒</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="editor-container">
+    <div class="progress-bar" id="progressBar" style="width: 0%;"></div>
+    <div id="monaco-editor" style="width: 100%; height: 100%;"></div>
+    <div class="loading-spinner" id="loadingSpinner" style="display: none;">
+      <div class="spinner"></div>
+    </div>
+    <div class="empty-state" id="emptyState">
+      <p>正在加载Electron应用日志...</p>
+      <p style="font-size: 12px; margin-top: 10px; color: #666;">
+        如果长时间无响应，请检查Electron API是否可用
+      </p>
+      <p style="font-size: 11px; margin-top: 8px; color: #555;">
+        您也可以选择本地日志文件进行查看
+      </p>
+    </div>
+  </div>
+
+  <script>
+    class MonacoLogViewer {
+      constructor() {
+        this.editor = null;
+        this.file = null;
+        this.fileContent = '';
+        this.searchResults = [];
+        this.currentSearchIndex = -1;
+        this.isLoading = false;
+        this.useRegex = false;
+        this.selectedLevels = new Set();
+        this.originalContent = '';
+        this.filteredContent = '';
+        this.previousOriginalContent = ''; // 存储上一次的原始内容用于对比
+
+        // 日志行数组
+        this.logLines = [];
+        this.currentSearchQuery = '';
+
+        // 日期过滤
+        this.startDate = null;
+        this.endDate = null;
+
+        // 自动刷新相关
+        this.autoRefreshEnabled = false;
+        this.autoRefreshInterval = null;
+        this.refreshIntervalSeconds = 1;
+
+        // 滚动吸附相关
+        this.scrollSnapEnabled = true; // 默认启用滚动吸附
+        this.scrollSnapThreshold = 120; // 距离底部80px内认为是"底部附近"
+
+        this.init();
+      }
+
+      async init() {
+        await this.initializeMonaco();
+        this.bindEvents();
+        // 初始化时自动加载Electron日志（使用初始加载方法）
+        await this.loadElectronLogsInitial();
+      }
+
+      async initializeMonaco() {
+        return new Promise((resolve) => {
+          require.config({ paths: { 'vs': 'https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs' } });
+          require(['vs/editor/editor.main'], () => {
+            this.registerLogLanguage();
+            this.setupMonacoEditor();
+            resolve();
+          });
+        });
+      }
+
+      setupMonacoEditor() {
+        this.editor = monaco.editor.create(document.getElementById('monaco-editor'), {
+          value: '',
+          language: 'log',
+          theme: 'log-theme',
+          readOnly: true,
+          wordWrap: 'on',
+          lineNumbers: 'on',
+          minimap: { enabled: true },
+          scrollBeyondLastLine: false,
+          automaticLayout: true,
+          fontSize: 13,
+          fontFamily: 'Consolas, Monaco, "Courier New", monospace',
+          lineHeight: 20,
+          cursorBlinking: 'blink',
+          cursorStyle: 'line',
+          selectOnLineNumbers: true,
+          roundedSelection: false,
+          contextmenu: true,
+          mouseWheelZoom: true,
+          smoothScrolling: true,
+          renderWhitespace: 'selection',
+          renderControlCharacters: true,
+          renderIndentGuides: true,
+          highlightActiveIndentGuide: true,
+          bracketPairColorization: { enabled: true },
+          guides: {
+            bracketPairs: true,
+            indentation: true
+          }
+        });
+
+        // 隐藏空状态
+        document.getElementById('emptyState').style.display = 'none';
+      }
+
+      registerLogLanguage() {
+        // 注册日志语言
+        monaco.languages.register({ id: 'log' });
+
+        // 定义日志语法高亮规则 - 修复版本
+        monaco.languages.setMonarchTokensProvider('log', {
+          tokenizer: {
+            root: [
+              // 时间戳格式 [YYYY-MM-DD HH:mm:ss.sss]
+              [/\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}(?:\.\d{3})?/, 'timestamp-token'],
+
+              // 日志级别 - [info], [debug], [error] 等格式
+              [/(\[)(info)(\])/i, ['bracket', 'info-token', 'bracket']],
+              [/(\[)(debug)(\])/i, ['bracket', 'debug-token', 'bracket']],
+              [/(\[)(warn)(\])/i, ['bracket', 'warn-token', 'bracket']],
+              [/(\[)(warning)(\])/i, ['bracket', 'warn-token', 'bracket']],
+              [/(\[)(error)(\])/i, ['bracket', 'error-token', 'bracket']],
+              [/(\[)(fatal)(\])/i, ['bracket', 'fatal-token', 'bracket']],
+              [/(\[)(trace)(\])/i, ['bracket', 'trace-token', 'bracket']],
+
+              // 日志级别 - <info>, <debug>, <error> 等格式
+              [/(<)(info)(>)/i, ['delimiter', 'info-token', 'delimiter']],
+              [/(<)(debug)(>)/i, ['delimiter', 'debug-token', 'delimiter']],
+              [/(<)(warn)(>)/i, ['delimiter', 'warn-token', 'delimiter']],
+              [/(<)(warning)(>)/i, ['delimiter', 'warn-token', 'delimiter']],
+              [/(<)(error)(>)/i, ['delimiter', 'error-token', 'delimiter']],
+              [/(<)(fatal)(>)/i, ['delimiter', 'fatal-token', 'delimiter']],
+              [/(<)(trace)(>)/i, ['delimiter', 'trace-token', 'delimiter']],
+
+              // 日志级别 - 纯文本格式
+              [/\b(info|debug|warn|warning|error|fatal|trace)\b/i, {
+                cases: {
+                  "info": "info-token",
+                  "debug": "debug-token",
+                  "warn": "warn-token",
+                  "warning": "warn-token",
+                  "error": "error-token",
+                  "fatal": "fatal-token",
+                  "trace": "trace-token"
+                }
+              }],
+
+              // IP地址
+              [/\b(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\b/, 'ip-address'],
+
+              // URL
+              [/(https?:\/\/[^\s]+)/, 'url'],
+
+              // 文件路径 (Windows和Unix格式)
+              [/([A-Za-z]:\\[^\s]+|[\/][^\s]+)/, 'file-path'],
+
+              // 版本号 v1.2.3 格式
+              [/\bv\d+\.\d+\.\d+\b/, 'version'],
+
+              // JSON格式的字符串
+              [/"[^"]*"/, 'string'],
+              [/'[^']*'/, 'string'],
+
+              // 数字
+              [/\b\d+(\.\d+)?\b/, 'number'],
+
+              // HTTP状态码
+              [/\b(1\d{2}|2\d{2}|3\d{2}|4\d{2}|5\d{2})\b/, 'http-status'],
+
+              // HTTP方法
+              [/\b(GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS)\b/i, 'http-method'],
+
+              // 布尔值和null
+              [/\b(true|false|null|undefined)\b/i, 'keyword'],
+
+              // 异常堆栈标识
+              [/^\s*at\s/, 'stack-trace'],
+              [/^\s*Caused by:/, 'stack-trace'],
+
+              // 其他文本
+              [/./, 'text']
+            ]
+          }
+        });
+
+        // 定义主题颜色 - 修复版本
+        monaco.editor.defineTheme('log-theme', {
+          base: 'vs-dark',
+          inherit: true,
+          rules: [
+            // 时间戳样式
+            { token: 'timestamp-token', foreground: '808080' },
+
+            // 日志级别样式 - 不同颜色
+            { token: 'error-token', foreground: 'f44747', fontStyle: 'bold' },
+            { token: 'fatal-token', foreground: 'f44747', fontStyle: 'bold' },
+            { token: 'warn-token', foreground: 'ffcc02', fontStyle: 'bold' },
+            { token: 'warning-token', foreground: 'ffcc02', fontStyle: 'bold' },
+            { token: 'info-token', foreground: '75beff', fontStyle: 'bold' },
+            { token: 'debug-token', foreground: '4ec9b0', fontStyle: 'bold' },
+            { token: 'trace-token', foreground: '9cdcfe', fontStyle: 'bold' },
+
+            // 网络相关
+            { token: 'ip-address', foreground: 'ce9178' },
+            { token: 'url', foreground: '9cdcfe', fontStyle: 'underline' },
+            { token: 'http-method', foreground: '569cd6', fontStyle: 'bold' },
+            { token: 'http-status', foreground: 'b5cea8', fontStyle: 'bold' },
+
+            // 文件路径
+            { token: 'file-path', foreground: 'ce9178' },
+
+            // 版本号
+            { token: 'version', foreground: 'b5cea8', fontStyle: 'bold' },
+
+            // 数据类型
+            { token: 'string', foreground: 'ce9178' },
+            { token: 'number', foreground: 'b5cea8' },
+            { token: 'keyword', foreground: '569cd6', fontStyle: 'bold' },
+
+            // 异常堆栈
+            { token: 'stack-trace', foreground: 'ff6b6b', fontStyle: 'italic' },
+
+            // 括号和分隔符 - 保持默认颜色
+            { token: 'bracket', foreground: 'd4d4d4' },
+            { token: 'delimiter', foreground: 'd4d4d4' },
+
+            // 默认文本
+            { token: 'text', foreground: 'd4d4d4' }
+          ],
+          colors: {
+            'editor.background': '#1e1e1e',
+            'editor.foreground': '#d4d4d4',
+            'editorLineNumber.foreground': '#858585',
+            'editorLineNumber.activeForeground': '#c6c6c6',
+            'editor.selectionBackground': '#264f78',
+            'editor.selectionHighlightBackground': '#add6ff26',
+            'editor.findMatchBackground': '#515c6a',
+            'editor.findMatchHighlightBackground': '#ea5c0055',
+            'editor.hoverHighlightBackground': '#264f7840',
+            'editor.lineHighlightBackground': '#2d2d30',
+            'editorCursor.foreground': '#aeafad',
+            'editorWhitespace.foreground': '#3e4042'
+          }
+        });
+
+        // 应用主题
+        monaco.editor.setTheme('log-theme');
+      }
+
+      bindEvents() {
+        // 文件选择 - 作为备用选项
+        document.getElementById('fileInput').addEventListener('change', (e) => {
+          if (e.target.files.length > 0) {
+            // 停止自动刷新
+            this.stopAutoRefresh();
+            this.autoRefreshEnabled = false;
+            const autoRefreshBtn = document.getElementById('autoRefreshBtn');
+            if (autoRefreshBtn) {
+              autoRefreshBtn.textContent = "自动刷新";
+              autoRefreshBtn.classList.remove("active");
+            }
+
+            // 加载选择的文件
+            this.loadFile(e.target.files[0]);
+          }
+        });
+
+        // 搜索
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+          this.search(e.target.value);
+        });
+
+        // 控制按钮
+        document.getElementById('clearLogs').addEventListener('click', () => {
+          this.clearLogs();
+        });
+
+        document.getElementById('exportLogs').addEventListener('click', () => {
+          this.exportLogs();
+        });
+
+        document.getElementById('refreshLogs').addEventListener('click', () => {
+          this.refreshLogs();
+        });
+
+        document.getElementById('autoRefreshBtn').addEventListener('click', () => {
+          this.toggleAutoRefresh();
+        });
+
+        document.getElementById('refreshInterval').addEventListener('change', (e) => {
+          this.refreshIntervalSeconds = parseInt(e.target.value);
+          if (this.autoRefreshEnabled) {
+            this.stopAutoRefresh();
+            this.startAutoRefresh();
+          }
+        });
+
+        // 窗口控制按钮
+        document.getElementById('minimizeBtn').addEventListener('click', () => {
+          this.minimizeWindow();
+        });
+
+        document.getElementById('maximizeBtn').addEventListener('click', () => {
+          this.maximizeWindow();
+        });
+
+        document.getElementById('closeBtn').addEventListener('click', () => {
+          this.closeWindow();
+        });
+
+        // 正则表达式切换按钮
+        document.getElementById('regexToggleBtn').addEventListener('click', () => {
+          this.toggleRegex();
+        });
+
+        // 日志等级过滤标签
+        document.querySelectorAll('.level-filter-tag').forEach(tag => {
+          tag.addEventListener('click', () => {
+            this.toggleLevelFilter(tag.dataset.level);
+          });
+        });
+
+        // 日期过滤
+        document.getElementById('startTime').addEventListener('change', (e) => {
+          this.startDate = e.target.value ? new Date(e.target.value) : null;
+          this.applyAllFilters(true); // 用户主动改变日期时强制更新
+        });
+
+        document.getElementById('endTime').addEventListener('change', (e) => {
+          this.endDate = e.target.value ? new Date(e.target.value) : null;
+          this.applyAllFilters(true); // 用户主动改变日期时强制更新
+        });
+
+        // 键盘快捷键
+        document.addEventListener('keydown', (e) => {
+          if (e.ctrlKey || e.metaKey) {
+            switch (e.key) {
+              case 'f':
+                e.preventDefault();
+                document.getElementById('searchInput').focus();
+                break;
+              case 'Home':
+                e.preventDefault();
+                this.gotoTop();
+                break;
+              case 'End':
+                e.preventDefault();
+                this.gotoBottom();
+                break;
+              case 'r':
+                e.preventDefault();
+                this.refreshLogs();
+                break;
+            }
+          } else if (e.key === 'Escape') {
+            document.getElementById('searchInput').blur();
+            this.clearSearch();
+          }
+        });
+      }
+
+      // 初始加载Electron日志（不使用累加逻辑）
+      async loadElectronLogsInitial() {
+        this.isLoading = true;
+        this.updateFileInfo('Electron应用日志');
+        this.showLoading();
+
+        try {
+          // 检查是否有electronAPI可用
+          if (!window.electronAPI || !window.electronAPI.ipcRouter) {
+            throw new Error('Electron API 不可用');
+          }
+
+          // 获取原始日志内容
+          const logContent = await window.electronAPI.ipcRouter.logGetRawLogContent();
+
+          this.originalContent = logContent;
+          this.previousOriginalContent = logContent;
+
+          // 将内容按行分割
+          this.logLines = logContent.split('\n').filter(line => line.trim() !== '');
+          console.log(`初始加载 ${this.logLines.length} 个日志条目`);
+
+          // 应用当前过滤器显示内容
+          this.updateEditorContent(true, true);
+          this.hideLoading();
+          this.enableControls();
+
+        } catch (error) {
+          console.error('初始加载Electron日志失败:', error);
+          this.showError('初始加载Electron日志失败: ' + error.message);
+        } finally {
+          this.isLoading = false;
+        }
+      }
+
+      // 刷新加载Electron日志（使用累加逻辑）
+      async loadElectronLogs() {
+        this.isLoading = true;
+        this.updateFileInfo('Electron应用日志');
+        this.showLoading();
+
+        try {
+          // 检查是否有electronAPI可用
+          if (!window.electronAPI || !window.electronAPI.ipcRouter) {
+            throw new Error('Electron API 不可用');
+          }
+
+          // 保存用户当前的选中状态和滚动位置
+          const currentSelection = this.editor.getSelection();
+          const currentScrollTop = this.editor.getScrollTop();
+          const currentScrollLeft = this.editor.getScrollLeft();
+
+          // 获取原始日志内容
+          const logContent = await window.electronAPI.ipcRouter.logGetRawLogContent();
+
+          // 检查是否有新内容
+          const hasNewContent = this.previousOriginalContent !== logContent;
+          console.log(`有新内容: ${hasNewContent}`);
+
+          if (hasNewContent) {
+            // 计算新增的日志行
+            const newLogLines = logContent.split('\n').filter(line => line.trim() !== '');
+            const previousLogLines = this.previousOriginalContent ?
+              this.previousOriginalContent.split('\n').filter(line => line.trim() !== '') : [];
+
+            // 找出新增的行
+            const newLines = newLogLines.slice(previousLogLines.length);
+            console.log(`新增 ${newLines.length} 行日志`);
+
+            if (newLines.length > 0) {
+              // 累加新日志行
+              this.logLines = this.logLines.concat(newLines);
+              this.originalContent = logContent;
+              this.previousOriginalContent = logContent;
+
+              // 应用过滤器并追加新内容
+              this.appendNewContent(newLines);
+
+              // 恢复用户的选中状态和滚动位置
+              if (currentSelection) {
+                this.editor.setSelection(currentSelection);
+              }
+              this.editor.setScrollTop(currentScrollTop);
+              this.editor.setScrollLeft(currentScrollLeft);
+            }
+          }
+
+          this.hideLoading();
+          this.enableControls();
+
+        } catch (error) {
+          console.error('加载Electron日志失败:', error);
+          this.showError('加载Electron日志失败: ' + error.message);
+        } finally {
+          this.isLoading = false;
+        }
+      }
+
+      async loadFile(file) {
+        this.file = file;
+        this.isLoading = true;
+        this.updateFileInfo();
+        this.showLoading();
+
+        try {
+          const fileContent = await this.readFileAsText(file);
+
+          // 文件模式直接替换所有内容，不进行累加
+          this.originalContent = fileContent;
+          this.previousOriginalContent = fileContent;
+
+          // 使用正则表达式分割日志条目，正确处理多行错误堆栈
+          // 匹配以时间戳开头的行作为新日志条目的开始
+          const logEntryRegex = /(?=^\[\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}\])/gm;
+          const logEntries = fileContent.split(logEntryRegex).filter(entry => entry.trim() !== '');
+
+          // 清理每个日志条目，移除开头的换行符
+          this.logLines = logEntries.map(entry => entry.trim());
+          console.log(`解析到 ${this.logLines.length} 个日志条目`);
+          console.log(this.logLines);
+
+          // 应用当前过滤器显示内容
+          this.updateEditorContent(true, true); // 文件加载时总是强制更新
+          this.hideLoading();
+          this.enableControls();
+
+        } catch (error) {
+          console.error('加载文件失败:', error);
+          this.showError('加载文件失败: ' + error.message);
+        } finally {
+          this.isLoading = false;
+        }
+      }
+
+      readFileAsText(file) {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = (e) => resolve(e.target.result);
+          reader.onerror = () => reject(new Error('文件读取失败'));
+          reader.readAsText(file, 'utf-8');
+        });
+      }
+
+      // 更新编辑器内容的方法
+      updateEditorContent(applyFilters = false, forceUpdate = false) {
+        if (applyFilters) {
+          // 如果指定应用过滤器，则使用applyAllFilters方法
+          this.applyAllFilters(forceUpdate);
+        } else {
+          // 否则直接显示所有内容
+          const content = this.logLines.join('\n');
+
+          // 检查内容是否有变化，如果没有变化且不强制更新，则跳过
+          if (!forceUpdate && this.filteredContent === content) {
+            console.log('内容无变化，跳过编辑器更新');
+            return;
+          }
+
+          this.editor.setValue(content);
+          this.filteredContent = content;
+        }
+      }
+
+      // 检测用户是否在编辑器底部附近
+      isNearBottom() {
+        if (!this.scrollSnapEnabled) {
+          return false;
+        }
+
+        const scrollTop = this.editor.getScrollTop();
+        const scrollHeight = this.editor.getScrollHeight();
+        const clientHeight = this.editor.getLayoutInfo().height;
+
+        // 计算距离底部的距离
+        const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
+
+        return distanceFromBottom <= this.scrollSnapThreshold;
+      }
+
+      // 滚动到底部
+      scrollToBottom() {
+        // 使用setTimeout确保在DOM更新后执行滚动
+        setTimeout(() => {
+          const scrollHeight = this.editor.getScrollHeight();
+          const clientHeight = this.editor.getLayoutInfo().height;
+          const maxScrollTop = scrollHeight - clientHeight;
+
+          console.log(`滚动到底部 - scrollHeight: ${scrollHeight}, clientHeight: ${clientHeight}, maxScrollTop: ${maxScrollTop}`);
+
+          this.editor.setScrollTop(maxScrollTop);
+
+          // 验证滚动是否成功，如果不成功则尝试备用方法
+          setTimeout(() => {
+            const actualScrollTop = this.editor.getScrollTop();
+            console.log(`滚动后实际位置: ${actualScrollTop}, 目标位置: ${maxScrollTop}`);
+
+            // 如果滚动没有成功，尝试备用方法
+            if (Math.abs(actualScrollTop - maxScrollTop) > 10) {
+              console.log('主要滚动方法失败，尝试备用方法');
+              this.scrollToBottomAlternative();
+            }
+          }, 50);
+        }, 10);
+      }
+
+      // 备用滚动到底部方法
+      scrollToBottomAlternative() {
+        try {
+          // 方法1：使用revealLineInCenter滚动到最后一行
+          const lineCount = this.editor.getModel().getLineCount();
+          this.editor.revealLineInCenter(lineCount);
+          console.log(`备用方法1：滚动到第${lineCount}行`);
+
+          // 方法2：如果方法1不工作，使用setScrollTop的极大值
+          setTimeout(() => {
+            this.editor.setScrollTop(Number.MAX_SAFE_INTEGER);
+            console.log('备用方法2：使用极大值滚动');
+          }, 100);
+        } catch (error) {
+          console.error('备用滚动方法失败:', error);
+        }
+      }
+
+      // 追加新内容到编辑器
+      appendNewContent(newLines) {
+        // 对新行应用当前过滤器
+        let filteredNewLines = newLines;
+
+        // 应用搜索过滤
+        if (this.currentSearchQuery && this.currentSearchQuery.trim()) {
+          try {
+            let searchPattern;
+            if (this.useRegex) {
+              searchPattern = new RegExp(this.currentSearchQuery, 'gi');
+            } else {
+              searchPattern = new RegExp(this.currentSearchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+            }
+
+            filteredNewLines = filteredNewLines.filter(line => {
+              return searchPattern.test(line);
+            });
+          } catch (error) {
+            console.error('搜索正则表达式错误:', error);
+            const searchTerm = this.currentSearchQuery.toLowerCase();
+            filteredNewLines = filteredNewLines.filter(line => {
+              return line.toLowerCase().includes(searchTerm);
+            });
+          }
+        }
+
+        // 应用日期过滤
+        if (this.startDate || this.endDate) {
+          filteredNewLines = filteredNewLines.filter(line => {
+            const timestamp = this.extractTimestamp(line);
+            if (!timestamp) return true;
+
+            const logTime = new Date(timestamp);
+
+            if (this.startDate && logTime < this.startDate) {
+              return false;
+            }
+
+            if (this.endDate && logTime > this.endDate) {
+              return false;
+            }
+
+            return true;
+          });
+        }
+
+        // 应用级别过滤
+        if (this.selectedLevels.size > 0) {
+          filteredNewLines = filteredNewLines.filter(line => {
+            for (const level of this.selectedLevels) {
+              const levelUpper = level.toUpperCase();
+              const levelLower = level.toLowerCase();
+
+              const bracketPattern = new RegExp(`\\[${levelUpper}\\]`, 'i');
+              const anglePattern = new RegExp(`<${levelUpper}>`, 'i');
+              const textPattern = new RegExp(`\\b${levelUpper}\\b`, 'i');
+              const lowerPattern = new RegExp(`\\b${levelLower}\\b`, 'i');
+
+              if (bracketPattern.test(line) ||
+                anglePattern.test(line) ||
+                textPattern.test(line) ||
+                lowerPattern.test(line)) {
+                return true;
+              }
+            }
+            return false;
+          });
+        }
+
+        // 如果有过滤后的新内容，追加到编辑器
+        if (filteredNewLines.length > 0) {
+          const newContent = filteredNewLines.join('\n');
+          console.log(`准备追加内容: ${newContent.substring(0, 100)}...`);
+
+          // 检查用户是否在底部附近（在更新内容前检查）
+          const wasNearBottom = this.isNearBottom();
+          console.log(`用户是否在底部附近: ${wasNearBottom}`);
+
+          // 获取当前光标位置和选中状态
+          const currentSelection = this.editor.getSelection();
+          const currentScrollTop = this.editor.getScrollTop();
+          const currentScrollLeft = this.editor.getScrollLeft();
+
+          // 获取当前内容并追加新内容
+          const currentContent = this.editor.getValue();
+          const separator = currentContent ? '\n' : '';
+          const updatedContent = currentContent + separator + newContent;
+
+          console.log(`当前内容长度: ${currentContent.length}, 新内容长度: ${newContent.length}`);
+
+          // 设置更新后的内容
+          this.editor.setValue(updatedContent);
+
+          // 更新过滤后的内容
+          this.filteredContent = updatedContent;
+
+          // 应用滚动吸附逻辑
+          if (wasNearBottom) {
+            // 如果用户之前在底部附近，自动滚动到底部显示新内容
+            console.log('应用滚动吸附：滚动到底部');
+            this.scrollToBottom();
+          } else {
+            // 如果用户不在底部附近，保持原来的滚动位置
+            console.log('保持用户滚动位置');
+            // 使用setTimeout确保在DOM更新后恢复滚动位置
+            setTimeout(() => {
+              this.editor.setScrollTop(currentScrollTop);
+              this.editor.setScrollLeft(currentScrollLeft);
+            }, 10);
+          }
+
+          // 恢复用户的选中状态（但不恢复滚动位置，因为已经处理了滚动吸附）
+          if (currentSelection) {
+            this.editor.setSelection(currentSelection);
+          }
+
+          console.log(`追加了 ${filteredNewLines.length} 行过滤后的内容`);
+        } else {
+          console.log('没有过滤后的新内容需要追加');
+        }
+      }
+
+      search(query) {
+        this.currentSearchQuery = query;
+        this.applyAllFilters(true); // 用户主动搜索时强制更新
+      }
+
+      // 应用所有过滤器
+      applyAllFilters(forceUpdate = false) {
+        let filteredLines = this.logLines;
+
+        // 搜索过滤
+        if (this.currentSearchQuery && this.currentSearchQuery.trim()) {
+          try {
+            let searchPattern;
+            if (this.useRegex) {
+              searchPattern = new RegExp(this.currentSearchQuery, 'gi');
+            } else {
+              searchPattern = new RegExp(this.currentSearchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+            }
+
+            filteredLines = filteredLines.filter(line => {
+              return searchPattern.test(line);
+            });
+
+          } catch (error) {
+            console.error('搜索正则表达式错误:', error);
+            // 正则表达式错误，回退到普通搜索
+            const searchTerm = this.currentSearchQuery.toLowerCase();
+            filteredLines = filteredLines.filter(line => {
+              return line.toLowerCase().includes(searchTerm);
+            });
+          }
+        }
+
+        // 日期过滤
+        if (this.startDate || this.endDate) {
+          filteredLines = filteredLines.filter(line => {
+            const timestamp = this.extractTimestamp(line);
+            if (!timestamp) return true; // 如果没有时间戳，保留该行
+
+            const logTime = new Date(timestamp);
+
+            if (this.startDate && logTime < this.startDate) {
+              return false;
+            }
+
+            if (this.endDate && logTime > this.endDate) {
+              return false;
+            }
+
+            return true;
+          });
+        }
+
+        // 级别过滤
+        if (this.selectedLevels.size > 0) {
+          filteredLines = filteredLines.filter(line => {
+            for (const level of this.selectedLevels) {
+              const levelUpper = level.toUpperCase();
+              const levelLower = level.toLowerCase();
+
+              // 支持多种日志格式
+              const bracketPattern = new RegExp(`\\[${levelUpper}\\]`, 'i');
+              const anglePattern = new RegExp(`<${levelUpper}>`, 'i');
+              const textPattern = new RegExp(`\\b${levelUpper}\\b`, 'i');
+              const lowerPattern = new RegExp(`\\b${levelLower}\\b`, 'i');
+
+              if (bracketPattern.test(line) ||
+                anglePattern.test(line) ||
+                textPattern.test(line) ||
+                lowerPattern.test(line)) {
+                return true;
+              }
+            }
+            return false;
+          });
+        } else {
+          // 如果没有选择任何级别，确保"all"按钮被选中
+          const allTag = document.querySelector(`[data-level="all"]`);
+          if (allTag && !allTag.classList.contains('active')) {
+            allTag.classList.add('active');
+          }
+        }
+
+        // 更新编辑器内容
+        const content = filteredLines.join('\n');
+
+        // 检查内容是否有变化，如果没有变化且不强制更新，则跳过
+        if (!forceUpdate && this.filteredContent === content) {
+          console.log('过滤后内容无变化，跳过编辑器更新');
+          return;
+        }
+
+        this.editor.setValue(content);
+        this.filteredContent = content;
+
+        // 使用Monaco Editor的搜索功能进行高亮
+        if (this.currentSearchQuery) {
+          this.highlightSearchInEditor(this.currentSearchQuery);
+        }
+
+        // 更新搜索统计
+        this.updateSearchStats(filteredLines.length);
+      }
+
+      // 提取时间戳
+      extractTimestamp(line) {
+        // 匹配 [YYYY-MM-DD HH:mm:ss.sss] 格式
+        const timestampMatch = line.match(/\[(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}(?:\.\d{3})?)\]/);
+        if (timestampMatch) {
+          return timestampMatch[1];
+        }
+
+        // 匹配其他常见的时间戳格式
+        const otherFormats = [
+          /(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z?)/, // ISO格式
+          /(\d{4}\/\d{2}\/\d{2}\s+\d{2}:\d{2}:\d{2})/, // YYYY/MM/DD HH:mm:ss
+          /(\d{2}\/\d{2}\/\d{4}\s+\d{2}:\d{2}:\d{2})/, // MM/DD/YYYY HH:mm:ss
+        ];
+
+        for (const format of otherFormats) {
+          const match = line.match(format);
+          if (match) {
+            return match[1];
+          }
+        }
+
+        return null;
+      }
+
+      // 在编辑器中高亮搜索内容
+      highlightSearchInEditor(query) {
+        try {
+          // 清除之前的搜索高亮
+          this.editor.getModel().findMatches('', false, true, true, null, true);
+
+          // 执行搜索并高亮显示
+          const matches = this.editor.getModel().findMatches(
+            query,
+            this.useRegex, // isRegex
+            false,         // matchCase
+            false,         // wholeWord
+            null,          // wordSeparators
+            true           // captureMatches
+          );
+
+          // 跳转到第一个匹配项
+          if (matches.length > 0) {
+            this.editor.setPosition(matches[0].range.getStartPosition());
+            this.editor.revealLineInCenter(matches[0].range.startLineNumber);
+            this.editor.setSelection(matches[0].range);
+          }
+
+        } catch (error) {
+          console.error('编辑器搜索高亮错误:', error);
+        }
+      }
+
+      clearSearch() {
+        this.currentSearchQuery = '';
+        this.editor.getModel().findMatches('', false, true, true, null, true);
+        this.applyAllFilters(true); // 用户主动清除搜索时强制更新
+      }
+
+
+      updateSearchStats(count) {
+        const stats = document.getElementById('searchStats');
+        if (count > 0) {
+          stats.textContent = `找到 ${count} 个匹配项`;
+        } else {
+          stats.textContent = '';
+        }
+      }
+
+
+      toggleRegex() {
+        this.useRegex = !this.useRegex;
+        const btn = document.getElementById('regexToggleBtn');
+        if (this.useRegex) {
+          btn.classList.add('active');
+          btn.textContent = '.*';
+          btn.title = '正则表达式模式 (已启用)';
+        } else {
+          btn.classList.remove('active');
+          btn.textContent = '.*';
+          btn.title = '切换正则表达式模式';
+        }
+
+        // 重新搜索当前查询
+        const currentQuery = document.getElementById('searchInput').value;
+        if (currentQuery) {
+          this.search(currentQuery);
+        } else {
+          // 如果没有搜索查询，也要重新应用过滤器
+          this.applyAllFilters(true);
+        }
+      }
+
+
+      gotoTop() {
+        this.editor.setPosition({ lineNumber: 1, column: 1 });
+        this.editor.revealLineInCenter(1);
+      }
+
+      gotoBottom() {
+        const lineCount = this.editor.getModel().getLineCount();
+        this.editor.setPosition({ lineNumber: lineCount, column: 1 });
+        this.editor.revealLineInCenter(lineCount);
+      }
+
+      toggleLevelFilter(level) {
+        const tag = document.querySelector(`[data-level="${level}"]`);
+
+        if (level === 'all') {
+          // 通配符按钮：清除所有其他选择，显示所有日志
+          this.selectedLevels.clear();
+          document.querySelectorAll('.level-filter-tag').forEach(t => t.classList.remove('active'));
+          tag.classList.add('active');
+        } else {
+          // 普通级别按钮
+          if (this.selectedLevels.has(level)) {
+            this.selectedLevels.delete(level);
+            tag.classList.remove('active');
+          } else {
+            this.selectedLevels.add(level);
+            tag.classList.add('active');
+          }
+
+          // 如果选择了任何级别，取消通配符的选中状态
+          if (this.selectedLevels.size > 0) {
+            const allTag = document.querySelector(`[data-level="all"]`);
+            allTag.classList.remove('active');
+          }
+        }
+
+        this.applyLevelFilter();
+      }
+
+      applyLevelFilter() {
+        this.applyAllFilters(true); // 用户主动改变级别过滤时强制更新
+      }
+
+
+      updateFileInfo(customText = null) {
+        const fileInfo = document.getElementById('fileInfo');
+        if (customText) {
+          fileInfo.textContent = customText;
+        } else if (this.file) {
+          const size = (this.file.size / 1024 / 1024).toFixed(2);
+          fileInfo.textContent = `${this.file.name} (${size} MB)`;
+        } else {
+          fileInfo.textContent = 'Electron应用日志';
+        }
+      }
+
+      showLoading() {
+        document.getElementById('loadingSpinner').style.display = 'block';
+        document.getElementById('emptyState').style.display = 'none';
+      }
+
+      hideLoading() {
+        document.getElementById('loadingSpinner').style.display = 'none';
+      }
+
+      showError(message) {
+        this.editor.setValue(`错误: ${message}`);
+        this.hideLoading();
+      }
+
+      enableControls() {
+        const searchInput = document.getElementById('searchInput');
+        const startTime = document.getElementById('startTime');
+        const endTime = document.getElementById('endTime');
+        const regexToggleBtn = document.getElementById('regexToggleBtn');
+
+        if (searchInput) searchInput.disabled = false;
+        if (startTime) startTime.disabled = false;
+        if (endTime) endTime.disabled = false;
+        if (regexToggleBtn) regexToggleBtn.disabled = false;
+      }
+
+      clear() {
+        this.file = null;
+        this.originalContent = '';
+        this.filteredContent = '';
+        this.previousOriginalContent = ''; // 重置上一次的内容
+        this.searchResults = [];
+        this.currentSearchIndex = -1;
+        this.selectedLevels.clear();
+
+        // 重置日志行数组
+        this.logLines = [];
+        this.currentSearchQuery = '';
+
+        // 重置日期过滤
+        this.startDate = null;
+        this.endDate = null;
+
+        this.editor.setValue('');
+
+        const fileInput = document.getElementById('fileInput');
+        const searchInput = document.getElementById('searchInput');
+        const startTime = document.getElementById('startTime');
+        const endTime = document.getElementById('endTime');
+        const regexToggleBtn = document.getElementById('regexToggleBtn');
+
+        if (fileInput) fileInput.value = '';
+        if (searchInput) {
+          searchInput.value = '';
+          searchInput.disabled = true;
+        }
+        if (startTime) {
+          startTime.value = '';
+          startTime.disabled = true;
+        }
+        if (endTime) {
+          endTime.value = '';
+          endTime.disabled = true;
+        }
+        if (regexToggleBtn) regexToggleBtn.disabled = true;
+
+        // 重置所有等级过滤标签，默认选中通配符
+        document.querySelectorAll('.level-filter-tag').forEach(tag => {
+          tag.classList.remove('active');
+        });
+        const allTag = document.querySelector(`[data-level="all"]`);
+        if (allTag) allTag.classList.add('active');
+
+        this.updateFileInfo('Electron应用日志');
+        this.updateSearchStats(0);
+        const emptyState = document.getElementById('emptyState');
+        if (emptyState) {
+          emptyState.innerHTML = `
+            <p>Electron应用日志已清空</p>
+            <p style="font-size: 12px; margin-top: 10px; color: #666;">
+              点击刷新按钮重新加载日志
+            </p>
+          `;
+          emptyState.style.display = 'block';
+        }
+      }
+
+      // 新增的方法
+      async clearLogs() {
+        // 如果当前是文件模式，提示用户
+        if (this.file) {
+          alert('当前正在查看本地文件，无法清空Electron日志。请切换到Electron日志模式。');
+          return;
+        }
+
+        if (confirm("确定要清空所有Electron应用日志吗？")) {
+          try {
+            // 检查是否有electronAPI可用
+            if (!window.electronAPI || !window.electronAPI.ipcRouter) {
+              throw new Error('Electron API 不可用');
+            }
+
+            // 调用IPC清空日志
+            await window.electronAPI.ipcRouter.logClearLogs();
+
+            // 清空本地数据
+            this.clear();
+
+            // 重新加载日志（清空后重新加载，不使用累加逻辑）
+            await this.loadElectronLogsInitial();
+
+          } catch (error) {
+            console.error('清空日志失败:', error);
+            alert('清空日志失败: ' + error.message);
+          }
+        }
+      }
+
+      async exportLogs() {
+        try {
+          // 检查是否有electronAPI可用
+          if (!window.electronAPI || !window.electronAPI.ipcRouter) {
+            throw new Error('Electron API 不可用');
+          }
+
+          // 获取要导出的内容
+          const data = this.filteredContent || this.originalContent;
+          if (!data) {
+            alert("没有可导出的日志内容");
+            return;
+          }
+
+          // 创建下载
+          const blob = new Blob([data], { type: "text/plain" });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `electron-logs-${new Date()
+            .toISOString()
+            .slice(0, 19)
+            .replace(/:/g, "-")}.txt`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+
+        } catch (error) {
+          console.error('导出日志失败:', error);
+          alert('导出日志失败: ' + error.message);
+        }
+      }
+
+      async refreshLogs() {
+        try {
+          // 如果当前有选择的文件，重新加载文件
+          if (this.file) {
+            await this.loadFile(this.file);
+          } else {
+            // 否则重新加载Electron日志
+            await this.loadElectronLogs();
+          }
+
+        } catch (error) {
+          console.error('刷新日志失败:', error);
+          alert('刷新日志失败: ' + error.message);
+        }
+      }
+
+      startAutoRefresh() {
+        if (this.autoRefreshInterval) {
+          clearInterval(this.autoRefreshInterval);
+        }
+
+        this.autoRefreshInterval = setInterval(async () => {
+          await this.refreshLogs();
+        }, this.refreshIntervalSeconds * 1000);
+      }
+
+      stopAutoRefresh() {
+        if (this.autoRefreshInterval) {
+          clearInterval(this.autoRefreshInterval);
+          this.autoRefreshInterval = null;
+        }
+      }
+
+      toggleAutoRefresh() {
+        // 如果当前是文件模式，提示用户
+        if (this.file) {
+          alert('当前正在查看本地文件，自动刷新功能仅在Electron日志模式下可用。');
+          return;
+        }
+
+        this.autoRefreshEnabled = !this.autoRefreshEnabled;
+        const btn = document.getElementById("autoRefreshBtn");
+
+        if (this.autoRefreshEnabled) {
+          btn.textContent = "停止自动刷新";
+          btn.classList.add("active");
+          this.startAutoRefresh();
+        } else {
+          btn.textContent = "自动刷新";
+          btn.classList.remove("active");
+          this.stopAutoRefresh();
+        }
+      }
+
+      // 窗口控制方法
+      minimizeWindow() {
+        if (window.electronAPI && window.electronAPI.ipcRouter) {
+          window.electronAPI.ipcRouter.windowMinimize();
+        }
+      }
+
+      maximizeWindow() {
+        if (window.electronAPI && window.electronAPI.ipcRouter) {
+          window.electronAPI.ipcRouter.windowMaximize();
+        }
+      }
+
+      closeWindow() {
+        if (window.electronAPI && window.electronAPI.ipcRouter) {
+          window.electronAPI.ipcRouter.windowClose();
+        }
+      }
+
+      // 切换回Electron日志模式
+      async switchToElectronLogs() {
+        // 清空文件选择
+        const fileInput = document.getElementById('fileInput');
+        if (fileInput) fileInput.value = '';
+
+        // 重置文件对象
+        this.file = null;
+
+        // 重新加载Electron日志（使用初始加载方法）
+        await this.loadElectronLogsInitial();
+      }
+    }
+
+    // 页面加载完成后初始化
+    document.addEventListener('DOMContentLoaded', () => {
+      new MonacoLogViewer();
+    });
+  </script>
+</body>
+
+</html>

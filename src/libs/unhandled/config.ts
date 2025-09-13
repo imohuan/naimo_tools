@@ -1,0 +1,1 @@
+export const ERROR_HANDLER_CHANNEL = 'electron-unhandled.ERROR';

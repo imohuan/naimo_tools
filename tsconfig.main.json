@@ -1,0 +1,17 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "lib": ["ES2022"],
+    "noEmit": true,
+    "outDir": "./dist/main"
+  },
+  "include": [
+    "src/main/**/*",
+    "src/shared/**/*",
+    "src/libs/**/*",
+    "forge.config.js"
+  ],
+  "exclude": ["node_modules", "dist"]
+}
