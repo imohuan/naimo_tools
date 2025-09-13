@@ -15,7 +15,7 @@ function prunePackageJson(buildPath) {
   const packageJsonContent = readFileSync(packageJsonPath, "utf8");
   const packageJson = JSON.parse(packageJsonContent);
   // 只保留指定的字段
-  const allowedFields = ['name', 'version', 'main', 'author', 'description', 'repository'];
+  const allowedFields = ['name', 'version', 'main', 'author', 'description', 'repository', 'license'];
   Object.keys(packageJson).forEach((key) => {
     if (!allowedFields.includes(key)) {
       delete packageJson[key];
@@ -196,7 +196,8 @@ export default {
       config: {
         options: {
           maintainer: pkg.author,
-          homepage: pkg.repository.url
+          homepage: pkg.repository.url,
+          license: pkg.license
         }
       },
     },
@@ -206,7 +207,8 @@ export default {
       config: {
         options: {
           maintainer: pkg.author,
-          homepage: pkg.repository.url
+          homepage: pkg.repository.url,
+          license: pkg.license
         }
       },
     },
