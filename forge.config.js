@@ -1,7 +1,7 @@
 import { FusesPlugin } from '@electron-forge/plugin-fuses';
 import { FuseV1Options, FuseVersion } from '@electron/fuses';
 import { readFileSync, writeFileSync, readdirSync } from 'fs';
-import { join } from "path"
+import { join, resolve } from "path"
 
 import JavaScriptObfuscator from "javascript-obfuscator";
 const pkg = JSON.parse(readFileSync('./package.json', 'utf8'));
@@ -79,8 +79,10 @@ function obfuscateMainProcess(buildPath) {
       renameGlobals: false,
     };
 
-    // 批量混淆文件
-    for (const filePath of files) {
+    // 批量混淆文件, linux环境上file是相对路径
+    for (const file of files) {
+      const filePath = resolve(distPath, file);
+      console.log("文件绝对路径", filePath);
       const code = readFileSync(filePath, "utf8");
       const obfuscatedCode = JavaScriptObfuscator.obfuscate(code, obfuscationOptions).getObfuscatedCode();
       writeFileSync(filePath, obfuscatedCode);
