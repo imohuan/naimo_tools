@@ -1,6 +1,6 @@
 {
   "name": "naimo",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "A minimal Electron app with TypeScript, Vite, logging and storage",
   "main": "dist/main/main.js",
   "type": "module",
