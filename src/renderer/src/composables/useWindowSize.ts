@@ -88,12 +88,12 @@ export function useWindowSize(config: WindowSizeConfig, externalContentAreaRef?:
     // 使用scrollHeight作为实际高度，因为它反映了内容的真实高度
     const realHeight = scrollHeight;
 
-    console.log("高度计算详情:", {
-      scrollHeight,
-      offsetHeight,
-      realHeight,
-      childrenCount: contentElement.children.length,
-    });
+    // console.log("高度计算详情:", {
+    //   scrollHeight,
+    //   offsetHeight,
+    //   realHeight,
+    //   childrenCount: contentElement.children.length,
+    // });
 
     // 确保高度在合理范围内，但不强制使用最大高度
     const calculatedHeight = Math.max(realHeight, 100);

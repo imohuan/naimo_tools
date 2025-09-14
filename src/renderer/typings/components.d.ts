@@ -8,13 +8,16 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    About: typeof import('./../src/components/About.vue')['default']
     AppItem: typeof import('./../src/components/AppItem.vue')['default']
     ContentArea: typeof import('./../src/components/ContentArea.vue')['default']
     ContextMenu: typeof import('./../src/components/ContextMenu.vue')['default']
     DraggableArea: typeof import('./../src/components/DraggableArea.vue')['default']
     HotkeyDemo: typeof import('./../src/components/HotkeyDemo.vue')['default']
     HotkeyInterceptor: typeof import('./../src/components/HotkeyInterceptor.vue')['default']
+    HotkeySettings: typeof import('./../src/components/HotkeySettings.vue')['default']
     IconMdiApplication: typeof import('~icons/mdi/application')['default']
+    IconMdiClose: typeof import('~icons/mdi/close')['default']
     IconMdiCog: typeof import('~icons/mdi/cog')['default']
     IconMdiComponent: typeof import('~icons/mdi/component')['default']
     IconMdiFileUpload: typeof import('~icons/mdi/file-upload')['default']
@@ -25,5 +28,6 @@ declare module 'vue' {
     SearchHeader: typeof import('./../src/components/SearchHeader.vue')['default']
     SearchInput: typeof import('./../src/components/SearchInput.vue')['default']
     SearchResults: typeof import('./../src/components/SearchResults.vue')['default']
+    Settings: typeof import('./../src/components/Settings.vue')['default']
   }
 }

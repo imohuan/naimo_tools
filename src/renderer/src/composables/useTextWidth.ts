@@ -34,11 +34,24 @@ export function useTextWidth() {
     } = {}
   ): number => {
     // console.log("calculateTextWidth", text, element, options);
-    if (!text || !element) return 0
+    if (!element) return 0
+
+    // 计算最终宽度选项
+    const {
+      padding = 32,
+      minWidth = 200,
+      maxWidth = window.innerWidth - 100,
+      extraWidth = 20
+    } = options
+
+    // 如果没有文本，直接返回最小宽度
+    if (!text) {
+      return minWidth
+    }
 
     // 初始化测量Canvas
     initMeasureCanvas()
-    if (!measureContext) return 0
+    if (!measureContext) return minWidth
 
     // 获取元素的字体样式
     const computedStyle = getComputedStyle(element)
@@ -56,13 +69,6 @@ export function useTextWidth() {
     const textWidth = textMetrics.width
 
     // 计算最终宽度
-    const {
-      padding = 32,
-      minWidth = 200,
-      maxWidth = window.innerWidth - 100,
-      extraWidth = 20
-    } = options
-
     const calculatedWidth = Math.max(
       minWidth,
       Math.min(maxWidth, textWidth + padding + extraWidth)

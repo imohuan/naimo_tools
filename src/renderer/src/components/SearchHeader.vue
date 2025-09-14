@@ -33,12 +33,12 @@
         "
       />
 
-      <!-- 内容切换按钮 -->
+      <!-- 设置按钮 -->
       <div class="h-full aspect-square">
         <button
           class="w-full h-full p-3 text-gray-500 transition-colors duration-200 rounded-lg flex items-center justify-center"
-          title="切换内容区域"
-          @click="$emit('toggle-content')"
+          title="打开设置"
+          @click="$emit('open-settings')"
         >
           <IconMdiCog class="w-5 h-5 hover:text-gray-700" />
         </button>
@@ -62,7 +62,7 @@ interface Emits {
   (e: 'search', value: string): void
   (e: 'input', value: string): void
   (e: 'click'): void
-  (e: 'toggle-content'): void
+  (e: 'open-settings'): void
   (e: 'drag-over', event: DragEvent): void
   (e: 'drag-enter', event: DragEvent): void
   (e: 'drag-leave', event: DragEvent): void

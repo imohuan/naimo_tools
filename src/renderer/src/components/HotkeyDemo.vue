@@ -15,6 +15,30 @@
         </div>
       </div>
 
+      <!-- 空格键监听状态 -->
+      <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+        <h2 class="text-xl font-semibold text-gray-700 mb-4">空格键监听状态</h2>
+        <div class="space-y-4">
+          <div class="flex items-center space-x-4">
+            <span class="text-sm font-medium text-gray-600">监听状态:</span>
+            <span
+              :class="[
+                'px-3 py-1 rounded-full text-sm font-medium',
+                isListening ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600',
+              ]"
+            >
+              {{ isListening ? "正在监听" : "未监听" }}
+            </span>
+          </div>
+          <div class="flex items-center space-x-4">
+            <span class="text-sm font-medium text-gray-600">当前按键:</span>
+            <span class="px-3 py-1 bg-blue-100 text-blue-800 rounded font-mono text-sm">
+              {{ currentKeys.length > 0 ? currentKeys.join(" + ") : "无" }}
+            </span>
+          </div>
+        </div>
+      </div>
+
       <!-- 快捷键管理 -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <!-- 应用内快捷键 -->
@@ -32,6 +56,18 @@
               class="w-full px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition-colors"
             >
               注册 Ctrl+Shift+S
+            </button>
+            <button
+              @click="registerSpaceHotkey"
+              class="w-full px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600 transition-colors"
+            >
+              注册 Ctrl+Space (测试空格键)
+            </button>
+            <button
+              @click="testSpaceKeyListening"
+              class="w-full px-4 py-2 bg-purple-500 text-white rounded hover:bg-purple-600 transition-colors"
+            >
+              测试空格键监听
             </button>
             <button
               @click="clearAppHotkeys"
@@ -135,11 +171,17 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import HotkeyInterceptor from "./HotkeyInterceptor.vue";
-import { useHotkeyManager, HotkeyType } from "../composables/useHotkeyManager";
+import { useHotkeyManager } from "../composables/useHotkeyManager";
+import { HotkeyType } from "../types/hotkey-types";
 import { useElectronHotkeys } from "../composables/useElectronHotkeys";
 
 // 使用快捷键管理器
-const { registerAppHotkey: registerAppHotkeyFunc } = useHotkeyManager();
+const {
+  registerAppHotkey: registerAppHotkeyFunc,
+  getListening,
+  currentKeys,
+  isListening,
+} = useHotkeyManager();
 
 // 使用Electron全局快捷键
 const {
@@ -204,6 +246,37 @@ const registerAppHotkey2 = () => {
     addLog("注册应用快捷键: Ctrl+Shift+S");
   } else {
     addLog("注册应用快捷键失败: Ctrl+Shift+S");
+  }
+};
+
+// 注册空格键快捷键
+const registerSpaceHotkey = () => {
+  const success = registerAppHotkeyFunc(
+    "ctrl+space",
+    () => {
+      addLog("触发应用快捷键: Ctrl+Space");
+    },
+    {
+      id: "app_hotkey_space",
+      description: "空格键测试快捷键",
+    }
+  );
+
+  if (success) {
+    addLog("注册应用快捷键: Ctrl+Space");
+  } else {
+    addLog("注册应用快捷键失败: Ctrl+Space");
+  }
+};
+
+// 测试空格键监听
+const testSpaceKeyListening = async () => {
+  addLog("开始测试空格键监听，请按下任意快捷键组合...");
+  try {
+    const keys = await getListening();
+    addLog(`检测到快捷键: ${keys.join(" + ")}`);
+  } catch (error) {
+    addLog(`监听失败: ${error}`);
   }
 };
 

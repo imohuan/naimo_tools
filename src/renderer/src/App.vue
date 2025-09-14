@@ -1,5 +1,5 @@
 <template>
-  <div class="w-full h-full p-[4px]" @keydown="handleKeyNavigation" tabindex="0">
+  <div class="w-full h-full p-[2px]" @keydown="handleKeyNavigation" tabindex="0">
     <!-- 主应用容器 -->
     <div
       class="w-full bg-transparent relative shadow-lg rounded-xl overflow-hidden"
@@ -19,6 +19,7 @@
         @drag-enter="handleDragEnter"
         @drag-leave="handleDragLeave"
         @drop="handleDrop"
+        @open-settings="openSettings"
       />
 
       <!-- 内容呈现区域 -->
@@ -29,28 +30,33 @@
         :search-categories="searchCategories"
         :selected-index="selectedIndex"
         :flat-items="flatItems"
+        :show-settings="showSettings"
         @app-click="launchApp"
         @category-toggle="handleCategoryToggle"
         @category-drag-end="handleCategoryDragEnd"
         @app-delete="handleAppDelete"
         @app-pin="handleAppPin"
+        @close-settings="closeSettings"
       />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, ref, onMounted, onUnmounted, nextTick } from "vue";
 import SearchHeader from "./components/SearchHeader.vue";
 import ContentArea from "./components/ContentArea.vue";
 import { useWindowSize } from "./composables/useWindowSize";
-import { useSearch } from "./composables/useSearch";
 import { useDragDrop } from "./composables/useDragDrop";
 import { useKeyboardNavigation } from "./composables/useKeyboardNavigation";
 import { useAppManagement } from "./composables/useAppManagement";
+import { useGlobalHotkeyInitializer } from "./composables/useGlobalHotkeyInitializer";
 
 // 本地配置常量
 const headerHeight = 50;
+
+// ==================== 设置页面状态 ====================
+const showSettings = ref(false);
 
 // ==================== 组件引用 ====================
 const searchHeaderRef = ref<InstanceType<typeof SearchHeader>>();
@@ -75,8 +81,10 @@ const {
   computed(() => contentAreaRef.value?.contentAreaRef)
 );
 
-// ==================== 搜索管理 ====================
+// ==================== 应用管理 ====================
 const {
+  selectedIndex,
+  initAppApps,
   searchText,
   searchCategories,
   originalCategories,
@@ -84,7 +92,12 @@ const {
   performSearch,
   handleSearch,
   updateCategoryInBoth,
-} = useSearch();
+  launchApp,
+  handleCategoryToggle,
+  handleCategoryDragEnd,
+  handleAppDelete,
+  handleAppPin,
+} = useAppManagement();
 
 // ==================== 拖拽管理 ====================
 const {
@@ -95,17 +108,6 @@ const {
   handleDrop,
 } = useDragDrop(updateCategoryInBoth, originalCategories, handleSearch);
 
-// ==================== 应用管理 ====================
-const {
-  selectedIndex,
-  initAppApps,
-  launchApp,
-  handleCategoryToggle,
-  handleCategoryDragEnd,
-  handleAppDelete,
-  handleAppPin,
-} = useAppManagement(updateCategoryInBoth, originalCategories, performSearch);
-
 // ==================== 键盘导航 ====================
 const { handleKeyNavigation } = useKeyboardNavigation(
   flatItems,
@@ -115,12 +117,30 @@ const { handleKeyNavigation } = useKeyboardNavigation(
   handleSearch
 );
 
+// ==================== 全局快捷键初始化 ====================
+const {
+  initializeGlobalHotkeys,
+  isInitialized,
+  initializationError,
+} = useGlobalHotkeyInitializer();
+
 // ==================== 方法 ====================
 const handleClick = () => {
   searchHeaderRef.value?.focus();
 };
 
 const debouncedHandleSearch = useDebounceFn(() => handleSearch(searchText.value), 100);
+
+// 设置页面方法
+const openSettings = () => {
+  showSettings.value = true;
+  // 确保内容区域可见
+  showContentArea();
+};
+
+const closeSettings = () => {
+  showSettings.value = false;
+};
 
 // ==================== 监听器 ====================
 // 监听搜索结果变化，自动调整窗口大小
@@ -154,6 +174,17 @@ const handleWindowFocus = () => {
 
 // ==================== 生命周期 ====================
 onMounted(async () => {
+  console.log("🚀 App.vue onMounted - 开始应用初始化");
+
+  // 初始化快捷键（优先执行，确保全局快捷键可用）
+  await initializeGlobalHotkeys();
+
+  if (initializationError.value) {
+    console.error("❌ 全局快捷键初始化失败:", initializationError.value);
+  } else if (isInitialized.value) {
+    console.log("✅ 全局快捷键初始化成功");
+  }
+
   const categories = await initAppApps();
   originalCategories.value = categories;
   initializeWindowSize();
@@ -169,6 +200,8 @@ onMounted(async () => {
       container.focus();
     }
   });
+
+  console.log("🎉 App.vue onMounted - 应用初始化完成");
 });
 
 onUnmounted(() => {

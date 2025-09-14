@@ -11,7 +11,10 @@ export interface SearchCategory {
   customSearch?: (searchText: string, items: AppItem[]) => AppItem[]
 }
 
-export function useSearch() {
+export function useSearch(
+  getDefaultCategories: (allCategories: SearchCategory[]) => SearchCategory[],
+  getSearchCategories: (allCategories: SearchCategory[]) => SearchCategory[]
+) {
   const searchText = ref('')
   const searchCategories = ref<SearchCategory[]>([])
   const originalCategories = ref<SearchCategory[]>([])
@@ -39,9 +42,15 @@ export function useSearch() {
     try {
       isSearching.value = true
       const searchQuery = searchText.value.trim()
+
+      // 根据搜索状态选择不同的分类配置
+      const baseCategories = searchQuery.length === 0
+        ? getDefaultCategories(originalCategories.value)
+        : getSearchCategories(originalCategories.value)
+
       const filteredCategories: SearchCategory[] = []
 
-      for (const category of originalCategories.value) {
+      for (const category of baseCategories) {
         let filteredItems: AppItem[] = []
 
         if (searchQuery.length === 0) {

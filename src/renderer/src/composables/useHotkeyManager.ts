@@ -1,13 +1,9 @@
 import { ref, onMounted, onUnmounted } from "vue";
 import hotkeys from "hotkeys-js";
-
-// 快捷键类型定义
-export enum HotkeyType {
-  /** 全局快捷键（Electron） */
-  GLOBAL = "global",
-  /** 应用内快捷键 */
-  APPLICATION = "application",
-}
+import { useElectronHotkeys } from "./useElectronHotkeys";
+import { getCallback } from "../config/hotkey-callbacks";
+import { useHotkeyCache } from "./useHotkeyCache";
+import { HotkeyType } from "../types/hotkey-types";
 
 // 快捷键配置接口
 export interface HotkeyConfig {
@@ -17,8 +13,12 @@ export interface HotkeyConfig {
   keys: string;
   /** 快捷键类型 */
   type: HotkeyType;
+  /** 快捷键名称 */
+  name?: string;
   /** 快捷键描述 */
   description?: string;
+  /** 快捷键分组 */
+  group?: string;
   /** 是否启用 */
   enabled: boolean;
   /** 是否阻止默认事件 */
@@ -27,64 +27,116 @@ export interface HotkeyConfig {
   stopPropagation?: boolean;
   /** 快捷键作用域 */
   scope?: string;
-  /** 快捷键触发回调 */
-  callback: (event: KeyboardEvent) => void;
+  /** 快捷键触发回调函数键名 */
+  callback: string;
 }
 
 // 快捷键管理器类
 class HotkeyManager {
   private hotkeys = new Map<string, HotkeyConfig>();
   private scopes = new Set<string>();
+  private electronHotkeys: ReturnType<typeof useElectronHotkeys> | null = null;
+  private hotkeyCache: ReturnType<typeof useHotkeyCache> | null = null;
 
   constructor() {
     // 设置默认配置
     hotkeys.filter = () => true; // 允许在所有元素上触发
+    // 注意：不在这里初始化Electron快捷键管理器，避免重复创建实例
+  }
+
+  // 设置Electron快捷键管理器实例
+  setElectronHotkeys(electronHotkeys: ReturnType<typeof useElectronHotkeys>) {
+    this.electronHotkeys = electronHotkeys;
+  }
+
+  // 设置快捷键缓存管理器实例
+  setHotkeyCache(hotkeyCache: ReturnType<typeof useHotkeyCache>) {
+    this.hotkeyCache = hotkeyCache;
   }
 
   // 注册快捷键
-  register(config: HotkeyConfig): boolean {
+  async register(config: HotkeyConfig): Promise<boolean> {
     try {
       const {
         id,
         keys,
         type,
-        callback,
+        callback: callbackKey,
         preventDefault = true,
         stopPropagation = true,
         scope = "all",
       } = config;
 
+      // 通过字符串键名获取回调函数
+      const callback = getCallback(callbackKey);
+      if (!callback) {
+        console.error(`未找到回调函数: ${callbackKey}`);
+        return false;
+      }
+
       // 检查是否已存在
       if (this.hotkeys.has(id)) {
         console.warn(`快捷键 ${id} 已存在，将被覆盖`);
-        this.unregister(id);
+        await this.unregister(id);
       }
 
       // 根据类型设置不同的处理方式
-      let processedKeys = keys;
       if (type === HotkeyType.GLOBAL) {
-        // 全局快捷键需要特殊处理
-        processedKeys = this.normalizeGlobalKeys(keys);
+        // 全局快捷键使用Electron API注册
+        if (!this.electronHotkeys) {
+          console.error("Electron快捷键管理器未初始化");
+          return false;
+        }
+
+        const success = await this.electronHotkeys.registerGlobalHotkey(keys, callback, {
+          id: config.id,
+          keys: config.keys,
+          type: config.type,
+          description: config.description,
+          enabled: config.enabled,
+          preventDefault: config.preventDefault,
+          stopPropagation: config.stopPropagation,
+          scope: config.scope,
+          callback: config.callback,
+        });
+
+        if (success) {
+          // 保存配置
+          this.hotkeys.set(id, config);
+
+          // 保存到缓存
+          if (this.hotkeyCache) {
+            await this.hotkeyCache.addGlobalHotkey(config);
+          }
+
+          console.log(`注册全局快捷键: ${id} -> ${keys}`);
+          return true;
+        }
+        return false;
+      } else {
+        // 应用内快捷键使用hotkeys-js注册
+        // 先解绑可能存在的快捷键
+        hotkeys.unbind(keys, scope);
+
+        const processedKeys = keys;
+        hotkeys(processedKeys, { scope }, (event) => {
+          if (!config.enabled) return;
+          if (preventDefault) event.preventDefault();
+          if (stopPropagation) event.stopPropagation();
+          callback();
+        });
+
+        // 保存配置
+        this.hotkeys.set(id, config);
+
+        // 添加作用域
+        if (scope !== "all") {
+          this.scopes.add(scope);
+        }
+
+        console.log(`注册应用内快捷键: ${id} -> ${keys}`);
+        return true;
       }
-
-      // 注册到 hotkeys-js
-      hotkeys(processedKeys, { scope }, (event) => {
-        if (!config.enabled) return;
-        if (preventDefault) event.preventDefault();
-        if (stopPropagation) event.stopPropagation();
-        callback(event);
-      });
-
-      // 保存配置
-      this.hotkeys.set(id, config);
-
-      // 添加作用域
-      if (scope !== "all") {
-        this.scopes.add(scope);
-      }
-
-      console.log(`注册快捷键: ${id} -> ${keys} (${type})`);
-      return true;
     } catch (error) {
       console.error(`注册快捷键失败: ${config.id}`, error);
       return false;
@@ -92,7 +144,7 @@ class HotkeyManager {
   }
 
   // 注销快捷键
-  unregister(id: string): boolean {
+  async unregister(id: string): Promise<boolean> {
     const config = this.hotkeys.get(id);
     if (!config) {
       console.warn(`快捷键 ${id} 不存在`);
@@ -100,10 +152,33 @@ class HotkeyManager {
     }
 
     try {
-      hotkeys.unbind(config.keys, config.scope || "all");
-      this.hotkeys.delete(id);
-      console.log(`注销快捷键: ${id}`);
-      return true;
+      if (config.type === HotkeyType.GLOBAL) {
+        // 全局快捷键使用Electron API注销
+        if (!this.electronHotkeys) {
+          console.error("Electron快捷键管理器未初始化");
+          return false;
+        }
+
+        const success = await this.electronHotkeys.unregisterGlobalHotkey(id);
+        if (success) {
+          this.hotkeys.delete(id);
+
+          // 从缓存中移除
+          if (this.hotkeyCache) {
+            await this.hotkeyCache.removeGlobalHotkey(id);
+          }
+
+          console.log(`注销全局快捷键: ${id}`);
+          return true;
+        }
+        return false;
+      } else {
+        // 应用内快捷键使用hotkeys-js注销
+        hotkeys.unbind(config.keys, config.scope || "all");
+        this.hotkeys.delete(id);
+        console.log(`注销应用内快捷键: ${id}`);
+        return true;
+      }
     } catch (error) {
       console.error(`注销快捷键失败: ${id}`, error);
       return false;
@@ -111,14 +186,19 @@ class HotkeyManager {
   }
 
   // 启用/禁用快捷键
-  toggle(id: string, enabled?: boolean): boolean {
+  async toggle(id: string, enabled?: boolean): Promise<boolean> {
     const config = this.hotkeys.get(id);
     if (!config) {
       console.warn(`快捷键 ${id} 不存在`);
       return false;
     }
-
     config.enabled = enabled !== undefined ? enabled : !config.enabled;
+
+    // 更新缓存状态
+    if (config.type === HotkeyType.GLOBAL && this.hotkeyCache) {
+      await this.hotkeyCache.updateGlobalHotkeyStatus(id, config.enabled);
+    }
+
     console.log(`快捷键 ${id} ${config.enabled ? "已启用" : "已禁用"}`);
     return true;
   }
@@ -140,26 +220,83 @@ class HotkeyManager {
   }
 
   // 清空所有快捷键
-  clear(): void {
-    this.hotkeys.forEach((_, id) => this.unregister(id));
+  async clear(): Promise<void> {
+    const unregisterPromises = Array.from(this.hotkeys.keys()).map((id) =>
+      this.unregister(id)
+    );
+    await Promise.all(unregisterPromises);
     this.scopes.clear();
   }
 
   // 清空指定类型的快捷键
-  clearByType(type: HotkeyType): void {
+  async clearByType(type: HotkeyType): Promise<void> {
     const toRemove = this.getByType(type).map((config) => config.id);
-    toRemove.forEach((id) => this.unregister(id));
+    const unregisterPromises = toRemove.map((id) => this.unregister(id));
+    await Promise.all(unregisterPromises);
   }
 
-  // 标准化全局快捷键格式
-  private normalizeGlobalKeys(keys: string): string {
-    // 将我们的格式转换为 hotkeys-js 格式
-    return keys.replace(/\+/g, ",").replace(/\s+/g, "").toLowerCase();
+  // 从缓存恢复全局快捷键
+  async restoreGlobalHotkeysFromCache(): Promise<boolean> {
+    if (!this.hotkeyCache || !this.electronHotkeys) {
+      console.warn("快捷键缓存或Electron快捷键管理器未初始化");
+      return false;
+    }
+
+    try {
+      const cachedHotkeys = await this.hotkeyCache.loadGlobalHotkeys();
+      console.log("从缓存恢复全局快捷键:", cachedHotkeys);
+
+      // 如果缓存为空，返回false，让调用方使用默认配置
+      if (!cachedHotkeys || cachedHotkeys.length === 0) {
+        console.log("缓存中没有全局快捷键配置，将使用默认配置");
+        return false;
+      }
+
+      let restoredCount = 0;
+      for (const config of cachedHotkeys) {
+        if (config.enabled) {
+          // 通过字符串键名获取回调函数
+          const callback = getCallback(config.callback);
+          if (callback) {
+            const success = await this.electronHotkeys.registerGlobalHotkey(
+              config.keys,
+              callback,
+              {
+                id: config.id,
+                keys: config.keys,
+                type: config.type,
+                description: config.description,
+                enabled: config.enabled,
+                preventDefault: config.preventDefault,
+                stopPropagation: config.stopPropagation,
+                scope: config.scope,
+                callback: config.callback,
+              }
+            );
+            if (success) {
+              this.hotkeys.set(config.id, config);
+              restoredCount++;
+              console.log(`恢复全局快捷键: ${config.id} -> ${config.keys}`);
+            } else {
+              console.warn(`恢复全局快捷键失败: ${config.id}`);
+            }
+          } else {
+            console.error(`未找到回调函数: ${config.callback}`);
+          }
+        }
+      }
+
+      // 只有当至少恢复了一个快捷键时才返回true
+      return restoredCount > 0;
+    } catch (error) {
+      console.error("从缓存恢复全局快捷键失败:", error);
+      return false;
+    }
   }
 
   // 销毁管理器
-  destroy(): void {
-    this.clear();
+  async destroy(): Promise<void> {
+    await this.clear();
     hotkeys.unbind(); // 解绑所有快捷键
   }
 }
@@ -168,10 +305,21 @@ class HotkeyManager {
 export const globalHotkeyManager = new HotkeyManager();
 
 // Vue Composable
-export function useHotkeyManager() {
+export function useHotkeyManager(
+  electronHotkeys?: ReturnType<typeof useElectronHotkeys>
+) {
   const isListening = ref(false);
   const currentKeys = ref<string[]>([]);
   let callback: any = null;
+
+  // 初始化快捷键缓存管理器
+  const hotkeyCache = useHotkeyCache();
+
+  // 如果提供了electronHotkeys实例，设置到全局管理器中
+  if (electronHotkeys) {
+    globalHotkeyManager.setElectronHotkeys(electronHotkeys);
+    globalHotkeyManager.setHotkeyCache(hotkeyCache);
+  }
 
   // 按键映射 - 映射为 hotkeys-js 可识别的格式
   const keyMap: Record<string, string> = {
@@ -214,37 +362,79 @@ export function useHotkeyManager() {
     "8": "8",
     "9": "9",
     // 字母键（统一转为小写）
-    "a": "a", "A": "a",
-    "b": "b", "B": "b",
-    "c": "c", "C": "c",
-    "d": "d", "D": "d",
-    "e": "e", "E": "e",
-    "f": "f", "F": "f",
-    "g": "g", "G": "g",
-    "h": "h", "H": "h",
-    "i": "i", "I": "i",
-    "j": "j", "J": "j",
-    "k": "k", "K": "k",
-    "l": "l", "L": "l",
-    "m": "m", "M": "m",
-    "n": "n", "N": "n",
-    "o": "o", "O": "o",
-    "p": "p", "P": "p",
-    "q": "q", "Q": "q",
-    "r": "r", "R": "r",
-    "s": "s", "S": "s",
-    "t": "t", "T": "t",
-    "u": "u", "U": "u",
-    "v": "v", "V": "v",
-    "w": "w", "W": "w",
-    "x": "x", "X": "x",
-    "y": "y", "Y": "y",
-    "z": "z", "Z": "z",
+    a: "a",
+    A: "a",
+    b: "b",
+    B: "b",
+    c: "c",
+    C: "c",
+    d: "d",
+    D: "d",
+    e: "e",
+    E: "e",
+    f: "f",
+    F: "f",
+    g: "g",
+    G: "g",
+    h: "h",
+    H: "h",
+    i: "i",
+    I: "i",
+    j: "j",
+    J: "j",
+    k: "k",
+    K: "k",
+    l: "l",
+    L: "l",
+    m: "m",
+    M: "m",
+    n: "n",
+    N: "n",
+    o: "o",
+    O: "o",
+    p: "p",
+    P: "p",
+    q: "q",
+    Q: "q",
+    r: "r",
+    R: "r",
+    s: "s",
+    S: "s",
+    t: "t",
+    T: "t",
+    u: "u",
+    U: "u",
+    v: "v",
+    V: "v",
+    w: "w",
+    W: "w",
+    x: "x",
+    X: "x",
+    y: "y",
+    Y: "y",
+    z: "z",
+    Z: "z",
     // 特殊符号（映射到对应的数字键）
-    "!": "1", "@": "2", "#": "3", "$": "4", "%": "5",
-    "^": "6", "&": "7", "*": "8", "(": "9", ")": "0",
-    "_": "-", "+": "=", "{": "[", "}": "]", "|": "\\",
-    ":": ";", '"': "'", "<": ",", ">": ".", "?": "/",
+    "!": "1",
+    "@": "2",
+    "#": "3",
+    $: "4",
+    "%": "5",
+    "^": "6",
+    "&": "7",
+    "*": "8",
+    "(": "9",
+    ")": "0",
+    _: "-",
+    "+": "=",
+    "{": "[",
+    "}": "]",
+    "|": "\\",
+    ":": ";",
+    '"': "'",
+    "<": ",",
+    ">": ".",
+    "?": "/",
     "~": "`",
   };
 
@@ -276,6 +466,7 @@ export function useHotkeyManager() {
       }
     }
 
+    // 只有当按键不是修饰键时才添加
     if (!modifierKeys.includes(key)) {
       keys.push(normalizedKey);
     }
@@ -299,7 +490,7 @@ export function useHotkeyManager() {
       startListening();
       callback = (keys: string[]) => {
         resolve(keys);
-        callback = null
+        callback = null;
       };
     });
   };
@@ -334,12 +525,25 @@ export function useHotkeyManager() {
   const handleKeyUp = (event: KeyboardEvent) => {
     if (!isListening.value) return;
 
+    console.log("KeyUp:", event.key, "code:", event.code);
+
     // 检查是否所有按键都已松开
-    const hasPressedKeys = event.ctrlKey || event.shiftKey || event.altKey || event.metaKey ||
-      (event.key && !["Control", "Meta", "Alt", "Shift"].includes(event.key));
+    // 对于修饰键，检查对应的属性
+    // 对于其他键，检查 event.key 是否在排除列表中
+    const hasPressedKeys =
+      event.ctrlKey ||
+      event.shiftKey ||
+      event.altKey ||
+      event.metaKey ||
+      (event.key &&
+        !["Control", "Meta", "Alt", "Shift", " "].includes(event.key) &&
+        !modifierKeys.includes(event.key));
+
+    console.log("Has pressed keys:", hasPressedKeys);
 
     if (!hasPressedKeys) {
       // 所有按键都已松开，停止监听
+      console.log("All keys released, calling callback with:", currentKeys.value);
       if (callback) callback([...currentKeys.value]);
       clearCurrentKeys();
       stopListening();
@@ -347,51 +551,51 @@ export function useHotkeyManager() {
   };
 
   // 删除快捷键
-  const removeHotkey = (id: string) => {
-    return globalHotkeyManager.unregister(id);
+  const removeHotkey = async (id: string) => {
+    return await globalHotkeyManager.unregister(id);
   };
 
   // 切换快捷键状态
-  const toggleHotkey = (id: string, enabled?: boolean) => {
-    return globalHotkeyManager.toggle(id, enabled);
+  const toggleHotkey = async (id: string, enabled?: boolean) => {
+    return await globalHotkeyManager.toggle(id, enabled);
   };
 
   // 注册全局快捷键（Electron）
-  const registerGlobalHotkey = (
+  const registerGlobalHotkey = async (
     keys: string,
-    callback: (event: KeyboardEvent) => void,
+    callbackKey: string,
     options?: Partial<HotkeyConfig>
   ) => {
-    const id = options?.id || `global_${Date.now()} `;
+    const id = options?.id || `global_${Date.now()}`;
     const config: HotkeyConfig = {
       id,
       keys,
       type: HotkeyType.GLOBAL,
       enabled: true,
-      callback,
+      callback: callbackKey,
       ...options,
     };
 
-    return globalHotkeyManager.register(config);
+    return await globalHotkeyManager.register(config);
   };
 
   // 注册应用内快捷键
-  const registerAppHotkey = (
+  const registerAppHotkey = async (
     keys: string,
-    callback: (event: KeyboardEvent) => void,
+    callbackKey: string,
     options?: Partial<HotkeyConfig>
   ) => {
-    const id = options?.id || `app_${Date.now()} `;
+    const id = options?.id || `app_${Date.now()}`;
     const config: HotkeyConfig = {
       id,
       keys,
       type: HotkeyType.APPLICATION,
       enabled: true,
-      callback,
+      callback: callbackKey,
       ...options,
     };
 
-    return globalHotkeyManager.register(config);
+    return await globalHotkeyManager.register(config);
   };
 
   // 生命周期管理
@@ -421,6 +625,11 @@ export function useHotkeyManager() {
     // 注册方法
     registerGlobalHotkey,
     registerAppHotkey,
+
+    // 缓存方法
+    restoreGlobalHotkeysFromCache: globalHotkeyManager.restoreGlobalHotkeysFromCache.bind(
+      globalHotkeyManager
+    ),
 
     // 管理器方法
     setScope: globalHotkeyManager.setScope.bind(globalHotkeyManager),

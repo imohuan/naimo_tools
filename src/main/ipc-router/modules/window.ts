@@ -47,6 +47,34 @@ export function close(): void {
 }
 
 /**
+ * 切换窗口显示状态
+ * @param show 可选参数，指定是否显示窗口。不传则进行toggle
+ */
+export function toggleShow(id: number, show?: boolean): void {
+  const window = BrowserWindow.fromId(id);
+  if (!window) {
+    log.warn('没有找到焦点窗口');
+    return;
+  }
+
+  const isVisible = window.isVisible();
+  const shouldShow = show !== undefined ? show : !isVisible;
+
+  if (shouldShow && !isVisible) {
+    // 显示窗口
+    window.show();
+    window.focus();
+    log.debug('窗口已显示');
+  } else if (!shouldShow && isVisible) {
+    // 隐藏窗口
+    window.hide();
+    log.debug('窗口已隐藏');
+  } else {
+    log.debug(`窗口状态无需改变: ${isVisible ? '已显示' : '已隐藏'}`);
+  }
+}
+
+/**
  * 检查窗口是否最大化
  * @returns 窗口是否最大化
  */
@@ -186,10 +214,17 @@ const registeredGlobalShortcuts = new Map<string, string>();
  */
 export function registerGlobalHotkey(accelerator: string, id: string): boolean {
   try {
-    // 检查是否已注册
+    log.info(`🔧 主进程开始注册全局快捷键: ${accelerator} (${id})`);
+
+    // 检查是否已注册，如果已注册则先注销
     if (registeredGlobalShortcuts.has(id)) {
-      log.warn(`全局快捷键 ${id} 已存在`);
-      return false;
+      log.warn(`全局快捷键 ${id} 已存在，先注销再重新注册`);
+      const oldAccelerator = registeredGlobalShortcuts.get(id);
+      if (oldAccelerator && globalShortcut.isRegistered(oldAccelerator)) {
+        globalShortcut.unregister(oldAccelerator);
+        log.info(`已注销旧的全局快捷键: ${oldAccelerator}`);
+      }
+      registeredGlobalShortcuts.delete(id);
     }
 
     // 检查快捷键是否已被其他应用使用
@@ -198,13 +233,17 @@ export function registerGlobalHotkey(accelerator: string, id: string): boolean {
       return false;
     }
 
+    log.info(`快捷键 ${accelerator} 未被占用，可以注册`);
+
     // 注册全局快捷键
     const success = globalShortcut.register(accelerator, () => {
-      log.debug(`触发全局快捷键: ${accelerator} (${id})`);
+      log.info(`🎉 全局快捷键被触发: ${accelerator} (${id})`);
       // 发送事件到渲染进程
       const windows = BrowserWindow.getAllWindows();
+      log.info(`发送事件到 ${windows.length} 个窗口`);
       windows.forEach(window => {
         window.webContents.send('global-hotkey-trigger', { hotkeyId: id });
+        log.debug(`已发送事件到窗口: ${window.id}`);
       });
     });
 
@@ -225,17 +264,16 @@ export function registerGlobalHotkey(accelerator: string, id: string): boolean {
 /**
  * 注销全局快捷键
  */
-export function unregisterGlobalHotkey(id: string): boolean {
+export function unregisterGlobalHotkey(accelerator: string, id: string = "-1"): boolean {
   try {
-    const accelerator = registeredGlobalShortcuts.get(id);
-    if (!accelerator) {
-      log.warn(`全局快捷键 ${id} 不存在`);
-      return false;
+    const cacheAccelerator = registeredGlobalShortcuts.get(id);
+    const accelerators: string[] = [cacheAccelerator, accelerator].filter(Boolean) as string[];
+    for (const accelerator of accelerators) {
+      if (globalShortcut.isRegistered(accelerator)) {
+        globalShortcut.unregister(accelerator);
+      }
+      registeredGlobalShortcuts.delete(id);
     }
-
-    globalShortcut.unregister(accelerator);
-    registeredGlobalShortcuts.delete(id);
-
     log.info(`注销全局快捷键成功: ${accelerator} (${id})`);
     return true;
   } catch (error) {

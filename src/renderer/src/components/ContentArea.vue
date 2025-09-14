@@ -6,19 +6,24 @@
     v-if="contentAreaVisible"
   >
     <div id="content-scroll-container" class="w-full h-full overflow-y-auto">
+      <!-- 设置页面 -->
+      <Settings
+        v-if="showSettings"
+        @close="$emit('close-settings')"
+      />
       <!-- 搜索结果 -->
       <SearchCategories
-        v-if="searchCategories.length > 0"
+        v-else-if="searchCategories.length > 0"
         :categories="searchCategories"
         :selected-index="selectedIndex"
         :flat-items="flatItems"
         @app-click="$emit('app-click', $event)"
         @category-toggle="$emit('category-toggle', $event)"
-        @category-drag-end="$emit('category-drag-end', $event, $event)"
-        @app-delete="$emit('app-delete', $event, $event)"
-        @app-pin="$emit('app-pin', $event)"
+        @category-drag-end="(categoryId, items) => $emit('category-drag-end', categoryId, items)"
+        @app-delete="(app, categoryId) => $emit('app-delete', app, categoryId)"
+        @app-pin="(app, categoryId) => $emit('app-pin', app)"
       />
-      <!-- 设置内容 -->
+      <!-- 默认内容 -->
       <HotkeyDemo v-else />
     </div>
   </div>
@@ -26,6 +31,7 @@
 
 <script setup lang="ts">
 import SearchCategories from './SearchCategories.vue'
+import Settings from './Settings.vue'
 import type { AppItem } from '../../../shared/types'
 import type { SearchCategory } from '../composables/useSearch'
 
@@ -35,6 +41,7 @@ interface Props {
   searchCategories: SearchCategory[]
   selectedIndex: number
   flatItems: Array<AppItem & { categoryId: string }>
+  showSettings: boolean
 }
 
 interface Emits {
@@ -43,6 +50,7 @@ interface Emits {
   (e: 'category-drag-end', categoryId: string, newItems: AppItem[]): void
   (e: 'app-delete', app: AppItem, categoryId: string): void
   (e: 'app-pin', app: AppItem): void
+  (e: 'close-settings'): void
 }
 
 defineProps<Props>()

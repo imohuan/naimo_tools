@@ -27,7 +27,8 @@
 
 <script setup lang="ts">
 import { ref, computed } from "vue";
-import { useHotkeyManager, HotkeyType } from "../composables/useHotkeyManager";
+import { useHotkeyManager } from "../composables/useHotkeyManager";
+import { HotkeyType } from "../types/hotkey-types";
 
 // 组件属性
 interface Props {
@@ -58,6 +59,13 @@ const displayText = computed(() => {
   return keys.value.join(" + ");
 });
 
+// 事件定义
+interface Emits {
+  (e: "hotkey-captured", keys: string[]): void;
+}
+
+const emit = defineEmits<Emits>();
+
 // 事件处理函数
 const handleClick = async () => {
   if (containerRef.value) {
@@ -65,6 +73,7 @@ const handleClick = async () => {
     getListening().then((keys) => {
       currentKeys.value = keys;
       console.log(keys);
+      emit("hotkey-captured", keys);
     });
   }
 };

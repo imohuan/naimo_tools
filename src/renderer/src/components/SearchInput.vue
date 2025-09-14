@@ -1,11 +1,19 @@
 <template>
-  <div class="flex-1 w-full h-full">
+  <div class="flex-1 w-full h-full relative">
+    <!-- 占位符文本 -->
+    <div
+      v-if="!modelValue && !isComposing"
+      class="absolute left-1 top-1/2 transform -translate-y-1/2 text-gray-400 text-base pointer-events-none select-none no-drag"
+    >
+      {{ placeholder }}
+    </div>
+
+    <!-- 输入框 -->
     <input
       ref="inputRef"
       :value="modelValue"
       type="text"
-      :placeholder="placeholder"
-      class="h-full flex-1 pl-1 pr-4 py-3 text-gray-700 placeholder-gray-400 bg-transparent border-none outline-none text-base no-drag"
+      class="relative z-10 h-full flex-1 pl-1 pr-4 py-3 text-gray-700 bg-transparent border-none outline-none text-base no-drag"
       :style="{ width: inputWidth }"
       @click="handleInputClick"
       @keydown.enter="handleEnter"
@@ -18,7 +26,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick, watch } from "vue";
+import { ref, computed, nextTick, watch, onMounted } from "vue";
 import { useTextWidth } from "../composables/useTextWidth";
 
 // ==================== Props ====================
@@ -65,17 +73,17 @@ const { width: inputWidth, updateWidthAsync } = useTextWidthCalculator(inputRef,
 
 // ==================== 计算属性 ====================
 const currentText = computed(() => {
-  if (!inputRef.value) return props.modelValue || props.placeholder;
+  if (!inputRef.value) return props.modelValue || "";
 
   // 如果正在输入中文，需要组合当前值和预输入拼音
   if (isComposing.value) {
     const currentValue = props.modelValue || "";
     const fullText = currentValue + compositionText.value;
-    return fullText || props.placeholder;
+    return fullText;
   }
 
   // 非中文输入状态，使用正常的文本内容
-  return props.modelValue || props.placeholder;
+  return props.modelValue || "";
 });
 
 // ==================== 方法 ====================

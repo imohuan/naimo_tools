@@ -6,7 +6,7 @@
       "type": "node",
       "request": "launch",
       "program": "${workspaceFolder}/scripts/dev.js",
-      "args": ["--debug", "--renderer-debug"],
+      "args": ["--debug", "--renderer-debug", "--enable-ipc-types"],
       "console": "integratedTerminal",
       "env": {
         "NODE_ENV": "development",
@@ -63,11 +63,14 @@
       "webRoot": "${workspaceFolder}",
       "sourceMaps": true,
       "sourceMapPathOverrides": {
-        "../../../src/main/*": "${workspaceFolder}/src/main/*",
-        // "../../../src/renderer/*": "${workspaceFolder}/src/renderer/*", // 不要加载渲染进程的源码1
-        "../../../src/shared/*": "${workspaceFolder}/src/shared/*",
-        "../../../src/libs/*": "${workspaceFolder}/src/libs/*"
+        "../../../src/*": "${workspaceFolder}/src/*"
       },
+      "skipFiles": [
+        "<node_internals>/**",
+        "**/node_modules/**",
+        "${workspaceFolder}/src/renderer/**",
+        "${workspaceFolder}/dist/renderer/**"
+      ],
       "timeout": 30000,
       "trace": true
     }

@@ -1,35 +1,55 @@
 <template>
   <div
-    class="draggable-item flex flex-col h-22 items-center p-2 hover:bg-gray-100 rounded-lg cursor-pointer transition-colors group"
+    class="draggable-item flex flex-col h-21 items-center p-1 pt-2 rounded-lg cursor-pointer group relative overflow-hidden"
     :class="{
-      'bg-blue-100 border-2 border-blue-400 shadow-md': isSelected,
-      'hover:bg-gray-100': !isSelected,
+      'selected-item': isSelected,
+      'unselected-item': !isSelected,
     }"
     :data-key="`${categoryId}-${app.path}`"
     @dblclick="handleAppClick"
     @contextmenu="handleContextMenu"
     ref="itemRef"
   >
+    <!-- 简洁背景和边框 -->
+    <div
+      class="absolute inset-0 bg-gray-200 rounded-lg border-2 border-transparent opacity-0 transition-all duration-300"
+      :class="{
+        'opacity-100 !border-gray-200': isSelected,
+      }"
+    ></div>
+
     <!-- 应用图标 -->
-    <div class="w-8 h-8 sm:w-10 sm:h-10 mb-1 flex-shrink-0">
+    <div
+      class="w-8 h-8 sm:w-10 sm:h-10 mb-1 flex-shrink-0 relative z-10 transition-transform duration-200"
+      :class="{ 'scale-110': isSelected }"
+    >
       <img
         v-if="app.icon"
         :src="app.icon"
         :alt="app.name"
-        class="w-full h-full object-contain rounded"
+        class="w-full h-full object-contain rounded transition-all duration-200"
+        :class="{ 'brightness-110 drop-shadow-md': isSelected }"
       />
       <div
         v-else
-        class="w-full h-full bg-gray-300 rounded flex items-center justify-center"
+        class="w-full h-full bg-gray-300 rounded flex items-center justify-center transition-all duration-200"
+        :class="{ 'bg-gray-200': isSelected }"
       >
-        <IconMdiApplication class="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" />
+        <IconMdiApplication
+          class="w-4 h-4 sm:w-5 sm:h-5 text-gray-600 transition-colors duration-200"
+          :class="{ 'text-gray-700': isSelected }"
+        />
       </div>
     </div>
 
     <!-- 应用名称 -->
-    <div class="text-center w-full px-1">
+    <div class="text-center w-full px-0.5 relative z-10">
       <div
-        class="text-xs text-gray-900 leading-tight break-words overflow-hidden app-name"
+        class="text-xs leading-tight break-words overflow-hidden app-name transition-all duration-200"
+        :class="{
+          'text-gray-700 font-medium': isSelected,
+          'text-gray-900': !isSelected,
+        }"
       >
         {{ app.name }}
       </div>
@@ -107,13 +127,54 @@ const handleContextMenu = (event: MouseEvent) => {
   hyphens: auto;
 }
 
+/* 选择状态样式 */
+.selected-item {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.unselected-item {
+  background: transparent;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.unselected-item:hover {
+  background: rgba(156, 163, 175, 0.1);
+  transform: translateY(-0.5px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
 /* 确保拖拽样式正确应用 */
 .draggable-item {
   transform: none !important;
-  transition: all 0.2s ease !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
 .draggable-item:not(.sortable-chosen):not(.sortable-drag):not(.sortable-ghost) {
   transform: none !important;
+}
+
+/* 选中状态的图标动画 */
+.selected-item .w-8,
+.selected-item .w-10 {
+  animation: selectedPulse 0.3s ease-out;
+}
+
+@keyframes selectedPulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.15);
+  }
+  100% {
+    transform: scale(1.1);
+  }
+}
+
+/* 平滑的焦点过渡 */
+.draggable-item:focus-visible {
+  outline: 2px solid rgba(107, 114, 128, 0.5);
+  outline-offset: 2px;
 }
 </style>

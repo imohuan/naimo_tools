@@ -219,12 +219,15 @@ function generateTypesFromDirectory(dirPath, outputPath) {
         // 构建参数列表，包含泛型信息，并收集使用的类型
         const params = func.getParameters().map(param => {
           const paramName = param.getName();
+          const isOptional = param.hasQuestionToken(); // 检查是否有 ? 标记
           const type = param.getTypeNode() ? param.getTypeNode().getText() : 'any';
 
           // 收集在参数类型中使用的类型
           extractUsedTypes(type, availableImports, usedTypes, externalImports);
 
-          return `${paramName}: ${type}`;
+          // 如果有可选标记，添加 ?
+          const optionalMark = isOptional ? '?' : '';
+          return `${paramName}${optionalMark}: ${type}`;
         }).join(', ');
 
         // 构建返回类型，包含泛型信息，并收集使用的类型

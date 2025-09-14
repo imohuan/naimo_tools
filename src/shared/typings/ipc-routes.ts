@@ -1,6 +1,6 @@
 /**
  * 自动生成的 IPC 类型定义
- * 生成时间: 2025-09-13T16:45:28.800Z
+ * 生成时间: 2025-09-14T05:09:36.976Z
  * 请勿手动修改此文件
  */
 
@@ -208,13 +208,13 @@ interface storeInterface {
  * @param 配置键名，如果不提供则返回完整配置
  * @returns 配置值或完整配置对象
  */
-  "store-get": (key: keyof AppConfig) => Promise<any>;
+  "store-get": (key?: keyof AppConfig) => Promise<any>;
   /**
  * 获取存储数据
  * @param 配置键名，如果不提供则返回完整配置
  * @returns 配置值或完整配置对象
  */
-  "storeGet": (key: keyof AppConfig) => Promise<any>;
+  "storeGet": (key?: keyof AppConfig) => Promise<any>;
 
   /**
  * 设置存储数据
@@ -271,6 +271,17 @@ interface windowInterface {
   "window-close": () => Promise<void>;
   /** 关闭窗口 */
   "windowClose": () => Promise<void>;
+
+  /**
+ * 切换窗口显示状态
+ * @param 可选参数，指定是否显示窗口。不传则进行toggle
+ */
+  "window-toggle-show": (id: number, show?: boolean) => Promise<void>;
+  /**
+ * 切换窗口显示状态
+ * @param 可选参数，指定是否显示窗口。不传则进行toggle
+ */
+  "windowToggleShow": (id: number, show?: boolean) => Promise<void>;
 
   /**
  * 检查窗口是否最大化
@@ -331,9 +342,9 @@ interface windowInterface {
   "windowRegisterGlobalHotkey": (accelerator: string, id: string) => Promise<boolean>;
 
   /** 注销全局快捷键 */
-  "window-unregister-global-hotkey": (id: string) => Promise<boolean>;
+  "window-unregister-global-hotkey": (accelerator: string, id: string) => Promise<boolean>;
   /** 注销全局快捷键 */
-  "windowUnregisterGlobalHotkey": (id: string) => Promise<boolean>;
+  "windowUnregisterGlobalHotkey": (accelerator: string, id: string) => Promise<boolean>;
 
   /** 注销所有全局快捷键 */
   "window-unregister-all-global-hotkeys": () => Promise<void>;
@@ -531,6 +542,12 @@ export const ROUTE_INFO: RouteInfo[] = [
     comment: "关闭窗口",
     module: "window",
     function: "close"
+  },
+  {
+    route: "window-toggle-show",
+    comment: "切换窗口显示状态",
+    module: "window",
+    function: "toggleShow"
   },
   {
     route: "window-is-maximized",
