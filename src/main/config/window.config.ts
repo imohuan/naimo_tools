@@ -6,6 +6,7 @@ import { readFileSync } from 'fs';
 import log from 'electron-log';
 import { AppConfig } from '@shared/types';
 import { isProduction } from '@shared/utils';
+import { WindowManager, WindowType } from './window-manager';
 
 // 从 package.json 读取渲染进程URL配置
 function getRendererUrl(): string {
@@ -35,6 +36,35 @@ function getProjectRoot(): string {
  * 窗口配置管理类
  */
 export class WindowConfigManager {
+  private static windowManager = WindowManager.getInstance();
+
+  /**
+   * 获取窗口管理器实例
+   */
+  static getWindowManager(): WindowManager {
+    return this.windowManager;
+  }
+
+  /**
+   * 跟随窗口 列表（兼容性属性）
+   */
+  static get followingWindows(): Set<BrowserWindow> {
+    return this.windowManager.followingWindows;
+  }
+
+  /**
+   * 分离窗口 列表（兼容性属性）
+   */
+  static get separatedWindows(): Set<BrowserWindow> {
+    return this.windowManager.separatedWindows;
+  }
+
+  /**
+   * 后台窗口 列表（兼容性属性）
+   */
+  static get backgroundWindows(): Set<BrowserWindow> {
+    return this.windowManager.backgroundWindows;
+  }
 
   /**
    * 创建主窗口配置
@@ -54,10 +84,11 @@ export class WindowConfigManager {
       show: false,
       titleBarStyle: 'default',
       frame: false, // 无边框窗口，支持自定义拖拽区域
-      resizable: false,
+      resizable: true, // 允许程序动态调整大小
       minimizable: true,
       maximizable: false, // 禁用最大化，保持搜索框界面
       transparent: true,
+      hasShadow: false, // 移除窗口阴影
       icon: isProduction() ? join(__dirname, '../../setup/exe.ico') : undefined
     };
   }
@@ -82,6 +113,23 @@ export class WindowConfigManager {
         options.onResize!(width, height);
       });
     }
+
+    // 限制窗口最大尺寸，防止用户手动调整过大
+    window.on('will-resize', (event, newBounds) => {
+      const maxWidth = 800;
+      const maxHeight = 600;
+
+      if (newBounds.width > maxWidth || newBounds.height > maxHeight) {
+        event.preventDefault();
+        // 如果超出限制，恢复到合理尺寸
+        window.setBounds({
+          x: newBounds.x,
+          y: newBounds.y,
+          width: Math.min(newBounds.width, maxWidth),
+          height: Math.min(newBounds.height, maxHeight)
+        });
+      }
+    });
 
     // 开发环境下打开开发者工具
     if (!isProduction()) {

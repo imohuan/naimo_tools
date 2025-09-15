@@ -1,10 +1,9 @@
 /**
  * 自动生成的 IPC 类型定义
- * 生成时间: 2025-09-14T05:09:36.976Z
+ * 生成时间: 2025-09-15T07:30:33.311Z
  * 请勿手动修改此文件
  */
 
-import { AppConfig } from '../types';
 
 // 各个模块的接口定义
 interface appInterface {
@@ -295,19 +294,6 @@ interface windowInterface {
   "windowIsMaximized": () => Promise<boolean>;
 
   /**
- * 移动窗口
- * @param X轴移动距离
- * @param Y轴移动距离
- */
-  "window-move": (deltaX: number, deltaY: number) => Promise<void>;
-  /**
- * 移动窗口
- * @param X轴移动距离
- * @param Y轴移动距离
- */
-  "windowMove": (deltaX: number, deltaY: number) => Promise<void>;
-
-  /**
  * 设置窗口大小
  * @param 窗口宽度
  * @param 窗口高度
@@ -357,9 +343,104 @@ interface windowInterface {
   "windowIsGlobalHotkeyRegistered": (accelerator: string) => Promise<boolean>;
 
   /** 获取所有已注册的全局快捷键 */
-  "window-get-all-registered-global-hotkeys": () => Promise<Array<{ id: string; accelerator: string }>>;
+  "window-get-all-registered-global-hotkeys": () => Promise<Array<{
+  id: string;
+  accelerator: string;
+}>>;
   /** 获取所有已注册的全局快捷键 */
-  "windowGetAllRegisteredGlobalHotkeys": () => Promise<Array<{ id: string; accelerator: string }>>;
+  "windowGetAllRegisteredGlobalHotkeys": () => Promise<Array<{
+  id: string;
+  accelerator: string;
+}>>;
+
+  /**
+ * 获取UI常量配置
+ * @returns UI常量配置对象，包含headerHeight、maxHeight、padding
+ */
+  "window-get-u-i-constants": () => Promise<{
+  headerHeight: number;
+  maxHeight: number;
+  padding: number;
+}>;
+  /**
+ * 获取UI常量配置
+ * @returns UI常量配置对象，包含headerHeight、maxHeight、padding
+ */
+  "windowGetUIConstants": () => Promise<{
+  headerHeight: number;
+  maxHeight: number;
+  padding: number;
+}>;
+
+  /**
+ * 计算跟随窗口的最终边界
+ * @param 主窗口X坐标
+ * @param 主窗口Y坐标
+ * @param 主窗口宽度
+ * @param 主窗口高度
+ * @returns 跟随窗口的最终边界配置
+ */
+  "window-calculate-following-window-bounds": (mainX: number, mainY: number, mainWidth: number, mainHeight: number, addPadding: number) => Promise<{
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}>;
+  /**
+ * 计算跟随窗口的最终边界
+ * @param 主窗口X坐标
+ * @param 主窗口Y坐标
+ * @param 主窗口宽度
+ * @param 主窗口高度
+ * @returns 跟随窗口的最终边界配置
+ */
+  "windowCalculateFollowingWindowBounds": (mainX: number, mainY: number, mainWidth: number, mainHeight: number, addPadding: number) => Promise<{
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}>;
+
+  /** 显示所有following类型的窗口 */
+  "window-show-all-following-windows": () => Promise<void>;
+  /** 显示所有following类型的窗口 */
+  "windowShowAllFollowingWindows": () => Promise<void>;
+
+  /** 隐藏所有following类型的窗口 */
+  "window-hide-all-following-windows": () => Promise<void>;
+  /** 隐藏所有following类型的窗口 */
+  "windowHideAllFollowingWindows": () => Promise<void>;
+
+  /** 关闭所有following类型的窗口 */
+  "window-close-all-following-windows": () => Promise<void>;
+  /** 关闭所有following类型的窗口 */
+  "windowCloseAllFollowingWindows": () => Promise<void>;
+
+  /**
+ * 根据配置隐藏或关闭所有following窗口
+ * @param 操作类型：'hide' 隐藏，'close' 关闭
+ */
+  "window-manage-following-windows": (action: 'hide' | 'close') => Promise<void>;
+  /**
+ * 根据配置隐藏或关闭所有following窗口
+ * @param 操作类型：'hide' 隐藏，'close' 关闭
+ */
+  "windowManageFollowingWindows": (action: 'hide' | 'close') => Promise<void>;
+
+  /**
+ * 创建网页显示窗口
+ * @param 主窗口ID
+ * @param 要显示的网页URL
+ * @param 元数据，包含title、preload等额外信息
+ */
+  "window-create-web-page-window": (windowId: number, url: string, metadata?: Record<string, any>) => Promise<void>;
+  /**
+ * 创建网页显示窗口
+ * @param 主窗口ID
+ * @param 要显示的网页URL
+ * @param 元数据，包含title、preload等额外信息
+ */
+  "windowCreateWebPageWindow": (windowId: number, url: string, metadata?: Record<string, any>) => Promise<void>;
 }
 
 // 合并所有 IPC 路由类型
@@ -556,12 +637,6 @@ export const ROUTE_INFO: RouteInfo[] = [
     function: "isMaximized"
   },
   {
-    route: "window-move",
-    comment: "移动窗口",
-    module: "window",
-    function: "move"
-  },
-  {
     route: "window-set-size",
     comment: "设置窗口大小",
     module: "window",
@@ -608,6 +683,48 @@ export const ROUTE_INFO: RouteInfo[] = [
     comment: "获取所有已注册的全局快捷键",
     module: "window",
     function: "getAllRegisteredGlobalHotkeys"
+  },
+  {
+    route: "window-get-u-i-constants",
+    comment: "获取UI常量配置",
+    module: "window",
+    function: "getUIConstants"
+  },
+  {
+    route: "window-calculate-following-window-bounds",
+    comment: "计算跟随窗口的最终边界",
+    module: "window",
+    function: "calculateFollowingWindowBounds"
+  },
+  {
+    route: "window-show-all-following-windows",
+    comment: "显示所有following类型的窗口",
+    module: "window",
+    function: "showAllFollowingWindows"
+  },
+  {
+    route: "window-hide-all-following-windows",
+    comment: "隐藏所有following类型的窗口",
+    module: "window",
+    function: "hideAllFollowingWindows"
+  },
+  {
+    route: "window-close-all-following-windows",
+    comment: "关闭所有following类型的窗口",
+    module: "window",
+    function: "closeAllFollowingWindows"
+  },
+  {
+    route: "window-manage-following-windows",
+    comment: "根据配置隐藏或关闭所有following窗口",
+    module: "window",
+    function: "manageFollowingWindows"
+  },
+  {
+    route: "window-create-web-page-window",
+    comment: "创建网页显示窗口",
+    module: "window",
+    function: "createWebPageWindow"
   }
 ];
 

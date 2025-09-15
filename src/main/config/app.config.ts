@@ -22,7 +22,12 @@ export class AppConfigManager {
           width: 800,
           height: 600
         },
-        logLevel: isProduction() ? 'info' : 'debug'
+        logLevel: isProduction() ? 'info' : 'debug',
+        uiConstants: {
+          headerHeight: 50,
+          maxHeight: 420,
+          padding: 8
+        }
       },
       schema: {
         theme: {
@@ -49,9 +54,24 @@ export class AppConfigManager {
           type: 'string',
           enum: ['error', 'warn', 'info', 'debug'],
           default: isProduction() ? 'info' : 'debug'
+        },
+        uiConstants: {
+          type: 'object',
+          properties: {
+            headerHeight: { type: 'number', minimum: 20, maximum: 200, default: 50 },
+            maxHeight: { type: 'number', minimum: 200, maximum: 2000, default: 420 },
+            padding: { type: 'number', minimum: 0, maximum: 100, default: 8 }
+          },
+          required: ['headerHeight', 'maxHeight', 'padding'],
+          additionalProperties: false,
+          default: { headerHeight: 50, maxHeight: 420, padding: 8 }
         }
       }
     });
+
+    this.store.set("uiConstants", {
+      headerHeight: 50, maxHeight: 420, padding: 8
+    })
 
     log.info(`存储配置文件路径: ${this.store.path}`);
   }

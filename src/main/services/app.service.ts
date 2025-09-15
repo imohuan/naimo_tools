@@ -4,6 +4,7 @@ import { updateElectronApp, UpdateSourceType } from "@libs/update";
 import { AppConfigManager } from "../config/app.config";
 import { LogConfigManager } from "../config/log.config";
 import { WindowConfigManager } from "../config/window.config";
+import { WindowManager, WindowType } from "../config/window-manager";
 import { isProduction } from "@shared/utils";
 import { MainErrorHandler } from "@libs/unhandled/main";
 import { cleanupIpcRouter, initializeIpcRouter } from "../ipc-router";
@@ -25,9 +26,11 @@ export class AppService {
   private static instance: AppService;
   private mainWindow: BrowserWindow | null = null;
   private configManager: AppConfigManager;
+  private windowManager: WindowManager;
 
   private constructor() {
     this.configManager = new AppConfigManager();
+    this.windowManager = WindowManager.getInstance();
   }
 
   /**
@@ -203,6 +206,12 @@ export class AppService {
     log.info("创建主窗口: ", options);
     this.mainWindow = new BrowserWindow(options);
 
+    // 注册主窗口到窗口管理器
+    this.windowManager.registerWindow(this.mainWindow, WindowType.MAIN, {
+      isMainWindow: true,
+      version: '1.0.0'
+    });
+
     // 剧中显示
     this.mainWindow.center();
 
@@ -225,8 +234,12 @@ export class AppService {
 
     // 监听窗口关闭
     this.mainWindow.on("closed", () => {
+      // 从窗口管理器中注销主窗口
+      this.windowManager.unregisterWindow(this.mainWindow!.id);
       this.mainWindow = null;
     });
+
+    this.mainWindow.center();
   }
 
   /**
@@ -234,6 +247,13 @@ export class AppService {
    */
   getMainWindow(): BrowserWindow | null {
     return this.mainWindow;
+  }
+
+  /**
+   * 获取窗口管理器实例
+   */
+  getWindowManager(): WindowManager {
+    return this.windowManager;
   }
 
   /**

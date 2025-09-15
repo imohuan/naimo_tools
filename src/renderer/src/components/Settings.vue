@@ -28,6 +28,22 @@
           </li>
           <li>
             <button
+              @click="activeTab = 'plugins'"
+              :class="[
+                'w-full text-left px-3 py-2 rounded-lg transition-colors',
+                activeTab === 'plugins'
+                  ? 'bg-blue-100 text-blue-700 border border-blue-200'
+                  : 'text-gray-700 hover:bg-gray-100',
+              ]"
+            >
+              <div class="flex items-center">
+                <IconMdiPuzzle class="w-4 h-4 mr-2" />
+                <span class="text-sm font-medium">插件管理</span>
+              </div>
+            </button>
+          </li>
+          <li>
+            <button
               @click="activeTab = 'about'"
               :class="[
                 'w-full text-left px-3 py-2 rounded-lg transition-colors',
@@ -75,6 +91,7 @@
         :class="isEditingHotkey ? 'overflow-hidden' : 'overflow-auto'"
       >
         <HotkeySettings v-if="activeTab === 'hotkeys'" ref="hotkeySettingsRef" />
+        <PluginManager v-if="activeTab === 'plugins'" />
         <About v-if="activeTab === 'about'" />
       </div>
     </div>
@@ -86,10 +103,13 @@ import { ref, computed } from "vue";
 /** @ts-ignore */
 import IconMdiKeyboard from "~icons/mdi/keyboard";
 /** @ts-ignore */
+import IconMdiPuzzle from "~icons/mdi/puzzle";
+/** @ts-ignore */
 import IconMdiInformation from "~icons/mdi/information";
 /** @ts-ignore */
 import IconMdiClose from "~icons/mdi/close";
-import HotkeySettings from "./HotkeySettings.vue";
+import HotkeySettings from "../modules/hotkeys/components/HotkeySettings.vue";
+import PluginManager from "../modules/plugins/components/PluginManager.vue";
 import About from "./About.vue";
 
 // 事件定义
@@ -100,7 +120,7 @@ interface Emits {
 const emit = defineEmits<Emits>();
 
 // 当前激活的标签页
-const activeTab = ref<"hotkeys" | "about">("hotkeys");
+const activeTab = ref<"hotkeys" | "plugins" | "about">("hotkeys");
 
 // 组件引用
 const hotkeySettingsRef = ref<InstanceType<typeof HotkeySettings>>();
@@ -115,6 +135,8 @@ const getTabTitle = () => {
   switch (activeTab.value) {
     case "hotkeys":
       return "快捷键设置";
+    case "plugins":
+      return "插件管理";
     case "about":
       return "关于 Naimo";
     default:
@@ -127,6 +149,8 @@ const getTabDescription = () => {
   switch (activeTab.value) {
     case "hotkeys":
       return "配置应用程序的快捷键，提高操作效率";
+    case "plugins":
+      return "管理插件，扩展应用程序功能";
     case "about":
       return "了解 Naimo 应用程序的详细信息";
     default:

@@ -1,0 +1,75 @@
+<template>
+  <div
+    class="bg-white rounded-lg border border-gray-200 p-2 hover:border-gray-500 transition-all duration-200 cursor-pointer"
+    :class="{ 'opacity-60': !plugin.enabled }"
+    @click="$emit('click', plugin)"
+  >
+    <!-- 插件头部信息 -->
+    <div class="flex items-start gap-2">
+      <div class="text-2xl flex-shrink-0">{{ plugin.icon || "🔌" }}</div>
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center justify-between mb-2">
+          <div class="flex items-center gap-3">
+            <h3 class="text font-semibold text-gray-900">
+              {{ plugin.name }}
+              <span
+                class="bg-gray-100 px-2 py-1 rounded text-xs transform scale-75 origin-center-left inline-block"
+                >v{{ plugin.version }}</span
+              >
+            </h3>
+          </div>
+          <!-- 安装/卸载图标按钮 -->
+          <div class="flex items-center gap-1">
+            <button
+              v-if="!isInstalled"
+              @click.stop="$emit('install', plugin)"
+              class="p-1.5 text-green-500 hover:bg-green-50 rounded transition-colors"
+              title="安装插件"
+            >
+              <IconMdiDownload class="w-4 h-4" />
+            </button>
+            <button
+              v-else
+              @click.stop="$emit('uninstall', plugin.id)"
+              class="p-1.5 text-red-500 hover:bg-red-50 rounded transition-colors"
+              title="卸载插件"
+            >
+              <IconMdiDeleteOutline class="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+        <p class="text-xs text-gray-600 mb-3 line-clamp-2">
+          {{ plugin.description || "暂无描述" }}
+        </p>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import type { PluginConfig } from "@/typings/plugin-types";
+
+interface Props {
+  plugin: PluginConfig;
+  isInstalled: boolean;
+}
+
+defineProps<Props>();
+
+defineEmits<{
+  click: [plugin: PluginConfig];
+  install: [plugin: PluginConfig];
+  uninstall: [pluginId: string];
+}>();
+</script>
+
+<style scoped>
+/* 自定义样式，用于文本截断 */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+</style>

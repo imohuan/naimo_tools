@@ -14,6 +14,15 @@ export interface AppConfig {
   };
   /** 日志级别 */
   logLevel: "error" | "warn" | "info" | "debug";
+  /** UI常量配置 */
+  uiConstants: {
+    /** 头部高度 */
+    headerHeight: number;
+    /** 最大高度 */
+    maxHeight: number;
+    /** 内边距 */
+    padding: number;
+  };
   /** 是否开机自启 */
   autoStart?: boolean;
   /** 是否窗口置顶 */

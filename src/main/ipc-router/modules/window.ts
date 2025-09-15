@@ -3,10 +3,17 @@
  * 展示新的 IPC 路由系统使用方式
  */
 
-import { BrowserWindow, screen, globalShortcut } from 'electron';
-import { dirname, join } from 'path';
-import log from 'electron-log';
-import { fileURLToPath } from 'url';
+import { BrowserWindow, screen, globalShortcut } from "electron";
+import { dirname, join } from "path";
+import log from "electron-log";
+import { fileURLToPath } from "url";
+import { writeFileSync, readFileSync, mkdirSync } from "fs";
+import { tmpdir } from "os";
+import { WindowConfigManager } from "../../config/window.config";
+import { AppConfigManager } from "../../config/app.config";
+import { WindowType } from "../../config/window-manager";
+const configManager = new AppConfigManager();
+
 
 /**
  * 最小化窗口
@@ -15,7 +22,7 @@ export function minimize(): void {
   const window = BrowserWindow.getFocusedWindow();
   if (window) {
     window.minimize();
-    log.debug('窗口已最小化');
+    log.debug("窗口已最小化");
   }
 }
 
@@ -27,10 +34,10 @@ export function maximize(): void {
   if (window) {
     if (window.isMaximized()) {
       window.unmaximize();
-      log.debug('窗口已还原');
+      log.debug("窗口已还原");
     } else {
       window.maximize();
-      log.debug('窗口已最大化');
+      log.debug("窗口已最大化");
     }
   }
 }
@@ -42,7 +49,7 @@ export function close(): void {
   const window = BrowserWindow.getFocusedWindow();
   if (window) {
     window.close();
-    log.debug('窗口已关闭');
+    log.debug("窗口已关闭");
   }
 }
 
@@ -53,7 +60,7 @@ export function close(): void {
 export function toggleShow(id: number, show?: boolean): void {
   const window = BrowserWindow.fromId(id);
   if (!window) {
-    log.warn('没有找到焦点窗口');
+    log.warn("没有找到焦点窗口");
     return;
   }
 
@@ -62,16 +69,33 @@ export function toggleShow(id: number, show?: boolean): void {
 
   if (shouldShow && !isVisible) {
     // 显示窗口
-    window.show();
+    window.showInactive();
     window.focus();
-    log.debug('窗口已显示');
+    log.debug("窗口已显示");
   } else if (!shouldShow && isVisible) {
     // 隐藏窗口
     window.hide();
-    log.debug('窗口已隐藏');
+    log.debug("窗口已隐藏");
   } else {
-    log.debug(`窗口状态无需改变: ${isVisible ? '已显示' : '已隐藏'}`);
+    log.debug(`窗口状态无需改变: ${isVisible ? "已显示" : "已隐藏"}`);
   }
+
+  // 同步控制 FOLLOWING 类型的窗口
+  const windowManager = WindowConfigManager.getWindowManager();
+  const followingWindows = windowManager.getWindowsByType(WindowType.FOLLOWING);
+
+  followingWindows.forEach(followingWindow => {
+    if (!followingWindow.isDestroyed()) {
+      if (shouldShow && !followingWindow.isVisible()) {
+        // 使用 showInactive 避免动画效果
+        followingWindow.showInactive();
+        log.debug(`跟随窗口已显示: ID=${followingWindow.id}`);
+      } else if (!shouldShow && followingWindow.isVisible()) {
+        followingWindow.hide();
+        log.debug(`跟随窗口已隐藏: ID=${followingWindow.id}`);
+      }
+    }
+  });
 }
 
 /**
@@ -81,40 +105,6 @@ export function toggleShow(id: number, show?: boolean): void {
 export function isMaximized(): boolean {
   const window = BrowserWindow.getFocusedWindow();
   return window ? window.isMaximized() : false;
-}
-
-/**
- * 移动窗口
- * @param deltaX X轴移动距离
- * @param deltaY Y轴移动距离
- */
-export function move(deltaX: number, deltaY: number): void {
-  const window = BrowserWindow.getFocusedWindow();
-  if (window && !window.isMaximized()) {
-    const [currentX, currentY] = window.getPosition();
-
-    // 计算新位置
-    const newX = currentX + deltaX;
-    const newY = currentY + deltaY;
-
-    // 获取屏幕边界，防止窗口移出屏幕
-    const { screen } = require('electron');
-    const primaryDisplay = screen.getPrimaryDisplay();
-    const { width: screenWidth, height: screenHeight } = primaryDisplay.workAreaSize;
-    const [windowWidth, windowHeight] = window.getSize();
-
-    // 限制窗口位置在屏幕范围内
-    const clampedX = Math.max(0, Math.min(newX, screenWidth - windowWidth));
-    const clampedY = Math.max(0, Math.min(newY, screenHeight - windowHeight));
-
-    // 使用 setPosition 的 animate 参数来减少频闪
-    window.setPosition(clampedX, clampedY, false);
-
-    // 减少日志输出频率，避免性能影响
-    if (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5) {
-      log.debug(`窗口已移动: deltaX=${deltaX}, deltaY=${deltaY}`);
-    }
-  }
 }
 
 /**
@@ -129,13 +119,21 @@ export function setSize(width: number, height: number): void {
     const nowW = width === -1 ? w : width;
     const nowH = height === -1 ? h : height;
 
-    // 临时启用窗口可调整大小，以便能够修改窗口尺寸
-    const wasResizable = window.isResizable();
-    // if (!wasResizable) window.setResizable(true);
+    // 如果尺寸没有变化，直接返回
+    if (w === nowW && h === nowH) {
+      return;
+    }
+
     log.debug(`窗口大小已设置为: ${nowW}x${nowH}`);
-    window.setSize(nowW, nowH);
-    // 恢复原来的可调整大小状态
-    // if (!wasResizable) window.setResizable(false);
+
+    // 使用 setBounds 进行更平滑的尺寸调整
+    const bounds = window.getBounds();
+    window.setBounds({
+      x: bounds.x,
+      y: bounds.y,
+      width: nowW,
+      height: nowH,
+    });
   }
 }
 
@@ -160,7 +158,7 @@ export function openLogViewer(): void {
 
   // 检查是否已经有日志查看器窗口打开
   const existingWindow = BrowserWindow.getAllWindows().find(
-    window => window.getTitle() === '日志查看器'
+    (window) => window.getTitle() === "日志查看器"
   );
 
   if (existingWindow) {
@@ -174,35 +172,36 @@ export function openLogViewer(): void {
     height: 800,
     minWidth: 800,
     minHeight: 600,
-    title: '日志查看器',
+    title: "日志查看器",
     frame: false, // 无边框窗口
     show: false,
+    hasShadow: false, // 移除窗口阴影
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
-      preload: join(__dirname, 'preloads/basic.js'), // 注入basic.js preload
-      webSecurity: true
-    }
+      preload: join(__dirname, "preloads/basic.js"), // 注入basic.js preload
+      webSecurity: true,
+    },
   });
 
   // 加载日志查看器HTML文件
-  const logViewerPath = join(__dirname, '../renderer/log-viewer.html');
+  const logViewerPath = join(__dirname, "../renderer/log-viewer.html");
   logWindow.loadFile(logViewerPath);
 
   // 窗口准备好后显示
-  logWindow.once('ready-to-show', () => {
+  logWindow.once("ready-to-show", () => {
     logWindow.show();
-    log.info('日志查看器窗口已打开');
+    log.info("日志查看器窗口已打开");
   });
 
   // 窗口关闭时的处理
-  logWindow.on('closed', () => {
-    log.info('日志查看器窗口已关闭');
+  logWindow.on("closed", () => {
+    log.info("日志查看器窗口已关闭");
   });
 
   // 开发环境下打开开发者工具
-  if (process.env.NODE_ENV === 'development') {
-    logWindow.webContents.openDevTools({ mode: 'bottom' });
+  if (process.env.NODE_ENV === "development") {
+    logWindow.webContents.openDevTools({ mode: "bottom" });
   }
 }
 
@@ -241,8 +240,8 @@ export function registerGlobalHotkey(accelerator: string, id: string): boolean {
       // 发送事件到渲染进程
       const windows = BrowserWindow.getAllWindows();
       log.info(`发送事件到 ${windows.length} 个窗口`);
-      windows.forEach(window => {
-        window.webContents.send('global-hotkey-trigger', { hotkeyId: id });
+      windows.forEach((window) => {
+        window.webContents.send("global-hotkey-trigger", { hotkeyId: id });
         log.debug(`已发送事件到窗口: ${window.id}`);
       });
     });
@@ -267,7 +266,9 @@ export function registerGlobalHotkey(accelerator: string, id: string): boolean {
 export function unregisterGlobalHotkey(accelerator: string, id: string = "-1"): boolean {
   try {
     const cacheAccelerator = registeredGlobalShortcuts.get(id);
-    const accelerators: string[] = [cacheAccelerator, accelerator].filter(Boolean) as string[];
+    const accelerators: string[] = [cacheAccelerator, accelerator].filter(
+      Boolean
+    ) as string[];
     for (const accelerator of accelerators) {
       if (globalShortcut.isRegistered(accelerator)) {
         globalShortcut.unregister(accelerator);
@@ -289,9 +290,9 @@ export function unregisterAllGlobalHotkeys(): void {
   try {
     globalShortcut.unregisterAll();
     registeredGlobalShortcuts.clear();
-    log.info('已注销所有全局快捷键');
+    log.info("已注销所有全局快捷键");
   } catch (error) {
-    log.error('注销所有全局快捷键异常', error);
+    log.error("注销所有全局快捷键异常", error);
   }
 }
 
@@ -305,9 +306,297 @@ export function isGlobalHotkeyRegistered(accelerator: string): boolean {
 /**
  * 获取所有已注册的全局快捷键
  */
-export function getAllRegisteredGlobalHotkeys(): Array<{ id: string; accelerator: string }> {
+export function getAllRegisteredGlobalHotkeys(): Array<{
+  id: string;
+  accelerator: string;
+}> {
   return Array.from(registeredGlobalShortcuts.entries()).map(([id, accelerator]) => ({
     id,
-    accelerator
+    accelerator,
   }));
+}
+
+/**
+ * 获取UI常量配置
+ * @returns UI常量配置对象，包含headerHeight、maxHeight、padding
+ */
+export function getUIConstants(): {
+  headerHeight: number;
+  maxHeight: number;
+  padding: number;
+} {
+  try {
+    const uiConstants = configManager.get('uiConstants');
+    if (uiConstants) {
+      return {
+        headerHeight: uiConstants.headerHeight,
+        maxHeight: uiConstants.maxHeight,
+        padding: uiConstants.padding
+      };
+    }
+  } catch (error) {
+    log.warn("获取UI常量配置失败，使用默认值:", error);
+  }
+  // 返回默认值
+  return { headerHeight: 50, maxHeight: 420, padding: 8 };
+}
+
+/**
+ * 计算跟随窗口的最终边界
+ * @param mainX 主窗口X坐标
+ * @param mainY 主窗口Y坐标
+ * @param mainWidth 主窗口宽度
+ * @param mainHeight 主窗口高度
+ * @returns 跟随窗口的最终边界配置
+ */
+export function calculateFollowingWindowBounds(
+  mainX: number,
+  mainY: number,
+  mainWidth: number,
+  mainHeight: number,
+  addPadding: number = 0
+): {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+} {
+  let { headerHeight, maxHeight, padding } = getUIConstants();
+  padding += addPadding;
+
+  return {
+    x: mainX + padding,
+    y: mainY + headerHeight + padding,
+    width: mainWidth - padding * 2,
+    height: Math.min(mainHeight, maxHeight - headerHeight - padding * 2)
+  };
+}
+
+/** 显示所有following类型的窗口 */
+export function showAllFollowingWindows(): void {
+  const windowManager = WindowConfigManager.getWindowManager();
+  const followingWindows = windowManager.getWindowInfoByType(WindowType.FOLLOWING);
+  followingWindows.forEach(followingWindow => {
+    if (followingWindow.metadata?.init) {
+      // 使用 showInactive 避免动画效果
+      followingWindow.window.showInactive();
+    }
+  });
+}
+
+/**
+ * 隐藏所有following类型的窗口
+ */
+export function hideAllFollowingWindows(): void {
+  try {
+    const windowManager = WindowConfigManager.getWindowManager();
+    const followingWindows = windowManager.getWindowsByType(WindowType.FOLLOWING);
+
+    log.info(`开始隐藏 ${followingWindows.length} 个following窗口`);
+
+    followingWindows.forEach(followingWindow => {
+      if (followingWindow.isVisible()) {
+        followingWindow.hide();
+        log.debug(`隐藏following窗口: ID=${followingWindow.id}`);
+      }
+    });
+
+    log.info("所有following窗口已隐藏");
+  } catch (error) {
+    log.error("隐藏following窗口时发生错误:", error);
+  }
+}
+
+/**
+ * 关闭所有following类型的窗口
+ */
+export function closeAllFollowingWindows(): void {
+  try {
+    const windowManager = WindowConfigManager.getWindowManager();
+    const followingWindows = windowManager.getWindowsByType(WindowType.FOLLOWING);
+
+    log.info(`开始关闭 ${followingWindows.length} 个following窗口`);
+
+    followingWindows.forEach(followingWindow => {
+      followingWindow.close();
+      log.debug(`关闭following窗口: ID=${followingWindow.id}`);
+    });
+
+    log.info("所有following窗口已关闭");
+  } catch (error) {
+    log.error("关闭following窗口时发生错误:", error);
+  }
+}
+
+/**
+ * 根据配置隐藏或关闭所有following窗口
+ * @param action 操作类型：'hide' 隐藏，'close' 关闭
+ */
+export function manageFollowingWindows(action: 'hide' | 'close'): void {
+  if (action === 'hide') {
+    hideAllFollowingWindows();
+  } else if (action === 'close') {
+    closeAllFollowingWindows();
+  } else {
+    log.warn(`未知的操作类型: ${action}，默认执行隐藏操作`);
+    hideAllFollowingWindows();
+  }
+}
+
+/**
+ * 创建网页显示窗口
+ * @param windowId 主窗口ID
+ * @param url 要显示的网页URL
+ * @param metadata 元数据，包含title、preload等额外信息
+ */
+export async function createWebPageWindow(
+  windowId: number,
+  url: string,
+  metadata?: Record<string, any>
+): Promise<void> {
+  const __filename = fileURLToPath(import.meta.url);
+  const __dirname = dirname(__filename);
+
+  // 检查是否已经有相同URL的网页窗口打开
+  const title = metadata?.title || 'Web Page';
+  const existingWindow = BrowserWindow.getAllWindows().find(
+    (window) => window.getTitle() === title && window.webContents.getURL().includes(url)
+  );
+
+  if (existingWindow) {
+    existingWindow.focus();
+    return;
+  }
+
+  // 获取主窗口位置和大小
+  const mainWindow = BrowserWindow.fromId(windowId);
+  if (!mainWindow) {
+    log.error("无法获取主窗口，无法创建网页窗口");
+    return;
+  }
+
+  const [mainX, mainY] = mainWindow.getPosition();
+  const [mainWidth, mainHeight] = mainWindow.getSize();
+
+  // 计算网页窗口的位置和大小
+  // 使用抽象函数计算最终边界
+  const bounds = calculateFollowingWindowBounds(mainX, mainY, mainWidth, mainHeight, 2);
+
+  // 默认使用内置 preload 脚本，如果有用户自定义的 preload，则创建组合脚本
+  let preloadScript: string | undefined = join(__dirname, 'preloads', 'webpage-preload.js');
+  if (metadata?.preload) {
+    // 如果有用户自定义的 preload，创建组合脚本
+    preloadScript = await createCombinedPreloadScript(metadata.preload, preloadScript);
+  }
+
+  let windowOptions: Electron.BrowserWindowConstructorOptions = {
+    x: bounds.x,
+    y: bounds.y,
+    width: bounds.width,
+    height: bounds.height,
+    minWidth: 100,
+    minHeight: 100,
+    title: title,
+    frame: false, // 无边框窗口，更好地融入主窗口
+    show: false,
+    resizable: false,
+    parent: mainWindow, // 设置父窗口，控制生命周期
+    skipTaskbar: true, // 不在任务栏显示
+    hasShadow: false, // 移除窗口阴影
+    transparent: true, // 透明窗口
+    webPreferences: {
+      nodeIntegration: false,
+      contextIsolation: true,
+      webSecurity: true,
+      preload: preloadScript,
+    },
+  };
+
+  // 创建新的网页窗口
+  const webWindow = new BrowserWindow(windowOptions);
+
+  // 注册窗口到管理器
+  const windowManager = WindowConfigManager.getWindowManager();
+  windowManager.registerWindow(webWindow, WindowType.FOLLOWING, {
+    url,
+    title,
+    init: false,
+    parentWindowId: windowId,
+    ...metadata
+  });
+
+  // 加载网页
+  webWindow.loadURL(url);
+
+  // 窗口准备好后显示（无动画）
+  webWindow.once("ready-to-show", () => {
+    // 直接隐藏，不显示动画
+    webWindow.hide();
+    log.info(
+      `网页窗口已打开: ${title} - ${url} 位置: ${bounds.x},${bounds.y} 大小: ${bounds.width}x${bounds.height}`
+    );
+  });
+
+  webWindow.webContents.on("did-finish-load", () => {
+    // 直接显示，无动画效果
+    webWindow.showInactive(); // 使用 showInactive 避免动画
+    windowManager.setMetadata(webWindow.id, { init: true });
+  });
+
+  // 窗口关闭时的处理
+  webWindow.on("closed", () => {
+    log.info(`网页窗口已关闭: ${title}`);
+    windowManager.unregisterWindow(webWindow.id);
+  });
+
+  // 注册ESC键关闭功能
+  webWindow.webContents.on("before-input-event", (event, input) => {
+    if (input.key === "Escape" && input.type === "keyDown") {
+      webWindow.close();
+    }
+  });
+
+  // 开发环境下打开开发者工具
+  if (process.env.NODE_ENV === "development") {
+    webWindow.webContents.openDevTools({ mode: "bottom" });
+  }
+}
+
+/**
+ * 创建组合的 preload 脚本
+ * 将内置 preload 和用户自定义 preload 合并
+ */
+async function createCombinedPreloadScript(customPreloadPath: string, defaultPreloadPath: string): Promise<string> {
+  try {
+    // 读取内置 preload 脚本
+    const builtinPreloadPath = defaultPreloadPath
+    const builtinPreloadContent = readFileSync(builtinPreloadPath, 'utf-8');
+
+    // 读取用户自定义 preload 脚本
+    const customPreloadContent = readFileSync(customPreloadPath, 'utf-8');
+
+    // 创建组合脚本内容
+    const combinedContent = `
+// 内置 preload 脚本
+${builtinPreloadContent}
+
+// 用户自定义 preload 脚本
+${customPreloadContent}
+`;
+
+    // 创建临时文件
+    const tempDir = join(tmpdir(), 'naimo-preloads');
+    mkdirSync(tempDir, { recursive: true });
+
+    const tempFilePath = join(tempDir, `combined-preload-${Date.now()}.js`);
+    writeFileSync(tempFilePath, combinedContent, 'utf-8');
+
+    log.debug(`创建组合 preload 脚本: ${tempFilePath}`);
+    return tempFilePath;
+
+  } catch (error) {
+    log.error('创建组合 preload 脚本失败:', error);
+    // 如果失败，回退到内置 preload
+    return defaultPreloadPath
+  }
 }
