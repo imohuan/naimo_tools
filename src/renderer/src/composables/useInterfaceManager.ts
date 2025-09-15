@@ -59,6 +59,28 @@ export function useInterfaceManager() {
     return isSettingsInterface.value || isWindowInterface.value
   })
 
+  // 是否应该显示搜索框
+  const shouldShowSearchBox = computed(() => {
+    // 如果不在插件窗口界面，总是显示搜索框
+    if (!isWindowInterface.value || !isPluginWindowOpen.value) {
+      console.log('🔍 shouldShowSearchBox: true (不在插件窗口界面)')
+      return true
+    }
+
+    // 在插件窗口界面时，检查当前插件项目是否启用搜索
+    const enableSearch = currentPluginItem.value?.executeParams?.enableSearch
+    console.log('🔍 当前插件项目:', currentPluginItem.value?.name, 'enableSearch:', enableSearch)
+
+    if (enableSearch === false) {
+      console.log('🔍 shouldShowSearchBox: false (插件禁用搜索)')
+      return false
+    }
+
+    // 默认显示搜索框
+    console.log('🔍 shouldShowSearchBox: true (默认显示)')
+    return true
+  })
+
   /**
    * 切换到搜索界面
    */
@@ -238,9 +260,22 @@ export function useInterfaceManager() {
     () => currentInterface.value,
     (newVal, oldVal) => {
       if (newVal === InterfaceType.WINDOW && oldVal !== InterfaceType.WINDOW) { // 打开插件窗口时，切换到窗口界面
-        api.ipcRouter.windowShowAllFollowingWindows()
+        // 如果有当前插件项目，显示特定插件窗口；否则显示所有窗口
+        if (currentPluginItem.value && currentPluginItem.value.pluginId) {
+          api.ipcRouter.windowShowSpecificFollowingWindow({
+            pluginId: currentPluginItem.value.pluginId,
+            name: currentPluginItem.value.name
+          })
+        } else {
+          api.ipcRouter.windowShowAllFollowingWindows()
+        }
       } else if (newVal !== InterfaceType.WINDOW && oldVal === InterfaceType.WINDOW) { // 关闭插件窗口时，切换到默认界面
-        api.ipcRouter.windowHideAllFollowingWindows()
+        const closeAction = currentPluginItem.value?.executeParams?.closeAction
+        if (closeAction) {
+          api.ipcRouter.windowManageFollowingWindows(closeAction)
+        } else {
+          api.ipcRouter.windowCloseAllFollowingWindows()
+        }
       }
     }
   )
@@ -259,6 +294,7 @@ export function useInterfaceManager() {
     isSettingsInterface,
     isWindowInterface,
     contentAreaVisible,
+    shouldShowSearchBox,
 
     // 方法
     switchToSearch,

@@ -248,8 +248,12 @@ export class PluginManagerImpl implements PluginManager {
         case PluginExecuteType.SHOW_WEBPAGE:
           // 创建新窗口显示网页
           if (item.executeParams?.url) {
-            // 直接通过主进程创建新窗口，不需要传递位置信息
-            await api.ipcRouter.windowCreateWebPageWindow(window.id!, item.executeParams.url, item.name);
+            // 直接通过主进程创建新窗口，传递pluginId信息
+            await api.ipcRouter.windowCreateWebPageWindow(window.id!, item.executeParams.url, {
+              title: item.name,
+              name: item.name,
+              pluginId: item.pluginId,
+            });
           } else {
             console.error("❌ 网页URL未提供");
           }

@@ -1,9 +1,12 @@
 /**
  * 自动生成的 IPC 类型定义
- * 生成时间: 2025-09-15T07:30:33.311Z
+ * 生成时间: 2025-09-15T09:27:23.400Z
  * 请勿手动修改此文件
  */
 
+import { AppPath } from '@libs/app-search';
+import { AppConfig } from '@shared/types';
+import { BasicWindowMetadata } from '../../main/config/window-manager';
 
 // 各个模块的接口定义
 interface appInterface {
@@ -428,19 +431,30 @@ interface windowInterface {
   "windowManageFollowingWindows": (action: 'hide' | 'close') => Promise<void>;
 
   /**
- * 创建网页显示窗口
- * @param 主窗口ID
- * @param 要显示的网页URL
- * @param 元数据，包含title、preload等额外信息
+ * 根据插件信息显示特定的following窗口
+ * @param 插件项目信息，包含pluginId和名称
  */
-  "window-create-web-page-window": (windowId: number, url: string, metadata?: Record<string, any>) => Promise<void>;
+  "window-show-specific-following-window": (pluginItem: { pluginId?: string; name?: string }) => Promise<void>;
+  /**
+ * 根据插件信息显示特定的following窗口
+ * @param 插件项目信息，包含pluginId和名称
+ */
+  "windowShowSpecificFollowingWindow": (pluginItem: { pluginId?: string; name?: string }) => Promise<void>;
+
   /**
  * 创建网页显示窗口
  * @param 主窗口ID
  * @param 要显示的网页URL
  * @param 元数据，包含title、preload等额外信息
  */
-  "windowCreateWebPageWindow": (windowId: number, url: string, metadata?: Record<string, any>) => Promise<void>;
+  "window-create-web-page-window": (windowId: number, url: string, metadata?: Omit<BasicWindowMetadata, "init" | "parentWindowId" | "url">) => Promise<void>;
+  /**
+ * 创建网页显示窗口
+ * @param 主窗口ID
+ * @param 要显示的网页URL
+ * @param 元数据，包含title、preload等额外信息
+ */
+  "windowCreateWebPageWindow": (windowId: number, url: string, metadata?: Omit<BasicWindowMetadata, "init" | "parentWindowId" | "url">) => Promise<void>;
 }
 
 // 合并所有 IPC 路由类型
@@ -719,6 +733,12 @@ export const ROUTE_INFO: RouteInfo[] = [
     comment: "根据配置隐藏或关闭所有following窗口",
     module: "window",
     function: "manageFollowingWindows"
+  },
+  {
+    route: "window-show-specific-following-window",
+    comment: "根据插件信息显示特定的following窗口",
+    module: "window",
+    function: "showSpecificFollowingWindow"
   },
   {
     route: "window-create-web-page-window",

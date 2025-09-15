@@ -11,7 +11,7 @@ import { writeFileSync, readFileSync, mkdirSync } from "fs";
 import { tmpdir } from "os";
 import { WindowConfigManager } from "../../config/window.config";
 import { AppConfigManager } from "../../config/app.config";
-import { WindowType } from "../../config/window-manager";
+import { BasicWindowMetadata, WindowType } from "../../config/window-manager";
 const configManager = new AppConfigManager();
 
 
@@ -190,7 +190,7 @@ export function openLogViewer(): void {
 
   // 窗口准备好后显示
   logWindow.once("ready-to-show", () => {
-    logWindow.show();
+    logWindow.showInactive();
     log.info("日志查看器窗口已打开");
   });
 
@@ -368,7 +368,7 @@ export function calculateFollowingWindowBounds(
     x: mainX + padding,
     y: mainY + headerHeight + padding,
     width: mainWidth - padding * 2,
-    height: Math.min(mainHeight, maxHeight - headerHeight - padding * 2)
+    height: maxHeight - addPadding * 2
   };
 }
 
@@ -444,6 +444,53 @@ export function manageFollowingWindows(action: 'hide' | 'close'): void {
 }
 
 /**
+ * 根据插件信息显示特定的following窗口
+ * @param pluginItem 插件项目信息，包含pluginId和名称
+ */
+export function showSpecificFollowingWindow(pluginItem: { pluginId?: string; name?: string }): void {
+  try {
+    const windowManager = WindowConfigManager.getWindowManager();
+    const followingWindows = windowManager.getWindowInfoByType(WindowType.FOLLOWING);
+
+    log.info(`开始查找并显示特定插件窗口: ${pluginItem.name} (PluginId: ${pluginItem.pluginId})`);
+
+    let foundWindow = false;
+
+    followingWindows.forEach(followingWindow => {
+      if (followingWindow.metadata?.init) {
+        // 检查窗口是否匹配插件信息
+        const windowName = followingWindow.metadata.name || '';
+        const windowPluginId = followingWindow.metadata?.pluginId || '';
+
+        const pluginId = pluginItem.pluginId || '';
+        const pluginName = pluginItem.name || '';
+
+        // 匹配条件：pluginId匹配或者标题匹配插件名称
+        const pluginIdMatch = pluginId && windowPluginId === pluginId;
+        const titleMatch = pluginName && windowName === pluginName;
+
+        if (pluginIdMatch || titleMatch) {
+          if (!followingWindow.window.isVisible()) {
+            followingWindow.window.showInactive();
+            log.info(`显示特定插件窗口: ${windowName} (PluginId: ${windowPluginId})`);
+            foundWindow = true;
+          } else {
+            log.debug(`插件窗口已显示: ${windowName} (PluginId: ${windowPluginId})`);
+            foundWindow = true;
+          }
+        }
+      }
+    });
+
+    if (!foundWindow) {
+      log.warn(`未找到匹配的插件窗口: ${pluginItem.name} (PluginId: ${pluginItem.pluginId})`);
+    }
+  } catch (error) {
+    log.error("显示特定插件窗口时发生错误:", error);
+  }
+}
+
+/**
  * 创建网页显示窗口
  * @param windowId 主窗口ID
  * @param url 要显示的网页URL
@@ -452,13 +499,24 @@ export function manageFollowingWindows(action: 'hide' | 'close'): void {
 export async function createWebPageWindow(
   windowId: number,
   url: string,
-  metadata?: Record<string, any>
+  metadata?: Omit<BasicWindowMetadata, "init" | "parentWindowId" | "url">
 ): Promise<void> {
   const __filename = fileURLToPath(import.meta.url);
   const __dirname = dirname(__filename);
 
+  // 注册窗口到管理器
+  const windowManager = WindowConfigManager.getWindowManager();
   // 检查是否已经有相同URL的网页窗口打开
   const title = metadata?.title || 'Web Page';
+
+  windowManager.getWindowInfoByType(WindowType.FOLLOWING).forEach(followingWindow => {
+    const { name, pluginId } = followingWindow.metadata as any || {}
+    if (name === metadata?.name && pluginId === metadata?.pluginId) {
+      followingWindow.window.focus();
+      return;
+    }
+  });
+
   const existingWindow = BrowserWindow.getAllWindows().find(
     (window) => window.getTitle() === title && window.webContents.getURL().includes(url)
   );
@@ -503,7 +561,7 @@ export async function createWebPageWindow(
     parent: mainWindow, // 设置父窗口，控制生命周期
     skipTaskbar: true, // 不在任务栏显示
     hasShadow: false, // 移除窗口阴影
-    transparent: true, // 透明窗口
+    transparent: false, // 透明窗口, 有透明的话显示会有一个动画，我不喜欢
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -515,8 +573,6 @@ export async function createWebPageWindow(
   // 创建新的网页窗口
   const webWindow = new BrowserWindow(windowOptions);
 
-  // 注册窗口到管理器
-  const windowManager = WindowConfigManager.getWindowManager();
   windowManager.registerWindow(webWindow, WindowType.FOLLOWING, {
     url,
     title,
@@ -530,8 +586,6 @@ export async function createWebPageWindow(
 
   // 窗口准备好后显示（无动画）
   webWindow.once("ready-to-show", () => {
-    // 直接隐藏，不显示动画
-    webWindow.hide();
     log.info(
       `网页窗口已打开: ${title} - ${url} 位置: ${bounds.x},${bounds.y} 大小: ${bounds.width}x${bounds.height}`
     );

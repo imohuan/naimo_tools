@@ -38,6 +38,8 @@ export default defineConfig({
     alias: {
       '@': resolve(__dirname, './src'),
       "@main": resolve(__dirname, '../main'),
+      "@renderer": resolve(__dirname, '../renderer'),
+      "@libs": resolve(__dirname, '../libs'),
       "@shared": resolve(__dirname, '../shared')
     },
   },

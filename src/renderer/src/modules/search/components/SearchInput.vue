@@ -1,29 +1,18 @@
 <template>
   <div class="flex-1 w-full h-full relative">
     <!-- 占位符文本 -->
-    <div
-      v-if="!modelValue && !isComposing"
-      class="absolute left-1 top-1/2 transform -translate-y-1/2 text-gray-400 text-base pointer-events-none select-none no-drag"
-    >
+    <div v-if="!modelValue && !isComposing"
+      class="absolute left-1 top-1/2 transform -translate-y-1/2 text-gray-400 text-base pointer-events-none select-none no-drag">
       {{ placeholder }}
     </div>
 
     <!-- 输入框 -->
-    <input
-      ref="inputRef"
-      :value="modelValue"
-      type="text"
+    <input v-show="shouldShowSearchBox" ref="inputRef" :value="modelValue" type="text"
       class="relative z-10 h-full flex-1 pl-1 pr-4 py-3 text-gray-700 bg-transparent border-none outline-none text-base no-drag"
-      :style="{ width: inputWidth }"
-      @click="handleInputClick"
-      @keydown.enter="handleEnter"
-      @keydown.delete="handleDelete"
-      @input="handleInput"
-      @paste="handlePaste"
-      @compositionstart="handleCompositionStart"
-      @compositionupdate="handleCompositionUpdate"
-      @compositionend="handleCompositionEnd"
-    />
+      :style="{ width: inputWidth }" @click="handleInputClick" @keydown.enter="handleEnter"
+      @keydown.delete="handleDelete" @input="handleInput" @paste="handlePaste"
+      @compositionstart="handleCompositionStart" @compositionupdate="handleCompositionUpdate"
+      @compositionend="handleCompositionEnd" />
   </div>
 </template>
 
@@ -40,6 +29,7 @@ interface Props {
   padding?: number;
   extraWidth?: number;
   hasFiles?: boolean;
+  shouldShowSearchBox?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -174,7 +164,12 @@ onMounted(() => {
 });
 
 defineExpose({
-  focus: () => inputRef.value?.focus(),
+  focus: () => {
+    // 只有在搜索框可见时才尝试聚焦
+    if (props.shouldShowSearchBox !== false && inputRef.value) {
+      inputRef.value.focus();
+    }
+  },
 });
 </script>
 

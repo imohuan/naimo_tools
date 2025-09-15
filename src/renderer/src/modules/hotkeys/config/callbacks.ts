@@ -17,7 +17,9 @@ const showHideWindow = () => {
 
 const focusSearch = () => {
   console.log("应用内快捷键：聚焦搜索框");
-  // TODO: 实现聚焦搜索框逻辑
+  // 通过全局事件总线通知App.vue聚焦搜索框
+  // 这样可以让App.vue检查搜索框是否可见再决定是否聚焦
+  window.dispatchEvent(new CustomEvent('focus-search-requested'));
 };
 
 const closeWindow = () => {

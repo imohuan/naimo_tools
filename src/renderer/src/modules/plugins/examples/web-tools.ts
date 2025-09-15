@@ -21,7 +21,8 @@ export const webToolsPlugin: PluginConfig = {
       pluginId: 'web-tools',
       executeType: PluginExecuteType.SHOW_WEBPAGE,
       executeParams: {
-        url: 'https://github.com'
+        url: 'https://github.com',
+        enableSearch: false,
       },
       visible: true,
       weight: 1
@@ -45,7 +46,8 @@ export const webToolsPlugin: PluginConfig = {
       pluginId: 'web-tools',
       executeType: PluginExecuteType.SHOW_WEBPAGE,
       executeParams: {
-        url: 'https://developer.mozilla.org'
+        url: 'https://developer.mozilla.org',
+        enableSearch: false // 禁用搜索功能，进入插件窗口后隐藏搜索框
       },
       visible: true,
       weight: 3

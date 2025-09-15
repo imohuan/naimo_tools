@@ -129,10 +129,9 @@ function generateTypesFromDirectory(dirPath, outputPath) {
 
       namedImports.forEach(namedImport => {
         const importName = namedImport.getName();
-        // 只收集从项目内部导入的类型（非 node_modules 和 electron）
+        // 收集从项目内部导入的类型（包括 @ 开头的别名导入）
         if (!moduleSpecifier.startsWith('electron') &&
           !moduleSpecifier.startsWith('node:') &&
-          !moduleSpecifier.startsWith('@') &&
           !moduleSpecifier.includes('node_modules')) {
 
           // 计算从输出文件到源文件的相对路径
@@ -140,9 +139,12 @@ function generateTypesFromDirectory(dirPath, outputPath) {
           const sourceDir = path.dirname(filePath);
           const relativePath = path.relative(outputDir, sourceDir);
 
-          // 处理相对路径，确保以正确的格式输出
+          // 处理不同类型的模块路径
           let adjustedModuleSpecifier;
-          if (moduleSpecifier.startsWith('.')) {
+          if (moduleSpecifier.startsWith('@')) {
+            // 别名导入：直接使用别名，不需要转换
+            adjustedModuleSpecifier = moduleSpecifier;
+          } else if (moduleSpecifier.startsWith('.')) {
             // 相对路径：需要从源文件目录开始计算
             const sourceRelativePath = path.join(relativePath, moduleSpecifier).replace(/\\/g, '/');
             // 使用 Node.js 的 path.resolve 来规范化路径

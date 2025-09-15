@@ -6,10 +6,11 @@
       style="box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4)">
       <!-- 搜索框区域 -->
       <SearchHeader ref="searchHeaderRef" v-model:search-text="searchText" :is-drag-over="isDragOver"
-        :header-height="headerHeight" :attached-files="attachedFiles" @search="handleSearchWithFiles"
-        @input="debouncedHandleSearch" @click="handleClick" @drag-over="handleDragOver" @drag-enter="handleDragEnter"
-        @drag-leave="handleDragLeave" @drop="handleFileDrop" @paste="handleFilePaste" @clear-files="clearAttachedFiles"
-        @open-settings="openSettings" />
+        :header-height="headerHeight" :attached-files="attachedFiles" :current-plugin-item="currentPluginItem"
+        :should-show-search-box="shouldShowSearchBox" @search="handleSearchWithFiles" @input="debouncedHandleSearch"
+        @click="handleClick" @drag-over="handleDragOver" @drag-enter="handleDragEnter" @drag-leave="handleDragLeave"
+        @drop="handleFileDrop" @paste="handleFilePaste" @clear-files="clearAttachedFiles"
+        @clear-plugin="clearPluginInfo" @open-settings="openSettings" />
 
       <!-- 内容呈现区域 -->
       <ContentArea ref="contentAreaRef" :content-area-visible="contentAreaVisible"
@@ -59,8 +60,11 @@ const {
   isSettingsInterface,
   isPluginWindowOpen,
   contentAreaVisible,
+  currentPluginItem,
+  shouldShowSearchBox,
   switchToSettings,
   openPluginWindow,
+  closePluginWindow,
   updateSearchResults,
   closeSettings: interfaceCloseSettings,
   resetToDefault
@@ -107,6 +111,12 @@ const searchText = computed({
 // ==================== 文件处理 ====================
 const { attachedFiles, addFiles, clearAttachedFiles } = useFileHandler();
 
+// 清除插件信息
+const clearPluginInfo = async () => {
+  // 调用界面管理器的关闭插件窗口方法
+  await closePluginWindow();
+};
+
 // 包装 handleSearch 函数，自动传递 attachedFiles
 const handleSearchWithFiles = (value: string) => {
   return handleSearch(value, [...attachedFiles.value]);
@@ -131,21 +141,6 @@ const {
 const customExecuteItem = (app: AppItem) => {
   executeItem(app);
   handleSearchWithFiles("");
-
-  // 检查是否为插件项目且执行类型为打开新窗口
-  if ('executeType' in app && app.executeType === 3) { // PluginExecuteType.SHOW_WEBPAGE = 3
-    // 将AppItem转换为PluginItem格式
-    const pluginApp = app as AppItem & { pluginId: string; executeType: number; executeParams?: any };
-    const pluginItem = {
-      ...pluginApp,
-      pluginId: pluginApp.pluginId,
-      executeType: pluginApp.executeType,
-      executeParams: pluginApp.executeParams,
-      visible: true,
-    };
-    // 当插件打开新的window窗口后，打开插件窗口并传递插件项目信息
-    openPluginWindow(pluginItem);
-  }
 };
 
 const { handleKeyNavigation } = useKeyboardNavigation(
@@ -165,6 +160,7 @@ const {
 
 // ==================== 方法 ====================
 const handleSearchFocus = () => {
+  // SearchHeader组件的focus方法内部会检查搜索框是否可见
   searchHeaderRef.value?.focus();
 }
 
@@ -185,11 +181,12 @@ const handleContainerClick = (event: MouseEvent) => {
     target.closest('[role="button"]') ||
     target.classList.contains('no-drag')
   ) {
-    return;
+    return false;
   }
 
   // 点击空白区域时聚焦搜索框
   handleSearchFocus();
+  return false
 };
 
 const debouncedHandleSearch = useDebounceFn(
@@ -248,7 +245,7 @@ const closeSettings = async () => {
       handleSearchWithFiles('');
     }
 
-    // 聚焦到搜索输入框
+    // 聚焦到搜索输入框（如果可见）
     handleSearchFocus();
   });
 };
@@ -315,7 +312,7 @@ watch(
 // ==================== 窗口焦点管理 ====================
 const handleWindowFocus = () => {
   nextTick(() => {
-    searchHeaderRef.value?.focus();
+    handleSearchFocus();
   });
 };
 
@@ -333,10 +330,35 @@ const handleWindowBlur = () => {
 // 页面可见性变化处理
 const handleVisibilityChange = () => {
   if (!document.hidden && document.hasFocus()) {
-    // 页面重新变为可见且获得焦点时，聚焦到搜索框
+    // 页面重新变为可见且获得焦点时，聚焦到搜索框（如果可见）
     nextTick(() => {
-      searchHeaderRef.value?.focus();
+      handleSearchFocus();
     });
+  }
+};
+
+// 处理快捷键请求聚焦搜索框
+const handleFocusSearchRequested = () => {
+  console.log("收到聚焦搜索框请求");
+  // SearchHeader组件的focus方法内部会检查搜索框是否可见
+  nextTick(() => {
+    handleSearchFocus();
+  });
+};
+
+// 处理插件执行完成事件
+const handlePluginExecuted = (event: CustomEvent) => {
+  const { pluginItem } = event.detail;
+  console.log('🔍 收到插件执行完成事件，插件项目信息:', {
+    name: pluginItem.name,
+    enableSearch: pluginItem.executeParams?.enableSearch,
+    executeParams: pluginItem.executeParams
+  });
+
+  // 检查是否为打开新窗口类型的插件
+  if (pluginItem.executeType === 3) { // PluginExecuteType.SHOW_WEBPAGE = 3
+    // 打开插件窗口并传递插件项目信息
+    openPluginWindow(pluginItem);
   }
 };
 
@@ -365,6 +387,8 @@ onMounted(async () => {
   window.addEventListener("focus", handleWindowFocus);
   window.addEventListener("blur", handleWindowBlur);
   document.addEventListener("visibilitychange", handleVisibilityChange);
+  window.addEventListener("focus-search-requested", handleFocusSearchRequested);
+  window.addEventListener("plugin-executed", handlePluginExecuted as EventListener);
 
   nextTick(() => {
     const container = document.querySelector(".w-full.h-full.p-\\[4px\\]") as HTMLElement;
@@ -380,6 +404,8 @@ onUnmounted(() => {
   window.removeEventListener("focus", handleWindowFocus);
   window.removeEventListener("blur", handleWindowBlur);
   document.removeEventListener("visibilitychange", handleVisibilityChange);
+  window.removeEventListener("focus-search-requested", handleFocusSearchRequested);
+  window.removeEventListener("plugin-executed", handlePluginExecuted as EventListener);
 });
 </script>
 

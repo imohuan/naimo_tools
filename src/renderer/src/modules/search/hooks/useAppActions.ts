@@ -53,6 +53,11 @@ export function useAppActions(
         // 使用插件管理器执行插件项目
         await pluginManager.executePluginItem({ ...pluginItem, executeParams });
 
+        // 发送全局事件通知插件执行完成
+        window.dispatchEvent(new CustomEvent('plugin-executed', {
+          detail: { pluginItem: { ...pluginItem, executeParams } }
+        }));
+
         // 更新使用统计
         await updateRecentApps(app);
         return true;

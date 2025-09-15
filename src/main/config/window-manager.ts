@@ -58,7 +58,7 @@ export interface WindowQuery {
 /**
  * 基本窗口元数据
  */
-interface BasicWindowMetadata {
+export interface BasicWindowMetadata {
   /** 窗口标题 */
   title: string;
   /** 最初 窗口URL */

@@ -4,53 +4,34 @@
     :class="{
       'selected-item': isSelected,
       'unselected-item': !isSelected,
-    }"
-    :data-key="`${categoryId}-${app.path}`"
-    @dblclick="handleAppClick"
-    @contextmenu="handleContextMenu"
-    ref="itemRef"
-  >
+    }" :data-key="`${categoryId}-${app.path}`" @dblclick="handleAppClick" @contextmenu="handleContextMenu"
+    ref="itemRef">
     <!-- 简洁背景和边框 -->
     <div
       class="absolute inset-0 bg-gray-200 rounded-lg border-2 border-transparent opacity-0 transition-all duration-300"
       :class="{
         'opacity-100 !border-gray-200': isSelected,
-      }"
-    ></div>
+      }"></div>
 
     <!-- 应用图标 -->
-    <div
-      class="w-8 h-8 sm:w-10 sm:h-10 mb-1 flex-shrink-0 relative z-10 transition-transform duration-200"
-      :class="{ 'scale-110': isSelected }"
-    >
-      <img
-        v-if="app.icon"
-        :src="app.icon"
-        :alt="app.name"
+    <div class="w-8 h-8 sm:w-10 sm:h-10 mb-1 flex-shrink-0 relative z-10 transition-transform duration-200"
+      :class="{ 'scale-110': isSelected }">
+      <img v-if="app.icon" :src="app.icon" :alt="app.name"
         class="w-full h-full object-contain rounded transition-all duration-200"
-        :class="{ 'brightness-110 drop-shadow-md': isSelected }"
-      />
-      <div
-        v-else
-        class="w-full h-full bg-gray-300 rounded flex items-center justify-center transition-all duration-200"
-        :class="{ 'bg-gray-200': isSelected }"
-      >
-        <IconMdiApplication
-          class="w-4 h-4 sm:w-5 sm:h-5 text-gray-600 transition-colors duration-200"
-          :class="{ 'text-gray-700': isSelected }"
-        />
+        :class="{ 'brightness-110 drop-shadow-md': isSelected }" />
+      <div v-else class="w-full h-full bg-gray-300 rounded flex items-center justify-center transition-all duration-200"
+        :class="{ 'bg-gray-200': isSelected }">
+        <IconMdiApplication class="w-4 h-4 sm:w-5 sm:h-5 text-gray-600 transition-colors duration-200"
+          :class="{ 'text-gray-700': isSelected }" />
       </div>
     </div>
 
     <!-- 应用名称 -->
     <div class="text-center w-full px-0.5 relative z-10">
-      <div
-        class="text-xs leading-tight break-words overflow-hidden app-name transition-all duration-200"
-        :class="{
-          'text-gray-700 font-medium': isSelected,
-          'text-gray-900': !isSelected,
-        }"
-      >
+      <div class="text-xs leading-tight break-words overflow-hidden app-name transition-all duration-200" :class="{
+        'text-gray-700 font-medium': isSelected,
+        'text-gray-900': !isSelected,
+      }">
         {{ app.name }}
       </div>
     </div>
@@ -164,9 +145,11 @@ const handleContextMenu = (event: MouseEvent) => {
   0% {
     transform: scale(1);
   }
+
   50% {
     transform: scale(1.15);
   }
+
   100% {
     transform: scale(1.1);
   }

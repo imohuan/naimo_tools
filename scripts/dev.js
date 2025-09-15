@@ -234,6 +234,7 @@ class DevServerManager {
    * 创建 WebSocket 服务器
    */
   async createWebSocketServer() {
+
     try {
       this.webSocketServer = new WebSocketServer({
         port: this.config.ports.webSocket,
@@ -245,10 +246,16 @@ class DevServerManager {
       });
 
       this.webSocketServer.on('error', (error) => {
+        if (error.message.includes("listen EADDRINUSE: address already in use")) {
+          console.log("😎 你的服务已经启用，无需重新启动~");
+          process.exit(0);
+        }
+
         console.error('❌ WebSocket服务器错误:', error);
       });
 
       console.log(`🌐 WebSocket服务器已启动，端口: ${this.config.ports.webSocket}`);
+      return true;
     } catch (error) {
       console.error('❌ 创建WebSocket服务器失败:', error);
     }

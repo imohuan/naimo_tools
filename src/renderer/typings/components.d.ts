@@ -21,6 +21,7 @@ declare module 'vue' {
     IconMdiFile: typeof import('~icons/mdi/file')['default']
     IconMdiFileUpload: typeof import('~icons/mdi/file-upload')['default']
     IconMdiMagnify: typeof import('~icons/mdi/magnify')['default']
+    IconMdiPuzzle: typeof import('~icons/mdi/puzzle')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     Settings: typeof import('./../src/components/Settings.vue')['default']

@@ -25,7 +25,9 @@
     "paths": {
       "@/*": ["./src/*"],
       "@main/*": ["../main/*"],
-      "@shared/*": ["../shared/*"]
+      "@shared/*": ["../shared/*"],
+      "@renderer/*": ["../renderer/*"],
+      "@libs/*": ["../libs/*"]
     }
   },
   "include": ["vite.config.ts"]

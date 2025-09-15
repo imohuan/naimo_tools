@@ -7,7 +7,7 @@
 
       <!-- 插件窗口界面 -->
       <div v-else-if="showPluginWindow" class="w-full min-h-64 flex items-center justify-center text-gray-500 py-10"
-        :style="{ height: `${props.maxHeight - props.headerHeight - props.padding * 2}px` }">
+        :style="{ height: `${props.maxHeight}px` }">
         <div class="text-center flex flex-col items-center justify-center w-full h-full py-10">
           <svg class="animate-spin h-12 w-12 text-blue-500 mx-auto mb-4" xmlns="http://www.w3.org/2000/svg" fill="none"
             viewBox="0 0 24 24">

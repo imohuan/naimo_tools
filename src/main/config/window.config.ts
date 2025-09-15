@@ -88,6 +88,7 @@ export class WindowConfigManager {
       minimizable: true,
       maximizable: false, // 禁用最大化，保持搜索框界面
       transparent: true,
+      skipTaskbar: true, // 不在任务栏显示
       hasShadow: false, // 移除窗口阴影
       icon: isProduction() ? join(__dirname, '../../setup/exe.ico') : undefined
     };
