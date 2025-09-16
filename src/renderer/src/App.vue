@@ -80,6 +80,7 @@ const contentAreaHeight = ref(100);
 const initializeWindowSize = () => {
   // 初始化时设置最小窗口高度
   api.ipcRouter.windowSetSize(-1, headerHeight.value + padding.value);
+  // TODO: 之后修改，需要同时初始化内容弹出框，以免冲突
 };
 
 // ==================== 搜索模块 ====================
