@@ -362,6 +362,120 @@ const handlePluginExecuted = (event: CustomEvent) => {
   }
 };
 
+// 处理关闭窗口请求
+const handleCloseWindowRequested = async () => {
+  console.log("收到关闭窗口请求，当前状态:", {
+    isPluginWindowOpen: isPluginWindowOpen.value,
+    isSettingsInterface: isSettingsInterface.value,
+    searchText: searchText.value,
+    hasSearchText: searchText.value.trim() !== ''
+  });
+
+  // 如果当前是插件窗口，关闭插件窗口
+  if (isPluginWindowOpen.value) {
+    console.log("关闭插件窗口");
+    await closePluginWindow();
+    return;
+  }
+
+  // 如果当前是设置页面，关闭设置页面
+  if (isSettingsInterface.value) {
+    console.log("关闭设置页面");
+    await closeSettings();
+    return;
+  }
+
+  // 如果当前是搜索页面
+  if (searchText.value.trim() !== '') {
+    console.log("清空搜索框");
+    // 清空搜索框
+    searchText.value = '';
+    // 执行空搜索，显示默认内容
+    handleSearchWithFiles('');
+    return;
+  }
+
+  // 如果搜索框没有值，隐藏主窗口
+  console.log("隐藏主窗口");
+  if (api?.ipcRouter?.windowToggleShow) {
+    api.ipcRouter.windowToggleShow(window.id!, false);
+  } else {
+    console.error("❌ api.ipcRouter.windowToggleShow 不可用");
+  }
+
+  // 关闭或隐藏子窗口
+  const closeAction = currentPluginItem.value?.executeParams?.closeAction
+  if (closeAction) {
+    api.ipcRouter.windowManageFollowingWindows(closeAction)
+  } else {
+    api.ipcRouter.windowCloseAllFollowingWindows()
+  }
+};
+
+// 处理显示/隐藏窗口请求
+const handleShowHideWindowRequested = async () => {
+  console.log("收到显示/隐藏窗口请求，当前状态:", {
+    isPluginWindowOpen: isPluginWindowOpen.value,
+    currentPluginItem: currentPluginItem.value?.name,
+    pluginId: currentPluginItem.value?.pluginId
+  });
+
+  // 检查主窗口当前是否可见
+  const isMainWindowVisible = document.visibilityState === 'visible' && document.hasFocus();
+
+  if (isMainWindowVisible) {
+    // 主窗口当前可见，需要隐藏
+    console.log("隐藏主窗口和所有子窗口");
+
+    // 先隐藏所有following类型的子窗口
+    if (api?.ipcRouter?.windowHideAllFollowingWindows) {
+      console.log("先隐藏所有子窗口");
+      api.ipcRouter.windowHideAllFollowingWindows();
+    }
+
+    // 延迟一点时间，确保子窗口隐藏完成后再隐藏主窗口
+    setTimeout(() => {
+      // 隐藏主窗口
+      if (api?.ipcRouter?.windowToggleShow) {
+        console.log("再隐藏主窗口");
+        api.ipcRouter.windowToggleShow(window.id!, false);
+      } else {
+        console.error("❌ api.ipcRouter.windowToggleShow 不可用");
+      }
+    }, 50); // 延迟50ms确保子窗口隐藏完成
+  } else {
+    // 主窗口当前不可见，需要显示
+    console.log("显示主窗口");
+
+    // 显示主窗口
+    if (api?.ipcRouter?.windowToggleShow) {
+      api.ipcRouter.windowToggleShow(window.id!, true);
+    } else {
+      console.error("❌ api.ipcRouter.windowToggleShow 不可用");
+    }
+
+    // 延迟一点时间，让主窗口显示完成后再处理子窗口
+    setTimeout(() => {
+      // 如果有当前插件项目，显示对应的插件窗口
+      if (currentPluginItem.value && currentPluginItem.value.pluginId) {
+        console.log("显示特定插件窗口:", currentPluginItem.value.name);
+        if (api?.ipcRouter?.windowShowSpecificFollowingWindow) {
+          api.ipcRouter.windowShowSpecificFollowingWindow({
+            pluginId: currentPluginItem.value.pluginId,
+            name: currentPluginItem.value.name
+          });
+        }
+      } else {
+        // 没有特定插件项目，显示所有following窗口
+        console.log("显示所有following窗口");
+        // if (api?.ipcRouter?.windowShowAllFollowingWindows) {
+        //   api.ipcRouter.windowShowAllFollowingWindows();
+        // }
+      }
+    }, 100); // 延迟100ms让主窗口显示完成
+  }
+};
+
 // ==================== 生命周期 ====================
 onMounted(async () => {
   console.log("🚀 App.vue onMounted - 开始应用初始化");
@@ -389,6 +503,8 @@ onMounted(async () => {
   document.addEventListener("visibilitychange", handleVisibilityChange);
   window.addEventListener("focus-search-requested", handleFocusSearchRequested);
   window.addEventListener("plugin-executed", handlePluginExecuted as EventListener);
+  window.addEventListener("close-window-requested", handleCloseWindowRequested as EventListener);
+  window.addEventListener("show-hide-window-requested", handleShowHideWindowRequested as EventListener);
 
   nextTick(() => {
     const container = document.querySelector(".w-full.h-full.p-\\[4px\\]") as HTMLElement;
@@ -406,6 +522,8 @@ onUnmounted(() => {
   document.removeEventListener("visibilitychange", handleVisibilityChange);
   window.removeEventListener("focus-search-requested", handleFocusSearchRequested);
   window.removeEventListener("plugin-executed", handlePluginExecuted as EventListener);
+  window.removeEventListener("close-window-requested", handleCloseWindowRequested as EventListener);
+  window.removeEventListener("show-hide-window-requested", handleShowHideWindowRequested as EventListener);
 });
 </script>
 

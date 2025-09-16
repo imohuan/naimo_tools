@@ -77,25 +77,10 @@ export function toggleShow(id: number, show?: boolean): void {
     window.hide();
     log.debug("窗口已隐藏");
   } else {
+    window.center()
+    window.focus()
     log.debug(`窗口状态无需改变: ${isVisible ? "已显示" : "已隐藏"}`);
   }
-
-  // 同步控制 FOLLOWING 类型的窗口
-  const windowManager = WindowConfigManager.getWindowManager();
-  const followingWindows = windowManager.getWindowsByType(WindowType.FOLLOWING);
-
-  followingWindows.forEach(followingWindow => {
-    if (!followingWindow.isDestroyed()) {
-      if (shouldShow && !followingWindow.isVisible()) {
-        // 使用 showInactive 避免动画效果
-        followingWindow.showInactive();
-        log.debug(`跟随窗口已显示: ID=${followingWindow.id}`);
-      } else if (!shouldShow && followingWindow.isVisible()) {
-        followingWindow.hide();
-        log.debug(`跟随窗口已隐藏: ID=${followingWindow.id}`);
-      }
-    }
-  });
 }
 
 /**
@@ -572,6 +557,9 @@ export async function createWebPageWindow(
 
   // 创建新的网页窗口
   const webWindow = new BrowserWindow(windowOptions);
+
+  const allWindows = BrowserWindow.getAllWindows();
+  log.info(`当前所有窗口数量: ${allWindows.length}`);
 
   windowManager.registerWindow(webWindow, WindowType.FOLLOWING, {
     url,

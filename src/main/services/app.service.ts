@@ -208,12 +208,18 @@ export class AppService {
 
     // 注册主窗口到窗口管理器
     this.windowManager.registerWindow(this.mainWindow, WindowType.MAIN, {
+      title: '主窗口',
+      url: '主窗口',
+      parentWindowId: 0,
+      init: true,
       isMainWindow: true,
       version: '1.0.0'
     });
 
     // 剧中显示
     this.mainWindow.center();
+    this.mainWindow.show()
+    this.mainWindow.focus()
 
     // 设置窗口事件监听器
     WindowConfigManager.setupWindowEvents(this.mainWindow, {

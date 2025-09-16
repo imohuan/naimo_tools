@@ -65,15 +65,18 @@ export class IpcRouter {
     const wrappedHandler = async (event: any, ...args: any[]) => {
       const startTime = Date.now();
 
+      const [moduleName, ...functionName] = routeKey.split('-')
+      const routeInfo = moduleName + ": " + RouteKeyConverter.toCamelCase(functionName.join('-'))
+
       try {
-        log.debug(`IPC 调用开始: ${routeKey}`, args);
+        log.debug(`IPC 调用开始: ${routeInfo}`, args);
         const result = await handler(...args);
         const duration = Date.now() - startTime;
-        log.debug(`IPC 调用完成: ${routeKey} (${duration}ms)`);
+        log.debug(`IPC 调用完成: ${routeInfo} (${duration}ms)`);
         return result;
       } catch (error) {
         const duration = Date.now() - startTime;
-        log.error(`IPC 调用失败: ${routeKey} (${duration}ms)`, error);
+        log.error(`IPC 调用失败: ${routeInfo} (${duration}ms)`, error);
         throw error;
       }
     };

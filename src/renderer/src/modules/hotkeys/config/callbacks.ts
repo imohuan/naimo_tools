@@ -8,11 +8,9 @@ const callbackRegistry: Record<string, () => void> = {};
 const showHideWindow = () => {
   console.log("🎉 全局快捷键：显示/隐藏窗口");
   console.log("当前窗口ID:", window.id);
-  if (api?.ipcRouter?.windowToggleShow) {
-    api.ipcRouter.windowToggleShow(window.id!);
-  } else {
-    console.error("❌ api.ipcRouter.windowToggleShow 不可用");
-  }
+  // 通过全局事件总线通知App.vue处理显示/隐藏窗口逻辑
+  // App.vue会根据当前状态决定是显示还是隐藏，以及如何处理子窗口
+  window.dispatchEvent(new CustomEvent('show-hide-window-requested'));
 };
 
 const focusSearch = () => {
@@ -24,7 +22,9 @@ const focusSearch = () => {
 
 const closeWindow = () => {
   console.log("应用内快捷键：关闭窗口");
-  // TODO: 实现关闭窗口逻辑
+  // 通过全局事件总线通知App.vue处理关闭窗口逻辑
+  // App.vue会根据当前界面状态（插件窗口、设置页面、搜索页面）执行不同的关闭逻辑
+  window.dispatchEvent(new CustomEvent('close-window-requested'));
 };
 
 // 注册回调函数
