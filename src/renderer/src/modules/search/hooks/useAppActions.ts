@@ -2,6 +2,7 @@ import type { AppItem } from "@shared/types";
 import type { SearchCategory } from "@/typings/search-types";
 import { pluginManager } from "@/modules/plugins";
 import type { PluginItem } from "@/typings/plugin-types";
+import { eventSystem } from "@/utils/event-system";
 
 export function useAppActions(
   originalCategories: any,
@@ -54,9 +55,7 @@ export function useAppActions(
         await pluginManager.executePluginItem({ ...pluginItem, executeParams });
 
         // 发送全局事件通知插件执行完成
-        window.dispatchEvent(new CustomEvent('plugin-executed', {
-          detail: { pluginItem: { ...pluginItem, executeParams } }
-        }));
+        eventSystem.emit('plugin:executed', { pluginItem: { ...pluginItem, executeParams } });
 
         // 更新使用统计
         await updateRecentApps(app);

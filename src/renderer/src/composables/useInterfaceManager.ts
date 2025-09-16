@@ -14,60 +14,52 @@ export enum InterfaceType {
  * 界面状态管理
  */
 export function useInterfaceManager() {
-  // 当前界面类型
+  /** 当前界面类型 */
   const currentInterface = ref<InterfaceType>(InterfaceType.SEARCH)
-
-  // 搜索文本状态
+  /** 搜索文本状态 */
   const searchText = ref('')
-
-  // 是否有搜索结果
+  /** 是否有搜索结果 */
   const hasSearchResults = ref(false)
-
-  // 是否打开了插件窗口
+  /** 是否打开了插件窗口 */
   const isPluginWindowOpen = ref(false)
-
-  // 当前执行的插件项目
+  /** 当前执行的插件项目 */
   const currentPluginItem = ref<PluginItem | null>(null)
-
-  // 进入设置前的界面状态
+  /** 进入设置前的界面状态 */
   const previousInterface = ref<InterfaceType | null>(null)
-
-  // 计算当前应该显示的界面
+  /** 计算当前应该显示的界面 */
   const activeInterface = computed(() => {
     // 如果有搜索内容，显示搜索界面
     if (searchText.value.trim() !== '') {
       return InterfaceType.SEARCH
     }
-
     // 如果没有搜索内容，根据当前界面状态决定
     return currentInterface.value
   })
 
-  // 界面状态计算属性
+  /** 界面状态计算属性 */
   const isSearchInterface = computed(() => activeInterface.value === InterfaceType.SEARCH)
   const isSettingsInterface = computed(() => activeInterface.value === InterfaceType.SETTINGS)
   const isWindowInterface = computed(() => activeInterface.value === InterfaceType.WINDOW)
 
-  // 内容区域是否可见
+  /** 内容区域是否可见 */
   const contentAreaVisible = computed(() => {
     // 搜索界面：有搜索内容或有搜索结果时显示
     if (isSearchInterface.value) {
       return searchText.value.trim() !== '' || hasSearchResults.value
     }
-
     // 设置界面和窗口界面：总是显示
     return isSettingsInterface.value || isWindowInterface.value
   })
 
-  // 是否应该显示搜索框
+  /** 是否应该显示搜索框 */
   const shouldShowSearchBox = computed(() => {
-    // 如果不在插件窗口界面，总是显示搜索框
+    /** 如果不在插件窗口界面，总是显示搜索框 */
     if (!isWindowInterface.value || !isPluginWindowOpen.value) {
       console.log('🔍 shouldShowSearchBox: true (不在插件窗口界面)')
       return true
     }
 
-    // 在插件窗口界面时，检查当前插件项目是否启用搜索
+    /** 在插件窗口界面时，检查当前插件项目是否启用搜索 */
     const enableSearch = currentPluginItem.value?.executeParams?.enableSearch
     console.log('🔍 当前插件项目:', currentPluginItem.value?.name, 'enableSearch:', enableSearch)
 
@@ -76,7 +68,7 @@ export function useInterfaceManager() {
       return false
     }
 
-    // 默认显示搜索框
+    /** 默认显示搜索框 */
     console.log('🔍 shouldShowSearchBox: true (默认显示)')
     return true
   })
@@ -89,7 +81,7 @@ export function useInterfaceManager() {
   }
 
   /**
-   * 切换到设置界面
+   * 切换到设置界面, 如果是插件界面的时候，支持后期恢复
    */
   const switchToSettings = () => {
     // 记录进入设置前的界面状态
@@ -221,7 +213,7 @@ export function useInterfaceManager() {
     isPluginWindowOpen.value = false
     currentPluginItem.value = null
     previousInterface.value = null
-    currentInterface.value = InterfaceType.WINDOW
+    currentInterface.value = InterfaceType.SEARCH
   }
 
   // 监听搜索文本变化，自动管理界面切换

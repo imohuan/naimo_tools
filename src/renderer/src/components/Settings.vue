@@ -11,15 +11,12 @@
       <nav class="flex-1 p-3">
         <ul class="space-y-1">
           <li>
-            <button
-              @click="activeTab = 'hotkeys'"
-              :class="[
-                'w-full text-left px-3 py-2 rounded-lg transition-colors',
-                activeTab === 'hotkeys'
-                  ? 'bg-blue-100 text-blue-700 border border-blue-200'
-                  : 'text-gray-700 hover:bg-gray-100',
-              ]"
-            >
+            <button @click="activeTab = 'hotkeys'" :class="[
+              'w-full text-left px-3 py-2 rounded-lg transition-colors',
+              activeTab === 'hotkeys'
+                ? 'bg-blue-100 text-blue-700 border border-blue-200'
+                : 'text-gray-700 hover:bg-gray-100',
+            ]">
               <div class="flex items-center">
                 <IconMdiKeyboard class="w-4 h-4 mr-2" />
                 <span class="text-sm font-medium">快捷键设置</span>
@@ -27,15 +24,12 @@
             </button>
           </li>
           <li>
-            <button
-              @click="activeTab = 'plugins'"
-              :class="[
-                'w-full text-left px-3 py-2 rounded-lg transition-colors',
-                activeTab === 'plugins'
-                  ? 'bg-blue-100 text-blue-700 border border-blue-200'
-                  : 'text-gray-700 hover:bg-gray-100',
-              ]"
-            >
+            <button @click="activeTab = 'plugins'" :class="[
+              'w-full text-left px-3 py-2 rounded-lg transition-colors',
+              activeTab === 'plugins'
+                ? 'bg-blue-100 text-blue-700 border border-blue-200'
+                : 'text-gray-700 hover:bg-gray-100',
+            ]">
               <div class="flex items-center">
                 <IconMdiPuzzle class="w-4 h-4 mr-2" />
                 <span class="text-sm font-medium">插件管理</span>
@@ -43,15 +37,12 @@
             </button>
           </li>
           <li>
-            <button
-              @click="activeTab = 'about'"
-              :class="[
-                'w-full text-left px-3 py-2 rounded-lg transition-colors',
-                activeTab === 'about'
-                  ? 'bg-blue-100 text-blue-700 border border-blue-200'
-                  : 'text-gray-700 hover:bg-gray-100',
-              ]"
-            >
+            <button @click="activeTab = 'about'" :class="[
+              'w-full text-left px-3 py-2 rounded-lg transition-colors',
+              activeTab === 'about'
+                ? 'bg-blue-100 text-blue-700 border border-blue-200'
+                : 'text-gray-700 hover:bg-gray-100',
+            ]">
               <div class="flex items-center">
                 <IconMdiInformation class="w-4 h-4 mr-2" />
                 <span class="text-sm font-medium">关于</span>
@@ -65,9 +56,7 @@
     <!-- 右侧内容区域 -->
     <div class="flex-1 flex flex-col">
       <!-- 内容头部 -->
-      <div
-        class="p-3 border-b border-gray-200 bg-white flex items-center justify-between"
-      >
+      <div class="p-3 border-b border-gray-200 bg-white flex items-center justify-between">
         <div>
           <h2 class="text-base font-medium text-gray-900">
             {{ getTabTitle() }}
@@ -76,20 +65,14 @@
             {{ getTabDescription() }}
           </p>
         </div>
-        <button
-          @click="closeSettings"
-          class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-          title="关闭设置"
-        >
+        <button @click="closeSettings"
+          class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors" title="关闭设置">
           <IconMdiClose class="w-6 h-6" />
         </button>
       </div>
 
       <!-- 内容主体 -->
-      <div
-        class="flex-1 p-3 relative"
-        :class="isEditingHotkey ? 'overflow-hidden' : 'overflow-auto'"
-      >
+      <div class="flex-1 p-3 relative" :class="isEditingHotkey ? 'overflow-hidden' : 'overflow-auto'">
         <HotkeySettings v-if="activeTab === 'hotkeys'" ref="hotkeySettingsRef" />
         <PluginManager v-if="activeTab === 'plugins'" />
         <About v-if="activeTab === 'about'" />

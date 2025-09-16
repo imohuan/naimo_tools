@@ -5,11 +5,12 @@
       <div class="flex items-start space-x-6">
         <!-- 应用图标 -->
         <div class="flex-shrink-0">
-          <div class="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+          <div
+            class="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
             <IconMdiApplication class="w-10 h-10 text-white" />
           </div>
         </div>
-        
+
         <!-- 应用信息 -->
         <div class="flex-1">
           <h1 class="text-xl font-semibold text-gray-900 mb-2">Naimo</h1>
@@ -123,11 +124,8 @@
           <IconMdiGithub class="w-5 h-5 text-gray-500" />
           <div>
             <span class="font-medium text-gray-700">GitHub：</span>
-            <a 
-              href="https://github.com/imohuan/electron-vue3-template" 
-              target="_blank" 
-              class="text-blue-600 hover:text-blue-800 underline"
-            >
+            <a href="https://github.com/imohuan/electron-vue3-template" target="_blank"
+              class="text-blue-600 hover:text-blue-800 underline">
               electron-vue3-template
             </a>
           </div>
@@ -170,7 +168,8 @@
       <h2 class="text-base font-medium text-gray-900 mb-3">致谢</h2>
       <p class="text-gray-700 leading-relaxed">
         感谢所有开源项目的贡献者，特别是 Electron、Vue.js、TypeScript 等优秀的技术栈。
-        这个项目基于 <a href="https://github.com/imohuan/electron-vue3-template" target="_blank" class="text-blue-600 hover:text-blue-800 underline">electron-vue3-template</a> 模板构建，
+        这个项目基于 <a href="https://github.com/imohuan/electron-vue3-template" target="_blank"
+          class="text-blue-600 hover:text-blue-800 underline">electron-vue3-template</a> 模板构建，
         旨在为用户提供一个高效、美观的应用程序启动器。
       </p>
     </div>

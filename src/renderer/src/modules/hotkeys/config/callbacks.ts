@@ -1,5 +1,6 @@
 import { HotkeyType } from "@/typings/hotkey-types";
 import type { HotkeySettingsConfig } from "@/typings/hotkey-types";
+import { eventSystem } from "@/utils/event-system";
 
 // 快捷键回调函数注册表
 const callbackRegistry: Record<string, () => void> = {};
@@ -8,23 +9,23 @@ const callbackRegistry: Record<string, () => void> = {};
 const showHideWindow = () => {
   console.log("🎉 全局快捷键：显示/隐藏窗口");
   console.log("当前窗口ID:", window.id);
-  // 通过全局事件总线通知App.vue处理显示/隐藏窗口逻辑
+  // 通过全局事件系统通知App.vue处理显示/隐藏窗口逻辑
   // App.vue会根据当前状态决定是显示还是隐藏，以及如何处理子窗口
-  window.dispatchEvent(new CustomEvent('show-hide-window-requested'));
+  eventSystem.emit('window:show-hide-requested', undefined);
 };
 
 const focusSearch = () => {
   console.log("应用内快捷键：聚焦搜索框");
-  // 通过全局事件总线通知App.vue聚焦搜索框
+  // 通过全局事件系统通知App.vue聚焦搜索框
   // 这样可以让App.vue检查搜索框是否可见再决定是否聚焦
-  window.dispatchEvent(new CustomEvent('focus-search-requested'));
+  eventSystem.emit('search:focus-requested', undefined);
 };
 
 const closeWindow = () => {
   console.log("应用内快捷键：关闭窗口");
-  // 通过全局事件总线通知App.vue处理关闭窗口逻辑
+  // 通过全局事件系统通知App.vue处理关闭窗口逻辑
   // App.vue会根据当前界面状态（插件窗口、设置页面、搜索页面）执行不同的关闭逻辑
-  window.dispatchEvent(new CustomEvent('close-window-requested'));
+  eventSystem.emit('window:close-requested', undefined);
 };
 
 // 注册回调函数

@@ -114,5 +114,6 @@ const handleMouseUp = (event: MouseEvent) => {
   cursor: default;
   user-select: none;
 }
+
 /* 拖拽模式样式已移除，因为不再需要 */
 </style>

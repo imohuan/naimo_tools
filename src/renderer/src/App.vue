@@ -25,8 +25,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, nextTick, watch } from "vue";
-import { useDebounceFn, watchDebounced } from "@vueuse/core";
+import { ref, onMounted, nextTick, watch } from "vue";
+import { useDebounceFn, watchDebounced, useEventListener } from "@vueuse/core";
 import SearchHeader from "@/modules/search/components/SearchHeader.vue";
 import ContentArea from "@/components/ContentArea.vue";
 import { useDragDrop } from "@/composables/useDragDrop";
@@ -34,6 +34,7 @@ import { useFileHandler } from "@/composables/useFileHandler";
 import { useInterfaceManager } from "@/composables/useInterfaceManager";
 import { useKeyboardNavigation, useGlobalHotkeyInitializer } from "@/modules/hotkeys";
 import { useSearch } from "@/modules/search";
+import { useEventSystem } from "@/composables/useEventSystem";
 import type { AppItem } from "@shared/types";
 
 // UI常量配置 - 从应用配置中获取
@@ -159,10 +160,15 @@ const {
   initializationError,
 } = useGlobalHotkeyInitializer();
 
+// ==================== 事件系统 ====================
+const { on } = useEventSystem();
+
 // ==================== 方法 ====================
 const handleSearchFocus = () => {
   // SearchHeader组件的focus方法内部会检查搜索框是否可见
-  searchHeaderRef.value?.focus();
+  nextTick(() => {
+    searchHeaderRef.value?.focus();
+  });
 }
 
 const handleClick = () => {
@@ -312,9 +318,7 @@ watch(
 
 // ==================== 窗口焦点管理 ====================
 const handleWindowFocus = () => {
-  nextTick(() => {
-    handleSearchFocus();
-  });
+  handleSearchFocus();
 };
 
 const handleWindowBlur = () => {
@@ -332,9 +336,8 @@ const handleWindowBlur = () => {
 const handleVisibilityChange = () => {
   if (!document.hidden && document.hasFocus()) {
     // 页面重新变为可见且获得焦点时，聚焦到搜索框（如果可见）
-    nextTick(() => {
-      handleSearchFocus();
-    });
+    handleSearchFocus();
+    console.log("页面重新变为可见且获得焦点时，聚焦到搜索框");
   }
 };
 
@@ -342,14 +345,12 @@ const handleVisibilityChange = () => {
 const handleFocusSearchRequested = () => {
   console.log("收到聚焦搜索框请求");
   // SearchHeader组件的focus方法内部会检查搜索框是否可见
-  nextTick(() => {
-    handleSearchFocus();
-  });
+  handleSearchFocus();
 };
 
 // 处理插件执行完成事件
-const handlePluginExecuted = (event: CustomEvent) => {
-  const { pluginItem } = event.detail;
+const handlePluginExecuted = (event: { pluginItem: any }) => {
+  const { pluginItem } = event;
   console.log('🔍 收到插件执行完成事件，插件项目信息:', {
     name: pluginItem.name,
     enableSearch: pluginItem.executeParams?.enableSearch,
@@ -480,57 +481,42 @@ const handleShowHideWindowRequested = async () => {
 // ==================== 生命周期 ====================
 onMounted(async () => {
   console.log("🚀 App.vue onMounted - 开始应用初始化");
-
   // 加载UI常量配置
   await loadUIConstants();
-
   // 初始化快捷键（优先执行，确保全局快捷键可用）
   await initializeGlobalHotkeys();
-
   if (initializationError.value) {
     console.error("❌ 全局快捷键初始化失败:", initializationError.value);
   } else if (isInitialized.value) {
     console.log("✅ 全局快捷键初始化成功");
   }
 
+  // 初始化应用数据
   await initAppApps();
+  // 初始化窗口大小
   initializeWindowSize();
-
   // 初始化界面状态
   resetToDefault();
 
-  window.addEventListener("focus", handleWindowFocus);
-  window.addEventListener("blur", handleWindowBlur);
-  document.addEventListener("visibilitychange", handleVisibilityChange);
-  window.addEventListener("focus-search-requested", handleFocusSearchRequested);
-  window.addEventListener("plugin-executed", handlePluginExecuted as EventListener);
-  window.addEventListener("close-window-requested", handleCloseWindowRequested as EventListener);
-  window.addEventListener("show-hide-window-requested", handleShowHideWindowRequested as EventListener);
+  // 发生变化的时候 聚焦到搜索框
+  useEventListener(window, "focus", handleWindowFocus);
+  useEventListener(window, "blur", handleWindowBlur);
+  useEventListener(document, "visibilitychange", handleVisibilityChange);
 
-  nextTick(() => {
-    const container = document.querySelector(".w-full.h-full.p-\\[4px\\]") as HTMLElement;
-    if (container) {
-      container.focus();
-    }
-  });
+  // 全局快捷键：聚焦搜索框
+  on('search:focus-requested', handleFocusSearchRequested);
+  // 全局快捷键：关闭窗口请求
+  on('window:close-requested', handleCloseWindowRequested);
+  // 全局快捷键：显示/隐藏窗口请求
+  on('window:show-hide-requested', handleShowHideWindowRequested);
+  // 插件执行完成 - 进入插件界面
+  on('plugin:executed', handlePluginExecuted);
 
+  // 聚焦到搜索框
+  handleSearchFocus();
   console.log("🎉 App.vue onMounted - 应用初始化完成");
 });
 
-onUnmounted(() => {
-  window.removeEventListener("focus", handleWindowFocus);
-  window.removeEventListener("blur", handleWindowBlur);
-  document.removeEventListener("visibilitychange", handleVisibilityChange);
-  window.removeEventListener("focus-search-requested", handleFocusSearchRequested);
-  window.removeEventListener("plugin-executed", handlePluginExecuted as EventListener);
-  window.removeEventListener("close-window-requested", handleCloseWindowRequested as EventListener);
-  window.removeEventListener("show-hide-window-requested", handleShowHideWindowRequested as EventListener);
-});
 </script>
 
-<style scoped>
-/* 只保留特殊的样式，如 -webkit-app-region 等无法通过 TailwindCSS 实现的样式 */
-.no-drag {
-  -webkit-app-region: no-drag;
-}
-</style>
+<style scoped></style>

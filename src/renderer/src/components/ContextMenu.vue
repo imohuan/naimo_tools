@@ -1,24 +1,11 @@
 <template>
   <Teleport to="body">
-    <div
-      v-if="visible"
-      ref="menuRef"
-      class="context-menu"
-      :style="menuStyle"
-      @click.stop
-      @contextmenu.prevent
-    >
+    <div v-if="visible" ref="menuRef" class="context-menu" :style="menuStyle" @click.stop @contextmenu.prevent>
       <div class="context-menu-content">
-        <div
-          v-for="item in items"
-          :key="item.key"
-          class="context-menu-item"
-          :class="{
-            'context-menu-item--disabled': item.disabled,
-            'context-menu-item--danger': item.danger,
-          }"
-          @click="handleItemClick(item)"
-        >
+        <div v-for="item in items" :key="item.key" class="context-menu-item" :class="{
+          'context-menu-item--disabled': item.disabled,
+          'context-menu-item--danger': item.danger,
+        }" @click="handleItemClick(item)">
           <component v-if="item.icon" :is="item.icon" class="context-menu-item__icon" />
           <span class="context-menu-item__text">{{ item.label }}</span>
           <span v-if="item.shortcut" class="context-menu-item__shortcut">
