@@ -1,16 +1,11 @@
 <template>
   <div class="h-full flex flex-col bg-gray-50">
     <!-- 错误提示 -->
-    <div
-      v-if="error"
-      class="mx-4 mt-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3"
-    >
+    <div v-if="error" class="mx-4 mt-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3">
       <span class="text-red-500 text-lg">❌</span>
       <span class="text-red-700 flex-1">{{ error }}</span>
-      <button
-        @click="clearError"
-        class="px-3 py-1 bg-red-500 text-white text-sm rounded hover:bg-red-600 transition-colors"
-      >
+      <button @click="clearError"
+        class="px-3 py-1 bg-red-500 text-white text-sm rounded hover:bg-red-600 transition-colors">
         清除
       </button>
     </div>
@@ -26,14 +21,8 @@
     <!-- 主要内容 -->
     <div v-else class="flex-1 flex flex-col">
       <!-- 详情页面 -->
-      <PluginDetail
-        v-if="selectedPlugin"
-        :plugin="selectedPlugin"
-        :is-installed="isPluginInstalled(selectedPlugin.id)"
-        @close="closePluginDetail"
-        @install="installExamplePlugin"
-        @uninstall="uninstallPlugin"
-      />
+      <PluginDetail v-if="selectedPlugin" :plugin="selectedPlugin" :is-installed="isPluginInstalled(selectedPlugin.id)"
+        @close="closePluginDetail" @install="installExamplePlugin" @uninstall="uninstallPlugin" />
 
       <!-- 插件列表页面 -->
       <template v-else>
@@ -43,36 +32,22 @@
             <div class="flex-1 flex items-center gap-3">
               <!-- 搜索框 -->
               <div class="relative w-48">
-                <input
-                  v-model="searchQuery"
-                  type="text"
-                  placeholder="搜索插件"
-                  class="w-full pl-8 pr-3 py-1.5 text-sm border border-gray-300 rounded-md bg-gray-50 focus:bg-white focus:border-blue-400 focus:ring-1 focus:ring-blue-100 focus:outline-none transition-all duration-200 placeholder-gray-500"
-                />
-                <div
-                  class="absolute left-2.5 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm"
-                >
+                <input v-model="searchQuery" type="text" placeholder="搜索插件"
+                  class="w-full pl-8 pr-3 py-1.5 text-sm border border-gray-300 rounded-md bg-gray-50 focus:bg-white focus:border-blue-400 focus:ring-1 focus:ring-blue-100 focus:outline-none transition-all duration-200 placeholder-gray-500" />
+                <div class="absolute left-2.5 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm">
                   🔍
                 </div>
               </div>
 
               <!-- 分类列表 -->
               <div class="flex items-center gap-1.5">
-                <label class="text-xs font-medium text-gray-700 whitespace-nowrap"
-                  >分类:</label
-                >
-                <select
-                  v-model="categoryFilter"
-                  class="px-2 py-1.5 border border-gray-300 rounded-md text-xs bg-gray-50 focus:bg-white focus:border-blue-400 focus:ring-1 focus:ring-blue-100 focus:outline-none transition-all duration-200 cursor-pointer"
-                >
+                <label class="text-xs font-medium text-gray-700 whitespace-nowrap">分类:</label>
+                <select v-model="categoryFilter"
+                  class="px-2 py-1.5 border border-gray-300 rounded-md text-xs bg-gray-50 focus:bg-white focus:border-blue-400 focus:ring-1 focus:ring-blue-100 focus:outline-none transition-all duration-200 cursor-pointer">
                   <option value="all">全部</option>
                   <option value="installed">已安装</option>
                   <option value="available">可安装</option>
-                  <option
-                    v-for="(config, category) in PLUGIN_CATEGORY_CONFIG"
-                    :key="category"
-                    :value="category"
-                  >
+                  <option v-for="(config, category) in PLUGIN_CATEGORY_CONFIG" :key="category" :value="category">
                     {{ config.name }}
                   </option>
                 </select>
@@ -81,30 +56,18 @@
 
             <!-- 分页控件 -->
             <div class="flex items-center gap-1.5">
-              <button
-                @click="previousPage"
-                :disabled="currentPage === 1"
+              <button @click="previousPage" :disabled="currentPage === 1"
                 class="p-1.5 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 group"
-                title="上一页"
-              >
-                <IconMdiChevronLeft
-                  class="w-4 h-4 text-gray-600 group-hover:text-gray-800"
-                />
+                title="上一页">
+                <IconMdiChevronLeft class="w-4 h-4 text-gray-600 group-hover:text-gray-800" />
               </button>
-              <span
-                class="px-2 py-1.5 text-xs text-gray-600 bg-gray-50 rounded-md font-medium"
-              >
+              <span class="px-2 py-1.5 text-xs text-gray-600 bg-gray-50 rounded-md font-medium">
                 {{ currentPage }} / {{ totalPages }}
               </span>
-              <button
-                @click="nextPage"
-                :disabled="currentPage === totalPages"
+              <button @click="nextPage" :disabled="currentPage === totalPages"
                 class="p-1.5 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 group"
-                title="下一页"
-              >
-                <IconMdiChevronRight
-                  class="w-4 h-4 text-gray-600 group-hover:text-gray-800"
-                />
+                title="下一页">
+                <IconMdiChevronRight class="w-4 h-4 text-gray-600 group-hover:text-gray-800" />
               </button>
             </div>
           </div>
@@ -112,13 +75,8 @@
 
         <!-- 插件列表 -->
         <div class="flex-1 pt-2 flex flex-col pb-2">
-          <div
-            v-if="filteredPlugins.length === 0"
-            class="flex-1 flex items-center justify-center"
-          >
-            <div
-              class="flex flex-col items-center justify-center text-center text-gray-500"
-            >
+          <div v-if="filteredPlugins.length === 0" class="flex-1 flex items-center justify-center">
+            <div class="flex flex-col items-center justify-center text-center text-gray-500">
               <div class="text-6xl mb-4">📦</div>
               <p class="text-lg mb-2">暂无插件</p>
               <p class="text-sm mb-4">
@@ -128,15 +86,9 @@
           </div>
 
           <div v-else class="grid grid-cols-2 gap-2">
-            <PluginCard
-              v-for="plugin in paginatedPlugins"
-              :key="plugin.id"
-              :plugin="plugin"
-              :is-installed="isPluginInstalled(plugin.id)"
-              @click="showPluginDetail"
-              @install="installExamplePlugin"
-              @uninstall="uninstallPlugin"
-            />
+            <PluginCard v-for="plugin in paginatedPlugins" :key="plugin.id" :plugin="plugin"
+              :is-installed="isPluginInstalled(plugin.id)" @click="showPluginDetail" @install="installExamplePlugin"
+              @uninstall="uninstallPlugin" />
           </div>
         </div>
       </template>
@@ -146,8 +98,8 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from "vue";
-import { usePluginManager } from "../index";
-import { examplePlugins } from "../index";
+import { usePluginManager } from "../hooks/usePluginManager";
+import { examplePlugins } from "../hooks/usePluginManager";
 import type { PluginConfig } from "@/typings/plugin-types";
 import { PluginCategoryType, PLUGIN_CATEGORY_CONFIG } from "@/typings/plugin-types";
 import PluginCard from "./PluginCard.vue";

@@ -1,0 +1,50 @@
+import type { PluginItem } from "@/typings/plugin-types"
+
+interface WindowSize {
+  /**窗口宽度  -1表示不改变 */
+  width?: number
+  /**窗口高度  -1表示不改变 */
+  height: number
+}
+
+export const useWindowManager = () => {
+  /** 设置窗口大小 */
+  const setSize = (options: Partial<WindowSize> = {}) => {
+    api.ipcRouter.windowSetSize(options.width ?? -1, options.height ?? -1)
+  }
+
+  /** 根据插件项目配置来执行相应的操作：隐藏或关闭所有following窗口 */
+  const manageFollowingWindows = (pluginItem: PluginItem | null, action?: 'hide' | 'close') => {
+    const closeAction = action || pluginItem?.executeParams?.closeAction
+    if (closeAction) {
+      api.ipcRouter.windowManageFollowingWindows(closeAction)
+    } else {
+      api.ipcRouter.windowCloseAllFollowingWindows()
+    }
+  }
+
+  /** 打开当前插件项目的following窗口 */
+  const openCurrentItemFollowingWindow = (pluginItem: PluginItem | null) => {
+    if (!pluginItem) return
+    if (!pluginItem.pluginId || !pluginItem.name) return
+
+    api.ipcRouter.windowShowSpecificFollowingWindow({
+      pluginId: pluginItem.pluginId,
+      name: pluginItem.name
+    })
+  }
+
+  /** 显示主窗口和当前插件项目的following窗口 */
+  const show = (pluginItem: PluginItem | null) => {
+    api.ipcRouter.windowToggleShow(window.id!, true)
+    openCurrentItemFollowingWindow(pluginItem)
+  }
+
+  /** 隐藏主窗口和所有插件项目的following窗口 */
+  const hide = (pluginItem: PluginItem | null, action?: 'hide' | 'close') => {
+    manageFollowingWindows(pluginItem, action)
+    api.ipcRouter.windowToggleShow(window.id!, false)
+  }
+
+  return { setSize, manageFollowingWindows, openCurrentItemFollowingWindow, show, hide }
+}

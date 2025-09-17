@@ -7,15 +7,14 @@
       <!-- 搜索框区域 -->
       <SearchHeader ref="searchHeaderRef" v-model:search-text="searchText" :is-drag-over="isDragOver"
         :header-height="headerHeight" :attached-files="attachedFiles" :current-plugin-item="currentPluginItem"
-        :should-show-search-box="shouldShowSearchBox" @search="handleSearchWithFiles" @input="debouncedHandleSearch"
+        :should-show-search-box="shouldShowSearchBox" @search="handleSearch" @input="debouncedHandleSearch"
         @click="handleClick" @drag-over="handleDragOver" @drag-enter="handleDragEnter" @drag-leave="handleDragLeave"
         @drop="handleFileDrop" @paste="handleFilePaste" @clear-files="clearAttachedFiles"
         @clear-plugin="clearPluginInfo" @open-settings="openSettings" />
 
       <!-- 内容呈现区域 -->
-      <ContentArea ref="contentAreaRef" :content-area-visible="contentAreaVisible"
-        :content-area-height="contentAreaHeight" :search-categories="searchCategories" :selected-index="selectedIndex"
-        :flat-items="flatItems" :show-settings="isSettingsInterface"
+      <ContentArea ref="contentAreaRef" :content-area-visible="contentAreaVisible" :search-categories="searchCategories"
+        :selected-index="selectedIndex" :flat-items="flatItems" :show-settings="isSettingsInterface"
         :show-plugin-window="isPluginWindowOpen && searchText.trim() === ''" :max-height="maxHeight"
         :header-height="headerHeight" :padding="padding" @app-click="customExecuteItem"
         @category-toggle="handleCategoryToggle" @category-drag-end="handleCategoryDragEnd" @app-delete="handleAppDelete"
@@ -25,22 +24,39 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, nextTick, watch } from "vue";
+// ==================== 导入依赖 ====================
+import { ref, onMounted, nextTick, watch, computed } from "vue";
 import { useDebounceFn, watchDebounced, useEventListener } from "@vueuse/core";
+
+// 组件导入
 import SearchHeader from "@/modules/search/components/SearchHeader.vue";
 import ContentArea from "@/components/ContentArea.vue";
+
+// Composables 导入
 import { useDragDrop } from "@/composables/useDragDrop";
 import { useFileHandler } from "@/composables/useFileHandler";
-import { useInterfaceManager } from "@/composables/useInterfaceManager";
+import { useUIStatus, InterfaceType as UIInterfaceType } from "@/composables/useUIStatus";
+import { useWindowManager } from "@/composables/useWindowManager";
+import { useEventSystem } from "@/composables/useEventSystem";
+
+// 模块导入
 import { useKeyboardNavigation, useGlobalHotkeyInitializer } from "@/modules/hotkeys";
 import { useSearch } from "@/modules/search";
-import { useEventSystem } from "@/composables/useEventSystem";
+
+// 类型导入
 import type { AppItem } from "@shared/types";
 
-// UI常量配置 - 从应用配置中获取
+// ==================== UI 配置管理 ====================
+/**
+ * UI常量配置 - 从应用配置中获取
+ * 包含窗口高度、最大高度、内边距等UI相关常量
+ */
 const uiConstants = ref({ headerHeight: 50, maxHeight: 420, padding: 8 });
 
-// 从配置中获取UI常量
+/**
+ * 从主进程获取UI常量配置
+ * 如果获取失败则使用默认值
+ */
 const loadUIConstants = async () => {
   try {
     const config = await api.ipcRouter.windowGetUIConstants();
@@ -56,8 +72,17 @@ const maxHeight = computed(() => uiConstants.value.maxHeight);
 const padding = computed(() => uiConstants.value.padding);
 
 // ==================== 界面状态管理 ====================
+/**
+ * 窗口管理器 - 负责窗口大小设置和跟随窗口管理
+ */
+const { setSize, manageFollowingWindows, openCurrentItemFollowingWindow, show, hide } = useWindowManager();
+
+/**
+ * UI状态管理器 - 管理应用的各种界面状态
+ * 包括搜索文本、设置界面、插件窗口、内容区域可见性等
+ */
 const {
-  searchText: interfaceSearchText,
+  searchText: uiSearchText,
   isSettingsInterface,
   isPluginWindowOpen,
   contentAreaVisible,
@@ -67,33 +92,33 @@ const {
   openPluginWindow,
   closePluginWindow,
   updateSearchResults,
-  closeSettings: interfaceCloseSettings,
-  resetToDefault
-} = useInterfaceManager();
+  currentInterface: uiCurrentInterface,
+  closeSettings: uiCloseSettings,
+  resetToDefault,
+} = useUIStatus();
 
 // ==================== 组件引用 ====================
+/**
+ * 搜索头部组件引用
+ */
 const searchHeaderRef = ref<InstanceType<typeof SearchHeader>>();
+
+/**
+ * 内容区域组件引用
+ */
 const contentAreaRef = ref<InstanceType<typeof ContentArea>>();
 
-// ==================== 窗口大小管理 ====================
-const contentAreaHeight = ref(100);
-
-const initializeWindowSize = () => {
-  // 初始化时设置最小窗口高度
-  api.ipcRouter.windowSetSize(-1, headerHeight.value + padding.value);
-  // TODO: 之后修改，需要同时初始化内容弹出框，以免冲突
-};
-
 // ==================== 搜索模块 ====================
+/**
+ * 搜索模块 - 管理应用搜索、分类、执行等功能
+ */
 const {
   selectedIndex,
   initAppApps,
   searchText: searchModuleText,
   searchCategories,
-  originalCategories,
   flatItems,
-  handleSearch,
-  updateCategoryInBoth,
+  handleSearch: handleSearchCore,
   executeItem,
   handleCategoryToggle,
   handleCategoryDragEnd,
@@ -101,59 +126,40 @@ const {
   handleAppPin,
 } = useSearch();
 
-// 同步搜索文本到界面管理器
+/**
+ * 同步搜索文本到界面管理器
+ * 双向绑定UI状态和搜索模块的搜索文本
+ */
 const searchText = computed({
-  get: () => interfaceSearchText.value,
+  get: () => uiSearchText.value,
   set: (value: string) => {
-    interfaceSearchText.value = value;
+    uiSearchText.value = value;
     searchModuleText.value = value;
   }
 });
 
 // ==================== 文件处理 ====================
+/**
+ * 文件处理器 - 管理附件文件的添加、清除等功能
+ */
 const { attachedFiles, addFiles, clearAttachedFiles } = useFileHandler();
 
-// 清除插件信息
-const clearPluginInfo = async () => {
-  // 调用界面管理器的关闭插件窗口方法
-  await closePluginWindow();
-};
-
-// 包装 handleSearch 函数，自动传递 attachedFiles
-const handleSearchWithFiles = (value: string) => {
-  return handleSearch(value, [...attachedFiles.value]);
-};
-
 // ==================== 拖拽管理 ====================
+/**
+ * 拖拽处理器 - 管理文件拖拽、应用拖拽等功能
+ */
 const {
   isDragOver,
   handleDragOver,
   handleDragEnter,
   handleDragLeave,
   handleDrop,
-} = useDragDrop(
-  updateCategoryInBoth,
-  originalCategories,
-  handleSearchWithFiles,
-  addFiles
-);
-
-// ==================== 键盘导航 ====================
-
-const customExecuteItem = (app: AppItem) => {
-  executeItem(app);
-  handleSearchWithFiles("");
-};
-
-const { handleKeyNavigation } = useKeyboardNavigation(
-  flatItems,
-  searchCategories,
-  selectedIndex,
-  customExecuteItem,
-  handleSearchWithFiles
-);
+} = useDragDrop();
 
 // ==================== 全局快捷键初始化 ====================
+/**
+ * 全局快捷键初始化器 - 管理全局快捷键的注册和初始化
+ */
 const {
   initializeGlobalHotkeys,
   isInitialized,
@@ -161,9 +167,98 @@ const {
 } = useGlobalHotkeyInitializer();
 
 // ==================== 事件系统 ====================
+/**
+ * 事件系统 - 管理应用内部事件通信
+ */
 const { on } = useEventSystem();
 
-// ==================== 方法 ====================
+// ==================== 核心业务函数 ====================
+/**
+ * 包装搜索函数，自动传递附件文件，之后可能会附带插件数据
+ * @param value 搜索文本
+ * @returns 搜索结果
+ */
+const handleSearch = (value: string) => {
+  if (isPluginWindowOpen.value) {
+    // TODO 执行插件的搜索逻辑
+  }
+  return handleSearchCore(value, [...attachedFiles.value]);
+};
+
+/**
+ * 防抖搜索处理函数
+ * 延迟100ms执行搜索，避免频繁搜索
+ */
+const debouncedHandleSearch = useDebounceFn(
+  () => handleSearch(searchText.value),
+  100
+);
+
+/**
+ * 自定义执行应用项目
+ * 执行应用后清空搜索框
+ * @param app 要执行的应用项目
+ */
+const customExecuteItem = (app: AppItem) => {
+  executeItem(app);
+  handleSearch("");
+};
+
+/**
+ * 键盘导航处理器 - 管理键盘快捷键导航功能
+ */
+const { handleKeyNavigation } = useKeyboardNavigation(
+  flatItems,
+  searchCategories,
+  selectedIndex,
+  customExecuteItem,
+  handleSearch
+);
+
+// ==================== 窗口管理函数 ====================
+/**
+ * 初始化窗口大小
+ * 设置最小窗口高度为头部高度加上内边距
+ */
+const initializeWindowSize = () => {
+  // 初始化时设置最小窗口高度
+  setSize({ height: headerHeight.value + padding.value });
+  // TODO: 之后修改，需要同时初始化内容弹出框，以免冲突
+};
+
+/**
+ * 处理窗口大小调整
+ * 通过IPC调用主进程设置窗口大小
+ * @param height 新的窗口高度
+ */
+const handleWindowResize = (height: number) => {
+  api.ipcRouter.windowSetSize(-1, height);
+};
+
+/**
+ * 关闭插件窗口
+ * @param action 关闭动作类型：'hide' 隐藏 | 'close' 关闭
+ */
+const handleClosePluginWindow = (action?: 'hide' | 'close') => {
+  closePluginWindow()
+  manageFollowingWindows(currentPluginItem.value, action)
+};
+
+/**
+ * 重置到默认状态
+ * 如果有插件窗口打开，先关闭它们，然后重置界面状态
+ */
+const handleResetToDefault = () => {
+  // 如果有插件窗口打开，先关闭它们
+  if (isPluginWindowOpen.value) handleClosePluginWindow("close")
+  resetToDefault()
+};
+
+// ==================== 用户交互处理 ====================
+/**
+ * 聚焦搜索框
+ * 在下一个tick中调用搜索头部组件的focus方法
+ */
 const handleSearchFocus = () => {
   // SearchHeader组件的focus方法内部会检查搜索框是否可见
   nextTick(() => {
@@ -171,10 +266,20 @@ const handleSearchFocus = () => {
   });
 }
 
+/**
+ * 处理点击事件
+ * 点击时聚焦搜索框
+ */
 const handleClick = () => {
   handleSearchFocus()
 };
 
+/**
+ * 处理容器点击事件
+ * 检查点击目标，如果是交互元素则不处理，否则聚焦搜索框
+ * @param event 鼠标点击事件
+ * @returns false 阻止默认行为
+ */
 const handleContainerClick = (event: MouseEvent) => {
   // 检查点击的目标元素
   const target = event.target as HTMLElement;
@@ -196,12 +301,12 @@ const handleContainerClick = (event: MouseEvent) => {
   return false
 };
 
-const debouncedHandleSearch = useDebounceFn(
-  () => handleSearch(searchText.value, [...attachedFiles.value]),
-  100
-);
-
-// 文件处理事件
+// ==================== 文件处理事件 ====================
+/**
+ * 处理文件拖拽事件
+ * 先处理拖拽逻辑，然后添加拖拽的文件
+ * @param event 拖拽事件
+ */
 const handleFileDrop = async (event: DragEvent) => {
   // 先调用原有的拖拽处理逻辑
   await handleDrop(event);
@@ -213,6 +318,11 @@ const handleFileDrop = async (event: DragEvent) => {
   }
 };
 
+/**
+ * 处理文件粘贴事件
+ * 从剪贴板中提取文件并添加到附件列表
+ * @param event 粘贴事件
+ */
 const handleFilePaste = async (event: ClipboardEvent) => {
   const items = event.clipboardData?.items;
   if (!items) return;
@@ -234,37 +344,92 @@ const handleFilePaste = async (event: ClipboardEvent) => {
   }
 };
 
-// 设置页面方法
+/**
+ * 清除插件信息
+ * 关闭当前打开的插件窗口
+ */
+const clearPluginInfo = async () => {
+  // 调用界面管理器的关闭插件窗口方法
+  await handleClosePluginWindow();
+};
+
+// ==================== 设置页面管理 ====================
+/**
+ * 打开设置页面
+ * 切换到设置界面
+ */
 const openSettings = () => {
   switchToSettings();
 };
 
+/**
+ * 关闭设置页面
+ * 关闭设置后根据搜索内容决定显示内容，并聚焦搜索框
+ */
 const closeSettings = async () => {
   // 调用界面管理器的关闭设置方法
-  await interfaceCloseSettings();
+  uiCloseSettings();
 
   // 关闭设置后，如果有搜索内容则显示搜索结果，否则显示默认内容
   nextTick(() => {
-    if (searchText.value.trim() !== '') {
-      handleSearchWithFiles(searchText.value);
-    } else {
-      // 清空搜索，显示默认分类
-      handleSearchWithFiles('');
-    }
-
+    if (uiCurrentInterface.value !== UIInterfaceType.SEARCH) return
+    handleSearch(searchText.value.trim())
     // 聚焦到搜索输入框（如果可见）
     handleSearchFocus();
-  });
+  })
 };
 
+// ==================== 窗口焦点管理 ====================
+/**
+ * 处理窗口获得焦点事件
+ * 窗口获得焦点时聚焦搜索框
+ */
+const handleWindowFocus = () => {
+  handleSearchFocus();
+};
 
-// 处理窗口大小调整
-const handleWindowResize = (height: number) => {
-  api.ipcRouter.windowSetSize(-1, height);
+/**
+ * 处理窗口失去焦点事件
+ * 窗口失去焦点时延迟隐藏窗口（当前已注释）
+ */
+const handleWindowBlur = () => {
+  // 窗口失去焦点时，延迟一点时间后隐藏窗口
+  setTimeout(() => {
+    // 检查窗口是否仍然失去焦点且不在设置页面
+    if (!document.hasFocus() && !isSettingsInterface.value) {
+      // 调用主进程隐藏窗口
+      // api.ipcRouter.windowToggleShow(window.id || 0, false);
+    }
+  }, 100);
+};
+
+/**
+ * 处理页面可见性变化
+ * 页面重新变为可见且获得焦点时，聚焦到搜索框
+ */
+const handleVisibilityChange = () => {
+  if (!document.hidden && document.hasFocus()) {
+    // 页面重新变为可见且获得焦点时，聚焦到搜索框（如果可见）
+    handleSearchFocus();
+    console.log("页面重新变为可见且获得焦点时，聚焦到搜索框");
+  }
+};
+
+/**
+ * 处理快捷键请求聚焦搜索框
+ * 响应全局快捷键的聚焦搜索框请求
+ */
+const handleFocusSearchRequested = () => {
+  console.log("收到聚焦搜索框请求");
+  // SearchHeader组件的focus方法内部会检查搜索框是否可见
+  handleSearchFocus();
 };
 
 // ==================== 监听器 ====================
-// 监听搜索结果变化，更新界面状态
+/**
+ * 监听搜索结果变化，更新界面状态
+ * 防抖100ms，避免频繁更新
+ */
 watchDebounced(
   () => searchCategories.value.length,
   () => {
@@ -278,22 +443,10 @@ watchDebounced(
   { debounce: 100 }
 );
 
-// 监听搜索文本变化，同步到搜索模块
-watch(
-  () => searchText.value,
-  (newSearchText, oldSearchText) => {
-    // 如果搜索文本没有实际变化，不处理
-    if (newSearchText === oldSearchText) return;
-
-    // 同步到搜索模块
-    searchModuleText.value = newSearchText;
-
-    // 执行搜索（使用防抖）
-    debouncedHandleSearch();
-  }
-);
-
-// 监听附件文件变化，自动执行搜索
+/**
+ * 监听附件文件变化，自动执行搜索
+ * 深度监听文件列表变化，当文件真正发生变化时重新搜索
+ */
 watch(
   () => attachedFiles.value,
   (newFiles, oldFiles) => {
@@ -310,45 +463,57 @@ watch(
       });
 
       // 使用当前的搜索文本和新的附件文件执行搜索
-      handleSearch(searchText.value, [...newFiles]);
+      handleSearch(searchText.value);
     }
   },
   { deep: true }
 );
 
-// ==================== 窗口焦点管理 ====================
-const handleWindowFocus = () => {
-  handleSearchFocus();
-};
-
-const handleWindowBlur = () => {
-  // 窗口失去焦点时，延迟一点时间后隐藏窗口
-  setTimeout(() => {
-    // 检查窗口是否仍然失去焦点且不在设置页面
-    if (!document.hasFocus() && !isSettingsInterface.value) {
-      // 调用主进程隐藏窗口
-      // api.ipcRouter.windowToggleShow(window.id || 0, false);
-    }
-  }, 100);
-};
-
-// 页面可见性变化处理
-const handleVisibilityChange = () => {
-  if (!document.hidden && document.hasFocus()) {
-    // 页面重新变为可见且获得焦点时，聚焦到搜索框（如果可见）
-    handleSearchFocus();
-    console.log("页面重新变为可见且获得焦点时，聚焦到搜索框");
+/**
+ * 监听搜索文本变化，同步到搜索模块
+ * 当搜索文本变化时，同步到搜索模块并执行防抖搜索
+ */
+watch(
+  () => searchText.value,
+  (newSearchText, oldSearchText) => {
+    // 如果搜索文本没有实际变化，不处理
+    if (newSearchText === oldSearchText) return;
+    // 同步到搜索模块
+    searchModuleText.value = newSearchText;
+    // 执行搜索（使用防抖）
+    debouncedHandleSearch();
   }
-};
+);
 
-// 处理快捷键请求聚焦搜索框
-const handleFocusSearchRequested = () => {
-  console.log("收到聚焦搜索框请求");
-  // SearchHeader组件的focus方法内部会检查搜索框是否可见
-  handleSearchFocus();
-};
+/**
+ * 监听插件窗口状态变化
+ * 当界面类型切换到窗口模式时，显示对应的插件窗口
+ * 当从窗口模式切换出去时，管理跟随窗口的显示状态
+ */
+watch(
+  () => uiCurrentInterface.value,
+  (newVal, oldVal) => {
+    // 打开插件窗口时，切换到窗口界面
+    if (newVal === UIInterfaceType.WINDOW && oldVal !== UIInterfaceType.WINDOW && currentPluginItem.value) {
+      // 如果有当前插件项目，显示特定插件窗口；否则显示所有窗口
+      openCurrentItemFollowingWindow(currentPluginItem.value)
+    } else if (newVal !== UIInterfaceType.WINDOW && oldVal === UIInterfaceType.WINDOW) {
+      // 在插件窗口界面的时候点击设置，隐藏插件窗口而不是关闭，因为从设置页面返回时，需要显示插件窗口
+      if (isPluginWindowOpen.value) {
+        manageFollowingWindows(currentPluginItem.value, "hide")
+      } else {
+        manageFollowingWindows(currentPluginItem.value)
+      }
+    }
+  }
+);
 
-// 处理插件执行完成事件
+// ==================== 事件处理器 ====================
+/**
+ * 处理插件执行完成事件
+ * 当插件执行完成时，检查是否需要打开插件窗口
+ * @param event 插件执行事件，包含插件项目信息
+ */
 const handlePluginExecuted = (event: { pluginItem: any }) => {
   const { pluginItem } = event;
   console.log('🔍 收到插件执行完成事件，插件项目信息:', {
@@ -364,7 +529,10 @@ const handlePluginExecuted = (event: { pluginItem: any }) => {
   }
 };
 
-// 处理关闭窗口请求
+/**
+ * 处理关闭窗口请求
+ * 根据当前状态决定关闭行为：插件窗口 -> 设置页面 -> 搜索内容 -> 主窗口
+ */
 const handleCloseWindowRequested = async () => {
   console.log("收到关闭窗口请求，当前状态:", {
     isPluginWindowOpen: isPluginWindowOpen.value,
@@ -376,7 +544,7 @@ const handleCloseWindowRequested = async () => {
   // 如果当前是插件窗口，关闭插件窗口
   if (isPluginWindowOpen.value) {
     console.log("关闭插件窗口");
-    await closePluginWindow();
+    handleClosePluginWindow();
     return;
   }
 
@@ -393,97 +561,45 @@ const handleCloseWindowRequested = async () => {
     // 清空搜索框
     searchText.value = '';
     // 执行空搜索，显示默认内容
-    handleSearchWithFiles('');
+    handleSearch('');
     return;
   }
 
-  // 如果搜索框没有值，隐藏主窗口
-  console.log("隐藏主窗口");
-  if (api?.ipcRouter?.windowToggleShow) {
-    api.ipcRouter.windowToggleShow(window.id!, false);
-  } else {
-    console.error("❌ api.ipcRouter.windowToggleShow 不可用");
-  }
 
-  // 关闭或隐藏子窗口
-  const closeAction = currentPluginItem.value?.executeParams?.closeAction
-  if (closeAction) {
-    api.ipcRouter.windowManageFollowingWindows(closeAction)
-  } else {
-    api.ipcRouter.windowCloseAllFollowingWindows()
-  }
+  hide(currentPluginItem.value)
 };
 
-// 处理显示/隐藏窗口请求
+/**
+ * 处理显示/隐藏窗口请求
+ * 根据主窗口当前可见性状态，切换主窗口和子窗口的显示/隐藏
+ */
 const handleShowHideWindowRequested = async () => {
   console.log("收到显示/隐藏窗口请求，当前状态:", {
     isPluginWindowOpen: isPluginWindowOpen.value,
     currentPluginItem: currentPluginItem.value?.name,
     pluginId: currentPluginItem.value?.pluginId
   });
-
   // 检查主窗口当前是否可见
   const isMainWindowVisible = document.visibilityState === 'visible' && document.hasFocus();
-
   if (isMainWindowVisible) {
-    // 主窗口当前可见，需要隐藏
-    console.log("隐藏主窗口和所有子窗口");
-
-    // 先隐藏所有following类型的子窗口
-    if (api?.ipcRouter?.windowHideAllFollowingWindows) {
-      console.log("先隐藏所有子窗口");
-      api.ipcRouter.windowHideAllFollowingWindows();
-    }
-
-    // 延迟一点时间，确保子窗口隐藏完成后再隐藏主窗口
-    setTimeout(() => {
-      // 隐藏主窗口
-      if (api?.ipcRouter?.windowToggleShow) {
-        console.log("再隐藏主窗口");
-        api.ipcRouter.windowToggleShow(window.id!, false);
-      } else {
-        console.error("❌ api.ipcRouter.windowToggleShow 不可用");
-      }
-    }, 50); // 延迟50ms确保子窗口隐藏完成
+    hide(currentPluginItem.value, "hide")
   } else {
-    // 主窗口当前不可见，需要显示
-    console.log("显示主窗口");
-
-    // 显示主窗口
-    if (api?.ipcRouter?.windowToggleShow) {
-      api.ipcRouter.windowToggleShow(window.id!, true);
-    } else {
-      console.error("❌ api.ipcRouter.windowToggleShow 不可用");
-    }
-
-    // 延迟一点时间，让主窗口显示完成后再处理子窗口
-    setTimeout(() => {
-      // 如果有当前插件项目，显示对应的插件窗口
-      if (currentPluginItem.value && currentPluginItem.value.pluginId) {
-        console.log("显示特定插件窗口:", currentPluginItem.value.name);
-        if (api?.ipcRouter?.windowShowSpecificFollowingWindow) {
-          api.ipcRouter.windowShowSpecificFollowingWindow({
-            pluginId: currentPluginItem.value.pluginId,
-            name: currentPluginItem.value.name
-          });
-        }
-      } else {
-        // 没有特定插件项目，显示所有following窗口
-        console.log("显示所有following窗口");
-        // if (api?.ipcRouter?.windowShowAllFollowingWindows) {
-        //   api.ipcRouter.windowShowAllFollowingWindows();
-        // }
-      }
-    }, 100); // 延迟100ms让主窗口显示完成
+    show(currentPluginItem.value)
   }
 };
 
 // ==================== 生命周期 ====================
+/**
+ * 组件挂载时的初始化逻辑
+ * 按顺序执行：UI配置加载 -> 快捷键初始化 -> 应用数据初始化 -> 窗口初始化 -> 事件监听器注册
+ */
 onMounted(async () => {
   console.log("🚀 App.vue onMounted - 开始应用初始化");
-  // 加载UI常量配置
+
+  // 1. 加载UI常量配置
   await loadUIConstants();
-  // 初始化快捷键（优先执行，确保全局快捷键可用）
+
+  // 2. 初始化快捷键（优先执行，确保全局快捷键可用）
   await initializeGlobalHotkeys();
   if (initializationError.value) {
     console.error("❌ 全局快捷键初始化失败:", initializationError.value);
@@ -491,14 +607,16 @@ onMounted(async () => {
     console.log("✅ 全局快捷键初始化成功");
   }
 
-  // 初始化应用数据
+  // 3. 初始化应用数据
   await initAppApps();
-  // 初始化窗口大小
-  initializeWindowSize();
-  // 初始化界面状态
-  resetToDefault();
 
-  // 发生变化的时候 聚焦到搜索框
+  // 4. 初始化窗口大小
+  initializeWindowSize();
+
+  // 5. 初始化界面状态
+  handleResetToDefault();
+
+  // 6. 注册窗口事件监听器
   useEventListener(window, "focus", handleWindowFocus);
   useEventListener(window, "blur", handleWindowBlur);
   useEventListener(document, "visibilitychange", handleVisibilityChange);
@@ -512,7 +630,7 @@ onMounted(async () => {
   // 插件执行完成 - 进入插件界面
   on('plugin:executed', handlePluginExecuted);
 
-  // 聚焦到搜索框
+  // 8. 聚焦到搜索框
   handleSearchFocus();
   console.log("🎉 App.vue onMounted - 应用初始化完成");
 });

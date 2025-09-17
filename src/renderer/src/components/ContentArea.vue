@@ -46,7 +46,6 @@ import type { SearchCategory } from "@/modules/search";
 
 interface Props {
   contentAreaVisible: boolean;
-  contentAreaHeight: number;
   searchCategories: SearchCategory[];
   selectedIndex: number;
   flatItems: Array<AppItem & { categoryId: string }>;

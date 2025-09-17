@@ -2,7 +2,7 @@ import { ref } from 'vue'
 import type { AppItem } from '@shared/types'
 import type { SearchCategory } from '@/typings/search-types'
 import { categoryConfig } from '../config/search.config'
-import { pluginManager } from '@/modules/plugins'
+import { pluginManager } from '@/modules/plugins/hooks/usePluginManager'
 import type { PluginItem } from '@/typings/plugin-types'
 
 export function useAppData() {

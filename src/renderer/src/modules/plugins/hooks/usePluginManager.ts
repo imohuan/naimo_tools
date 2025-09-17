@@ -1,5 +1,5 @@
 import { ref, computed } from 'vue'
-import { pluginManager } from './config/plugin-manager'
+import { pluginManager } from '../config/plugin-manager'
 import type { PluginConfig, PluginItem } from '@/typings/plugin-types'
 
 // 使用 import.meta.glob 动态加载示例插件
@@ -48,7 +48,7 @@ export function usePluginManager() {
 
       if (success) {
         // 重新加载插件列表
-        await loadPlugins()
+        // await loadPlugins()
         console.log(`✅ 插件安装成功: ${pluginConfig.id}`)
       } else {
         console.error(`❌ 插件安装失败: ${pluginConfig.id}`)
@@ -179,13 +179,13 @@ export function usePluginManager() {
 
   return {
     // 状态
-    plugins: computed(() => plugins.value),
+    plugins,
     enabledPlugins,
     disabledPlugins,
     pluginCount,
     enabledPluginCount,
-    loading: computed(() => loading.value),
-    error: computed(() => error.value),
+    loading,
+    error,
 
     // 方法
     loadPlugins,
