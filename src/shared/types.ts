@@ -33,6 +33,8 @@ export interface AppConfig {
   pinnedApps?: AppItem[];
   /** 文件列表 */
   fileList?: AppItem[];
+  /** 已安装的插件列表 */
+  installedPlugins?: string[];
 }
 
 export interface AppItem {

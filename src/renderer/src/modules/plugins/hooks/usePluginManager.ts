@@ -10,6 +10,7 @@ const examplePluginModules = import.meta.glob('./examples/*.ts', { eager: true }
  */
 export function usePluginManager() {
   const plugins = ref<PluginConfig[]>([])
+  const allAvailablePlugins = ref<PluginConfig[]>([])
   const loading = ref(false)
   const error = ref<string | null>(null)
 
@@ -20,21 +21,77 @@ export function usePluginManager() {
   const enabledPluginCount = computed(() => enabledPlugins.value.length)
 
   /**
-   * 加载所有插件
+   * 获取所有可用的插件列表（包括默认插件和第三方插件）
    */
-  const loadPlugins = async (): Promise<void> => {
+  const getAllAvailablePlugins = async (): Promise<PluginConfig[]> => {
+    try {
+      console.log('🔌 开始获取所有可用插件列表...')
+      const availablePlugins = await pluginManager.getAllAvailablePlugins()
+      allAvailablePlugins.value = availablePlugins
+      console.log('✅ 所有可用插件列表获取完成:', availablePlugins.map((p: PluginConfig) => ({ id: p.id, name: p.name })))
+      return availablePlugins
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : '获取所有可用插件失败'
+      console.error('❌ 获取所有可用插件列表失败:', err)
+      return []
+    }
+  }
+
+  /**
+   * 加载已安装的插件（仅从缓存中加载）
+   */
+  const loadInstalledPlugins = async (): Promise<void> => {
     loading.value = true
     error.value = null
     try {
-      console.log('🔌 开始加载插件列表...')
-      const loadedPlugins = await pluginManager.loadAllPlugins()
+      console.log('🔌 开始加载已安装插件列表...')
+      const loadedPlugins = await pluginManager.loadInstalledPlugins()
       plugins.value = loadedPlugins
-      console.log('✅ 插件列表加载完成:', loadedPlugins.map((p: PluginConfig) => ({ id: p.id, name: p.name, enabled: p.enabled })))
+      console.log('✅ 已安装插件列表加载完成:', loadedPlugins.map((p: PluginConfig) => ({ id: p.id, name: p.name, enabled: p.enabled })))
     } catch (err) {
-      error.value = err instanceof Error ? err.message : '加载插件失败'
-      console.error('❌ 加载插件列表失败:', err)
+      error.value = err instanceof Error ? err.message : '加载已安装插件失败'
+      console.error('❌ 加载已安装插件列表失败:', err)
     } finally {
       loading.value = false
+    }
+  }
+
+  /**
+   * 初始化插件系统（加载所有可用插件并安装已安装的插件）
+   */
+  const initializePlugins = async (): Promise<void> => {
+    loading.value = true
+    error.value = null
+    try {
+      console.log('🔌 开始初始化插件系统...')
+      const loadedPlugins = await pluginManager.initializePlugins()
+      plugins.value = loadedPlugins
+      console.log('✅ 插件系统初始化完成:', loadedPlugins.map((p: PluginConfig) => ({ id: p.id, name: p.name, enabled: p.enabled })))
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : '初始化插件系统失败'
+      console.error('❌ 初始化插件系统失败:', err)
+    } finally {
+      loading.value = false
+    }
+  }
+
+  /**
+   * 重新加载插件列表
+   */
+  const reloadAllPlugins = async (): Promise<void> => {
+    try {
+      console.log('🔄 开始重新加载所有插件...')
+      // 使用插件管理器的重新加载方法，避免重复调用
+      const reloadedPlugins = await pluginManager.reloadAllPlugins()
+      plugins.value = reloadedPlugins
+
+      // 重新获取所有可用插件列表
+      await getAllAvailablePlugins()
+
+      console.log('✅ 所有插件重新加载完成')
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : '重新加载插件失败'
+      console.error('❌ 重新加载插件失败:', err)
     }
   }
 
@@ -45,10 +102,11 @@ export function usePluginManager() {
     try {
       console.log(`📦 安装插件: ${pluginConfig.id}`)
       const success = await pluginManager.installPlugin(pluginConfig)
-
       if (success) {
-        // 重新加载插件列表
-        // await loadPlugins()
+        // 重新加载已安装插件列表
+        await loadInstalledPlugins()
+        // 重新获取所有可用插件列表
+        await getAllAvailablePlugins()
         console.log(`✅ 插件安装成功: ${pluginConfig.id}`)
       } else {
         console.error(`❌ 插件安装失败: ${pluginConfig.id}`)
@@ -71,8 +129,10 @@ export function usePluginManager() {
       const success = await pluginManager.uninstallPlugin(pluginId)
 
       if (success) {
-        // 从本地列表中移除
-        plugins.value = plugins.value.filter(p => p.id !== pluginId)
+        // 重新加载已安装插件列表
+        await loadInstalledPlugins()
+        // 重新获取所有可用插件列表
+        await getAllAvailablePlugins()
         console.log(`✅ 插件卸载成功: ${pluginId}`)
       } else {
         console.error(`❌ 插件卸载失败: ${pluginId}`)
@@ -170,16 +230,10 @@ export function usePluginManager() {
     error.value = null
   }
 
-  /**
-   * 重新加载插件
-   */
-  const reloadPlugins = async (): Promise<void> => {
-    await loadPlugins()
-  }
-
   return {
     // 状态
     plugins,
+    allAvailablePlugins,
     enabledPlugins,
     disabledPlugins,
     pluginCount,
@@ -188,7 +242,8 @@ export function usePluginManager() {
     error,
 
     // 方法
-    loadPlugins,
+    loadInstalledPlugins,
+    initializePlugins,
     installPlugin,
     uninstallPlugin,
     togglePlugin,
@@ -198,7 +253,8 @@ export function usePluginManager() {
     getPluginItems,
     getVisiblePluginItems,
     clearError,
-    reloadPlugins
+    reloadAllPlugins,
+    getAllAvailablePlugins
   }
 }
 

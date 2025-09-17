@@ -45,6 +45,7 @@ import { useSearch } from "@/modules/search";
 
 // 类型导入
 import type { AppItem } from "@shared/types";
+import type { PluginItem } from "./typings/plugin-types";
 
 // ==================== UI 配置管理 ====================
 /**
@@ -75,7 +76,11 @@ const padding = computed(() => uiConstants.value.padding);
 /**
  * 窗口管理器 - 负责窗口大小设置和跟随窗口管理
  */
-const { setSize, manageFollowingWindows, openCurrentItemFollowingWindow, show, hide } = useWindowManager();
+const { setSize, manageFollowingWindows, openCurrentItemFollowingWindow, show: handleWindowShow, hide } = useWindowManager();
+const show = (pluginItem: PluginItem | null) => {
+  handleWindowShow(pluginItem)
+  contentAreaRef.value?.handleResize()
+}
 
 /**
  * UI状态管理器 - 管理应用的各种界面状态

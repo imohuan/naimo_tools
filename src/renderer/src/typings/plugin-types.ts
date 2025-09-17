@@ -127,8 +127,12 @@ export interface PluginConfig {
 export interface PluginItem extends AppItem {
   /** 插件ID */
   pluginId: string
+  /** 插件描述 */
+  description?: string
   /** 执行类型 */
   executeType: PluginExecuteType
+  /** 开机启动 */
+  autoStart?: boolean
   /** 执行参数 */
   executeParams?: {
     /** 网页URL（当executeType为SHOW_WEBPAGE时） */
@@ -150,12 +154,18 @@ export interface PluginItem extends AppItem {
 
 /** 插件管理器接口 */
 export interface PluginManager {
-  /** 加载所有插件 */
-  loadAllPlugins(): Promise<PluginConfig[]>
-  /** 加载单个插件 */
-  loadPlugin(pluginId: string): Promise<PluginConfig | null>
+  /** 加载已安装的插件（仅从缓存中加载） */
+  loadInstalledPlugins(): Promise<PluginConfig[]>
+  /** 初始化插件系统（加载所有可用插件并安装已安装的插件） */
+  initializePlugins(): Promise<PluginConfig[]>
+  /** 获取所有可用的插件列表（包括默认插件和第三方插件） */
+  getAllAvailablePlugins(): Promise<PluginConfig[]>
+  /** 重新加载所有插件（清除缓存） */
+  reloadAllPlugins(): Promise<PluginConfig[]>
   /** 安装插件 */
-  installPlugin(pluginConfig: PluginConfig): Promise<boolean>
+  installPlugin(pluginData: any): Promise<boolean>
+  /** 从zip文件安装插件 */
+  installPluginFromZip(zipPath: string): Promise<boolean>
   /** 卸载插件 */
   uninstallPlugin(pluginId: string): Promise<boolean>
   /** 启用/禁用插件 */
@@ -164,6 +174,12 @@ export interface PluginManager {
   getPluginList(): Promise<PluginConfig[]>
   /** 执行插件项目 */
   executePluginItem(item: PluginItem): Promise<void>
+  /** 获取默认插件列表 */
+  getDefaultPlugins(): PluginConfig[]
+  /** 获取第三方插件列表 */
+  getThirdPartyPlugins(): PluginConfig[]
+  /** 检查插件是否为默认插件 */
+  isDefaultPlugin(pluginId: string): boolean
 }
 
 /** 插件分类接口 */

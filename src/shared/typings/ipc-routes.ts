@@ -1,6 +1,6 @@
 /**
  * 自动生成的 IPC 类型定义
- * 生成时间: 2025-09-16T08:09:46.379Z
+ * 生成时间: 2025-09-17T04:47:47.010Z
  * 请勿手动修改此文件
  */
 
@@ -147,6 +147,69 @@ interface filesystemInterface {
  * @returns 选择的保存路径，如果取消则返回null
  */
   "filesystemSaveFile": (options: Electron.SaveDialogOptions) => Promise<string | null>;
+
+  /**
+ * 读取插件配置文件
+ * @param 插件路径
+ * @returns 插件配置对象
+ */
+  "filesystem-read-plugin-config": (pluginPath: string) => Promise<any>;
+  /**
+ * 读取插件配置文件
+ * @param 插件路径
+ * @returns 插件配置对象
+ */
+  "filesystemReadPluginConfig": (pluginPath: string) => Promise<any>;
+
+  /**
+ * 获取所有已安装的插件（仅第三方插件）
+ * @returns 插件配置数组
+ */
+  "filesystem-get-all-installed-plugins": () => Promise<any[]>;
+  /**
+ * 获取所有已安装的插件（仅第三方插件）
+ * @returns 插件配置数组
+ */
+  "filesystemGetAllInstalledPlugins": () => Promise<any[]>;
+
+  /**
+ * 解压插件zip文件
+ * @param zip文件路径
+ * @param 目标目录
+ */
+  "filesystem-extract-plugin-zip": (zipPath: string, targetDir: string) => Promise<void>;
+  /**
+ * 解压插件zip文件
+ * @param zip文件路径
+ * @param 目标目录
+ */
+  "filesystemExtractPluginZip": (zipPath: string, targetDir: string) => Promise<void>;
+
+  /**
+ * 安装插件zip文件
+ * @param zip文件路径
+ * @returns 是否安装成功
+ */
+  "filesystem-install-plugin-from-zip": (zipPath: string) => Promise<boolean>;
+  /**
+ * 安装插件zip文件
+ * @param zip文件路径
+ * @returns 是否安装成功
+ */
+  "filesystemInstallPluginFromZip": (zipPath: string) => Promise<boolean>;
+
+  /**
+ * 卸载插件
+ * @param 插件ID
+ * @returns 是否卸载成功
+ */
+  "filesystem-uninstall-plugin": (pluginId: string) => Promise<boolean>;
+  /**
+ * 卸载插件
+ * @param 插件ID
+ * @returns 是否卸载成功
+ */
+  "filesystemUninstallPlugin": (pluginId: string) => Promise<boolean>;
 }
 
 interface logInterface {
@@ -565,6 +628,36 @@ export const ROUTE_INFO: RouteInfo[] = [
     comment: "保存文件",
     module: "filesystem",
     function: "saveFile"
+  },
+  {
+    route: "filesystem-read-plugin-config",
+    comment: "读取插件配置文件",
+    module: "filesystem",
+    function: "readPluginConfig"
+  },
+  {
+    route: "filesystem-get-all-installed-plugins",
+    comment: "获取所有已安装的插件（仅第三方插件）",
+    module: "filesystem",
+    function: "getAllInstalledPlugins"
+  },
+  {
+    route: "filesystem-extract-plugin-zip",
+    comment: "解压插件zip文件",
+    module: "filesystem",
+    function: "extractPluginZip"
+  },
+  {
+    route: "filesystem-install-plugin-from-zip",
+    comment: "安装插件zip文件",
+    module: "filesystem",
+    function: "installPluginFromZip"
+  },
+  {
+    route: "filesystem-uninstall-plugin",
+    comment: "卸载插件",
+    module: "filesystem",
+    function: "uninstallPlugin"
   },
   {
     route: "log-get-logs",

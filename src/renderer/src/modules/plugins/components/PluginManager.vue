@@ -22,7 +22,7 @@
     <div v-else class="flex-1 flex flex-col">
       <!-- 详情页面 -->
       <PluginDetail v-if="selectedPlugin" :plugin="selectedPlugin" :is-installed="isPluginInstalled(selectedPlugin.id)"
-        @close="closePluginDetail" @install="installExamplePlugin" @uninstall="uninstallPlugin" />
+        @close="closePluginDetail" @install="installPlugin" @uninstall="uninstallPlugin" />
 
       <!-- 插件列表页面 -->
       <template v-else>
@@ -87,7 +87,7 @@
 
           <div v-else class="grid grid-cols-2 gap-2">
             <PluginCard v-for="plugin in paginatedPlugins" :key="plugin.id" :plugin="plugin"
-              :is-installed="isPluginInstalled(plugin.id)" @click="showPluginDetail" @install="installExamplePlugin"
+              :is-installed="isPluginInstalled(plugin.id)" @click="showPluginDetail" @install="installPlugin"
               @uninstall="uninstallPlugin" />
           </div>
         </div>
@@ -107,13 +107,16 @@ import PluginDetail from "./PluginDetail.vue";
 
 const {
   plugins,
+  allAvailablePlugins,
   loading,
   error,
-  loadPlugins,
-  installPlugin,
+  loadInstalledPlugins,
+  initializePlugins,
+  installPlugin: installPluginManager,
   uninstallPlugin,
   isPluginInstalled,
   clearError,
+  getAllAvailablePlugins,
 } = usePluginManager();
 
 const searchQuery = ref("");
@@ -124,21 +127,18 @@ const itemsPerPage = 6; // 每页显示6个项目（3行2列）
 // 详情页面状态
 const selectedPlugin = ref<PluginConfig | null>(null);
 
+// 计算所有插件（包括示例插件和可用插件）
+const allPlugins = computed(() => {
+  // return [...examplePlugins, ...allAvailablePlugins.value];
+  return [...allAvailablePlugins.value];
+});
+
 // 计算过滤后的插件列表
 const filteredPlugins = computed(() => {
   // 获取已安装插件的ID集合
   const installedPluginIds = new Set(plugins.value.map((p) => p.id));
-
-  // // 合并插件列表，避免重复
-  // let result = [...plugins.value]; // 先添加已安装的插件
-  // // 添加未安装的示例插件
-  // const availablePlugins = examplePlugins.filter(
-  //   (plugin) => !installedPluginIds.has(plugin.id)
-  // );
-  // result = [...result, ...availablePlugins];
-
   // 直接使用examplePlugins作为基础列表，保持固定顺序
-  let result = [...examplePlugins];
+  let result = allPlugins.value;
 
   // 搜索过滤
   if (searchQuery.value.trim()) {
@@ -226,10 +226,11 @@ const closePluginDetail = () => {
   selectedPlugin.value = null;
 };
 
+
 // 安装示例插件
-const installExamplePlugin = async (pluginConfig: PluginConfig): Promise<void> => {
+const installPlugin = async (pluginConfig: PluginConfig): Promise<void> => {
   try {
-    const success = await installPlugin(pluginConfig);
+    const success = await installPluginManager(pluginConfig);
     if (success) {
       console.log(`✅ 示例插件安装成功: ${pluginConfig.id}`);
     }
@@ -269,15 +270,13 @@ watch([searchQuery, categoryFilter], () => {
   currentPage.value = 1;
 });
 
-// 组件挂载时加载插件和添加键盘事件监听
-onMounted(() => {
-  loadPlugins();
-  // 添加键盘事件监听器
-  document.addEventListener("keydown", handleKeydown);
-});
+useEventListener(document, "keydown", handleKeydown)
 
-// 组件卸载时移除键盘事件监听器
-onUnmounted(() => {
-  document.removeEventListener("keydown", handleKeydown);
+// 组件挂载时初始化插件系统
+onMounted(async () => {
+  // 初始化插件系统（加载所有可用插件并安装已安装的插件）
+  await initializePlugins()
+  // 获取所有可用插件列表（用于显示未安装的插件）
+  await getAllAvailablePlugins()
 });
 </script>

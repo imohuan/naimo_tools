@@ -54,7 +54,7 @@ export function useAppData() {
     console.log('🔌 开始加载插件数据...')
 
     try {
-      const plugins = await pluginManager.loadAllPlugins()
+      const plugins = await pluginManager.loadInstalledPlugins()
       console.log('📦 加载到的插件:', plugins.map(p => ({ id: p.id, name: p.name, itemsCount: p.items.length })))
 
       const pluginCategories: SearchCategory[] = []

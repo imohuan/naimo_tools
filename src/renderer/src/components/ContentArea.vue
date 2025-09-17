@@ -73,18 +73,18 @@ const emit = defineEmits<Emits>();
 
 const contentScrollContainerRef = ref<HTMLElement>();
 const { height } = useElementSize(contentScrollContainerRef);
-// 监听内容高度变化，动态调整窗口大小
-watch(
-  height,
-  (newHeight) => {
-    if (props.contentAreaVisible && newHeight > 0) {
-      // 计算总窗口高度：内容高度 + 头部高度 + 内边距
-      const totalHeight = newHeight + props.headerHeight + props.padding * 2;
-      emit("window-resize", totalHeight);
-    }
-  },
-  { immediate: true }
-);
 
-defineExpose({ contentScrollContainerRef });
+const handleResize = () => {
+  const newHeight = height.value;
+  if (props.contentAreaVisible && newHeight > 0) {
+    // 计算总窗口高度：内容高度 + 头部高度 + 内边距
+    const totalHeight = newHeight + props.headerHeight + props.padding * 2;
+    emit("window-resize", totalHeight);
+  }
+};
+
+// 监听内容高度变化，动态调整窗口大小
+watch(height, (_newHeight) => handleResize(), { immediate: true });
+
+defineExpose({ contentScrollContainerRef, handleResize });
 </script>

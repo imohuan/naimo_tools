@@ -1,148 +1,249 @@
 import type { PluginConfig, PluginManager, PluginItem } from "@/typings/plugin-types";
 import { PluginExecuteType } from "@/typings/plugin-types";
+import { getDefaultPlugins, getDefaultPluginById } from "./default-plugins";
 
 /**
  * 插件管理器实现
  */
 export class PluginManagerImpl implements PluginManager {
   private plugins: Map<string, PluginConfig> = new Map();
-  private storageKey = "naimo_plugins";
+  private allAvailablePlugins: PluginConfig[] = [];
+  private availablePluginsLoaded = false;
 
   /**
-   * 获取本地存储的插件数据
+   * 获取已安装的插件列表
    */
-  private getStoredPlugins(): Record<string, any> {
+  private async getInstalledPlugins(): Promise<string[]> {
     try {
-      const stored = localStorage.getItem(this.storageKey);
-      return stored ? JSON.parse(stored) : {};
+      const installedPlugins = await api.ipcRouter.storeGet("installedPlugins");
+      return Array.isArray(installedPlugins) ? installedPlugins : [];
     } catch (error) {
-      console.error("❌ 读取插件存储数据失败:", error);
-      return {};
-    }
-  }
-
-  /**
-   * 保存插件数据到本地存储
-   */
-  private saveStoredPlugins(data: Record<string, any>): void {
-    try {
-      localStorage.setItem(this.storageKey, JSON.stringify(data));
-    } catch (error) {
-      console.error("❌ 保存插件存储数据失败:", error);
-    }
-  }
-
-  /**
-   * 加载所有插件
-   */
-  async loadAllPlugins(): Promise<PluginConfig[]> {
-    console.log("🔌 开始加载所有插件...");
-
-    try {
-      // 从本地存储获取插件数据
-      const storedData = this.getStoredPlugins();
-      const installedPlugins = storedData.installedPlugins || [];
-      console.log("📦 已安装的插件:", installedPlugins);
-
-      const loadedPlugins: PluginConfig[] = [];
-
-      // 并行加载所有插件
-      const loadPromises = installedPlugins.map(async (pluginId: string) => {
-        try {
-          const plugin = await this.loadPlugin(pluginId);
-          if (plugin) {
-            loadedPlugins.push(plugin);
-          }
-        } catch (error) {
-          console.error(`❌ 加载插件失败: ${pluginId}`, error);
-        }
-      });
-
-      await Promise.all(loadPromises);
-
-      console.log(
-        "✅ 插件加载完成:",
-        loadedPlugins.map((p) => ({ id: p.id, name: p.name, itemsCount: p.items.length }))
-      );
-      return loadedPlugins;
-    } catch (error) {
-      console.error("❌ 加载插件时发生错误:", error);
+      console.error("❌ 读取已安装插件列表失败:", error);
       return [];
     }
   }
 
   /**
-   * 加载单个插件
+   * 保存已安装的插件列表
    */
-  async loadPlugin(pluginId: string): Promise<PluginConfig | null> {
+  private async saveInstalledPlugins(pluginIds: string[]): Promise<void> {
     try {
-      // 从本地存储获取插件配置
-      const storedData = this.getStoredPlugins();
-      const pluginConfig = storedData[`plugin_${pluginId}`];
-      if (!pluginConfig) {
-        console.warn(`⚠️ 插件配置不存在: ${pluginId}`);
-        return null;
-      }
-
-      // 验证插件配置
-      if (!this.validatePluginConfig(pluginConfig)) {
-        console.error(`❌ 插件配置无效: ${pluginId}`);
-        return null;
-      }
-
-      // 缓存插件
-      this.plugins.set(pluginId, pluginConfig);
-      console.log(`✅ 插件加载成功: ${pluginId}`);
-      return pluginConfig;
+      await api.ipcRouter.storeSet("installedPlugins", pluginIds);
     } catch (error) {
-      console.error(`❌ 加载插件失败: ${pluginId}`, error);
-      return null;
+      console.error("❌ 保存已安装插件列表失败:", error);
     }
   }
 
   /**
-   * 安装插件
+   * 获取所有可用的插件列表（包括默认插件和第三方插件）
    */
-  async installPlugin(pluginConfig: PluginConfig): Promise<boolean> {
+  async getAllAvailablePlugins(): Promise<PluginConfig[]> {
+    // 如果已经加载过，直接返回缓存的结果
+    if (this.availablePluginsLoaded && this.allAvailablePlugins.length > 0) {
+      return this.allAvailablePlugins;
+    }
+
     try {
-      console.log(`📦 开始安装插件: ${pluginConfig.id}`);
+      console.log("🔌 开始获取所有可用插件...");
+
+      // 获取默认插件
+      const defaultPlugins = getDefaultPlugins();
+
+      // 获取第三方插件
+      const thirdPartyPlugins: any[] = await api.ipcRouter.filesystemGetAllInstalledPlugins();
+
+      // 合并所有插件
+      this.allAvailablePlugins = [...defaultPlugins, ...thirdPartyPlugins];
+      this.availablePluginsLoaded = true;
+
+      console.log("📦 所有可用插件数量:", this.allAvailablePlugins.length);
+      console.log("📋 默认插件数量:", defaultPlugins.length);
+      console.log("📋 第三方插件数量:", thirdPartyPlugins.length);
+
+      return this.allAvailablePlugins;
+    } catch (error) {
+      console.error("❌ 获取所有可用插件失败:", error);
+      return [];
+    }
+  }
+
+  /**
+   * 加载已安装的插件（仅从缓存中加载）
+   */
+  async loadInstalledPlugins(): Promise<PluginConfig[]> {
+    console.log("🔌 开始加载已安装的插件...");
+
+    try {
+      const loadedPlugins: PluginConfig[] = [];
+      // 1. 获取已安装的插件列表
+      const installedPluginIds = await this.getInstalledPlugins();
+
+      console.log("📋 已安装的插件ID列表:", installedPluginIds);
+
+      // 2. 从缓存中加载已安装的插件
+      for (const pluginId of installedPluginIds) {
+        const plugin = this.plugins.get(pluginId);
+        if (plugin) {
+          loadedPlugins.push(plugin);
+        } else {
+          console.warn(`⚠️ 插件未在缓存中找到: ${pluginId}`);
+        }
+      }
+
+      console.log(
+        "✅ 已安装插件加载完成:",
+        loadedPlugins.map((p) => ({ id: p.id, name: p.name, itemsCount: p.items.length }))
+      );
+      return loadedPlugins;
+    } catch (error) {
+      console.error("❌ 加载已安装插件时发生错误:", error);
+      return [];
+    }
+  }
+
+  /**
+   * 初始化插件系统（加载所有可用插件并安装已安装的插件）
+   */
+  async initializePlugins(): Promise<PluginConfig[]> {
+    console.log("🔌 开始初始化插件系统...");
+
+    try {
+      // 1. 获取所有可用的插件
+      const allPlugins = await this.getAllAvailablePlugins();
+
+      // 2. 获取已安装的插件列表
+      const installedPluginIds = await this.getInstalledPlugins();
+
+      console.log("📦 所有可用插件数量:", allPlugins.length);
+      console.log("📋 已安装的插件ID列表:", installedPluginIds);
+
+      const loadedPlugins: PluginConfig[] = [];
+
+      // 3. 遍历所有插件，只安装已安装的插件
+      for (const pluginData of allPlugins) {
+        if (installedPluginIds.includes(pluginData.id)) {
+          try {
+            const success = await this.installPlugin(pluginData);
+            if (success) {
+              const plugin = this.plugins.get(pluginData.id);
+              if (plugin) {
+                loadedPlugins.push(plugin);
+              }
+            }
+          } catch (error) {
+            console.error(`❌ 加载插件失败: ${pluginData.id}`, error);
+          }
+        }
+      }
+
+      console.log(
+        "✅ 插件系统初始化完成:",
+        loadedPlugins.map((p) => ({ id: p.id, name: p.name, itemsCount: p.items.length }))
+      );
+      return loadedPlugins;
+    } catch (error) {
+      console.error("❌ 初始化插件系统时发生错误:", error);
+      return [];
+    }
+  }
+
+  /**
+   * 重新加载所有插件（清除缓存）
+   */
+  async reloadAllPlugins(): Promise<PluginConfig[]> {
+    console.log("🔄 重新加载所有插件...");
+
+    // 清除缓存
+    this.allAvailablePlugins = [];
+    this.availablePluginsLoaded = false;
+    this.plugins.clear();
+
+    // 重新初始化插件系统
+    return await this.initializePlugins();
+  }
+
+
+  /**
+   * 安装插件（统一处理所有插件）
+   */
+  async installPlugin(pluginData: any): Promise<boolean> {
+    try {
+      console.log(`📦 开始安装插件: ${pluginData.id}`);
 
       // 验证插件配置
-      if (!this.validatePluginConfig(pluginConfig)) {
-        console.error(`❌ 插件配置无效`);
+      if (!this.validatePluginConfig(pluginData)) {
+        console.error(`❌ 插件配置无效: ${pluginData.id}`);
         return false;
       }
 
-      // 设置安装时间
-      pluginConfig.metadata = {
-        createdAt: pluginConfig.metadata?.createdAt || Date.now(),
-        installedAt: Date.now(),
-        updatedAt: Date.now(),
-      };
+      // 获取当前已安装的插件列表
+      const installedPluginIds = await this.getInstalledPlugins();
 
-      // 获取当前存储数据
-      const storedData = this.getStoredPlugins();
-
-      // 保存插件配置
-      storedData[`plugin_${pluginConfig.id}`] = pluginConfig;
-
-      // 更新已安装插件列表
-      const installedPlugins = storedData.installedPlugins || [];
-      if (!installedPlugins.includes(pluginConfig.id)) {
-        installedPlugins.push(pluginConfig.id);
-        storedData.installedPlugins = installedPlugins;
+      // 检查插件是否已安装
+      if (installedPluginIds.includes(pluginData.id)) {
+        console.warn(`⚠️ 插件已安装: ${pluginData.id}`);
+        return true;
       }
 
-      // 保存到本地存储
-      this.saveStoredPlugins(storedData);
+      // 统一处理所有插件
+      const plugin: PluginConfig = {
+        id: pluginData.id,
+        name: pluginData.name,
+        description: pluginData.description,
+        version: pluginData.version,
+        author: pluginData.author,
+        icon: pluginData.icon,
+        category: pluginData.category,
+        enabled: pluginData.enabled !== false,
+        items: pluginData.items || [],
+        options: pluginData.options,
+        metadata: {
+          createdAt: pluginData.metadata?.createdAt || Date.now(),
+          installedAt: pluginData.metadata?.installedAt || Date.now(),
+          updatedAt: Date.now(),
+        }
+      };
+
+      // 添加插件到已安装列表
+      installedPluginIds.push(pluginData.id);
+      await this.saveInstalledPlugins(installedPluginIds);
 
       // 缓存插件
-      this.plugins.set(pluginConfig.id, pluginConfig);
+      this.plugins.set(pluginData.id, plugin);
 
-      console.log(`✅ 插件安装成功: ${pluginConfig.id}`);
+      // 清除可用插件缓存，因为可能有新的插件被安装
+      this.availablePluginsLoaded = false;
+      this.allAvailablePlugins = [];
+
+      console.log(`✅ 插件安装成功: ${pluginData.id}`);
       return true;
     } catch (error) {
-      console.error(`❌ 安装插件失败: ${pluginConfig.id}`, error);
+      console.error(`❌ 安装插件失败: ${pluginData.id}`, error);
+      return false;
+    }
+  }
+
+  /**
+   * 从zip文件安装插件
+   */
+  async installPluginFromZip(zipPath: string): Promise<boolean> {
+    try {
+      console.log(`📦 开始从zip文件安装插件: ${zipPath}`);
+
+      // 调用主进程安装插件
+      const success = await api.ipcRouter.filesystemInstallPluginFromZip(zipPath);
+
+      if (success) {
+        // 清除缓存并重新加载所有插件
+        await this.reloadAllPlugins();
+        console.log(`✅ 插件安装成功: ${zipPath}`);
+      } else {
+        console.error(`❌ 插件安装失败: ${zipPath}`);
+      }
+
+      return success;
+    } catch (error) {
+      console.error(`❌ 从zip文件安装插件失败: ${zipPath}`, error);
       return false;
     }
   }
@@ -154,22 +255,29 @@ export class PluginManagerImpl implements PluginManager {
     try {
       console.log(`🗑️ 开始卸载插件: ${pluginId}`);
 
-      // 获取当前存储数据
-      const storedData = this.getStoredPlugins();
+      // 检查是否是默认插件
+      const isDefaultPlugin = getDefaultPluginById(pluginId) !== null;
 
-      // 从存储中删除插件配置
-      delete storedData[`plugin_${pluginId}`];
+      // 对于第三方插件，需要删除文件
+      if (!isDefaultPlugin) {
+        const success = await api.ipcRouter.filesystemUninstallPlugin(pluginId);
+        if (!success) {
+          console.error(`❌ 删除插件文件失败: ${pluginId}`);
+          return false;
+        }
+      }
 
       // 从已安装插件列表中移除
-      const installedPlugins = storedData.installedPlugins || [];
-      const updatedPlugins = installedPlugins.filter((id: string) => id !== pluginId);
-      storedData.installedPlugins = updatedPlugins;
-
-      // 保存到本地存储
-      this.saveStoredPlugins(storedData);
+      const installedPluginIds = await this.getInstalledPlugins();
+      const updatedPluginIds = installedPluginIds.filter(id => id !== pluginId);
+      await this.saveInstalledPlugins(updatedPluginIds);
 
       // 从缓存中移除
       this.plugins.delete(pluginId);
+
+      // 清除可用插件缓存，因为插件列表可能发生变化
+      this.availablePluginsLoaded = false;
+      this.allAvailablePlugins = [];
 
       console.log(`✅ 插件卸载成功: ${pluginId}`);
       return true;
@@ -197,10 +305,8 @@ export class PluginManagerImpl implements PluginManager {
         updatedAt: Date.now(),
       };
 
-      // 获取当前存储数据并更新
-      const storedData = this.getStoredPlugins();
-      storedData[`plugin_${pluginId}`] = plugin;
-      this.saveStoredPlugins(storedData);
+      // 更新缓存中的插件
+      this.plugins.set(pluginId, plugin);
 
       console.log(`✅ 插件状态更新: ${pluginId} -> ${enabled ? "启用" : "禁用"}`);
       return true;
@@ -230,6 +336,31 @@ export class PluginManagerImpl implements PluginManager {
 
   getPluginIds() {
     return Array.from(this.plugins.keys());
+  }
+
+  /**
+   * 获取默认插件列表
+   */
+  getDefaultPlugins(): PluginConfig[] {
+    return getDefaultPlugins();
+  }
+
+  /**
+   * 获取第三方插件列表
+   */
+  getThirdPartyPlugins(): PluginConfig[] {
+    return Array.from(this.plugins.values()).filter(plugin => {
+      const defaultPlugin = getDefaultPluginById(plugin.id);
+      return !defaultPlugin;
+    });
+  }
+
+
+  /**
+   * 检查插件是否为默认插件
+   */
+  isDefaultPlugin(pluginId: string): boolean {
+    return getDefaultPluginById(pluginId) !== null;
   }
 
   /**
@@ -330,10 +461,8 @@ export class PluginManagerImpl implements PluginManager {
             updatedAt: Date.now(),
           };
 
-          // 保存更新到本地存储
-          const storedData = this.getStoredPlugins();
-          storedData[`plugin_${item.pluginId}`] = plugin;
-          this.saveStoredPlugins(storedData);
+          // 更新缓存中的插件
+          this.plugins.set(item.pluginId, plugin);
         }
       }
     } catch (error) {
