@@ -1,6 +1,6 @@
 /**
  * 自动生成的 IPC 类型定义
- * 生成时间: 2025-09-17T04:47:47.010Z
+ * 生成时间: 2025-09-17T11:37:35.584Z
  * 请勿手动修改此文件
  */
 
@@ -212,6 +212,60 @@ interface filesystemInterface {
   "filesystemUninstallPlugin": (pluginId: string) => Promise<boolean>;
 }
 
+interface hotkeyInterface {
+  /**
+ * 注册全局快捷键
+ * @param 快捷键组合
+ * @param 回调函数
+ * @returns 是否注册成功
+ */
+  "hotkey-register-global-shortcut": (keys: string, callback: () => void) => Promise<boolean>;
+  /**
+ * 注册全局快捷键
+ * @param 快捷键组合
+ * @param 回调函数
+ * @returns 是否注册成功
+ */
+  "hotkeyRegisterGlobalShortcut": (keys: string, callback: () => void) => Promise<boolean>;
+
+  /**
+ * 注销全局快捷键
+ * @param 快捷键ID
+ * @returns 是否注销成功
+ */
+  "hotkey-unregister-global-shortcut": (id: string) => Promise<boolean>;
+  /**
+ * 注销全局快捷键
+ * @param 快捷键ID
+ * @returns 是否注销成功
+ */
+  "hotkeyUnregisterGlobalShortcut": (id: string) => Promise<boolean>;
+
+  /**
+ * 检查全局快捷键是否已注册
+ * @param 快捷键组合
+ * @returns 是否已注册
+ */
+  "hotkey-is-global-shortcut-registered": (keys: string) => Promise<boolean>;
+  /**
+ * 检查全局快捷键是否已注册
+ * @param 快捷键组合
+ * @returns 是否已注册
+ */
+  "hotkeyIsGlobalShortcutRegistered": (keys: string) => Promise<boolean>;
+
+  /**
+ * 清除所有全局快捷键
+ * @returns 是否清除成功
+ */
+  "hotkey-clear-all-global-shortcuts": () => Promise<boolean>;
+  /**
+ * 清除所有全局快捷键
+ * @returns 是否清除成功
+ */
+  "hotkeyClearAllGlobalShortcuts": () => Promise<boolean>;
+}
+
 interface logInterface {
   /**
  * 获取日志数据
@@ -265,6 +319,273 @@ interface logInterface {
   lastModified: Date;
   lineCount: number;
 }>;
+}
+
+interface pluginInterface {
+  /**
+ * 加载插件
+ * @param 插件路径
+ * @returns 插件配置对象
+ */
+  "plugin-load-plugin": (pluginPath: string) => Promise<any>;
+  /**
+ * 加载插件
+ * @param 插件路径
+ * @returns 插件配置对象
+ */
+  "pluginLoadPlugin": (pluginPath: string) => Promise<any>;
+
+  /**
+ * 卸载插件
+ * @param 插件ID
+ * @returns 是否卸载成功
+ */
+  "plugin-unload-plugin": (pluginId: string) => Promise<boolean>;
+  /**
+ * 卸载插件
+ * @param 插件ID
+ * @returns 是否卸载成功
+ */
+  "pluginUnloadPlugin": (pluginId: string) => Promise<boolean>;
+
+  /**
+ * 执行插件项目
+ * @param 插件项目
+ * @returns 是否执行成功
+ */
+  "plugin-execute-plugin-item": (item: any) => Promise<boolean>;
+  /**
+ * 执行插件项目
+ * @param 插件项目
+ * @returns 是否执行成功
+ */
+  "pluginExecutePluginItem": (item: any) => Promise<boolean>;
+
+  /**
+ * 获取插件列表
+ * @returns 插件配置数组
+ */
+  "plugin-get-plugin-list": () => Promise<any[]>;
+  /**
+ * 获取插件列表
+ * @returns 插件配置数组
+ */
+  "pluginGetPluginList": () => Promise<any[]>;
+
+  /**
+ * 安装插件
+ * @param 插件数据
+ * @returns 是否安装成功
+ */
+  "plugin-install-plugin": (pluginData: any) => Promise<boolean>;
+  /**
+ * 安装插件
+ * @param 插件数据
+ * @returns 是否安装成功
+ */
+  "pluginInstallPlugin": (pluginData: any) => Promise<boolean>;
+
+  /**
+ * 从ZIP文件安装插件
+ * @param ZIP文件路径
+ * @returns 是否安装成功
+ */
+  "plugin-install-plugin-from-zip-file": (zipPath: string) => Promise<boolean>;
+  /**
+ * 从ZIP文件安装插件
+ * @param ZIP文件路径
+ * @returns 是否安装成功
+ */
+  "pluginInstallPluginFromZipFile": (zipPath: string) => Promise<boolean>;
+
+  /**
+ * 获取插件配置
+ * @param 插件ID
+ * @returns 插件配置
+ */
+  "plugin-get-plugin-config": (pluginId: string) => Promise<any>;
+  /**
+ * 获取插件配置
+ * @param 插件ID
+ * @returns 插件配置
+ */
+  "pluginGetPluginConfig": (pluginId: string) => Promise<any>;
+
+  /**
+ * 设置插件配置
+ * @param 插件ID
+ * @param 配置对象
+ * @returns 是否设置成功
+ */
+  "plugin-set-plugin-config": (pluginId: string, config: any) => Promise<boolean>;
+  /**
+ * 设置插件配置
+ * @param 插件ID
+ * @param 配置对象
+ * @returns 是否设置成功
+ */
+  "pluginSetPluginConfig": (pluginId: string, config: any) => Promise<boolean>;
+
+  /**
+ * 获取插件目录
+ * @returns 插件目录路径
+ */
+  "plugin-get-plugin-directory": () => Promise<string>;
+  /**
+ * 获取插件目录
+ * @returns 插件目录路径
+ */
+  "pluginGetPluginDirectory": () => Promise<string>;
+
+  /**
+ * 检查插件更新
+ * @returns 可更新的插件列表
+ */
+  "plugin-check-plugin-updates": () => Promise<any[]>;
+  /**
+ * 检查插件更新
+ * @returns 可更新的插件列表
+ */
+  "pluginCheckPluginUpdates": () => Promise<any[]>;
+
+  /**
+ * 更新插件
+ * @param 插件ID
+ * @returns 是否更新成功
+ */
+  "plugin-update-plugin": (pluginId: string) => Promise<boolean>;
+  /**
+ * 更新插件
+ * @param 插件ID
+ * @returns 是否更新成功
+ */
+  "pluginUpdatePlugin": (pluginId: string) => Promise<boolean>;
+}
+
+interface searchInterface {
+  /**
+ * 搜索应用程序
+ * @param 搜索查询
+ * @returns 匹配的应用程序列表
+ */
+  "search-search-apps": (query: string) => Promise<AppPath[]>;
+  /**
+ * 搜索应用程序
+ * @param 搜索查询
+ * @returns 匹配的应用程序列表
+ */
+  "searchSearchApps": (query: string) => Promise<AppPath[]>;
+
+  /**
+ * 获取所有应用程序
+ * @returns 所有应用程序列表
+ */
+  "search-get-all-apps": () => Promise<AppPath[]>;
+  /**
+ * 获取所有应用程序
+ * @returns 所有应用程序列表
+ */
+  "searchGetAllApps": () => Promise<AppPath[]>;
+
+  /**
+ * 获取最近使用的应用程序
+ * @param 限制数量
+ * @returns 最近使用的应用程序列表
+ */
+  "search-get-recent-apps": (limit: number) => Promise<AppPath[]>;
+  /**
+ * 获取最近使用的应用程序
+ * @param 限制数量
+ * @returns 最近使用的应用程序列表
+ */
+  "searchGetRecentApps": (limit: number) => Promise<AppPath[]>;
+
+  /**
+ * 获取收藏的应用程序
+ * @returns 收藏的应用程序列表
+ */
+  "search-get-pinned-apps": () => Promise<AppPath[]>;
+  /**
+ * 获取收藏的应用程序
+ * @returns 收藏的应用程序列表
+ */
+  "searchGetPinnedApps": () => Promise<AppPath[]>;
+
+  /**
+ * 执行应用程序
+ * @param 应用程序项目
+ * @returns 是否执行成功
+ */
+  "search-execute-app": (appItem: AppPath) => Promise<boolean>;
+  /**
+ * 执行应用程序
+ * @param 应用程序项目
+ * @returns 是否执行成功
+ */
+  "searchExecuteApp": (appItem: AppPath) => Promise<boolean>;
+
+  /**
+ * 添加到收藏
+ * @param 应用程序项目
+ * @returns 是否添加成功
+ */
+  "search-pin-app": (appItem: AppPath) => Promise<boolean>;
+  /**
+ * 添加到收藏
+ * @param 应用程序项目
+ * @returns 是否添加成功
+ */
+  "searchPinApp": (appItem: AppPath) => Promise<boolean>;
+
+  /**
+ * 从收藏中移除
+ * @param 应用程序项目
+ * @returns 是否移除成功
+ */
+  "search-unpin-app": (appItem: AppPath) => Promise<boolean>;
+  /**
+ * 从收藏中移除
+ * @param 应用程序项目
+ * @returns 是否移除成功
+ */
+  "searchUnpinApp": (appItem: AppPath) => Promise<boolean>;
+
+  /**
+ * 获取应用程序图标
+ * @param 应用程序项目
+ * @returns 图标数据URL或null
+ */
+  "search-get-app-icon": (appItem: AppPath) => Promise<string | null>;
+  /**
+ * 获取应用程序图标
+ * @param 应用程序项目
+ * @returns 图标数据URL或null
+ */
+  "searchGetAppIcon": (appItem: AppPath) => Promise<string | null>;
+
+  /**
+ * 获取应用程序详细信息
+ * @param 应用程序项目
+ * @returns 应用程序详细信息
+ */
+  "search-get-app-details": (appItem: AppPath) => Promise<any>;
+  /**
+ * 获取应用程序详细信息
+ * @param 应用程序项目
+ * @returns 应用程序详细信息
+ */
+  "searchGetAppDetails": (appItem: AppPath) => Promise<any>;
+
+  /**
+ * 刷新应用程序列表
+ * @returns 是否刷新成功
+ */
+  "search-refresh-apps": () => Promise<boolean>;
+  /**
+ * 刷新应用程序列表
+ * @returns 是否刷新成功
+ */
+  "searchRefreshApps": () => Promise<boolean>;
 }
 
 interface storeInterface {
@@ -521,7 +842,7 @@ interface windowInterface {
 }
 
 // 合并所有 IPC 路由类型
-export interface AllIpcRouter extends appInterface, filesystemInterface, logInterface, storeInterface, windowInterface {}
+export interface AllIpcRouter extends appInterface, filesystemInterface, hotkeyInterface, logInterface, pluginInterface, searchInterface, storeInterface, windowInterface {}
 
 // 路由信息类型
 export interface RouteInfo {
@@ -660,6 +981,30 @@ export const ROUTE_INFO: RouteInfo[] = [
     function: "uninstallPlugin"
   },
   {
+    route: "hotkey-register-global-shortcut",
+    comment: "注册全局快捷键",
+    module: "hotkey",
+    function: "registerGlobalShortcut"
+  },
+  {
+    route: "hotkey-unregister-global-shortcut",
+    comment: "注销全局快捷键",
+    module: "hotkey",
+    function: "unregisterGlobalShortcut"
+  },
+  {
+    route: "hotkey-is-global-shortcut-registered",
+    comment: "检查全局快捷键是否已注册",
+    module: "hotkey",
+    function: "isGlobalShortcutRegistered"
+  },
+  {
+    route: "hotkey-clear-all-global-shortcuts",
+    comment: "清除所有全局快捷键",
+    module: "hotkey",
+    function: "clearAllGlobalShortcuts"
+  },
+  {
     route: "log-get-logs",
     comment: "获取日志数据",
     module: "log",
@@ -688,6 +1033,132 @@ export const ROUTE_INFO: RouteInfo[] = [
     comment: "获取日志文件信息",
     module: "log",
     function: "getLogInfo"
+  },
+  {
+    route: "plugin-load-plugin",
+    comment: "加载插件",
+    module: "plugin",
+    function: "loadPlugin"
+  },
+  {
+    route: "plugin-unload-plugin",
+    comment: "卸载插件",
+    module: "plugin",
+    function: "unloadPlugin"
+  },
+  {
+    route: "plugin-execute-plugin-item",
+    comment: "执行插件项目",
+    module: "plugin",
+    function: "executePluginItem"
+  },
+  {
+    route: "plugin-get-plugin-list",
+    comment: "获取插件列表",
+    module: "plugin",
+    function: "getPluginList"
+  },
+  {
+    route: "plugin-install-plugin",
+    comment: "安装插件",
+    module: "plugin",
+    function: "installPlugin"
+  },
+  {
+    route: "plugin-install-plugin-from-zip-file",
+    comment: "从ZIP文件安装插件",
+    module: "plugin",
+    function: "installPluginFromZipFile"
+  },
+  {
+    route: "plugin-get-plugin-config",
+    comment: "获取插件配置",
+    module: "plugin",
+    function: "getPluginConfig"
+  },
+  {
+    route: "plugin-set-plugin-config",
+    comment: "设置插件配置",
+    module: "plugin",
+    function: "setPluginConfig"
+  },
+  {
+    route: "plugin-get-plugin-directory",
+    comment: "获取插件目录",
+    module: "plugin",
+    function: "getPluginDirectory"
+  },
+  {
+    route: "plugin-check-plugin-updates",
+    comment: "检查插件更新",
+    module: "plugin",
+    function: "checkPluginUpdates"
+  },
+  {
+    route: "plugin-update-plugin",
+    comment: "更新插件",
+    module: "plugin",
+    function: "updatePlugin"
+  },
+  {
+    route: "search-search-apps",
+    comment: "搜索应用程序",
+    module: "search",
+    function: "searchApps"
+  },
+  {
+    route: "search-get-all-apps",
+    comment: "获取所有应用程序",
+    module: "search",
+    function: "getAllApps"
+  },
+  {
+    route: "search-get-recent-apps",
+    comment: "获取最近使用的应用程序",
+    module: "search",
+    function: "getRecentApps"
+  },
+  {
+    route: "search-get-pinned-apps",
+    comment: "获取收藏的应用程序",
+    module: "search",
+    function: "getPinnedApps"
+  },
+  {
+    route: "search-execute-app",
+    comment: "执行应用程序",
+    module: "search",
+    function: "executeApp"
+  },
+  {
+    route: "search-pin-app",
+    comment: "添加到收藏",
+    module: "search",
+    function: "pinApp"
+  },
+  {
+    route: "search-unpin-app",
+    comment: "从收藏中移除",
+    module: "search",
+    function: "unpinApp"
+  },
+  {
+    route: "search-get-app-icon",
+    comment: "获取应用程序图标",
+    module: "search",
+    function: "getAppIcon"
+  },
+  {
+    route: "search-get-app-details",
+    comment: "获取应用程序详细信息",
+    module: "search",
+    function: "getAppDetails"
+  },
+  {
+    route: "search-refresh-apps",
+    comment: "刷新应用程序列表",
+    module: "search",
+    function: "refreshApps"
   },
   {
     route: "store-get",

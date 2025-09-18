@@ -10,8 +10,6 @@ export { getHotkeyCache, useHotkeyCache } from './hooks/useHotkeyCache'
 export { getHotkeyManager, useHotkeyManager } from './hooks/useHotkeyManager'
 export { getHotkeyInitializer, useGlobalHotkeyInitializer } from './hooks/useHotkeyInitializer'
 
-// 导出键盘导航
-export { useKeyboardNavigation } from './hooks/useKeyboardNavigation'
 
 // 导出便捷的初始化函数
 export const initializeHotkeys = async () => {

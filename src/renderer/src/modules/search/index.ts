@@ -84,5 +84,8 @@ export function useSearch() {
   }
 }
 
+// 导出键盘导航
+export { useKeyboardNavigation } from './hooks/useKeyboardNavigation'
+
 // 导出类型
 export type { SearchCategory, SearchState } from '@/typings/search-types'

@@ -2,8 +2,11 @@
   <div class="min-h-full flex flex-col space-y-4">
     <template v-if="!isEditingHotkey">
       <!-- 动态渲染快捷键分组 -->
-      <div v-for="group in Object.values(config)" :key="group.id"
-        class="bg-white rounded-lg border border-gray-200 p-4">
+      <div
+        v-for="group in Object.values(config)"
+        :key="group.id"
+        class="bg-white rounded-lg border border-gray-200 p-4"
+      >
         <div class="flex items-center justify-between mb-4">
           <div>
             <h3 class="text-base font-medium text-gray-900">{{ group.name }}</h3>
@@ -11,8 +14,12 @@
           </div>
           <div class="flex items-center">
             <label class="flex items-center">
-              <input type="checkbox" v-model="group.enabled" @change="toggleGroup(group.id)"
-                class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2" />
+              <input
+                type="checkbox"
+                v-model="group.enabled"
+                @change="toggleGroup(group.id)"
+                class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+              />
               <span class="ml-2 text-sm text-gray-700">启用{{ group.name }}</span>
             </label>
           </div>
@@ -20,20 +27,28 @@
 
         <div class="space-y-4">
           <!-- 动态渲染快捷键 -->
-          <div v-for="hotkey in group.hotkeys" :key="hotkey.id"
-            class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+          <div
+            v-for="hotkey in group.hotkeys"
+            :key="hotkey.id"
+            class="flex items-center justify-between p-4 bg-gray-50 rounded-lg"
+          >
             <div class="flex-1">
               <div class="font-medium text-gray-900">{{ hotkey.name }}</div>
               <div class="text-sm text-gray-600 mt-1">{{ hotkey.description }}</div>
             </div>
             <div class="flex items-center space-x-3">
               <div class="flex items-center space-x-2">
-                <kbd class="px-2 py-1 text-xs font-semibold text-gray-800 bg-gray-100 border border-gray-200 rounded">
+                <kbd
+                  class="px-2 py-1 text-xs font-semibold text-gray-800 bg-gray-100 border border-gray-200 rounded"
+                >
                   {{ formatHotkeyDisplay(hotkey.keys.split("+")) }}
                 </kbd>
               </div>
-              <button @click="startEditingHotkey(hotkey.id, hotkey.type)" :disabled="!group.enabled"
-                class="px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 hover:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm">
+              <button
+                @click="startEditingHotkey(hotkey.id, hotkey.type)"
+                :disabled="!group.enabled"
+                class="px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 hover:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm"
+              >
                 重新设置
               </button>
             </div>
@@ -59,7 +74,10 @@
     </template>
 
     <!-- 快捷键编辑界面 -->
-    <div v-else class="bg-white rounded-lg border border-gray-200 p-6 flex flex-col gap-4">
+    <div
+      v-else
+      class="bg-white rounded-lg border border-gray-200 p-6 flex flex-col gap-4"
+    >
       <h3 class="text-lg font-medium text-gray-900">
         设置快捷键 -
         <span class="px-2 py-1 rounded text-blue-700 underline">
@@ -70,17 +88,25 @@
 
       <!-- 使用 HotkeyInterceptor 组件 -->
       <div class="h-32 border-2 border-dashed border-gray-300 rounded-lg">
-        <HotkeyInterceptor :hotkey-type="editingHotkeyType" :scope="editingHotkeyId"
-          @hotkey-captured="handleHotkeyCaptured" />
+        <HotkeyInterceptor
+          :hotkey-type="editingHotkeyType"
+          :scope="editingHotkeyId"
+          @hotkey-captured="handleHotkeyCaptured"
+        />
       </div>
 
       <div class="flex justify-center space-x-3">
-        <button @click="cancelEditing"
-          class="px-6 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 shadow-sm">
+        <button
+          @click="cancelEditing"
+          class="px-6 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 shadow-sm"
+        >
           取消
         </button>
-        <button @click="confirmEditing" :disabled="currentEditingKeys.length === 0"
-          class="px-6 py-2.5 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm">
+        <button
+          @click="confirmEditing"
+          :disabled="currentEditingKeys.length === 0"
+          class="px-6 py-2.5 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm"
+        >
           确认设置
         </button>
       </div>
@@ -92,89 +118,16 @@
 import { ref, computed, onMounted } from "vue";
 /** @ts-ignore */
 import IconMdiInformation from "~icons/mdi/information";
-import { HotkeyType } from "@/typings/hotkey-types";
-import { useHotkeyManager } from "../hooks/useHotkeyManager";
+import { HotkeyType, useGlobalHotkeyInitializer } from "../index";
 import HotkeyInterceptor from "./HotkeyInterceptor.vue";
 
-// 使用快捷键管理器
+// 全局快捷键初始化器
 const {
-  getAll,
-  registerHotkey,
-  toggleHotkey,
-} = useHotkeyManager();
-
-// 快捷键配置数据
-const config = ref({
-  global: {
-    id: 'global',
-    name: '全局快捷键',
-    description: '可以在任何应用程序中使用的快捷键',
-    enabled: true,
-    hotkeys: [
-      {
-        id: 'toggle-app',
-        name: '显示/隐藏应用',
-        description: '快速显示或隐藏 Naimo 应用',
-        keys: 'ctrl+space',
-        type: HotkeyType.GLOBAL,
-        enabled: true,
-        callback: 'toggleApp'
-      }
-    ]
-  },
-  application: {
-    id: 'application',
-    name: '应用内快捷键',
-    description: '仅在 Naimo 获得焦点时生效的快捷键',
-    enabled: true,
-    hotkeys: [
-      {
-        id: 'search-focus',
-        name: '聚焦搜索框',
-        description: '将焦点移动到搜索框',
-        keys: 'ctrl+f',
-        type: HotkeyType.APPLICATION,
-        enabled: true,
-        callback: 'focusSearch'
-      }
-    ]
-  }
-});
-
-// 切换分组启用状态
-const toggleGroup = async (groupId: string) => {
-  const group = config.value[groupId as keyof typeof config.value];
-  if (group) {
-    group.enabled = !group.enabled;
-    // 更新所有快捷键的启用状态
-    for (const hotkey of group.hotkeys) {
-      await toggleHotkey(hotkey.id, group.enabled);
-    }
-  }
-};
-
-// 更新快捷键配置
-const updateHotkeyConfig = async (hotkeyId: string, newKeys: string) => {
-  const allHotkeys = getAll();
-  const hotkey = allHotkeys.find(h => h.id === hotkeyId);
-  if (hotkey) {
-    // 先注销旧的快捷键
-    await toggleHotkey(hotkeyId, false);
-    // 注册新的快捷键
-    return await registerHotkey(newKeys, hotkey.callback, hotkey.type, {
-      id: hotkeyId,
-      name: hotkey.name,
-      description: hotkey.description,
-      enabled: true
-    });
-  }
-  return false;
-};
-
-// 获取所有快捷键
-const getAllHotkeys = () => {
-  return getAll();
-};
+  config,
+  toggleGroup,
+  updateHotkeyConfig,
+  getAllHotkeys,
+} = useGlobalHotkeyInitializer();
 
 // 快捷键编辑状态
 const isEditingHotkey = ref(false);
@@ -276,7 +229,9 @@ onMounted(() => {
 });
 
 // 暴露编辑状态给父组件
-defineExpose({ isEditingHotkey, });
+defineExpose({
+  isEditingHotkey,
+});
 </script>
 
 <style scoped>

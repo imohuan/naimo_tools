@@ -1,8 +1,12 @@
 import { createApp } from "vue";
 import "./style.css";
 import App from "./App.vue";
+import { pinia } from "./store";
 
 const app = createApp(App);
+
+// 配置 Pinia
+app.use(pinia);
 
 // 配置Vue全局错误处理
 app.config.errorHandler = (err, _instance, info) => {

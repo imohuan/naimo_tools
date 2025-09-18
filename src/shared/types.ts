@@ -35,6 +35,13 @@ export interface AppConfig {
   fileList?: AppItem[];
   /** 已安装的插件列表 */
   installedPlugins?: string[];
+  /** 快捷键配置 */
+  hotkeys?: {
+    /** 全局快捷键配置 */
+    global: any[];
+    /** 应用内快捷键配置 */
+    application: any[];
+  };
 }
 
 export interface AppItem {
@@ -48,6 +55,8 @@ export interface AppItem {
   lastUsed?: number;
   /** 使用次数 */
   usageCount?: number;
+  /** 应用描述 */
+  description?: string;
 }
 
 export interface LogLevel {

@@ -40,7 +40,9 @@ import { useWindowManager } from "@/composables/useWindowManager";
 import { useEventSystem } from "@/composables/useEventSystem";
 
 // 模块导入
-import { useKeyboardNavigation, useGlobalHotkeyInitializer } from "@/modules/hotkeys";
+import { useHotkeyManager } from "@/modules/hotkeys/hooks/useHotkeyManager";
+import { HotkeyType, type HotkeyEventListener } from "@/typings/hotkey-types";
+import { useKeyboardNavigation } from "@/modules/search";
 import { useSearch } from "@/modules/search";
 
 // 类型导入
@@ -163,13 +165,14 @@ const {
 
 // ==================== 全局快捷键初始化 ====================
 /**
- * 全局快捷键初始化器 - 管理全局快捷键的注册和初始化
+ * 快捷键管理器 - 管理全局快捷键的注册和初始化
  */
 const {
-  initializeGlobalHotkeys,
-  isInitialized,
-  initializationError,
-} = useGlobalHotkeyInitializer();
+  initialize,
+  registerHotkey,
+  addListener,
+  removeListener,
+} = useHotkeyManager();
 
 // ==================== 事件系统 ====================
 /**
@@ -605,11 +608,19 @@ onMounted(async () => {
   await loadUIConstants();
 
   // 2. 初始化快捷键（优先执行，确保全局快捷键可用）
-  await initializeGlobalHotkeys();
-  if (initializationError.value) {
-    console.error("❌ 全局快捷键初始化失败:", initializationError.value);
-  } else if (isInitialized.value) {
-    console.log("✅ 全局快捷键初始化成功");
+  try {
+    await initialize();
+    console.log("✅ 快捷键管理器初始化成功");
+    // // 注册默认的全局快捷键
+    // await registerHotkey('ctrl+space', 'toggleApp', HotkeyType.GLOBAL, {
+    //   id: 'toggle-app',
+    //   name: '显示/隐藏应用',
+    //   description: '快速显示或隐藏 Naimo 应用',
+    //   enabled: true
+    // });
+    console.log("✅ 默认全局快捷键注册成功");
+  } catch (error) {
+    console.error("❌ 快捷键初始化失败:", error);
   }
 
   // 3. 初始化应用数据
@@ -625,6 +636,27 @@ onMounted(async () => {
   useEventListener(window, "focus", handleWindowFocus);
   useEventListener(window, "blur", handleWindowBlur);
   useEventListener(document, "visibilitychange", handleVisibilityChange);
+
+  const handleHotkeyTriggered: HotkeyEventListener = (event) => {
+    switch (event.detail.id) {
+      case 'focus-requested':
+        handleFocusSearchRequested();
+        break;
+      case 'close-requested':
+        handleCloseWindowRequested();
+        break;
+      case 'show-hide-requested':
+        handleShowHideWindowRequested();
+        break;
+      default:
+        console.log('🔍 收到全局快捷键触发事件:', event.detail);
+        break;
+    }
+    console.log('🔍 收到全局快捷键触发事件:', event.detail);
+  };
+
+  addListener('hotkey-triggered', handleHotkeyTriggered);
+  addListener('app-hotkey-triggered', handleHotkeyTriggered);
 
   // 全局快捷键：聚焦搜索框
   on('search:focus-requested', handleFocusSearchRequested);

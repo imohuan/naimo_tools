@@ -49,9 +49,9 @@ export interface HotkeyGroup {
 // 快捷键设置配置
 export interface HotkeySettingsConfig {
   /** 全局快捷键分组 */
-  global: HotkeyGroup;
+  global: HotkeyConfig;
   /** 应用内快捷键分组 */
-  application: HotkeyGroup;
+  application: HotkeyConfig;
 }
 
 // 快捷键管理器接口
@@ -66,6 +66,32 @@ export interface IHotkeyManager {
   clearByType(type: HotkeyType): Promise<void>;
   restoreGlobalHotkeysFromCache(): Promise<boolean>;
   destroy(): Promise<void>;
+}
+
+// 快捷键触发事件详情
+export interface HotkeyTriggeredEventDetail {
+  /** 快捷键ID */
+  id: string;
+  /** 快捷键组合 */
+  keys: string;
+  /** 快捷键配置 */
+  config: HotkeyConfig;
+  /** 原始键盘事件（仅应用内快捷键有） */
+  originalEvent?: KeyboardEvent;
+}
+
+// 快捷键事件类型
+export type HotkeyEventType = 'hotkey-triggered' | 'app-hotkey-triggered';
+
+// 快捷键事件监听器接口
+export interface HotkeyEventListener {
+  (event: CustomEvent<HotkeyTriggeredEventDetail>): void;
+}
+
+// 快捷键事件管理器接口
+export interface HotkeyEventManager {
+  addListener(eventType: HotkeyEventType, listener: HotkeyEventListener): void;
+  removeListener(eventType: HotkeyEventType, listener: HotkeyEventListener): void;
 }
 
 // Electron快捷键管理器接口
