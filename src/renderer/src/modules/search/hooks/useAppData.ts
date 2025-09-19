@@ -2,7 +2,8 @@ import { ref } from 'vue'
 import type { AppItem } from '@shared/types'
 import type { SearchCategory } from '@/typings/search-types'
 import { categoryConfig } from '../config/search.config'
-import { pluginManager } from '@/modules/plugins/hooks/usePluginManager'
+import { pluginManager } from "@/core/plugin/PluginManager"
+
 import type { PluginItem } from '@/typings/plugin-types'
 
 export function useAppData() {
@@ -54,7 +55,7 @@ export function useAppData() {
     console.log('🔌 开始加载插件数据...')
 
     try {
-      const plugins = await pluginManager.loadInstalledPlugins()
+      const plugins = Array.from(pluginManager.allAvailablePlugins.values())
       console.log('📦 加载到的插件:', plugins.map(p => ({ id: p.id, name: p.name, itemsCount: p.items.length })))
 
       const pluginCategories: SearchCategory[] = []
@@ -169,7 +170,8 @@ export function useAppData() {
 
   // 获取默认显示的分类（最近和已固定）
   const getDefaultCategories = (allCategories: SearchCategory[]): SearchCategory[] => {
-    const pluginIds = pluginManager.getEnabledPlugins().map(plugin => plugin.id)
+    const enabledPlugins = Array.from(pluginManager.installedPlugins.values()).filter(plugin => plugin.enabled)
+    const pluginIds = enabledPlugins.map(plugin => plugin.id)
     const categories = allCategories.filter(category =>
       category.id === 'recent' || category.id === 'pinned'
     ).map(category => {

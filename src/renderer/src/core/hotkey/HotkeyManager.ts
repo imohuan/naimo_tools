@@ -1,4 +1,4 @@
-import { HotkeyType, type HotkeyConfig, type HotkeyEventType, type HotkeyEventListener } from '@/typings/hotkey-types'
+import { HotkeyType, type HotkeyConfig, type HotkeyEventType, type HotkeyEventListener, type HotkeySettingsConfig } from '@/typings/hotkey-types'
 import type { CoreAPI } from '@/typings/core-types'
 import { electronHotkeyBridge } from './ElectronHotkeyBridge'
 import { appHotkeyBridge } from './AppHotkeyBridge'
@@ -22,6 +22,11 @@ export class HotkeyManager extends BaseSingleton implements CoreAPI {
   /** 标记快捷键管理器是否已初始化 */
   private isInitialized = false
 
+  private defaultConfig: HotkeySettingsConfig = {
+    global: [],
+    application: []
+  }
+
   /** 存储桥接器实例 */
   private storeBridge = ElectronStoreBridge.getInstance()
 
@@ -30,13 +35,15 @@ export class HotkeyManager extends BaseSingleton implements CoreAPI {
   }
 
   /** 初始化快捷键管理器 */
-  async initialize(): Promise<void> {
+  async initialize(defaultConfig: HotkeySettingsConfig): Promise<void> {
     if (this.isInitialized) return
 
     // 设置默认作用域
     this.scopes.add('all')
     this.scopes.add('global')
     this.scopes.add('application')
+
+    this.defaultConfig = defaultConfig
 
     // 从存储中恢复快捷键配置
     await this.restoreFromStorage()
@@ -61,8 +68,9 @@ export class HotkeyManager extends BaseSingleton implements CoreAPI {
     this.currentScope = 'all'
   }
 
+
   /** 注册快捷键 */
-  async register(config: HotkeyConfig): Promise<boolean> {
+  async register(config: HotkeyConfig, autoSave: boolean = true): Promise<boolean> {
     try {
       const { id, keys, type } = config
 
@@ -80,7 +88,7 @@ export class HotkeyManager extends BaseSingleton implements CoreAPI {
           this.hotkeys.set(id, config)
           console.log(`⌨️ 注册全局快捷键: ${id} -> ${keys}`)
           // 保存到存储
-          await this.saveToStorage()
+          if (autoSave) await this.saveToStorage()
           return true
         }
         return false
@@ -91,7 +99,7 @@ export class HotkeyManager extends BaseSingleton implements CoreAPI {
           this.hotkeys.set(id, config)
           console.log(`⌨️ 注册应用内快捷键: ${id} -> ${keys}`)
           // 保存到存储
-          await this.saveToStorage()
+          if (autoSave) await this.saveToStorage()
           return true
         }
         return false
@@ -103,7 +111,7 @@ export class HotkeyManager extends BaseSingleton implements CoreAPI {
   }
 
   /** 注销快捷键 */
-  async unregister(id: string): Promise<boolean> {
+  async unregister(id: string, autoSave: boolean = true): Promise<boolean> {
     try {
       const config = this.hotkeys.get(id)
       if (!config) {
@@ -122,47 +130,10 @@ export class HotkeyManager extends BaseSingleton implements CoreAPI {
       this.hotkeys.delete(id)
       console.log(`⌨️ 注销快捷键: ${id}`)
       // 保存到存储
-      await this.saveToStorage()
+      if (autoSave) await this.saveToStorage()
       return true
     } catch (error) {
       console.error(`⌨️ 注销快捷键失败: ${id}`, error)
-      return false
-    }
-  }
-
-  /** 切换快捷键状态 */
-  async toggle(id: string, enabled?: boolean): Promise<boolean> {
-    try {
-      const config = this.hotkeys.get(id)
-      if (!config) {
-        console.warn(`快捷键 ${id} 不存在`)
-        return false
-      }
-
-      const newEnabled = enabled !== undefined ? enabled : !config.enabled
-
-      if (newEnabled === config.enabled) {
-        return true // 状态未改变
-      }
-
-      // 更新配置
-      const updatedConfig = { ...config, enabled: newEnabled }
-      this.hotkeys.set(id, updatedConfig)
-
-      if (newEnabled) {
-        // 重新注册
-        await this.register(updatedConfig)
-      } else {
-        // 注销
-        await this.unregister(id)
-      }
-
-      console.log(`⌨️ 切换快捷键状态: ${id} -> ${newEnabled ? '启用' : '禁用'}`)
-      // 保存到存储
-      await this.saveToStorage()
-      return true
-    } catch (error) {
-      console.error(`⌨️ 切换快捷键状态失败: ${id}`, error)
       return false
     }
   }
@@ -273,6 +244,53 @@ export class HotkeyManager extends BaseSingleton implements CoreAPI {
     return this.hotkeys.get(id)
   }
 
+  /** 切换快捷键启用状态 */
+  async toggle(id: string, enabled?: boolean): Promise<boolean> {
+    try {
+      const config = this.hotkeys.get(id)
+      if (!config) {
+        console.warn(`快捷键 ${id} 不存在`)
+        return false
+      }
+
+      // 如果没有指定enabled参数，则切换当前状态
+      const newEnabled = enabled !== undefined ? enabled : !config.enabled
+
+      if (newEnabled === config.enabled) {
+        console.log(`快捷键 ${id} 状态未改变`)
+        return true
+      }
+
+      // 更新配置
+      const updatedConfig = { ...config, enabled: newEnabled }
+
+      if (newEnabled) {
+        // 启用：注册快捷键
+        const success = await this.register(updatedConfig)
+        if (success) {
+          console.log(`⌨️ 启用快捷键: ${id}`)
+          return true
+        }
+        return false
+      } else {
+        // 禁用：注销快捷键
+        const success = await this.unregister(id)
+        if (success) {
+          // 更新内部配置为禁用状态
+          this.hotkeys.set(id, updatedConfig)
+          // 保存到存储
+          await this.saveToStorage()
+          console.log(`⌨️ 禁用快捷键: ${id}`)
+          return true
+        }
+        return false
+      }
+    } catch (error) {
+      console.error(`⌨️ 切换快捷键状态失败: ${id}`, error)
+      return false
+    }
+  }
+
   /** 获取快捷键统计信息 */
   getStats(): {
     total: number
@@ -296,31 +314,56 @@ export class HotkeyManager extends BaseSingleton implements CoreAPI {
     }
   }
 
+  private async mergeConfig(defaultConfig: HotkeyConfig[], config: HotkeyConfig[]): Promise<HotkeyConfig[]> {
+    const mergedConfig = [...defaultConfig]
+    mergedConfig.forEach(defaultItem => {
+      for (const item of config) {
+        if (item.id === defaultItem.id) {
+          defaultItem.enabled = item.enabled
+          defaultItem.keys = item.keys
+          break
+        }
+      }
+    })
+    return mergedConfig
+  }
+
+  async getHotkeyConfig(): Promise<HotkeySettingsConfig> {
+    let { global = [], application = [] } = this.defaultConfig
+
+    const hotkeysConfig = await this.storeBridge.get('hotkeys') as HotkeySettingsConfig
+    if (hotkeysConfig) {
+      global = await this.mergeConfig(global, hotkeysConfig.global)
+      application = await this.mergeConfig(application, hotkeysConfig.application)
+      console.log('⌨️ 找到存储的快捷键配置')
+    }
+
+    return { global, application }
+  }
+
   /** 从存储中恢复快捷键配置 */
   private async restoreFromStorage(): Promise<void> {
     try {
-      const hotkeysConfig = await this.storeBridge.get('hotkeys')
-      if (!hotkeysConfig) {
-        console.log('⌨️ 没有找到存储的快捷键配置')
-        return
-      }
-
-      const { global = [], application = [] } = hotkeysConfig as any
-
+      const { global = [], application = [] } = await this.getHotkeyConfig()
       // 恢复全局快捷键
       for (const config of global) {
         if (config.enabled) {
-          await this.register(config)
+          await this.register(config, false)
+        } else {
+          this.hotkeys.set(config.id, config)
         }
       }
 
       // 恢复应用内快捷键
       for (const config of application) {
         if (config.enabled) {
-          await this.register(config)
+          await this.register(config, false)
+        } else {
+          this.hotkeys.set(config.id, config)
         }
       }
 
+      await this.saveToStorage()
       console.log(`⌨️ 从存储恢复快捷键: 全局${global.length}个, 应用内${application.length}个`)
     } catch (error) {
       console.error('⌨️ 从存储恢复快捷键失败:', error)
@@ -339,7 +382,6 @@ export class HotkeyManager extends BaseSingleton implements CoreAPI {
       console.error('⌨️ 保存快捷键配置失败:', error)
     }
   }
-
 
   addListener(eventType: HotkeyEventType, listener: HotkeyEventListener): void {
     window.addEventListener(eventType, listener as EventListener)

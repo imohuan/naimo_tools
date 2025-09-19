@@ -1,6 +1,6 @@
 import type { AppItem } from "@shared/types";
 import type { SearchCategory } from "@/typings/search-types";
-import { pluginManager } from "@/modules/plugins/hooks/usePluginManager";
+import { pluginManager } from "@/core/plugin/PluginManager";
 import type { PluginItem } from "@/typings/plugin-types";
 import { eventSystem } from "@/utils/event-system";
 
@@ -40,7 +40,8 @@ export function useAppActions(
         // 判断是否包含 executeParams， 如果不包含则查询对应的插件配置
         // 补全配置信息，因为executeParams可能不支持序列化
         if (!app.executeParams) {
-          pluginManager.getEnabledPlugins().forEach(plugin => {
+          const enabledPlugins = Array.from(pluginManager.installedPlugins.values()).filter(plugin => plugin.enabled)
+          enabledPlugins.forEach(plugin => {
             if (plugin.id === app.pluginId) {
               plugin.items.forEach(item => {
                 if (item.name === app.name && item.path === app.path) {
@@ -52,7 +53,7 @@ export function useAppActions(
         }
 
         // 使用插件管理器执行插件项目
-        await pluginManager.executePluginItem({ ...pluginItem, executeParams });
+        // await pluginManager.executePluginItem({ ...pluginItem, executeParams });
 
         // 发送全局事件通知插件执行完成
         eventSystem.emit('plugin:executed', { pluginItem: { ...pluginItem, executeParams } });

@@ -1,17 +1,18 @@
 <template>
   <div class="h-full flex flex-col bg-gray-50">
     <!-- 错误提示 -->
-    <div v-if="error" class="mx-4 mt-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3">
+    <div v-if="pluginStore.error"
+      class="mx-4 mt-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3">
       <span class="text-red-500 text-lg">❌</span>
-      <span class="text-red-700 flex-1">{{ error }}</span>
-      <button @click="clearError"
+      <span class="text-red-700 flex-1">{{ pluginStore.error }}</span>
+      <button @click="pluginStore.clearError"
         class="px-3 py-1 bg-red-500 text-white text-sm rounded hover:bg-red-600 transition-colors">
         清除
       </button>
     </div>
 
     <!-- 加载状态 -->
-    <div v-if="loading" class="flex-1 flex items-center justify-center">
+    <div v-if="pluginStore.loading" class="flex-1 flex items-center justify-center">
       <div class="flex items-center gap-3 text-gray-600">
         <div class="animate-spin text-2xl">⏳</div>
         <span>加载插件中...</span>
@@ -21,8 +22,9 @@
     <!-- 主要内容 -->
     <div v-else class="flex-1 flex flex-col">
       <!-- 详情页面 -->
-      <PluginDetail v-if="selectedPlugin" :plugin="selectedPlugin" :is-installed="isPluginInstalled(selectedPlugin.id)"
-        @close="closePluginDetail" @install="installPlugin" @uninstall="uninstallPlugin" />
+      <PluginDetail v-if="selectedPlugin" :plugin="selectedPlugin as PluginConfig"
+        :is-installed="pluginStore.isPluginInstalled(selectedPlugin.id)" @close="closePluginDetail"
+        @install="installPlugin" @uninstall="uninstallPlugin" />
 
       <!-- 插件列表页面 -->
       <template v-else>
@@ -86,9 +88,9 @@
           </div>
 
           <div v-else class="grid grid-cols-2 gap-2">
-            <PluginCard v-for="plugin in paginatedPlugins" :key="plugin.id" :plugin="plugin"
-              :is-installed="isPluginInstalled(plugin.id)" @click="showPluginDetail" @install="installPlugin"
-              @uninstall="uninstallPlugin" />
+            <PluginCard v-for="plugin in paginatedPlugins" :key="plugin.id" :plugin="plugin as PluginConfig"
+              :is-installed="pluginStore.isPluginInstalled(plugin.id)" @click="showPluginDetail"
+              @install="installPlugin" @uninstall="uninstallPlugin" />
           </div>
         </div>
       </template>
@@ -97,48 +99,25 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch } from "vue";
-import { usePluginManager } from "../hooks/usePluginManager";
-import { examplePlugins } from "../hooks/usePluginManager";
+import { ref, computed, onMounted, watch } from "vue";
+import { usePluginStore } from "@/store/modules/plugin";
 import type { PluginConfig } from "@/typings/plugin-types";
 import { PluginCategoryType, PLUGIN_CATEGORY_CONFIG } from "@/typings/plugin-types";
 import PluginCard from "./PluginCard.vue";
 import PluginDetail from "./PluginDetail.vue";
 
-const {
-  plugins,
-  allAvailablePlugins,
-  loading,
-  error,
-  loadInstalledPlugins,
-  initializePlugins,
-  installPlugin: installPluginManager,
-  uninstallPlugin,
-  isPluginInstalled,
-  clearError,
-  getAllAvailablePlugins,
-} = usePluginManager();
+const pluginStore = usePluginStore();
 
 const searchQuery = ref("");
 const categoryFilter = ref("all");
 const currentPage = ref(1);
-const itemsPerPage = 6; // 每页显示6个项目（3行2列）
-
-// 详情页面状态
+const itemsPerPage = 6;
 const selectedPlugin = ref<PluginConfig | null>(null);
-
-// 计算所有插件（包括示例插件和可用插件）
-const allPlugins = computed(() => {
-  // return [...examplePlugins, ...allAvailablePlugins.value];
-  return [...allAvailablePlugins.value];
-});
 
 // 计算过滤后的插件列表
 const filteredPlugins = computed(() => {
-  // 获取已安装插件的ID集合
-  const installedPluginIds = new Set(plugins.value.map((p) => p.id));
-  // 直接使用examplePlugins作为基础列表，保持固定顺序
-  let result = allPlugins.value;
+  const installedPluginIds = new Set(pluginStore.installedPlugins.map((p) => p.id));
+  let result = [...pluginStore.pluginList];
 
   // 搜索过滤
   if (searchQuery.value.trim()) {
@@ -156,7 +135,6 @@ const filteredPlugins = computed(() => {
     result = result.filter((plugin) => {
       const isInstalled = installedPluginIds.has(plugin.id);
 
-      // 按安装状态过滤
       if (categoryFilter.value === "installed") {
         return isInstalled;
       } else if (categoryFilter.value === "available") {
@@ -164,7 +142,7 @@ const filteredPlugins = computed(() => {
       }
 
       // 按插件类型过滤
-      const category = getPluginCategory(plugin);
+      const category = plugin.category || getPluginCategory(plugin as PluginConfig);
       return category === categoryFilter.value;
     });
   }
@@ -172,25 +150,15 @@ const filteredPlugins = computed(() => {
   return result;
 });
 
-// 计算总页数
-const totalPages = computed(() => {
-  return Math.ceil(filteredPlugins.value.length / itemsPerPage);
-});
-
-// 计算分页后的插件列表
+// 计算总页数和分页后的插件列表
+const totalPages = computed(() => Math.ceil(filteredPlugins.value.length / itemsPerPage));
 const paginatedPlugins = computed(() => {
   const start = (currentPage.value - 1) * itemsPerPage;
-  const end = start + itemsPerPage;
-  return filteredPlugins.value.slice(start, end);
+  return filteredPlugins.value.slice(start, start + itemsPerPage);
 });
 
 // 分页方法
-const previousPage = () => {
-  if (currentPage.value > 1) {
-    currentPage.value--;
-  }
-};
-
+const previousPage = () => currentPage.value > 1 && currentPage.value--;
 const nextPage = () => {
   if (currentPage.value < totalPages.value) {
     currentPage.value++;
@@ -199,10 +167,8 @@ const nextPage = () => {
 
 // 获取插件分类
 const getPluginCategory = (plugin: PluginConfig): string => {
-  // 优先使用插件配置的分类字段
   if (plugin.category) return plugin.category;
 
-  // 如果没有分类字段，则根据插件ID和名称进行推断
   if (plugin.id.includes("system") || plugin.name.includes("系统")) {
     return PluginCategoryType.SYSTEM_TOOLS;
   } else if (
@@ -216,50 +182,52 @@ const getPluginCategory = (plugin: PluginConfig): string => {
   }
 };
 
-// 显示插件详情
+// 插件详情相关
 const showPluginDetail = (plugin: PluginConfig) => {
   selectedPlugin.value = plugin;
 };
-
-// 关闭插件详情
 const closePluginDetail = () => {
   selectedPlugin.value = null;
 };
 
-
-// 安装示例插件
-const installPlugin = async (pluginConfig: PluginConfig): Promise<void> => {
+// 安装插件
+const installPlugin = async (pluginConfig: PluginConfig) => {
   try {
-    const success = await installPluginManager(pluginConfig);
+    const success = await pluginStore.install(pluginConfig);
     if (success) {
-      console.log(`✅ 示例插件安装成功: ${pluginConfig.id}`);
+      console.log(`✅ 插件安装成功: ${pluginConfig.id}`);
     }
   } catch (err) {
-    console.error(`❌ 安装示例插件失败: ${pluginConfig.id}`, err);
+    console.error(`❌ 安装插件失败: ${pluginConfig.id}`, err);
   }
 };
 
-// 键盘事件处理函数
+// 卸载插件
+const uninstallPlugin = async (pluginId: string) => {
+  try {
+    const success = await pluginStore.uninstall(pluginId);
+    if (success) {
+      console.log(`✅ 插件卸载成功: ${pluginId}`);
+    }
+  } catch (err) {
+    console.error(`❌ 卸载插件失败: ${pluginId}`, err);
+  }
+};
+
+// 键盘事件处理
 const handleKeydown = (event: KeyboardEvent) => {
-  // 如果详情页面打开，ESC键关闭详情页面
   if (event.key === "Escape" && selectedPlugin.value) {
     event.preventDefault();
     closePluginDetail();
     return;
   }
 
-  // 如果详情页面打开，不处理分页快捷键
-  if (selectedPlugin.value) {
-    return;
-  }
+  if (selectedPlugin.value) return;
 
-  // 检查是否按下了小键盘的左右键
   if (event.key === "ArrowLeft" || event.key === "Numpad4") {
-    // 小键盘4或左箭头键 - 上一页
     event.preventDefault();
     previousPage();
   } else if (event.key === "ArrowRight" || event.key === "Numpad6") {
-    // 小键盘6或右箭头键 - 下一页
     event.preventDefault();
     nextPage();
   }
@@ -270,13 +238,5 @@ watch([searchQuery, categoryFilter], () => {
   currentPage.value = 1;
 });
 
-useEventListener(document, "keydown", handleKeydown)
-
-// 组件挂载时初始化插件系统
-onMounted(async () => {
-  // 初始化插件系统（加载所有可用插件并安装已安装的插件）
-  await initializePlugins()
-  // 获取所有可用插件列表（用于显示未安装的插件）
-  await getAllAvailablePlugins()
-});
+useEventListener(document, "keydown", handleKeydown);
 </script>

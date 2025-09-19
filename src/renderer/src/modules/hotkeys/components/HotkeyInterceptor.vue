@@ -19,7 +19,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from "vue";
-import { useHotkeyManager } from "../hooks/useHotkeyManager";
+import { useHotkeyListener } from "../hooks/useHotkeyListener";
 import { HotkeyType } from "@/typings/hotkey-types";
 
 // 组件属性
@@ -35,9 +35,9 @@ withDefaults(defineProps<Props>(), {
   autoSave: false,
 });
 
-// 使用快捷键管理器
+// 使用快捷键监听器
 const currentKeys = ref<string[]>([]);
-const { isListening, currentKeys: currentInputKeys, getListening } = useHotkeyManager();
+const { isListening, currentKeys: currentInputKeys, getListening } = useHotkeyListener();
 const keys = computed(() =>
   currentInputKeys.value.length === 0 ? currentKeys.value : currentInputKeys.value
 );

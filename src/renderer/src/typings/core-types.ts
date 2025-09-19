@@ -99,7 +99,7 @@ export interface PluginView {
 /** 核心API基础接口 */
 export interface CoreAPI {
   /** 初始化 */
-  initialize: () => Promise<void>
+  initialize: (...args: any[]) => Promise<any>
   /** 销毁 */
   destroy: () => Promise<void>
   /** 重置 */

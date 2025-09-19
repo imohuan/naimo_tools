@@ -28,44 +28,14 @@ export interface HotkeyConfig {
   stopPropagation?: boolean;
   /** 快捷键作用域 */
   scope?: string;
-  /** 快捷键触发回调函数键名 */
-  callback: string;
-}
-
-// 快捷键分组配置
-export interface HotkeyGroup {
-  /** 分组ID */
-  id: string;
-  /** 分组名称 */
-  name: string;
-  /** 分组描述 */
-  description: string;
-  /** 是否启用整个分组 */
-  enabled: boolean;
-  /** 快捷键列表 */
-  hotkeys: HotkeyConfig[];
 }
 
 // 快捷键设置配置
 export interface HotkeySettingsConfig {
   /** 全局快捷键分组 */
-  global: HotkeyConfig;
+  global: HotkeyConfig[];
   /** 应用内快捷键分组 */
-  application: HotkeyConfig;
-}
-
-// 快捷键管理器接口
-export interface IHotkeyManager {
-  register(config: HotkeyConfig): Promise<boolean>;
-  unregister(id: string): Promise<boolean>;
-  toggle(id: string, enabled?: boolean): Promise<boolean>;
-  setScope(scope: string): void;
-  getAll(): HotkeyConfig[];
-  getByType(type: HotkeyType): HotkeyConfig[];
-  clear(): Promise<void>;
-  clearByType(type: HotkeyType): Promise<void>;
-  restoreGlobalHotkeysFromCache(): Promise<boolean>;
-  destroy(): Promise<void>;
+  application: HotkeyConfig[];
 }
 
 // 快捷键触发事件详情
@@ -86,27 +56,4 @@ export type HotkeyEventType = 'hotkey-triggered' | 'app-hotkey-triggered';
 // 快捷键事件监听器接口
 export interface HotkeyEventListener {
   (event: CustomEvent<HotkeyTriggeredEventDetail>): void;
-}
-
-// 快捷键事件管理器接口
-export interface HotkeyEventManager {
-  addListener(eventType: HotkeyEventType, listener: HotkeyEventListener): void;
-  removeListener(eventType: HotkeyEventType, listener: HotkeyEventListener): void;
-}
-
-// Electron快捷键管理器接口
-export interface IElectronHotkeys {
-  isElectronAvailable: any; // 使用any避免ref类型问题
-  globalHotkeys: any; // 使用any避免ref类型问题
-  registerGlobalHotkey(
-    keys: string,
-    callbackFn: () => void,
-    options?: Partial<HotkeyConfig>
-  ): Promise<boolean>;
-  unregisterGlobalHotkey(id: string): Promise<boolean>;
-  getAllGlobalHotkeys(): HotkeyConfig[];
-  clearAllGlobalHotkeys(): Promise<boolean>;
-  isGlobalHotkeyRegistered(keys: string): Promise<boolean>;
-  normalizeElectronKeys(keys: string): string;
-  checkElectronAvailability(): boolean;
 }

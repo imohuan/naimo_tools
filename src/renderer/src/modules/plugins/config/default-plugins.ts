@@ -188,13 +188,13 @@ export const defaultPlugins: PluginConfig[] = [
 /**
  * 获取默认插件列表
  */
-export function getDefaultPlugins(): PluginConfig[] {
+export function getDeafultPlugins(): PluginConfig[] {
   return defaultPlugins;
 }
 
 /**
  * 根据ID获取默认插件
  */
-export function getDefaultPluginById(pluginId: string): PluginConfig | null {
+export function getDeafultPluginById(pluginId: string): PluginConfig | null {
   return defaultPlugins.find(plugin => plugin.id === pluginId) || null;
 }

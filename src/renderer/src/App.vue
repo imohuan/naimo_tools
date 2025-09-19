@@ -41,9 +41,10 @@ import { useEventSystem } from "@/composables/useEventSystem";
 
 // 模块导入
 import { useHotkeyManager } from "@/modules/hotkeys/hooks/useHotkeyManager";
-import { HotkeyType, type HotkeyEventListener } from "@/typings/hotkey-types";
+import type { HotkeyEventListener } from "@/typings/hotkey-types";
 import { useKeyboardNavigation } from "@/modules/search";
 import { useSearch } from "@/modules/search";
+import { usePluginStore } from "@/store";
 
 // 类型导入
 import type { AppItem } from "@shared/types";
@@ -73,6 +74,10 @@ const loadUIConstants = async () => {
 const headerHeight = computed(() => uiConstants.value.headerHeight);
 const maxHeight = computed(() => uiConstants.value.maxHeight);
 const padding = computed(() => uiConstants.value.padding);
+
+// ==================== 插件状态管理 ====================
+const pluginStore = usePluginStore();
+
 
 // ==================== 界面状态管理 ====================
 /**
@@ -167,13 +172,7 @@ const {
 /**
  * 快捷键管理器 - 管理全局快捷键的注册和初始化
  */
-const {
-  initialize,
-  registerHotkey,
-  addListener,
-  removeListener,
-} = useHotkeyManager();
-
+const { hotkeyManager, initializeHotkeys, useHotkeyListener, addHotKeyListener } = useHotkeyManager();
 // ==================== 事件系统 ====================
 /**
  * 事件系统 - 管理应用内部事件通信
@@ -608,44 +607,34 @@ onMounted(async () => {
   await loadUIConstants();
 
   // 2. 初始化快捷键（优先执行，确保全局快捷键可用）
-  try {
-    await initialize();
-    console.log("✅ 快捷键管理器初始化成功");
-    // // 注册默认的全局快捷键
-    // await registerHotkey('ctrl+space', 'toggleApp', HotkeyType.GLOBAL, {
-    //   id: 'toggle-app',
-    //   name: '显示/隐藏应用',
-    //   description: '快速显示或隐藏 Naimo 应用',
-    //   enabled: true
-    // });
-    console.log("✅ 默认全局快捷键注册成功");
-  } catch (error) {
-    console.error("❌ 快捷键初始化失败:", error);
-  }
+  await initializeHotkeys();
 
-  // 3. 初始化应用数据
+  // 3. 初始化插件
+  await pluginStore.initialize();
+
+  // 4. 初始化应用数据
   await initAppApps();
 
-  // 4. 初始化窗口大小
+  // 5. 初始化窗口大小
   initializeWindowSize();
 
-  // 5. 初始化界面状态
+  // 6. 初始化界面状态
   handleResetToDefault();
 
-  // 6. 注册窗口事件监听器
+  // 7. 注册窗口事件监听器
   useEventListener(window, "focus", handleWindowFocus);
   useEventListener(window, "blur", handleWindowBlur);
   useEventListener(document, "visibilitychange", handleVisibilityChange);
 
   const handleHotkeyTriggered: HotkeyEventListener = (event) => {
     switch (event.detail.id) {
-      case 'focus-requested':
+      case 'app_focus_search':
         handleFocusSearchRequested();
         break;
-      case 'close-requested':
+      case 'app_close_window':
         handleCloseWindowRequested();
         break;
-      case 'show-hide-requested':
+      case 'global_show_window':
         handleShowHideWindowRequested();
         break;
       default:
@@ -654,16 +643,9 @@ onMounted(async () => {
     }
     console.log('🔍 收到全局快捷键触发事件:', event.detail);
   };
+  addHotKeyListener('hotkey-triggered', handleHotkeyTriggered);
+  addHotKeyListener('app-hotkey-triggered', handleHotkeyTriggered);
 
-  addListener('hotkey-triggered', handleHotkeyTriggered);
-  addListener('app-hotkey-triggered', handleHotkeyTriggered);
-
-  // 全局快捷键：聚焦搜索框
-  on('search:focus-requested', handleFocusSearchRequested);
-  // 全局快捷键：关闭窗口请求
-  on('window:close-requested', handleCloseWindowRequested);
-  // 全局快捷键：显示/隐藏窗口请求
-  on('window:show-hide-requested', handleShowHideWindowRequested);
   // 插件执行完成 - 进入插件界面
   on('plugin:executed', handlePluginExecuted);
 
