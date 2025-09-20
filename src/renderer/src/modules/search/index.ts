@@ -1,63 +1,116 @@
 import { ref, computed } from 'vue'
-import { useSearchCore } from './hooks/useSearchCore'
-import { useAppData } from './hooks/useAppData'
+import { searchEngine } from '@/core/search/SearchEngine'
 import { useAppActions } from './hooks/useAppActions'
+import type { SearchCategory, SearchState } from '@/typings/search-types'
 
 export function useSearch() {
   const selectedIndex = ref(0)
 
-  // 应用数据管理 (提供初始数据和搜索分类配置)
-  const {
-    originalCategories,
-    serializeAppItems,
-    initAppApps,
-    getDefaultCategories,
-    getSearchCategories,
-  } = useAppData()
+  // 搜索状态管理
+  const searchState = ref<SearchState>({
+    searchText: '',
+    searchCategories: [],
+    isSearching: false,
+  })
 
-  // 核心搜索功能
-  const {
-    searchState,
-    flatItems,
-    performSearch: performSearchCore,
-    handleSearch: handleSearchCore,
-    updateCategoryInBoth,
-  } = useSearchCore(originalCategories)
+  // 扁平化的所有项目列表，包含分类信息
+  const flatItems = computed(() => {
+    return searchEngine.flatItems(searchState.value.searchCategories)
+  })
 
-  // 执行搜索（包装核心搜索功能）
+  // 执行搜索 - 使用SearchEngine
   const performSearch = async (attachedFiles?: any[]) => {
-    await performSearchCore(getDefaultCategories, getSearchCategories, attachedFiles)
+    try {
+      searchState.value.isSearching = true
+      const searchQuery = searchState.value.searchText.trim()
+
+      console.log('🔍 执行搜索:', {
+        searchQuery,
+        attachedFilesCount: attachedFiles?.length || 0
+      })
+
+      // 使用SearchEngine执行搜索
+      const filteredCategories = await searchEngine.performSearch(searchQuery, attachedFiles)
+      searchState.value.searchCategories = filteredCategories
+
+      console.log('✅ 搜索结果:', filteredCategories.map(cat => ({
+        id: cat.id,
+        name: cat.name,
+        itemsCount: cat.items.length
+      })))
+    } catch (error) {
+      console.error('❌ 搜索失败:', error)
+      searchState.value.searchCategories = []
+    } finally {
+      searchState.value.isSearching = false
+    }
   }
 
-  // 处理搜索（包装核心搜索功能）
+  // 处理搜索
   const handleSearch = async (value: string, attachedFiles?: any[]) => {
-    await handleSearchCore(value, getDefaultCategories, getSearchCategories, attachedFiles)
+    console.log('🔍 handleSearch 被调用:', {
+      value,
+      currentSearchText: searchState.value.searchText,
+      attachedFilesCount: attachedFiles?.length || 0
+    })
+    searchState.value.searchText = value
+    await performSearch(attachedFiles)
+  }
+
+  /**
+   * 更新分类 - 由于SearchEngine管理所有分类，这里主要更新搜索状态
+   * @param categoryId 分类id
+   * @param updater 自定义的更新函数，传入对应分类对象
+   */
+  const updateCategoryInBoth = (
+    categoryId: string,
+    updater: (category: SearchCategory) => void
+  ) => {
+    // 更新搜索状态中的分类
+    const searchCategory = searchState.value.searchCategories.find((cat) => cat.id === categoryId)
+    if (searchCategory) {
+      updater(searchCategory)
+    }
+
+    // 注意：SearchEngine管理的原始分类数据会在下次搜索时重新获取
+    // 如果需要持久化更改，应该通过SearchEngine的API进行
+    console.log('⚠️ 分类更新仅影响当前搜索状态，SearchEngine管理的原始数据未更新')
+  }
+
+  /**
+   * 处理分类展开/收起
+   * @param categoryId 分类id
+   */
+  const handleCategoryToggle = (categoryId: string) => {
+    const category = searchState.value.searchCategories.find((cat) => cat.id === categoryId)
+    if (category) {
+      category.isExpanded = !category.isExpanded
+      console.log(`📂 分类 ${category.name} 展开状态切换为:`, category.isExpanded)
+    } else {
+      console.warn('⚠️ 未找到分类:', categoryId)
+    }
   }
 
   // 应用操作
   const {
     executeItem,
-    handleCategoryToggle,
     handleCategoryDragEnd,
     handleAppDelete,
     handleAppPin,
   } = useAppActions(
-    originalCategories,
-    updateCategoryInBoth,
-    serializeAppItems,
     performSearch
   )
 
   // 初始化应用数据并设置默认显示
   const initAppAppsWithDefault = async () => {
-    const categories = await initAppApps()
-    originalCategories.value = categories
+    await searchEngine.initialize()
 
     // 设置默认显示的分类（最近和固定）
-    const defaultCategories = getDefaultCategories(categories)
+    const defaultCategories = searchEngine.getDefaultCategories()
     searchState.value.searchCategories = defaultCategories
-    return categories
+    return defaultCategories
   }
+
 
   return {
     // 状态
@@ -67,7 +120,6 @@ export function useSearch() {
       set: (value: string) => { searchState.value.searchText = value }
     }),
     searchCategories: computed(() => searchState.value.searchCategories),
-    originalCategories,
     flatItems,
     isSearching: computed(() => searchState.value.isSearching),
 

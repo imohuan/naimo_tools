@@ -49,6 +49,7 @@ import { usePluginStore } from "@/store";
 // 类型导入
 import type { AppItem } from "@shared/types";
 import type { PluginItem } from "./typings/plugin-types";
+import { pluginManager } from "./core/plugin/PluginManager";
 
 // ==================== UI 配置管理 ====================
 /**
@@ -83,7 +84,7 @@ const pluginStore = usePluginStore();
 /**
  * 窗口管理器 - 负责窗口大小设置和跟随窗口管理
  */
-const { setSize, manageFollowingWindows, openCurrentItemFollowingWindow, show: handleWindowShow, hide } = useWindowManager();
+const { setSize, manageFollowingWindows, openCurrentItemFollowingWindow, isWindowVisible, show: handleWindowShow, hide } = useWindowManager();
 const show = (pluginItem: PluginItem | null) => {
   handleWindowShow(pluginItem)
   contentAreaRef.value?.handleResize()
@@ -521,8 +522,14 @@ watch(
  * 当插件执行完成时，检查是否需要打开插件窗口
  * @param event 插件执行事件，包含插件项目信息
  */
-const handlePluginExecuted = (event: { pluginItem: any }) => {
+const handlePluginExecuted = async (event: { pluginItem: any }) => {
   const { pluginItem } = event;
+
+  if (pluginItem.pluginId) {
+    const pluginApi = await pluginManager.getPluginApi(pluginItem.pluginId as string)
+    pluginItem.onEnter?.(pluginApi)
+  }
+
   console.log('🔍 收到插件执行完成事件，插件项目信息:', {
     name: pluginItem.name,
     enableSearch: pluginItem.executeParams?.enableSearch,
@@ -586,8 +593,8 @@ const handleShowHideWindowRequested = async () => {
     currentPluginItem: currentPluginItem.value?.name,
     pluginId: currentPluginItem.value?.pluginId
   });
-  // 检查主窗口当前是否可见
-  const isMainWindowVisible = document.visibilityState === 'visible' && document.hasFocus();
+  // 使用 IPC 方法检查主窗口当前是否可见
+  const isMainWindowVisible = await isWindowVisible();
   if (isMainWindowVisible) {
     hide(currentPluginItem.value, "hide")
   } else {

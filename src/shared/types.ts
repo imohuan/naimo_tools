@@ -47,7 +47,7 @@ export interface AppConfig {
 export interface AppItem {
   /** 应用名称 */
   name: string;
-  /** 应用路径 */
+  /** 应用路径 英文 */
   path: string;
   /** 应用图标，null 表示无图标 */
   icon: string | null;
@@ -57,6 +57,10 @@ export interface AppItem {
   usageCount?: number;
   /** 应用描述 */
   description?: string;
+  /** 不允许加入最近访问 */
+  notAddToRecent?: boolean
+  /** 是否在分类中显示 */
+  hidden?: boolean
 }
 
 export interface LogLevel {

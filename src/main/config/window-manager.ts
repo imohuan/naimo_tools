@@ -72,6 +72,16 @@ export interface BasicWindowMetadata {
 }
 
 /**
+ * 窗口状态信息
+ */
+interface WindowState {
+  /** 窗口位置 */
+  position: { x: number; y: number };
+  /** 窗口是否可见 */
+  visible: boolean;
+}
+
+/**
  * 优化的窗口管理器
  * 提供统一的窗口管理、类型安全、生命周期管理和查询功能
  */
@@ -79,6 +89,7 @@ export class WindowManager {
   private static instance: WindowManager;
   private windows: Map<number, WindowInfo> = new Map();
   private cleanupInterval: NodeJS.Timeout | null = null;
+  private windowStates: Map<number, WindowState> = new Map();
 
   private constructor() {
     this.startCleanupTimer();
@@ -92,6 +103,33 @@ export class WindowManager {
       WindowManager.instance = new WindowManager();
     }
     return WindowManager.instance;
+  }
+
+
+  show(window: BrowserWindow) {
+    const windowState = this.windowStates.get(window.id) || { position: { x: 0, y: 0 }, visible: false };
+    const { x, y } = windowState.position;
+    window.setPosition(x, y);
+    window.focus();
+    this.windowStates.set(window.id, { position: { x, y }, visible: true });
+  }
+
+  hide(window: BrowserWindow) {
+    const [x, y] = window.getPosition();
+    const newX = x - 2000;
+    const newY = y - 2000;
+    window.setPosition(newX, newY);
+    this.windowStates.set(window.id, { position: { x, y }, visible: false });
+  }
+
+  /**
+   * 检查窗口是否显示
+   * @param window 窗口实例
+   * @returns 窗口是否显示
+   */
+  isWindowVisible(window: BrowserWindow): boolean {
+    const windowState = this.windowStates.get(window.id);
+    return windowState?.visible || false;
   }
 
   /**

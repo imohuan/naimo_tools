@@ -1,5 +1,5 @@
-import type { PluginConfig } from '@/typings/plugin-types'
-import type { PluginHook, CoreAPI } from '@/typings/core-types'
+import type { PluginConfig, PluginHook, PluginItem } from '@/typings/plugin-types'
+import type { CoreAPI } from '@/typings/core-types'
 import { BaseSingleton } from '../BaseSingleton'
 import { ElectronStoreBridge } from '../store/ElectronStoreBridge'
 import type { AppConfig } from '@shared/types'
@@ -98,13 +98,7 @@ export class PluginManager extends BaseSingleton implements CoreAPI {
     if (!pluginData.category) {
       return false;
     }
-    if (!pluginData.enabled) {
-      return false;
-    }
     if (!pluginData.items || pluginData.items.length === 0) {
-      return false;
-    }
-    if (!pluginData.options) {
       return false;
     }
     return true
@@ -130,18 +124,16 @@ export class PluginManager extends BaseSingleton implements CoreAPI {
         return true;
       }
 
+      // 设置插件ID
+      pluginData.items.forEach(item => {
+        item.pluginId = pluginData.id
+        item.path = item.pluginId + ':' + item.path
+      })
+
       // 统一处理所有插件
       const plugin: PluginConfig = {
-        id: pluginData.id,
-        name: pluginData.name,
-        description: pluginData.description,
-        version: pluginData.version,
-        author: pluginData.author,
-        icon: pluginData.icon,
-        category: pluginData.category,
+        ...pluginData,
         enabled: pluginData.enabled !== false,
-        items: pluginData.items || [],
-        options: pluginData.options,
         metadata: {
           createdAt: pluginData.metadata?.createdAt || Date.now(),
           installedAt: pluginData.metadata?.installedAt || Date.now(),
@@ -253,6 +245,45 @@ export class PluginManager extends BaseSingleton implements CoreAPI {
         this.emitHook(event, ...args)
       },
     }
+  }
+
+  isPluginItem(app: PluginItem): boolean {
+    return "pluginId" in app && "executeType" in app;
+  }
+
+  /**
+   * 获取已安装的插件项目
+   * @param pluginId 插件ID
+   * @param itemPath 项目路径
+   * @returns 
+   */
+  getInstalledPluginItem(pluginId: string, itemPath: string): PluginItem | null {
+    const plugin = this.installedPlugins.get(pluginId);
+    if (!plugin || plugin.items.length === 0 || !plugin.enabled) return null
+    return plugin.items.find(item => item.path === itemPath) || null;
+  }
+
+  /**
+   * 获取序列化后的插件项目
+   * @param app 
+   * @returns 
+   */
+  getSerializedPluginItem(app: PluginItem): PluginItem {
+    const serialized: PluginItem = {
+      // 应用相关字段
+      name: app.name,
+      path: app.path,
+      icon: null,
+      ...(app.lastUsed && { lastUsed: app.lastUsed }),
+      ...(app.usageCount && { usageCount: app.usageCount }),
+      ...(app.description && { description: app.description }),
+      ...(app.notAddToRecent && { notAddToRecent: app.notAddToRecent }),
+      ...(app.hidden && { hidden: app.hidden }),
+      // 插件相关字段
+      ...(app.pluginId && { pluginId: app.pluginId }),
+      ...(app.executeType && { executeType: app.executeType }),
+    }
+    return serialized
   }
 
   /** 销毁 */

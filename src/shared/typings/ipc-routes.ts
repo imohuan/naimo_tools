@@ -1,6 +1,6 @@
 /**
  * 自动生成的 IPC 类型定义
- * 生成时间: 2025-09-19T10:28:09.052Z
+ * 生成时间: 2025-09-19T12:37:58.777Z
  * 请勿手动修改此文件
  */
 
@@ -681,6 +681,19 @@ interface windowInterface {
   "windowIsMaximized": () => Promise<boolean>;
 
   /**
+ * 检查窗口是否显示
+ * @param 窗口ID
+ * @returns 窗口是否显示
+ */
+  "window-is-window-visible": (id: number) => Promise<boolean>;
+  /**
+ * 检查窗口是否显示
+ * @param 窗口ID
+ * @returns 窗口是否显示
+ */
+  "windowIsWindowVisible": (id: number) => Promise<boolean>;
+
+  /**
  * 设置窗口大小
  * @param 窗口宽度
  * @param 窗口高度
@@ -1213,6 +1226,12 @@ export const ROUTE_INFO: RouteInfo[] = [
     comment: "检查窗口是否最大化",
     module: "window",
     function: "isMaximized"
+  },
+  {
+    route: "window-is-window-visible",
+    comment: "检查窗口是否显示",
+    module: "window",
+    function: "isWindowVisible"
   },
   {
     route: "window-set-size",

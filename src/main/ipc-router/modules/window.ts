@@ -9,11 +9,10 @@ import log from "electron-log";
 import { fileURLToPath } from "url";
 import { writeFileSync, readFileSync, mkdirSync } from "fs";
 import { tmpdir } from "os";
-import { WindowConfigManager } from "../../config/window.config";
 import { AppConfigManager } from "../../config/app.config";
-import { BasicWindowMetadata, WindowType } from "../../config/window-manager";
+import { BasicWindowMetadata, WindowType, WindowManager } from "../../config/window-manager";
 const configManager = new AppConfigManager();
-
+const windowManager = WindowManager.getInstance();
 
 /**
  * 最小化窗口
@@ -64,22 +63,17 @@ export function toggleShow(id: number, show?: boolean): void {
     return;
   }
 
-  const isVisible = window.isVisible();
+  const isVisible = windowManager.isWindowVisible(window);
   const shouldShow = show !== undefined ? show : !isVisible;
 
   if (shouldShow && !isVisible) {
     // 显示窗口
-    window.showInactive();
-    window.focus();
+    windowManager.show(window);
     log.debug("窗口已显示");
   } else if (!shouldShow && isVisible) {
     // 隐藏窗口
-    window.hide();
+    windowManager.hide(window);
     log.debug("窗口已隐藏");
-  } else {
-    window.center()
-    window.focus()
-    log.debug(`窗口状态无需改变: ${isVisible ? "已显示" : "已隐藏"}`);
   }
 }
 
@@ -90,6 +84,19 @@ export function toggleShow(id: number, show?: boolean): void {
 export function isMaximized(): boolean {
   const window = BrowserWindow.getFocusedWindow();
   return window ? window.isMaximized() : false;
+}
+
+/**
+ * 检查窗口是否显示
+ * @param id 窗口ID
+ * @returns 窗口是否显示
+ */
+export function isWindowVisible(id: number): boolean {
+  const window = BrowserWindow.fromId(id);
+  if (!window) {
+    return false;
+  }
+  return windowManager.isWindowVisible(window);
 }
 
 /**
@@ -175,7 +182,7 @@ export function openLogViewer(): void {
 
   // 窗口准备好后显示
   logWindow.once("ready-to-show", () => {
-    logWindow.showInactive();
+    windowManager.show(logWindow);
     log.info("日志查看器窗口已打开");
   });
 
@@ -359,12 +366,11 @@ export function calculateFollowingWindowBounds(
 
 /** 显示所有following类型的窗口 */
 export function showAllFollowingWindows(): void {
-  const windowManager = WindowConfigManager.getWindowManager();
   const followingWindows = windowManager.getWindowInfoByType(WindowType.FOLLOWING);
   followingWindows.forEach(followingWindow => {
     if (followingWindow.metadata?.init) {
-      // 使用 showInactive 避免动画效果
-      followingWindow.window.showInactive();
+      // 使用 WindowManager.show 避免动画效果
+      windowManager.show(followingWindow.window);
     }
   });
 }
@@ -374,14 +380,13 @@ export function showAllFollowingWindows(): void {
  */
 export function hideAllFollowingWindows(): void {
   try {
-    const windowManager = WindowConfigManager.getWindowManager();
     const followingWindows = windowManager.getWindowsByType(WindowType.FOLLOWING);
 
     log.info(`开始隐藏 ${followingWindows.length} 个following窗口`);
 
     followingWindows.forEach(followingWindow => {
-      if (followingWindow.isVisible()) {
-        followingWindow.hide();
+      if (windowManager.isWindowVisible(followingWindow)) {
+        windowManager.hide(followingWindow);
         log.debug(`隐藏following窗口: ID=${followingWindow.id}`);
       }
     });
@@ -397,7 +402,6 @@ export function hideAllFollowingWindows(): void {
  */
 export function closeAllFollowingWindows(): void {
   try {
-    const windowManager = WindowConfigManager.getWindowManager();
     const followingWindows = windowManager.getWindowsByType(WindowType.FOLLOWING);
 
     log.info(`开始关闭 ${followingWindows.length} 个following窗口`);
@@ -434,7 +438,6 @@ export function manageFollowingWindows(action: 'hide' | 'close'): void {
  */
 export function showSpecificFollowingWindow(pluginItem: { pluginId?: string; name?: string }): void {
   try {
-    const windowManager = WindowConfigManager.getWindowManager();
     const followingWindows = windowManager.getWindowInfoByType(WindowType.FOLLOWING);
 
     log.info(`开始查找并显示特定插件窗口: ${pluginItem.name} (PluginId: ${pluginItem.pluginId})`);
@@ -455,8 +458,8 @@ export function showSpecificFollowingWindow(pluginItem: { pluginId?: string; nam
         const titleMatch = pluginName && windowName === pluginName;
 
         if (pluginIdMatch || titleMatch) {
-          if (!followingWindow.window.isVisible()) {
-            followingWindow.window.showInactive();
+          if (!windowManager.isWindowVisible(followingWindow.window)) {
+            windowManager.show(followingWindow.window);
             log.info(`显示特定插件窗口: ${windowName} (PluginId: ${windowPluginId})`);
             foundWindow = true;
           } else {
@@ -490,7 +493,6 @@ export async function createWebPageWindow(
   const __dirname = dirname(__filename);
 
   // 注册窗口到管理器
-  const windowManager = WindowConfigManager.getWindowManager();
   // 检查是否已经有相同URL的网页窗口打开
   const title = metadata?.title || 'Web Page';
 
@@ -581,7 +583,7 @@ export async function createWebPageWindow(
 
   webWindow.webContents.on("did-finish-load", () => {
     // 直接显示，无动画效果
-    webWindow.showInactive(); // 使用 showInactive 避免动画
+    windowManager.show(webWindow); // 使用 WindowManager.show 避免动画
     windowManager.setMetadata(webWindow.id, { init: true });
   });
 

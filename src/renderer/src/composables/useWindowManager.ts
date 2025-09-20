@@ -34,6 +34,11 @@ export const useWindowManager = () => {
     })
   }
 
+  /** 检查窗口是否显示 */
+  const isWindowVisible = async (): Promise<boolean> => {
+    return await api.ipcRouter.windowIsWindowVisible(window.id!)
+  }
+
   /** 显示主窗口和当前插件项目的following窗口 */
   const show = (pluginItem: PluginItem | null) => {
     api.ipcRouter.windowToggleShow(window.id!, true)
@@ -46,5 +51,5 @@ export const useWindowManager = () => {
     api.ipcRouter.windowToggleShow(window.id!, false)
   }
 
-  return { setSize, manageFollowingWindows, openCurrentItemFollowingWindow, show, hide }
+  return { setSize, manageFollowingWindows, openCurrentItemFollowingWindow, isWindowVisible, show, hide }
 }

@@ -1,4 +1,7 @@
+import type { AttachedFile } from '@/composables/useFileHandler'
 import type { AppItem } from '@shared/types'
+/** 插件钩子 */
+export type PluginHook = (...args: any[]) => void | Promise<void>
 
 /** 插件执行逻辑类型 */
 export enum PluginExecuteType {
@@ -123,10 +126,16 @@ export interface PluginConfig {
   }
 }
 
+export interface PluginApi {
+  onHook: (event: string, handler: PluginHook) => void
+  emitHook: (event: string, ...args: any[]) => void
+}
+
+
 /** 插件项目接口 */
 export interface PluginItem extends AppItem {
   /** 插件ID */
-  pluginId: string
+  pluginId?: string
   /** 插件描述 */
   description?: string
   /** 执行类型 */
@@ -146,40 +155,12 @@ export interface PluginItem extends AppItem {
     /** 其他参数 */
     [key: string]: any
   }
-  /** 是否在分类中显示 */
-  visible: boolean
   /** 排序权重 */
   weight?: number
-}
-
-/** 插件管理器接口 */
-export interface PluginManager {
-  /** 加载已安装的插件（仅从缓存中加载） */
-  loadInstalledPlugins(): Promise<PluginConfig[]>
-  /** 初始化插件系统（加载所有可用插件并安装已安装的插件） */
-  initializePlugins(): Promise<PluginConfig[]>
-  /** 获取所有可用的插件列表（包括默认插件和第三方插件） */
-  getAllAvailablePlugins(): Promise<PluginConfig[]>
-  /** 重新加载所有插件（清除缓存） */
-  reloadAllPlugins(): Promise<PluginConfig[]>
-  /** 安装插件 */
-  installPlugin(pluginData: any): Promise<boolean>
-  /** 从zip文件安装插件 */
-  installPluginFromZip(zipPath: string): Promise<boolean>
-  /** 卸载插件 */
-  uninstallPlugin(pluginId: string): Promise<boolean>
-  /** 启用/禁用插件 */
-  togglePlugin(pluginId: string, enabled: boolean): Promise<boolean>
-  /** 获取插件列表 */
-  getPluginList(): Promise<PluginConfig[]>
-  /** 执行插件项目 */
-  executePluginItem(item: PluginItem): Promise<void>
-  /** 获取默认插件列表 */
-  getDefaultPlugins(): PluginConfig[]
-  /** 获取第三方插件列表 */
-  getThirdPartyPlugins(): PluginConfig[]
-  /** 检查插件是否为默认插件 */
-  isDefaultPlugin(pluginId: string): boolean
+  /** 搜索回调 */
+  onSearch?: (text: string, files: AttachedFile[]) => boolean
+  /** 进入回调 */
+  onEnter?: (api: PluginApi) => void
 }
 
 /** 插件分类接口 */

@@ -24,8 +24,6 @@ export const webToolsPlugin: PluginConfig = {
         url: 'https://github.com',
         enableSearch: false,
       },
-      visible: true,
-      weight: 1
     },
     {
       name: 'Stack Overflow',
@@ -36,8 +34,6 @@ export const webToolsPlugin: PluginConfig = {
       executeParams: {
         url: 'https://stackoverflow.com'
       },
-      visible: true,
-      weight: 2
     },
     {
       name: 'MDN Web Docs',
@@ -49,13 +45,6 @@ export const webToolsPlugin: PluginConfig = {
         url: 'https://developer.mozilla.org',
         enableSearch: false // 禁用搜索功能，进入插件窗口后隐藏搜索框
       },
-      visible: true,
-      weight: 3
     }
   ],
-  metadata: {
-    createdAt: Date.now(),
-    updatedAt: Date.now(),
-    installedAt: Date.now()
-  }
 }
