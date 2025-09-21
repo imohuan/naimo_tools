@@ -10,42 +10,16 @@
       <!-- 菜单项 -->
       <nav class="flex-1 p-3">
         <ul class="space-y-1">
-          <li>
-            <button @click="activeTab = 'hotkeys'" :class="[
-              'w-full text-left px-3 py-2 rounded-lg transition-colors',
-              activeTab === 'hotkeys'
-                ? 'bg-blue-100 text-blue-700 border border-blue-200'
+          <li v-for="tab in tabsConfig" :key="tab.id">
+            <button @click="activeTab = tab.id" :class="[
+              'w-full text-left px-3 py-2 rounded-lg transition-colors border border-transparent',
+              activeTab === tab.id
+                ? 'bg-blue-100 text-blue-700 border-blue-200'
                 : 'text-gray-700 hover:bg-gray-100',
             ]">
               <div class="flex items-center">
-                <IconMdiKeyboard class="w-4 h-4 mr-2" />
-                <span class="text-sm font-medium">快捷键设置</span>
-              </div>
-            </button>
-          </li>
-          <li>
-            <button @click="activeTab = 'plugins'" :class="[
-              'w-full text-left px-3 py-2 rounded-lg transition-colors',
-              activeTab === 'plugins'
-                ? 'bg-blue-100 text-blue-700 border border-blue-200'
-                : 'text-gray-700 hover:bg-gray-100',
-            ]">
-              <div class="flex items-center">
-                <IconMdiPuzzle class="w-4 h-4 mr-2" />
-                <span class="text-sm font-medium">插件管理</span>
-              </div>
-            </button>
-          </li>
-          <li>
-            <button @click="activeTab = 'about'" :class="[
-              'w-full text-left px-3 py-2 rounded-lg transition-colors',
-              activeTab === 'about'
-                ? 'bg-blue-100 text-blue-700 border border-blue-200'
-                : 'text-gray-700 hover:bg-gray-100',
-            ]">
-              <div class="flex items-center">
-                <IconMdiInformation class="w-4 h-4 mr-2" />
-                <span class="text-sm font-medium">关于</span>
+                <component :is="tab.icon" class="w-4 h-4 mr-2" />
+                <span class="text-sm font-medium">{{ tab.title }}</span>
               </div>
             </button>
           </li>
@@ -73,9 +47,7 @@
 
       <!-- 内容主体 -->
       <div class="flex-1 p-3 relative" :class="isEditingHotkey ? 'overflow-hidden' : 'overflow-auto'">
-        <HotkeySettings v-if="activeTab === 'hotkeys'" ref="hotkeySettingsRef" />
-        <PluginManager v-if="activeTab === 'plugins'" />
-        <About v-if="activeTab === 'about'" />
+        <component :is="currentTabConfig.component" :ref="activeTab === 'hotkeys' ? 'hotkeySettingsRef' : undefined" />
       </div>
     </div>
   </div>
@@ -88,11 +60,14 @@ import IconMdiKeyboard from "~icons/mdi/keyboard";
 /** @ts-ignore */
 import IconMdiPuzzle from "~icons/mdi/puzzle";
 /** @ts-ignore */
+import IconMdiCog from "~icons/mdi/cog";
+/** @ts-ignore */
 import IconMdiInformation from "~icons/mdi/information";
 /** @ts-ignore */
 import IconMdiClose from "~icons/mdi/close";
 import HotkeySettings from "../modules/hotkeys/components/HotkeySettings.vue";
 import PluginManager from "../modules/plugins/components/PluginManager.vue";
+import CustomHotkeys from "../modules/hotkeys/components/CustomHotkeys.vue";
 import About from "./About.vue";
 
 // 事件定义
@@ -102,8 +77,48 @@ interface Emits {
 
 const emit = defineEmits<Emits>();
 
+// 标签页配置
+interface TabConfig {
+  id: string;
+  title: string;
+  description: string;
+  icon: any;
+  component: any;
+}
+
+const tabsConfig: TabConfig[] = [
+  {
+    id: "hotkeys",
+    title: "快捷键设置",
+    description: "配置应用程序的快捷键，提高操作效率",
+    icon: IconMdiKeyboard,
+    component: HotkeySettings
+  },
+  {
+    id: "custom",
+    title: "自定义快捷键",
+    description: "创建和管理您的自定义快捷键",
+    icon: IconMdiCog,
+    component: CustomHotkeys
+  },
+  {
+    id: "plugins",
+    title: "插件管理",
+    description: "管理插件，扩展应用程序功能",
+    icon: IconMdiPuzzle,
+    component: PluginManager
+  },
+  {
+    id: "about",
+    title: "关于",
+    description: "了解 Naimo 应用程序的详细信息",
+    icon: IconMdiInformation,
+    component: About
+  }
+];
+
 // 当前激活的标签页
-const activeTab = ref<"hotkeys" | "plugins" | "about">("hotkeys");
+const activeTab = ref<string>("hotkeys");
 
 // 组件引用
 const hotkeySettingsRef = ref<InstanceType<typeof HotkeySettings>>();
@@ -113,32 +128,19 @@ const isEditingHotkey = computed(() => {
   return hotkeySettingsRef.value?.isEditingHotkey || false;
 });
 
+// 获取当前标签页配置
+const currentTabConfig = computed(() => {
+  return tabsConfig.find(tab => tab.id === activeTab.value) || tabsConfig[0];
+});
+
 // 获取标签页标题
 const getTabTitle = () => {
-  switch (activeTab.value) {
-    case "hotkeys":
-      return "快捷键设置";
-    case "plugins":
-      return "插件管理";
-    case "about":
-      return "关于 Naimo";
-    default:
-      return "";
-  }
+  return currentTabConfig.value.title;
 };
 
 // 获取标签页描述
 const getTabDescription = () => {
-  switch (activeTab.value) {
-    case "hotkeys":
-      return "配置应用程序的快捷键，提高操作效率";
-    case "plugins":
-      return "管理插件，扩展应用程序功能";
-    case "about":
-      return "了解 Naimo 应用程序的详细信息";
-    default:
-      return "";
-  }
+  return currentTabConfig.value.description;
 };
 
 // 关闭设置

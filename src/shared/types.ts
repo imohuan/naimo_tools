@@ -1,5 +1,6 @@
 // 共享类型定义
 
+
 export interface AppConfig {
   /** 主题模式，支持 light 或 dark */
   theme: "light" | "dark";
@@ -42,6 +43,8 @@ export interface AppConfig {
     /** 应用内快捷键配置 */
     application: any[];
   };
+  /** 自定义快捷键列表 */
+  customHotkeys?: any[];
 }
 
 export interface AppItem {

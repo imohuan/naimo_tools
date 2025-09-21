@@ -41,7 +41,7 @@ import { useEventSystem } from "@/composables/useEventSystem";
 
 // 模块导入
 import { useHotkeyManager } from "@/modules/hotkeys/hooks/useHotkeyManager";
-import type { HotkeyEventListener } from "@/typings/hotkey-types";
+import type { HotkeyEventListener, HotkeyTriggeredEventDetail } from "@/typings/hotkey-types";
 import { useKeyboardNavigation } from "@/modules/search";
 import { useSearch } from "@/modules/search";
 import { usePluginStore } from "@/store";
@@ -640,6 +640,28 @@ const handleShowHideWindowRequested = async () => {
   }
 };
 
+
+const handleCustomGlobalHotkeyTriggered = async (event: HotkeyTriggeredEventDetail) => {
+  const name = event.config.name?.trim()
+  if (!name) {
+    console.log("不存在Name:", event.config);
+    return;
+  }
+  searchText.value = name
+  await handleSearch(searchText.value)
+  // 获取搜索结果
+  const items = searchCategories.value.find(category => category.id === 'best-match')?.items
+  if (items && items.length > 0) {
+    executeItem(items[0])
+  } else {
+    show(null)
+    console.log("没有搜索结果");
+  }
+  console.log("搜索结果:", searchCategories.value, { items });
+  console.log("收到自定义全局快捷键触发事件:", name);
+};
+
+
 // ==================== 生命周期 ====================
 /**
  * 组件挂载时的初始化逻辑
@@ -683,6 +705,10 @@ onMounted(async () => {
         handleShowHideWindowRequested();
         break;
       default:
+        if (event.detail.id.startsWith('custom_global_')) {
+          handleCustomGlobalHotkeyTriggered(event.detail);
+          break;
+        }
         console.log('🔍 收到全局快捷键触发事件:', event.detail);
         break;
     }

@@ -10,7 +10,6 @@ export const hotkeyConfig: HotkeySettingsConfig = {
       type: HotkeyType.GLOBAL,
       name: "显示/隐藏窗口",
       description: "按下此快捷键可以显示或隐藏应用程序窗口",
-      group: "global",
       enabled: true,
     },
   ],
@@ -21,7 +20,6 @@ export const hotkeyConfig: HotkeySettingsConfig = {
       type: HotkeyType.APPLICATION,
       name: "聚焦搜索框",
       description: "快速将焦点移动到搜索输入框",
-      group: "application",
       enabled: true,
     },
     {
@@ -30,7 +28,6 @@ export const hotkeyConfig: HotkeySettingsConfig = {
       type: HotkeyType.APPLICATION,
       name: "关闭窗口",
       description: "快速关闭应用程序窗口",
-      group: "application",
       enabled: true,
     },
   ],

@@ -9,7 +9,6 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     About: typeof import('./../src/components/About.vue')['default']
-    AppItem: typeof import('./../src/components/search/AppItem.vue')['default']
     ContentArea: typeof import('./../src/components/ContentArea.vue')['default']
     ContextMenu: typeof import('./../src/components/ContextMenu.vue')['default']
     DraggableArea: typeof import('./../src/components/DraggableArea.vue')['default']
@@ -25,7 +24,6 @@ declare module 'vue' {
     IconMdiPuzzle: typeof import('~icons/mdi/puzzle')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
-    SearchCategories: typeof import('./../src/components/search/SearchCategories.vue')['default']
     Settings: typeof import('./../src/components/Settings.vue')['default']
   }
 }

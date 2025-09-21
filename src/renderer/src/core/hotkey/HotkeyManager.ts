@@ -22,6 +22,8 @@ export class HotkeyManager extends BaseSingleton implements CoreAPI {
   /** 标记快捷键管理器是否已初始化 */
   private isInitialized = false
 
+  customHotKeyPrefix = 'custom_global_'
+
   private defaultConfig: HotkeySettingsConfig = {
     global: [],
     application: []
@@ -68,9 +70,16 @@ export class HotkeyManager extends BaseSingleton implements CoreAPI {
     this.currentScope = 'all'
   }
 
+  /** 添加自定义快捷键 但是不启用 */
+  async addCustomHotkey(config: HotkeyConfig): Promise<void> {
+    this.hotkeys.set(config.id, config)
+    await this.saveToStorage()
+  }
 
   /** 注册快捷键 */
-  async register(config: HotkeyConfig, autoSave: boolean = true): Promise<boolean> {
+  async register(registerConfig: HotkeyConfig, autoSave: boolean = true): Promise<boolean> {
+    const config: HotkeyConfig = JSON.parse(JSON.stringify(registerConfig))
+
     try {
       const { id, keys, type } = config
 
@@ -119,12 +128,15 @@ export class HotkeyManager extends BaseSingleton implements CoreAPI {
         return false
       }
 
-      const { type } = config
+      const { type, keys } = config
 
-      if (type === HotkeyType.GLOBAL) {
-        await this.unregisterGlobalHotkey(id)
-      } else {
-        await this.unregisterAppHotkey(id)
+      // 当 Key 存在的情况下进行卸载
+      if (keys.trim()) {
+        if (type === HotkeyType.GLOBAL) {
+          await this.unregisterGlobalHotkey(id)
+        } else {
+          await this.unregisterAppHotkey(id)
+        }
       }
 
       this.hotkeys.delete(id)
@@ -244,6 +256,18 @@ export class HotkeyManager extends BaseSingleton implements CoreAPI {
     return this.hotkeys.get(id)
   }
 
+  async updateConfig(id: string, config: Partial<HotkeyConfig> = {}) {
+    const hotkeyConfig = this.hotkeys.get(id)
+    if (!hotkeyConfig) {
+      console.warn(`快捷键 ${id} 不存在`)
+      return false
+    }
+    this.hotkeys.set(id, { ...hotkeyConfig, ...config })
+    await this.saveToStorage()
+    console.log(`⌨️ 更新快捷键配置: ${id}`)
+    return true
+  }
+
   /** 切换快捷键启用状态 */
   async toggle(id: string, enabled?: boolean): Promise<boolean> {
     try {
@@ -323,6 +347,12 @@ export class HotkeyManager extends BaseSingleton implements CoreAPI {
           defaultItem.keys = item.keys
           break
         }
+      }
+    })
+
+    config.forEach(cf => {
+      if (cf.id.startsWith(this.customHotKeyPrefix) && !mergedConfig.some(item => item.id === cf.id)) {
+        mergedConfig.push(cf)
       }
     })
     return mergedConfig

@@ -238,7 +238,6 @@ const confirmEditing = async () => {
 
   const newKeys = currentEditingKeys.value.join("+");
   const success = await updateHotkeyConfig(editingHotkeyId.value, newKeys);
-
   if (success) {
     console.log(`✅ 快捷键更新成功: ${editingHotkeyId.value} -> ${newKeys}`);
     // 刷新配置
