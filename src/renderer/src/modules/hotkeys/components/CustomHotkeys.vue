@@ -15,27 +15,34 @@
           <div class="flex-1">
             <input v-model="hotkey.name" placeholder="输入快捷键名称"
               class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              @blur="updateHotkeyName(hotkey)" @keydown.enter.stop="updateHotkeyName(hotkey)" />
+              @input="updateHotkeyName(hotkey)" />
           </div>
 
           <!-- 快捷键监听面板 -->
           <div class="flex-shrink-0">
             <div
               class="w-48 h-10 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-blue-400 transition-colors"
+              :class="{ 'border-blue-500 bg-blue-50': isListening && currentListeningId === hotkey.id }"
               @click="startListeningHotkey(hotkey)">
               <div class="w-full h-full flex items-center justify-center">
-                <div v-if="hotkey.keys" class="flex items-center space-x-1">
+                <div v-if="hotkey.keys && !(isListening && currentListeningId === hotkey.id)"
+                  class="flex items-center space-x-1">
                   <kbd v-for="key in hotkey.keys.split('+')" :key="key"
                     class="px-2 py-1 text-xs font-semibold text-gray-800 bg-gray-100 border border-gray-200 rounded">
                     {{ formatKeyDisplay(key) }}
                   </kbd>
                 </div>
+                <div v-else-if="isListening && currentListeningId === hotkey.id" class="text-center">
+                  <div v-if="currentKeys.length > 0" class="flex items-center justify-center space-x-1">
+                    <kbd v-for="key in currentKeys" :key="key"
+                      class="px-2 py-1 text-xs font-semibold text-blue-800 bg-blue-100 border border-blue-200 rounded">
+                      {{ formatKeyDisplay(key) }}
+                    </kbd>
+                  </div>
+                  <div v-else class="text-xs text-blue-600 font-medium mb-1">正在监听...</div>
+                </div>
                 <div v-else class="text-xs text-gray-400">
-                  {{
-                    isListening && currentListeningId === hotkey.id
-                      ? "正在监听..."
-                      : "点击设置快捷键"
-                  }}
+                  点击设置快捷键
                 </div>
               </div>
             </div>
@@ -61,58 +68,28 @@
       </div>
     </div>
 
-    <!-- 空状态和添加占位符 -->
-    <div v-else class="space-y-4">
-      <!-- 空状态提示 -->
-      <div class="text-center py-8">
-        <IconMdiKeyboard class="w-12 h-12 text-gray-300 mx-auto mb-4" />
-        <h3 class="text-lg font-medium text-gray-900 mb-2">暂无自定义快捷键</h3>
-        <p class="text-sm text-gray-500">点击下方区域添加您的第一个自定义快捷键</p>
-      </div>
+    <!-- 空状态提示 -->
+    <div v-if="customHotkeys.length === 0" class="text-center py-8">
+      <IconMdiKeyboard class="w-12 h-12 text-gray-300 mx-auto mb-4" />
+      <h3 class="text-lg font-medium text-gray-900 mb-2">暂无自定义快捷键</h3>
+      <p class="text-sm text-gray-500">点击下方按钮添加您的第一个自定义快捷键</p>
+    </div>
 
-      <!-- 添加占位符 -->
-      <div @click="addCustomHotkey"
-        class="w-full h-20 border-2 border-dashed border-gray-300 rounded-lg bg-gray-50 hover:border-gray-400 hover:bg-gray-100 cursor-pointer transition-all duration-200 flex items-center justify-center">
-        <div class="flex items-center space-x-2 text-gray-400 hover:text-gray-600">
-          <IconMdiPlus class="w-6 h-6" />
-          <span class="text-sm font-medium">点击添加自定义快捷键</span>
-        </div>
+    <!-- 统一的添加按钮 -->
+    <div @click="addCustomHotkey"
+      class="w-full border-2 border-dashed border-gray-300 rounded-lg bg-gray-50 hover:border-gray-400 hover:bg-gray-100 cursor-pointer transition-all duration-200 flex items-center justify-center px-4 py-3">
+      <div class="flex items-center space-x-2 text-gray-400 hover:text-gray-600">
+        <IconMdiPlus class="w-4 h-4" />
+        <span class="text-sm font-medium">点击添加自定义快捷键</span>
       </div>
     </div>
 
-    <!-- 快捷键监听弹窗 -->
-    <div v-if="isListening" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div class="bg-white rounded-lg p-6 w-96">
-        <h3 class="text-lg font-medium text-gray-900 mb-4">
-          设置快捷键 - {{ currentEditingHotkey?.name || "快捷键" }}
-        </h3>
-        <p class="text-sm text-gray-600 mb-4">
-          点击下方区域，然后按下您想要设置的快捷键组合。
-        </p>
-
-        <!-- 使用 HotkeyInterceptor 组件 -->
-        <div class="h-32 border-2 border-dashed border-gray-300 rounded-lg">
-          <HotkeyInterceptor :hotkey-type="HotkeyType.GLOBAL" :scope="currentListeningId"
-            @hotkey-captured="handleHotkeyCaptured" />
-        </div>
-
-        <div class="flex justify-center space-x-3 mt-4">
-          <button @click="cancelListening"
-            class="px-6 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 shadow-sm">
-            取消
-          </button>
-          <button @click="confirmHotkey" :disabled="!currentEditingHotkey?.keys"
-            class="px-6 py-2.5 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm">
-            确认设置
-          </button>
-        </div>
-      </div>
-    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
+import { useDebounceFn } from "@vueuse/core";
 /** @ts-ignore */
 import IconMdiPlus from "~icons/mdi/plus";
 /** @ts-ignore */
@@ -123,13 +100,15 @@ import IconMdiKeyboard from "~icons/mdi/keyboard";
 import IconMdiInformation from "~icons/mdi/information";
 import { HotkeyType, type HotkeyConfig } from "@/typings/hotkey-types";
 import { hotkeyManager } from "@/core/hotkey/HotkeyManager";
-import HotkeyInterceptor from "./HotkeyInterceptor.vue";
+import { useHotkeyListener } from "../hooks/useHotkeyListener";
 
 // 自定义快捷键列表
 const customHotkeys = ref<HotkeyConfig[]>([]);
 
+// 使用快捷键监听器
+const { isListening, currentKeys, getListening } = useHotkeyListener();
+
 // 快捷键监听状态
-const isListening = ref(false);
 const currentListeningId = ref<string>("");
 const currentEditingHotkey = ref<HotkeyConfig | null>(null);
 
@@ -164,56 +143,62 @@ const removeCustomHotkey = async (id: string) => {
 };
 
 // 开始监听快捷键
-const startListeningHotkey = (hotkey: HotkeyConfig) => {
+const startListeningHotkey = async (hotkey: HotkeyConfig) => {
   if (isListening.value) return;
 
-  isListening.value = true;
   currentListeningId.value = hotkey.id;
   currentEditingHotkey.value = hotkey;
+
+  try {
+    const keys = await getListening();
+    if (keys.length > 0) {
+      handleHotkeyCaptured(keys);
+    }
+  } catch (error) {
+    console.error("快捷键监听失败:", error);
+  }
 };
 
 // 处理快捷键捕获事件
-const handleHotkeyCaptured = (keys: string[]) => {
-  if (keys.length === 0) return;
+const handleHotkeyCaptured = async (keys: string[]) => {
+  if (keys.length === 0 || !currentEditingHotkey.value) return;
 
-  if (currentEditingHotkey.value) {
-    // 检查快捷键是否已存在
-    const existingHotkey = customHotkeys.value.find(h => h.keys === keys.join("+") && h.id !== currentEditingHotkey.value!.id);
-    if (existingHotkey) {
-      alert("该快捷键已被其他项目使用");
-      return;
-    }
-    currentEditingHotkey.value.keys = keys.join("+");
-  }
-};
+  const keysString = keys.join("+");
 
-// 确认快捷键设置
-const confirmHotkey = async () => {
-  if (currentEditingHotkey.value && currentEditingHotkey.value.keys) {
-    // 使用 hotkeyManager 更新注册，它会自动处理存储
-    await hotkeyManager.updateConfig(currentEditingHotkey.value.id, { keys: currentEditingHotkey.value.keys });
-    if (currentEditingHotkey.value.enabled) {
-      await hotkeyManager.register(currentEditingHotkey.value);
-    }
+  // 检查快捷键是否已存在
+  const existingHotkey = customHotkeys.value.find(h => h.keys === keysString && h.id !== currentEditingHotkey.value!.id);
+  if (existingHotkey) {
+    alert("该快捷键已被其他项目使用");
+    cancelListening();
+    return;
   }
+
+  // 设置快捷键
+  currentEditingHotkey.value.keys = keysString;
+
+  // 保存快捷键
+  await hotkeyManager.updateConfig(currentEditingHotkey.value.id, { keys: keysString });
+  if (currentEditingHotkey.value.enabled) {
+    await hotkeyManager.register(currentEditingHotkey.value);
+  }
+
   cancelListening();
 };
 
 // 取消监听
 const cancelListening = () => {
-  isListening.value = false;
   currentListeningId.value = "";
   currentEditingHotkey.value = null;
 };
 
-// 更新快捷键名称
-const updateHotkeyName = async (hotkey: HotkeyConfig) => {
+// 更新快捷键名称（带 debounce）
+const updateHotkeyName = useDebounceFn(async (hotkey: HotkeyConfig) => {
   // 名称更新不需要重新注册，只需要更新本地状态
   // hotkeyManager 会在下次注册时自动保存最新配置
   if (hotkey) {
     await hotkeyManager.updateConfig(hotkey.id, { name: hotkey.name });
   }
-};
+}, 500);
 
 // 切换快捷键启用状态
 const toggleHotkey = async (hotkey: HotkeyConfig) => {

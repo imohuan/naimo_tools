@@ -217,6 +217,8 @@ export class AppService {
       path: 'MAIN_PATH'
     });
 
+    this.windowManager.initPostion(this.mainWindow);
+
     // 剧中显示
     this.mainWindow.center();
     this.mainWindow.show()

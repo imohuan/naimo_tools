@@ -142,7 +142,7 @@ const toggleIndividualHotkey = async (hotkey: HotkeyConfig) => {
 
 // 更新快捷键配置
 const updateHotkeyConfig = async (hotkeyId: string, newKeys: string) => {
-  const allHotkeys = hotkeyManager.getAll();
+  const allHotkeys = getAllHotkeys();
   const hotkey = allHotkeys.find(h => h.id === hotkeyId);
   if (hotkey) {
     // 先注销旧的快捷键
@@ -260,6 +260,7 @@ const cancelEditing = () => {
 // 初始化配置
 onMounted(async () => {
   config.value = await hotkeyManager.getHotkeyConfig();
+  config.value.global = config.value.global.filter(h => !h.id.startsWith(hotkeyManager.customHotKeyPrefix));
 });
 
 // 暴露编辑状态给父组件

@@ -111,6 +111,7 @@ const {
   closeSettings: uiCloseSettings,
   toggleInput,
   resetToDefault,
+  switchToSearch,
 } = useUIStatus();
 
 // ==================== 组件引用 ====================
@@ -478,6 +479,7 @@ watch(
       });
 
       // 使用当前的搜索文本和新的附件文件执行搜索
+      switchToSearch();
       handleSearch(searchText.value);
     }
   },

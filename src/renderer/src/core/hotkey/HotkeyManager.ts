@@ -72,8 +72,59 @@ export class HotkeyManager extends BaseSingleton implements CoreAPI {
 
   /** 添加自定义快捷键 但是不启用 */
   async addCustomHotkey(config: HotkeyConfig): Promise<void> {
+    // 更新 HotkeyManager 内部配置
     this.hotkeys.set(config.id, config)
+
+    // 同步添加到桥接层配置（但不注册，因为不启用）
+    try {
+      if (config.type === HotkeyType.GLOBAL) {
+        // 添加到全局快捷键桥接层
+        await electronHotkeyBridge.addGlobalHotkeyConfig(config)
+      } else {
+        // 添加到应用内快捷键桥接层
+        await appHotkeyBridge.addAppHotkeyConfig(config)
+      }
+    } catch (error) {
+      console.error(`⌨️ 同步桥接层配置失败: ${config.id}`, error)
+      // 如果同步失败，从 HotkeyManager 中移除
+      this.hotkeys.delete(config.id)
+      throw error
+    }
+
     await this.saveToStorage()
+    console.log(`⌨️ 添加自定义快捷键: ${config.id}`)
+  }
+
+  async updateConfig(id: string, config: Partial<HotkeyConfig> = {}) {
+    const hotkeyConfig = this.hotkeys.get(id)
+    if (!hotkeyConfig) {
+      console.warn(`快捷键 ${id} 不存在`)
+      return false
+    }
+
+    // 更新 HotkeyManager 内部配置
+    const updatedConfig = { ...hotkeyConfig, ...config }
+    this.hotkeys.set(id, updatedConfig)
+
+    // 同步更新桥接层配置
+    try {
+      if (updatedConfig.type === HotkeyType.GLOBAL) {
+        // 更新全局快捷键桥接层
+        await electronHotkeyBridge.updateGlobalHotkeyConfig(id, config)
+      } else {
+        // 更新应用内快捷键桥接层
+        await appHotkeyBridge.updateAppHotkeyConfig(id, config)
+      }
+    } catch (error) {
+      console.error(`⌨️ 同步桥接层配置失败: ${id}`, error)
+      // 如果同步失败，恢复原始配置
+      this.hotkeys.set(id, hotkeyConfig)
+      return false
+    }
+
+    await this.saveToStorage()
+    console.log(`⌨️ 更新快捷键配置: ${id}`)
+    return true
   }
 
   /** 注册快捷键 */
@@ -256,17 +307,6 @@ export class HotkeyManager extends BaseSingleton implements CoreAPI {
     return this.hotkeys.get(id)
   }
 
-  async updateConfig(id: string, config: Partial<HotkeyConfig> = {}) {
-    const hotkeyConfig = this.hotkeys.get(id)
-    if (!hotkeyConfig) {
-      console.warn(`快捷键 ${id} 不存在`)
-      return false
-    }
-    this.hotkeys.set(id, { ...hotkeyConfig, ...config })
-    await this.saveToStorage()
-    console.log(`⌨️ 更新快捷键配置: ${id}`)
-    return true
-  }
 
   /** 切换快捷键启用状态 */
   async toggle(id: string, enabled?: boolean): Promise<boolean> {

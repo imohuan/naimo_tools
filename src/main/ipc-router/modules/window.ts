@@ -529,7 +529,7 @@ export async function createWebPageWindow(
     parent: mainWindow, // 设置父窗口，控制生命周期
     skipTaskbar: true, // 不在任务栏显示
     hasShadow: false, // 移除窗口阴影
-    transparent: false, // 透明窗口, 有透明的话显示会有一个动画，我不喜欢
+    transparent: true, // 透明窗口
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,

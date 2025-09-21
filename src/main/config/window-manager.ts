@@ -108,6 +108,10 @@ export class WindowManager {
     return WindowManager.instance;
   }
 
+  initPostion(window: BrowserWindow) {
+    const [x, y] = window.getPosition();
+    this.windowStates.set(window.id, { position: { x, y }, visible: x > 0 });
+  }
 
   show(window: BrowserWindow) {
     const windowState = this.windowStates.get(window.id) || { position: { x: 0, y: 0 }, visible: false };

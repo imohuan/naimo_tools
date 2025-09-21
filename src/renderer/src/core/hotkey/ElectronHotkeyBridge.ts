@@ -215,6 +215,48 @@ export class ElectronHotkeyBridge extends BaseSingleton {
   }
 
   /**
+   * 添加全局快捷键配置（但不注册）
+   */
+  async addGlobalHotkeyConfig(config: HotkeyConfig): Promise<boolean> {
+    try {
+      if (this.registeredHotkeys.has(config.id)) {
+        console.warn(`🔌 全局快捷键 ${config.id} 已存在`)
+        return false
+      }
+
+      this.registeredHotkeys.set(config.id, config)
+      console.log(`🔌 添加全局快捷键配置: ${config.id}`)
+      return true
+    } catch (error) {
+      console.error('🔌 添加全局快捷键配置失败:', error)
+      return false
+    }
+  }
+
+  /**
+   * 更新全局快捷键配置
+   */
+  async updateGlobalHotkeyConfig(id: string, config: Partial<HotkeyConfig>): Promise<boolean> {
+    try {
+      const existingConfig = this.registeredHotkeys.get(id)
+      if (!existingConfig) {
+        console.warn(`🔌 全局快捷键 ${id} 未注册`)
+        return false
+      }
+
+      // 更新配置
+      const updatedConfig = { ...existingConfig, ...config }
+      this.registeredHotkeys.set(id, updatedConfig)
+
+      console.log(`🔌 更新全局快捷键配置: ${id}`)
+      return true
+    } catch (error) {
+      console.error('🔌 更新全局快捷键配置失败:', error)
+      return false
+    }
+  }
+
+  /**
    * 销毁实例
    */
   destroy(): void {
