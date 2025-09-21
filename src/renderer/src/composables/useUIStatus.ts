@@ -21,6 +21,7 @@ export function useUIStatus() {
   const searchText = ref('')
   /** 是否有搜索结果 */
   const hasSearchResults = ref(false)
+  const showInput = ref(true)
 
   /** 当前界面类型 */
   const currentInterface = ref<InterfaceType>(InterfaceType.SEARCH)
@@ -59,25 +60,14 @@ export function useUIStatus() {
       console.log('🔍 shouldShowSearchBox: true (不在插件窗口界面)')
       return true
     }
-
-    /** 在插件窗口界面时，检查当前插件项目是否启用搜索 */
-    const enableSearch = currentPluginItem.value?.executeParams?.enableSearch
-    console.log('🔍 当前插件项目:', currentPluginItem.value?.name, 'enableSearch:', enableSearch)
-
-    if (enableSearch === false) {
-      console.log('🔍 shouldShowSearchBox: false (插件禁用搜索)')
-      return false
-    }
-
-    /** 默认显示搜索框 */
-    console.log('🔍 shouldShowSearchBox: true (默认显示)')
-    return true
+    return showInput.value
   })
 
   /**
    * 切换到搜索界面
    */
   const switchToSearch = () => {
+    showInput.value = true
     currentInterface.value = InterfaceType.SEARCH
   }
 
@@ -179,6 +169,10 @@ export function useUIStatus() {
     }
   )
 
+  const toggleInput = (value?: boolean) => {
+    showInput.value = value !== undefined ? value : !showInput.value
+  }
+
   return {
     // 状态
     currentInterface,
@@ -204,6 +198,7 @@ export function useUIStatus() {
     updateSearchResults,
     clearSearch,
     closeSettings,
-    resetToDefault
+    resetToDefault,
+    toggleInput
   }
 }

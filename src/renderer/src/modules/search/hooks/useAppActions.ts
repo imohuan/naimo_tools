@@ -5,7 +5,7 @@ import { eventSystem } from "@/utils/event-system";
 import { ElectronStoreBridge } from "@/core/store/ElectronStoreBridge";
 
 export function useAppActions(
-  performSearch: (attachedFiles?: any[]) => Promise<void>
+  performSearch: (updateSearchState: boolean) => Promise<void>
 ) {
   // 获取存储桥接器实例
   const storeBridge = ElectronStoreBridge.getInstance();
@@ -60,7 +60,7 @@ export function useAppActions(
         position: 'start', unique: true, uniqueField: 'path', maxLength: 16
       });
       // 重新执行搜索以更新显示
-      await performSearch()
+      await performSearch(true)
     } catch (error) {
       console.error("更新最近使用应用记录失败:", error);
     }
@@ -82,7 +82,7 @@ export function useAppActions(
       }
 
       // 重新执行搜索以更新显示
-      await performSearch();
+      await performSearch(true);
     } catch (error) {
       console.error(`保存分类 ${categoryId} 排序失败:`, error);
     }
@@ -103,7 +103,7 @@ export function useAppActions(
       // 使用存储桥接器删除应用
       await storeBridge.removeListItem(storeKey as any, app.path, 'path');
       // 重新执行搜索以更新显示
-      await performSearch();
+      await performSearch(true);
     } catch (error) {
       console.error(`保存分类 ${categoryId} 删除后状态失败:`, error);
     }
@@ -119,7 +119,7 @@ export function useAppActions(
         position: 'start', unique: true, uniqueField: 'path'
       });
       // 重新执行搜索以更新显示
-      await performSearch()
+      await performSearch(true);
     } catch (error) {
       console.error("保存应用固定状态失败:", error);
     }

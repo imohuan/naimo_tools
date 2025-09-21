@@ -125,6 +125,7 @@ export class SearchEngine extends BaseSingleton implements CoreAPI {
   getDefaultCategories(): SearchCategory[] {
     const recentCategory = this.categories.find(cat => cat.id === 'recent')
     const pinnedCategory = this.categories.find(cat => cat.id === 'pinned')
+    const filesCategory = this.categories.find(cat => cat.id === 'files')
     const applicationsCategory = this.categories.find(cat => cat.id === 'applications')
 
     if (recentCategory && recentCategory.items.length > 0) {
@@ -134,7 +135,7 @@ export class SearchEngine extends BaseSingleton implements CoreAPI {
         return pluginId ? enabledPluginIds.has(pluginId) : true
       }) || []
     }
-    return [recentCategory, pinnedCategory, applicationsCategory].filter(category => category !== undefined)
+    return [recentCategory, pinnedCategory, filesCategory, applicationsCategory,].filter(category => category !== undefined && category.items.length > 0) as SearchCategory[]
   }
 
   /** 获取搜索分类 */
@@ -218,10 +219,8 @@ export class SearchEngine extends BaseSingleton implements CoreAPI {
   }
 
   /** 获取附加文件分类 */
-  getAttachedFilesCategory(items: AppItem[], attachedFiles: AttachedFile[]): SearchCategory {
-    const text = `files:(${attachedFiles.map(file => file.name).join('|')});file_length:${attachedFiles.length}`
-    const filterItems = items.filter(item => (item as PluginItem).onSearch && (item as PluginItem).onSearch!(text, attachedFiles))
-
+  getAttachedFilesCategory(items: AppItem[], text: string, attachedFiles: AttachedFile[]): SearchCategory {
+    let filterItems = this.filterItems(items, text, attachedFiles).filter(f => (f as PluginItem).onSearch)
     return {
       id: 'file_tools',
       name: '匹配工具',
@@ -271,6 +270,11 @@ export class SearchEngine extends BaseSingleton implements CoreAPI {
     return items
   }
 
+  /** 过滤项目 onSearch 方法 */
+  filterItems(items: AppItem[], searchText: string, attachedFiles: AttachedFile[]) {
+    return items.filter(item => (item as PluginItem).onSearch ? (item as PluginItem).onSearch!(searchText, attachedFiles) : true)
+  }
+
   /**
    * 执行搜索
    * @param searchText 搜索词
@@ -317,7 +321,7 @@ export class SearchEngine extends BaseSingleton implements CoreAPI {
         }
 
         // 将附加文件分类添加到基础分类的开头
-        categories = [this.getAttachedFilesCategory(items, attachedFiles), attachedFilesCategory]
+        categories = [this.getAttachedFilesCategory(items, searchText, attachedFiles), attachedFilesCategory]
 
         console.log('📎 添加附加文件分类:', {
           id: attachedFilesCategory.id,
@@ -343,7 +347,7 @@ export class SearchEngine extends BaseSingleton implements CoreAPI {
 
         if (searchQuery.length === 0) {
           // 无搜索词时，显示所有项目
-          filteredItems = [...category.items]
+          filteredItems = this.filterItems([...category.items], searchQuery, attachedFiles || [])
         } else {
           // 有搜索词时，进行过滤
           if (category.customSearch) {
@@ -353,7 +357,8 @@ export class SearchEngine extends BaseSingleton implements CoreAPI {
               filteredCount: filteredItems.length
             })
           } else {
-            filteredItems = category.items.filter((item) => {
+            filteredItems = this.filterItems([...category.items], searchQuery, attachedFiles || [])
+            filteredItems = filteredItems.filter((item) => {
               // 使用拼音搜索进行匹配
               const matches = PinyinSearch.match(item.name, searchQuery)
               if (matches) {
@@ -399,6 +404,26 @@ export class SearchEngine extends BaseSingleton implements CoreAPI {
       console.error('❌ 搜索失败:', error)
       return []
     }
+  }
+
+
+  /** 更新存储分类（因为有一些操作会删除或添加项目，需要及时更新，来让搜索分类及时更新） */
+  async updateStoreCategory(): Promise<void> {
+    const [recentApps, pinnedApps, fileList] = await this.bridge.getStoreApps(['recentApps', 'pinnedApps', 'fileList'])
+
+    const getCategory = async (category: SearchCategory, newItems: AppItem[]) => {
+      const newItemsWithIcons = await this.bridge.loadAppIcons(newItems)
+      return { ...category, items: newItemsWithIcons }
+    }
+
+    this.categories = await Promise.all(
+      this.categories.map(async category => {
+        if (category.id === 'recent') return await getCategory(category, recentApps)
+        if (category.id === 'pinned') return await getCategory(category, pinnedApps)
+        if (category.id === 'files') return await getCategory(category, fileList)
+        return category
+      })
+    )
   }
 
   async reset(): Promise<void> {

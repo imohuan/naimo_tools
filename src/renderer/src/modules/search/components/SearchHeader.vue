@@ -92,7 +92,7 @@ interface Props {
   searchText: string;
   isDragOver: boolean;
   headerHeight: number;
-  attachedFiles: readonly AttachedFile[];
+  attachedFiles: AttachedFile[];
   currentPluginItem: PluginItem | null;
   shouldShowSearchBox: boolean;
 }

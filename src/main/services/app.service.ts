@@ -213,7 +213,8 @@ export class AppService {
       parentWindowId: 0,
       init: true,
       isMainWindow: true,
-      version: '1.0.0'
+      version: '1.0.0',
+      path: 'MAIN_PATH'
     });
 
     // 剧中显示

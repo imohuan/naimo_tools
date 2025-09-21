@@ -150,8 +150,6 @@ export interface PluginItem extends AppItem {
     code?: string
     /** 关闭插件窗口时的行为：'hide' 隐藏，'close' 关闭 */
     closeAction?: 'hide' | 'close'
-    /** 是否启用搜索功能，默认为true */
-    enableSearch?: boolean
     /** 其他参数 */
     [key: string]: any
   }
@@ -160,7 +158,7 @@ export interface PluginItem extends AppItem {
   /** 搜索回调 */
   onSearch?: (text: string, files: AttachedFile[]) => boolean
   /** 进入回调 */
-  onEnter?: (api: PluginApi) => void
+  onEnter?: (params: { files: AttachedFile[], searchText: string }, api: PluginApi) => void
 }
 
 /** 插件分类接口 */

@@ -1,6 +1,6 @@
 /**
  * 自动生成的 IPC 类型定义
- * 生成时间: 2025-09-19T12:37:58.777Z
+ * 生成时间: 2025-09-20T13:40:13.796Z
  * 请勿手动修改此文件
  */
 
@@ -831,12 +831,12 @@ interface windowInterface {
  * 根据插件信息显示特定的following窗口
  * @param 插件项目信息，包含pluginId和名称
  */
-  "window-show-specific-following-window": (pluginItem: { pluginId?: string; name?: string }) => Promise<void>;
+  "window-show-specific-following-window": (pathId: string) => Promise<void>;
   /**
  * 根据插件信息显示特定的following窗口
  * @param 插件项目信息，包含pluginId和名称
  */
-  "windowShowSpecificFollowingWindow": (pluginItem: { pluginId?: string; name?: string }) => Promise<void>;
+  "windowShowSpecificFollowingWindow": (pathId: string) => Promise<void>;
 
   /**
  * 创建网页显示窗口
@@ -844,14 +844,14 @@ interface windowInterface {
  * @param 要显示的网页URL
  * @param 元数据，包含title、preload等额外信息
  */
-  "window-create-web-page-window": (windowId: number, url: string, metadata?: Omit<BasicWindowMetadata, "init" | "parentWindowId" | "url">) => Promise<void>;
+  "window-create-web-page-window": (windowId: number, url: string, metadata?: Omit<BasicWindowMetadata, "init" | "parentWindowId" | "url" | "path">) => Promise<void>;
   /**
  * 创建网页显示窗口
  * @param 主窗口ID
  * @param 要显示的网页URL
  * @param 元数据，包含title、preload等额外信息
  */
-  "windowCreateWebPageWindow": (windowId: number, url: string, metadata?: Omit<BasicWindowMetadata, "init" | "parentWindowId" | "url">) => Promise<void>;
+  "windowCreateWebPageWindow": (windowId: number, url: string, metadata?: Omit<BasicWindowMetadata, "init" | "parentWindowId" | "url" | "path">) => Promise<void>;
 }
 
 // 合并所有 IPC 路由类型

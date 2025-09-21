@@ -20,6 +20,8 @@ export interface SearchCategory {
   isPluginCategory?: boolean;
   /** 插件ID（仅插件分类有效） */
   pluginId?: string;
+  /** 是否允许子项删除 */
+  disableDelete?: boolean;
 }
 
 /** 搜索状态 */

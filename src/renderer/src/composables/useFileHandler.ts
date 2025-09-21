@@ -49,20 +49,22 @@ export function useFileHandler() {
       processedFiles.push(attachedFile)
     }
 
-    // 尝试提取文件图标 只提取第一个文件的图标
-    try {
-      // 判断是否为图片类型，如果是图片则转换为Data URL，否则提取文件图标
-      let icon: string | null = null
-      const imageTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp', 'image/bmp', 'image/svg+xml']
-      if (imageTypes.includes(processedFiles[0].type)) {
-        // 对于图片文件，使用FileReader转换为Data URL
-        icon = await convertFileToDataURL(fileArray[0])
-      } else {
-        icon = await api.ipcRouter.appExtractFileIcon(processedFiles[0].path)
+    // 尝试提取所有文件的图标
+    const imageTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp', 'image/bmp', 'image/svg+xml']
+
+    for (let i = 0; i < processedFiles.length; i++) {
+      try {
+        let icon: string | null = null
+        if (imageTypes.includes(processedFiles[i].type)) {
+          // 对于图片文件，使用FileReader转换为Data URL
+          icon = await convertFileToDataURL(fileArray[i])
+        } else {
+          icon = await api.ipcRouter.appExtractFileIcon(processedFiles[i].path)
+        }
+        if (icon) processedFiles[i].icon = icon
+      } catch (error) {
+        console.error(`提取文件图标失败 (${processedFiles[i].name}):`, error)
       }
-      if (icon) processedFiles[0].icon = icon
-    } catch (error) {
-      console.error('提取文件图标失败:', error)
     }
 
     return processedFiles
@@ -111,7 +113,7 @@ export function useFileHandler() {
 
   return {
     // 状态
-    attachedFiles: readonly(attachedFiles),
+    attachedFiles,
     firstFile,
     firstFileIcon,
     hasFiles,

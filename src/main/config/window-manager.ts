@@ -1,3 +1,4 @@
+import { debounce } from '@main/utils';
 import { BrowserWindow } from 'electron';
 import log from 'electron-log';
 
@@ -67,6 +68,8 @@ export interface BasicWindowMetadata {
   parentWindowId: number;
   /** 是否初始化 */
   init: boolean;
+  /** 路径 */
+  path: string;
   /** 额外元数据 */
   [key: string]: any;
 }
@@ -110,7 +113,6 @@ export class WindowManager {
     const windowState = this.windowStates.get(window.id) || { position: { x: 0, y: 0 }, visible: false };
     const { x, y } = windowState.position;
     window.setPosition(x, y);
-    window.focus();
     this.windowStates.set(window.id, { position: { x, y }, visible: true });
   }
 
@@ -130,6 +132,14 @@ export class WindowManager {
   isWindowVisible(window: BrowserWindow): boolean {
     const windowState = this.windowStates.get(window.id);
     return windowState?.visible || false;
+  }
+
+  isAllWindowBlur(): boolean {
+    return this.windows.values().every(info => !info.window.isFocused());
+  }
+
+  getMainWindow(): BrowserWindow | undefined {
+    return this.windows.values().find(info => info.type === WindowType.MAIN)?.window;
   }
 
   /**
@@ -152,6 +162,15 @@ export class WindowManager {
     };
 
     this.windows.set(window.id, windowInfo);
+
+    // 监听窗口失去焦点
+    window.on("blur", debounce(() => {
+      if (this.isAllWindowBlur()) {
+        log.debug("所有窗口失去焦点");
+        this.getMainWindow()?.webContents.send("window-all-blur");
+      }
+    }, 100));
+
     log.debug(`窗口已注册: ID=${window.id}, 类型=${type}, 标题=${windowInfo.title}`);
   }
 

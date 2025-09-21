@@ -21,11 +21,14 @@ export const fileToolsPlugin: PluginConfig = {
       executeType: PluginExecuteType.CUSTOM_CODE,
       notAddToRecent: true,
       onSearch: (text, files) => {
-        return true
+        return files.length > 0
       },
-      onEnter: (api) => {
-        console.log('添加到文件列表...', api)
-      },
+      onEnter: async (options, api) => {
+        console.log(1111111, '添加到文件列表...', options, api)
+        for (const file of options.files) {
+          await api.addPathToFileList(file.name, file.path)
+        }
+      }
     },
   ],
 }

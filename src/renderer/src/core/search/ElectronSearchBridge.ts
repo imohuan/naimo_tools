@@ -6,6 +6,8 @@ import type { AppItem } from '@shared/types'
  * 处理与Electron主进程的搜索相关通信
  */
 export class ElectronSearchBridge extends BaseSingleton {
+  private iconCache = new Map<string, string>()
+
   constructor() {
     super()
   }
@@ -15,8 +17,14 @@ export class ElectronSearchBridge extends BaseSingleton {
     const itemsWithIcons = await Promise.all(
       items.map(async (item) => {
         if (item.icon) return item
+
+        if (this.iconCache.has(item.path)) {
+          return { ...item, icon: this.iconCache.get(item.path)! }
+        }
+
         try {
           const icon = await api.ipcRouter.appExtractFileIcon(item.path)
+          if (icon) this.iconCache.set(item.path, icon)
           return { ...item, icon }
         } catch (error) {
           console.warn(`获取应用图标失败: ${item.name}`, error)

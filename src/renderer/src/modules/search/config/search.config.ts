@@ -35,5 +35,6 @@ export const categoryConfig: Record<string, Omit<SearchCategory, 'items'>> = {
     isDragEnabled: false,
     maxDisplayCount: 24,
     isExpanded: false,
+    disableDelete: true,
   },
 }

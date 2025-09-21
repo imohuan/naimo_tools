@@ -51,6 +51,8 @@ import type { AppItem } from "@shared/types";
 import type { PluginItem } from "./typings/plugin-types";
 import { pluginManager } from "./core/plugin/PluginManager";
 
+import { ElectronStoreBridge } from "./core/store/ElectronStoreBridge"
+const storeBridge = ElectronStoreBridge.getInstance();
 // ==================== UI 配置管理 ====================
 /**
  * UI常量配置 - 从应用配置中获取
@@ -107,6 +109,7 @@ const {
   updateSearchResults,
   currentInterface: uiCurrentInterface,
   closeSettings: uiCloseSettings,
+  toggleInput,
   resetToDefault,
 } = useUIStatus();
 
@@ -121,6 +124,12 @@ const searchHeaderRef = ref<InstanceType<typeof SearchHeader>>();
  */
 const contentAreaRef = ref<InstanceType<typeof ContentArea>>();
 
+// ==================== 文件处理 ====================
+/**
+ * 文件处理器 - 管理附件文件的添加、清除等功能
+ */
+const { attachedFiles, addFiles, clearAttachedFiles } = useFileHandler();
+
 // ==================== 搜索模块 ====================
 /**
  * 搜索模块 - 管理应用搜索、分类、执行等功能
@@ -133,11 +142,12 @@ const {
   flatItems,
   handleSearch: handleSearchCore,
   executeItem,
+  updateStoreCategory,
   handleCategoryToggle,
   handleCategoryDragEnd,
   handleAppDelete,
   handleAppPin,
-} = useSearch();
+} = useSearch(attachedFiles);
 
 /**
  * 同步搜索文本到界面管理器
@@ -150,12 +160,6 @@ const searchText = computed({
     searchModuleText.value = value;
   }
 });
-
-// ==================== 文件处理 ====================
-/**
- * 文件处理器 - 管理附件文件的添加、清除等功能
- */
-const { attachedFiles, addFiles, clearAttachedFiles } = useFileHandler();
 
 // ==================== 拖拽管理 ====================
 /**
@@ -173,7 +177,7 @@ const {
 /**
  * 快捷键管理器 - 管理全局快捷键的注册和初始化
  */
-const { hotkeyManager, initializeHotkeys, useHotkeyListener, addHotKeyListener } = useHotkeyManager();
+const { initializeHotkeys, addHotKeyListener } = useHotkeyManager();
 // ==================== 事件系统 ====================
 /**
  * 事件系统 - 管理应用内部事件通信
@@ -190,7 +194,7 @@ const handleSearch = (value: string) => {
   if (isPluginWindowOpen.value) {
     // TODO 执行插件的搜索逻辑
   }
-  return handleSearchCore(value, [...attachedFiles.value]);
+  return handleSearchCore(value);
 };
 
 /**
@@ -394,6 +398,7 @@ const closeSettings = async () => {
  */
 const handleWindowFocus = () => {
   handleSearchFocus();
+  show(currentPluginItem.value)
 };
 
 /**
@@ -403,11 +408,13 @@ const handleWindowFocus = () => {
 const handleWindowBlur = () => {
   // 窗口失去焦点时，延迟一点时间后隐藏窗口
   setTimeout(() => {
-    // 检查窗口是否仍然失去焦点且不在设置页面
-    if (!document.hasFocus() && !isSettingsInterface.value) {
-      // 调用主进程隐藏窗口
-      // api.ipcRouter.windowToggleShow(window.id || 0, false);
-    }
+    hide(currentPluginItem.value, "hide")
+    // console.log("窗口失去焦点", document.hasFocus(), isSettingsInterface.value);
+    // // 检查窗口是否仍然失去焦点且不在设置页面
+    // if (!document.hasFocus() && !isSettingsInterface.value) {
+    //   // 调用主进程隐藏窗口
+    //   hide(currentPluginItem.value, "hide")
+    // }
   }, 100);
 };
 
@@ -516,32 +523,55 @@ watch(
   }
 );
 
+const generateApi = async (pluginItem: PluginItem) => {
+  const pluginApi = await pluginManager.getPluginApi(pluginItem.pluginId as string)
+
+  const addPathToFileList = async (name: string, path: string) => {
+    await storeBridge.addListItem("fileList", {
+      name: name,
+      path: path,
+      icon: null,
+      lastUsed: Date.now(),
+      usageCount: 1,
+    }, {
+      position: 'start', unique: true, uniqueField: 'path'
+    })
+  }
+
+  return { ...pluginApi, toggleInput, openPluginWindow: () => openPluginWindow(pluginItem), addPathToFileList }
+}
+
 // ==================== 事件处理器 ====================
 /**
  * 处理插件执行完成事件
  * 当插件执行完成时，检查是否需要打开插件窗口
  * @param event 插件执行事件，包含插件项目信息
  */
-const handlePluginExecuted = async (event: { pluginItem: any }) => {
+const handlePluginExecuted = async (event: { pluginItem: PluginItem }) => {
   const { pluginItem } = event;
 
-  if (pluginItem.pluginId) {
-    const pluginApi = await pluginManager.getPluginApi(pluginItem.pluginId as string)
-    pluginItem.onEnter?.(pluginApi)
+  if (pluginItem.pluginId && pluginItem.onEnter) {
+    const genApi = await generateApi(pluginItem)
+    await pluginItem.onEnter?.({ files: attachedFiles.value, searchText: searchText.value }, genApi)
+  } else {
+    console.log('🔍 收到插件执行完成事件，插件项目信息:', {
+      name: pluginItem.name,
+      executeParams: pluginItem.executeParams
+    });
+    // 检查是否为打开新窗口类型的插件
+    if (pluginItem.executeType === 3 && pluginItem.executeParams?.url) {
+      // 打开插件窗口并传递插件项目信息
+      await api.ipcRouter.windowCreateWebPageWindow(window.id!, pluginItem.executeParams.url, { path: pluginItem.path })
+      await openPluginWindow(pluginItem);
+    }
   }
 
-  console.log('🔍 收到插件执行完成事件，插件项目信息:', {
-    name: pluginItem.name,
-    enableSearch: pluginItem.executeParams?.enableSearch,
-    executeParams: pluginItem.executeParams
-  });
-
-  // 检查是否为打开新窗口类型的插件
-  if (pluginItem.executeType === 3) { // PluginExecuteType.SHOW_WEBPAGE = 3
-    // 打开插件窗口并传递插件项目信息
-    openPluginWindow(pluginItem);
-  }
+  await updateStoreCategory()
+  attachedFiles.value = []
+  searchText.value = ""
+  await handleSearch("")
 };
+
 
 /**
  * 处理关闭窗口请求
@@ -559,6 +589,8 @@ const handleCloseWindowRequested = async () => {
   if (isPluginWindowOpen.value) {
     console.log("关闭插件窗口");
     handleClosePluginWindow();
+    attachedFiles.value = []
+    currentPluginItem.value = null
     return;
   }
 
@@ -567,6 +599,13 @@ const handleCloseWindowRequested = async () => {
     console.log("关闭设置页面");
     await closeSettings();
     return;
+  }
+
+  if (attachedFiles.value.length > 0 || currentPluginItem.value) {
+    console.log("清空附加内容");
+    attachedFiles.value = []
+    currentPluginItem.value = null
+    return
   }
 
   // 如果当前是搜索页面
@@ -578,7 +617,6 @@ const handleCloseWindowRequested = async () => {
     handleSearch('');
     return;
   }
-
 
   hide(currentPluginItem.value)
 };
@@ -630,7 +668,7 @@ onMounted(async () => {
 
   // 7. 注册窗口事件监听器
   useEventListener(window, "focus", handleWindowFocus);
-  useEventListener(window, "blur", handleWindowBlur);
+  useEventListener(window, "window-all-blur", handleWindowBlur);
   useEventListener(document, "visibilitychange", handleVisibilityChange);
 
   const handleHotkeyTriggered: HotkeyEventListener = (event) => {

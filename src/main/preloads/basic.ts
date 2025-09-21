@@ -81,4 +81,10 @@ ipcRenderer.on('global-hotkey-trigger', (event, data) => {
   window.dispatchEvent(customEvent);
 });
 
+ipcRenderer.on('window-all-blur', () => {
+  console.log('Preload收到所有窗口失去焦点事件');
+  const customEvent = new CustomEvent('window-all-blur');
+  window.dispatchEvent(customEvent);
+});
+
 console.log("✅ Preload脚本执行完成，耗时:", Date.now() - preloadStartTime, "ms");

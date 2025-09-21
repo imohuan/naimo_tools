@@ -26,12 +26,8 @@ export const useWindowManager = () => {
   /** 打开当前插件项目的following窗口 */
   const openCurrentItemFollowingWindow = (pluginItem: PluginItem | null) => {
     if (!pluginItem) return
-    if (!pluginItem.pluginId || !pluginItem.name) return
-
-    api.ipcRouter.windowShowSpecificFollowingWindow({
-      pluginId: pluginItem.pluginId,
-      name: pluginItem.name
-    })
+    if (!pluginItem.path) return
+    api.ipcRouter.windowShowSpecificFollowingWindow(pluginItem.path)
   }
 
   /** 检查窗口是否显示 */

@@ -1,9 +1,10 @@
-import { ref, computed } from 'vue'
+import { ref, computed, type Ref } from 'vue'
 import { searchEngine } from '@/core/search/SearchEngine'
 import { useAppActions } from './hooks/useAppActions'
 import type { SearchCategory, SearchState } from '@/typings/search-types'
+import type { AttachedFile } from '@/composables/useFileHandler'
 
-export function useSearch() {
+export function useSearch(attachedFiles: Ref<AttachedFile[]>) {
   const selectedIndex = ref(0)
 
   // 搜索状态管理
@@ -18,19 +19,25 @@ export function useSearch() {
     return searchEngine.flatItems(searchState.value.searchCategories)
   })
 
+  const updateStoreCategory = async () => {
+    await searchEngine.updateStoreCategory()
+  }
+
   // 执行搜索 - 使用SearchEngine
-  const performSearch = async (attachedFiles?: any[]) => {
+  const performSearch = async (updateSearchState: boolean = false) => {
     try {
       searchState.value.isSearching = true
       const searchQuery = searchState.value.searchText.trim()
 
       console.log('🔍 执行搜索:', {
         searchQuery,
-        attachedFilesCount: attachedFiles?.length || 0
+        attachedFilesCount: attachedFiles.value.length
       })
 
+      if (updateSearchState) await updateStoreCategory()
+
       // 使用SearchEngine执行搜索
-      const filteredCategories = await searchEngine.performSearch(searchQuery, attachedFiles)
+      const filteredCategories = await searchEngine.performSearch(searchQuery, attachedFiles.value)
       searchState.value.searchCategories = filteredCategories
 
       console.log('✅ 搜索结果:', filteredCategories.map(cat => ({
@@ -47,14 +54,14 @@ export function useSearch() {
   }
 
   // 处理搜索
-  const handleSearch = async (value: string, attachedFiles?: any[]) => {
+  const handleSearch = async (value: string) => {
     console.log('🔍 handleSearch 被调用:', {
       value,
       currentSearchText: searchState.value.searchText,
-      attachedFilesCount: attachedFiles?.length || 0
+      attachedFilesCount: attachedFiles.value.length
     })
     searchState.value.searchText = value
-    await performSearch(attachedFiles)
+    await performSearch()
   }
 
   /**
@@ -133,6 +140,7 @@ export function useSearch() {
     handleCategoryDragEnd,
     handleAppDelete,
     handleAppPin,
+    updateStoreCategory
   }
 }
 

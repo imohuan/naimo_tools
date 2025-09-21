@@ -69,6 +69,7 @@ export function toggleShow(id: number, show?: boolean): void {
   if (shouldShow && !isVisible) {
     // 显示窗口
     windowManager.show(window);
+    window.focus();
     log.debug("窗口已显示");
   } else if (!shouldShow && isVisible) {
     // 隐藏窗口
@@ -436,42 +437,31 @@ export function manageFollowingWindows(action: 'hide' | 'close'): void {
  * 根据插件信息显示特定的following窗口
  * @param pluginItem 插件项目信息，包含pluginId和名称
  */
-export function showSpecificFollowingWindow(pluginItem: { pluginId?: string; name?: string }): void {
+export function showSpecificFollowingWindow(pathId: string): void {
   try {
     const followingWindows = windowManager.getWindowInfoByType(WindowType.FOLLOWING);
 
-    log.info(`开始查找并显示特定插件窗口: ${pluginItem.name} (PluginId: ${pluginItem.pluginId})`);
+    log.info(`开始查找并显示特定插件窗口: ${pathId}`);
 
     let foundWindow = false;
 
     followingWindows.forEach(followingWindow => {
-      if (followingWindow.metadata?.init) {
-        // 检查窗口是否匹配插件信息
-        const windowName = followingWindow.metadata.name || '';
-        const windowPluginId = followingWindow.metadata?.pluginId || '';
-
-        const pluginId = pluginItem.pluginId || '';
-        const pluginName = pluginItem.name || '';
-
-        // 匹配条件：pluginId匹配或者标题匹配插件名称
-        const pluginIdMatch = pluginId && windowPluginId === pluginId;
-        const titleMatch = pluginName && windowName === pluginName;
-
-        if (pluginIdMatch || titleMatch) {
-          if (!windowManager.isWindowVisible(followingWindow.window)) {
-            windowManager.show(followingWindow.window);
-            log.info(`显示特定插件窗口: ${windowName} (PluginId: ${windowPluginId})`);
-            foundWindow = true;
-          } else {
-            log.debug(`插件窗口已显示: ${windowName} (PluginId: ${windowPluginId})`);
-            foundWindow = true;
-          }
+      const followingPathId = followingWindow.metadata?.path
+      if (!followingPathId) return
+      if (followingPathId === pathId) {
+        if (!windowManager.isWindowVisible(followingWindow.window)) {
+          windowManager.show(followingWindow.window);
+          log.info(`显示特定插件窗口: ${followingPathId} (PluginId: ${pathId})`);
+          foundWindow = true;
+        } else {
+          log.debug(`插件窗口已显示: ${followingPathId} (PluginId: ${pathId})`);
+          foundWindow = true;
         }
       }
     });
 
     if (!foundWindow) {
-      log.warn(`未找到匹配的插件窗口: ${pluginItem.name} (PluginId: ${pluginItem.pluginId})`);
+      log.warn(`未找到匹配的插件窗口: ${pathId}`);
     }
   } catch (error) {
     log.error("显示特定插件窗口时发生错误:", error);
@@ -487,8 +477,15 @@ export function showSpecificFollowingWindow(pluginItem: { pluginId?: string; nam
 export async function createWebPageWindow(
   windowId: number,
   url: string,
-  metadata?: Omit<BasicWindowMetadata, "init" | "parentWindowId" | "url">
+  metadata?: Omit<BasicWindowMetadata, "init" | "parentWindowId" | "url" | "path">
 ): Promise<void> {
+  // 获取主窗口位置和大小
+  const mainWindow = BrowserWindow.fromId(windowId);
+  if (!mainWindow) {
+    log.error("无法获取主窗口，无法创建网页窗口");
+    return;
+  }
+
   const __filename = fileURLToPath(import.meta.url);
   const __dirname = dirname(__filename);
 
@@ -496,29 +493,13 @@ export async function createWebPageWindow(
   // 检查是否已经有相同URL的网页窗口打开
   const title = metadata?.title || 'Web Page';
 
-  windowManager.getWindowInfoByType(WindowType.FOLLOWING).forEach(followingWindow => {
-    const { name, pluginId } = followingWindow.metadata as any || {}
-    if (name === metadata?.name && pluginId === metadata?.pluginId) {
-      followingWindow.window.focus();
-      return;
-    }
-  });
-
-  const existingWindow = BrowserWindow.getAllWindows().find(
-    (window) => window.getTitle() === title && window.webContents.getURL().includes(url)
-  );
-
-  if (existingWindow) {
-    existingWindow.focus();
-    return;
-  }
-
-  // 获取主窗口位置和大小
-  const mainWindow = BrowserWindow.fromId(windowId);
-  if (!mainWindow) {
-    log.error("无法获取主窗口，无法创建网页窗口");
-    return;
-  }
+  // windowManager.getWindowInfoByType(WindowType.FOLLOWING).forEach(followingWindow => {
+  //   const { name, pluginId } = followingWindow.metadata as any || {}
+  //   if (name === metadata?.name && pluginId === metadata?.pluginId) {
+  //     mainWindow.focus();
+  //     return;
+  //   }
+  // });
 
   const [mainX, mainY] = mainWindow.getPosition();
   const [mainWidth, mainHeight] = mainWindow.getSize();
@@ -559,30 +540,28 @@ export async function createWebPageWindow(
 
   // 创建新的网页窗口
   const webWindow = new BrowserWindow(windowOptions);
+  windowManager.hide(webWindow);
+  webWindow.showInactive()
 
   const allWindows = BrowserWindow.getAllWindows();
   log.info(`当前所有窗口数量: ${allWindows.length}`);
 
   windowManager.registerWindow(webWindow, WindowType.FOLLOWING, {
-    url,
-    title,
-    init: false,
-    parentWindowId: windowId,
-    ...metadata
+    ...metadata, url, title, init: false, parentWindowId: windowId, path: metadata?.path,
   });
 
-  // 加载网页
+  // // 加载网页
   webWindow.loadURL(url);
 
   // 窗口准备好后显示（无动画）
   webWindow.once("ready-to-show", () => {
+    // 直接显示，无动画效果
     log.info(
       `网页窗口已打开: ${title} - ${url} 位置: ${bounds.x},${bounds.y} 大小: ${bounds.width}x${bounds.height}`
     );
   });
 
   webWindow.webContents.on("did-finish-load", () => {
-    // 直接显示，无动画效果
     windowManager.show(webWindow); // 使用 WindowManager.show 避免动画
     windowManager.setMetadata(webWindow.id, { init: true });
   });
