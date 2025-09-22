@@ -8,10 +8,13 @@
       <div v-if="currentPluginItem" class="h-full flex items-center p-2">
         <!-- 插件图标容器 -->
         <div class="h-full p-2 flex items-center space-x-1 border border-indigo-200 bg-indigo-50 rounded-md">
-          <div class="p-1">
-            <img v-if="currentPluginItem.icon" :src="currentPluginItem.icon" :alt="currentPluginItem.name"
-              class="w-5 h-5 object-cover" />
-            <IconMdiPuzzle v-else class="w-4 h-4 text-indigo-500" />
+          <div class="p-1 flex items-center justify-center">
+            <IconDisplay :src="currentPluginItem.icon" :alt="currentPluginItem.name" icon-class="w-4 h-4 object-cover"
+              fallback-class="w-5 h-5 flex items-center justify-center">
+              <template #fallback>
+                <IconMdiPuzzle class="w-4 h-4 text-indigo-500" />
+              </template>
+            </IconDisplay>
           </div>
 
           <!-- 插件名称和类型 -->
@@ -31,8 +34,12 @@
         <!-- 文件图标容器 -->
         <div class="h-full p-2 flex items-center space-x-1 border border-gray-200 bg-gray-50 rounded-md">
           <div class="p-1">
-            <img v-if="firstFileIcon" :src="firstFileIcon" :alt="firstFile.name" class="w-5 h-5 object-cover" />
-            <IconMdiFile v-else class="w-4 h-4 text-gray-500" />
+            <IconDisplay :src="firstFileIcon" :alt="firstFile.name" icon-class="w-5 h-5 object-cover"
+              fallback-class="w-5 h-5 flex items-center justify-center">
+              <template #fallback>
+                <IconMdiFile class="w-4 h-4 text-gray-500" />
+              </template>
+            </IconDisplay>
           </div>
 
           <!-- 文件名和数量 -->
@@ -82,11 +89,16 @@
 </template>
 
 <script setup lang="ts">
-import { watch } from "vue";
+import { watch, ref, computed } from "vue";
 import DraggableArea from "@/components/DraggableArea.vue";
 import SearchInput from "./SearchInput.vue";
+import IconDisplay from "@/components/IconDisplay.vue";
 import type { AttachedFile } from "@/composables/useFileHandler";
 import type { PluginItem } from "@/typings/plugin-types";
+/** @ts-ignore */
+import IconMdiPuzzle from "~icons/mdi/puzzle";
+/** @ts-ignore */
+import IconMdiFile from "~icons/mdi/file";
 
 interface Props {
   searchText: string;

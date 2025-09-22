@@ -1,5 +1,6 @@
 import type { AttachedFile } from '@/composables/useFileHandler'
 import type { AppItem } from '@shared/types'
+import type { SearchMode } from './search-types'
 /** 插件钩子 */
 export type PluginHook = (...args: any[]) => void | Promise<void>
 
@@ -138,27 +139,35 @@ export interface PluginItem extends AppItem {
   pluginId?: string
   /** 插件描述 */
   description?: string
-  /** 执行类型 */
-  executeType: PluginExecuteType
   /** 开机启动 */
   autoStart?: boolean
+  /** 执行类型 */
+  executeType?: PluginExecuteType
   /** 执行参数 */
   executeParams?: {
     /** 网页URL（当executeType为SHOW_WEBPAGE时） */
     url?: string
     /** 自定义代码（当executeType为CUSTOM_CODE时） */
     code?: string
-    /** 关闭插件窗口时的行为：'hide' 隐藏，'close' 关闭 */
-    closeAction?: 'hide' | 'close'
     /** 其他参数 */
     [key: string]: any
   }
   /** 排序权重 */
   weight?: number
-  /** 搜索回调 */
+  /** 关闭插件窗口时的行为：'hide' 隐藏，'close' 关闭 */
+  closeAction?: 'hide' | 'close'
+  /** 搜索回调（附件搜索模式使用） */
   onSearch?: (text: string, files: AttachedFile[]) => boolean
+  /** 插件搜索回调（插件搜索模式使用） */
+  onPluginSearch?: (searchText: string, files: AttachedFile[]) => AppItem[]
   /** 进入回调 */
   onEnter?: (params: { files: AttachedFile[], searchText: string }, api: PluginApi) => void
+  /** 在哪些搜索模式下隐藏 */
+  hideInModes?: SearchMode[]
+  /** 在哪些搜索模式下显示 */
+  showInModes?: SearchMode[]
+  /** 匿名搜索字段列表（用于匿名搜索匹配） */
+  anonymousSearchFields?: string[]
 }
 
 /** 插件分类接口 */

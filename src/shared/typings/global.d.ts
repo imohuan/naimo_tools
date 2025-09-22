@@ -23,6 +23,12 @@ interface WebUtils {
    * @returns 文件的实际路径
    */
   getPathForFile: (file: File) => string;
+  /**
+   * 安全地加载插件配置文件
+   * @param configPath 配置文件路径
+   * @returns 插件配置对象
+   */
+  loadPluginConfig: (configPath: string) => Promise<any>;
 }
 
 declare global {

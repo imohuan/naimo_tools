@@ -3,6 +3,7 @@ import { BaseSingleton } from '../BaseSingleton'
 import { ElectronSearchBridge } from './ElectronSearchBridge'
 import { categoryConfig } from '@/modules/search/config/search.config'
 import type { SearchCategory } from '@/typings/search-types'
+import { SearchMode } from '@/typings/search-types'
 import type { AppItem } from '@shared/types'
 import { pluginManager } from '../plugin/PluginManager'
 import type { AttachedFile } from '@/composables/useFileHandler'
@@ -23,12 +24,14 @@ export class SearchEngine extends BaseSingleton implements CoreAPI {
     this.bridge = ElectronSearchBridge.getInstance()
   }
 
+  /** 初始化 */
   async initialize(): Promise<void> {
     await this.initCategories()
     const pluginCategories = this.getPluginCategories()
     this.addCategories(...pluginCategories)
   }
 
+  /** 获取插件分类 */
   getPluginCategories(): SearchCategory[] {
     console.log('🔌 开始加载插件数据...')
     try {
@@ -83,6 +86,13 @@ export class SearchEngine extends BaseSingleton implements CoreAPI {
     }
   }
 
+  /** 更新插件分类 */
+  updatePluginCategories(): void {
+    const pluginCategories = this.getPluginCategories()
+    this.categories = this.categories.filter(cat => !cat.isPluginCategory)
+    this.addCategories(...pluginCategories)
+  }
+
   /** 初始化分类数据 */
   async initCategories(): Promise<SearchCategory[]> {
     const appApps = await this.bridge.getApps()
@@ -106,9 +116,7 @@ export class SearchEngine extends BaseSingleton implements CoreAPI {
     const categories = [
       { ...categoryConfig.recent, items: recentAppsWithIcons, },
       { ...categoryConfig.pinned, items: pinnedAppsWithIcons, },
-      {
-        ...categoryConfig.files, items: fileListWithIcons, customSearch: categoryConfig.files.customSearch,
-      },
+      { ...categoryConfig.files, items: fileListWithIcons, },
       { ...categoryConfig.applications, items: [...appAppsWithIcons], },
     ]
 
@@ -190,7 +198,7 @@ export class SearchEngine extends BaseSingleton implements CoreAPI {
         items: uniqueApps,
         isDragEnabled: false,
         maxDisplayCount: 24,
-        isExpanded: false,
+        isExpanded: false
       },
       {
         id: 'recommended',
@@ -198,14 +206,7 @@ export class SearchEngine extends BaseSingleton implements CoreAPI {
         items: filesCategory ? [...filesCategory.items] : [],
         isDragEnabled: true,
         maxDisplayCount: 16,
-        isExpanded: false,
-        customSearch: filesCategory?.customSearch || ((searchText: string, items: AppItem[]) => {
-          return items.filter((item) => {
-            const name = item.name.toLowerCase()
-            const query = searchText.toLowerCase()
-            return name.includes(query) || name.split('.').pop()?.includes(query)
-          })
-        }),
+        isExpanded: false
       },
     ]
 
@@ -219,16 +220,36 @@ export class SearchEngine extends BaseSingleton implements CoreAPI {
   }
 
   /** 获取附加文件分类 */
-  getAttachedFilesCategory(items: AppItem[], text: string, attachedFiles: AttachedFile[]): SearchCategory {
-    let filterItems = this.filterItems(items, text, attachedFiles).filter(f => (f as PluginItem).onSearch)
-    return {
+  getAttachedFilesCategorys(attachedFiles: AttachedFile[]): SearchCategory[] {
+    // 获取所有插件分类
+    const pluginCategories = this.categories.filter(cat => cat.isPluginCategory && cat.items.length > 0)
+
+    const toolsCategory: SearchCategory = {
       id: 'file_tools',
       name: '匹配工具',
-      items: filterItems,
+      items: pluginCategories.flatMap(cat => cat.items),
       isDragEnabled: false,
       maxDisplayCount: 20,
       isExpanded: false,
     }
+
+    const attachedFilesCategory: SearchCategory = {
+      id: 'attached-files',
+      name: '附加文件',
+      items: attachedFiles!.map(file => ({
+        name: file.name,
+        path: file.path,
+        icon: file.icon || null,
+        lastUsed: Date.now(),
+        usageCount: 1,
+      })),
+      isDragEnabled: false,
+      maxDisplayCount: 10,
+      isExpanded: false,
+    }
+
+    // 将附加文件分类添加到基础分类的开头
+    return [toolsCategory, attachedFilesCategory]
   }
 
   /** 
@@ -270,9 +291,73 @@ export class SearchEngine extends BaseSingleton implements CoreAPI {
     return items
   }
 
-  /** 过滤项目 onSearch 方法 */
-  filterItems(items: AppItem[], searchText: string, attachedFiles: AttachedFile[]) {
-    return items.filter(item => (item as PluginItem).onSearch ? (item as PluginItem).onSearch!(searchText, attachedFiles) : true)
+  /** 根据搜索模式和显示条件过滤项目 */
+  filterItemsBySearchMode(items: AppItem[], searchText: string, attachedFiles: AttachedFile[], searchMode: SearchMode): AppItem[] {
+    return items.filter(item => {
+      const pluginItem = item as PluginItem
+
+      if (pluginItem.hidden) return false
+
+      // 检查显示条件
+      // 检查是否在隐藏模式中
+      if (pluginItem.hideInModes && pluginItem.hideInModes.includes(searchMode)) {
+        return false
+      }
+
+      // 检查是否在显示模式中
+      if (pluginItem.showInModes && !pluginItem.showInModes.includes(searchMode)) {
+        return false
+      }
+
+      // 根据搜索模式进行过滤
+      switch (searchMode) {
+        case SearchMode.NORMAL:
+          if (searchText.length === 0) return true
+          // 普通搜索：使用拼音匹配或匿名搜索字段
+          const searchTexts = [item.name, ...(pluginItem.anonymousSearchFields || [])]
+          return searchTexts.some(field => PinyinSearch.match(field, searchText))
+
+        case SearchMode.ATTACHMENT:
+          // 必须配置在附件搜索模式下显示
+          if (!pluginItem.showInModes || !pluginItem.showInModes.includes(SearchMode.ATTACHMENT)) return false
+          // 附件搜索：使用 onSearch 回调
+          const searchResult = pluginItem.onSearch ? pluginItem.onSearch(searchText, attachedFiles) : true
+          if (!searchResult) return false
+          // 如果搜索词为空，则返回true
+          if (searchText.length === 0) return true
+          // 使用拼音匹配或匿名搜索字段
+          return [item.name, ...(pluginItem.anonymousSearchFields || [])].some(field => PinyinSearch.match(field, searchText))
+
+        case SearchMode.PLUGIN:
+          // 插件搜索：使用插件搜索回调
+          if (pluginItem.onPluginSearch) {
+            const pluginResults = pluginItem.onPluginSearch(searchText, attachedFiles)
+            return pluginResults.length > 0
+          }
+          return true
+
+        default:
+          return true
+      }
+    })
+  }
+
+  /** 检测搜索模式 */
+  detectSearchMode(_searchText: string, attachedFiles?: AttachedFile[], attachedPluginItems?: AppItem[]): SearchMode {
+    // 优先级：前缀 > 附加参数
+
+    // 1. 检查是否为插件搜索（以 @ 开头或有附加插件项目）
+    if ((attachedPluginItems && attachedPluginItems.length > 0)) {
+      return SearchMode.PLUGIN
+    }
+
+    // 2. 检查是否为附件搜索（以 # 开头或有附加文件）
+    if ((attachedFiles && attachedFiles.length > 0)) {
+      return SearchMode.ATTACHMENT
+    }
+
+    // 3. 默认为普通搜索（包括匿名搜索）
+    return SearchMode.NORMAL
   }
 
   /**
@@ -285,9 +370,11 @@ export class SearchEngine extends BaseSingleton implements CoreAPI {
   async performSearch(searchText: string, attachedFiles?: AttachedFile[], attachedPluginItems?: AppItem[]) {
     try {
       const searchQuery = searchText.trim()
+      const searchMode = this.detectSearchMode(searchQuery, attachedFiles, attachedPluginItems)
 
       console.log('🔍 执行搜索:', {
         searchQuery,
+        searchMode,
         originalCategoriesCount: this.categories.length,
         attachedFilesCount: attachedFiles?.length || 0,
         attachedPluginItemsCount: attachedPluginItems?.length || 0
@@ -295,39 +382,12 @@ export class SearchEngine extends BaseSingleton implements CoreAPI {
 
       // 根据搜索状态选择不同的分类配置
       let categories: SearchCategory[] = []
-      if (searchQuery.length === 0) {
+      if (searchMode === SearchMode.ATTACHMENT) {
+        categories = this.getAttachedFilesCategorys(attachedFiles || [])
+      } else if (searchQuery.length === 0) {
         categories = this.getDefaultCategories()
       } else {
         categories = this.getSearchCategories()
-      }
-
-      const items = this.categories.filter(cat => cat.isPluginCategory).flatMap(cat => cat.items)
-
-      // 如果有附加文件，创建一个新的分类来包含这些文件
-      if (attachedFiles && attachedFiles.length > 0) {
-        const attachedFilesCategory: SearchCategory = {
-          id: 'attached-files',
-          name: '附加文件',
-          items: attachedFiles.map(file => ({
-            name: file.name,
-            path: file.path,
-            icon: file.icon || null,
-            lastUsed: Date.now(),
-            usageCount: 1,
-          })),
-          isDragEnabled: false,
-          maxDisplayCount: 10,
-          isExpanded: false,
-        }
-
-        // 将附加文件分类添加到基础分类的开头
-        categories = [this.getAttachedFilesCategory(items, searchText, attachedFiles), attachedFilesCategory]
-
-        console.log('📎 添加附加文件分类:', {
-          id: attachedFilesCategory.id,
-          name: attachedFilesCategory.name,
-          itemsCount: attachedFilesCategory.items.length
-        })
       }
 
       console.log('📂 基础分类:', categories.map(cat => ({ id: cat.id, name: cat.name, itemsCount: cat.items.length })))
@@ -337,47 +397,15 @@ export class SearchEngine extends BaseSingleton implements CoreAPI {
         let filteredItems: AppItem[] = []
 
         console.log(`🔍 处理分类 ${category.name}:`, {
-          id: category.id,
-          originalItemsCount: category.items.length,
-          hasCustomSearch: !!category.customSearch,
-          searchQuery
+          id: category.id, originalItemsCount: category.items.length, searchQuery
         })
 
-        category.items = category.items.filter(item => !item.hidden)
-
-        if (searchQuery.length === 0) {
-          // 无搜索词时，显示所有项目
-          filteredItems = this.filterItems([...category.items], searchQuery, attachedFiles || [])
-        } else {
-          // 有搜索词时，进行过滤
-          if (category.customSearch) {
-            filteredItems = category.customSearch(searchQuery, category.items)
-            console.log(`🔍 使用自定义搜索:`, {
-              originalCount: category.items.length,
-              filteredCount: filteredItems.length
-            })
-          } else {
-            filteredItems = this.filterItems([...category.items], searchQuery, attachedFiles || [])
-            filteredItems = filteredItems.filter((item) => {
-              // 使用拼音搜索进行匹配
-              const matches = PinyinSearch.match(item.name, searchQuery)
-              if (matches) {
-                console.log(`✅ 匹配项目:`, {
-                  name: item.name,
-                  path: item.path,
-                  pinyin: PinyinSearch.getPinyin(item.name),
-                  initials: PinyinSearch.getInitials(item.name)
-                })
-              }
-              return matches
-            })
-            console.log(`🔍 使用拼音搜索:`, {
-              originalCount: category.items.length,
-              filteredCount: filteredItems.length,
-              searchQuery
-            })
-          }
-        }
+        filteredItems = this.filterItemsBySearchMode([...category.items], searchQuery, attachedFiles || [], searchMode)
+        console.log(`🔍 使用搜索模式 ${searchMode}:`, {
+          originalCount: category.items.length,
+          filteredCount: filteredItems.length,
+          searchQuery
+        })
 
         console.log(`📊 分类 ${category.name} 过滤结果:`, {
           filteredItemsCount: filteredItems.length,

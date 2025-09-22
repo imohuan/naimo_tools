@@ -24,6 +24,7 @@ export default defineConfig({
         'electron-store',
         'electron-unhandled',
         'update-electron-app',
+        "archiver",
         'path',
         'url',
         'fs',
@@ -41,6 +42,7 @@ export default defineConfig({
         'lodash-es',
         "extract-file-icon",
         'crypto',
+        'zlib',
         'serialize-error'
       ],
       output: {

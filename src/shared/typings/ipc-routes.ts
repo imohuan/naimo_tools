@@ -1,6 +1,6 @@
 /**
  * 自动生成的 IPC 类型定义
- * 生成时间: 2025-09-21T08:04:56.330Z
+ * 生成时间: 2025-09-22T08:11:50.013Z
  * 请勿手动修改此文件
  */
 
@@ -148,55 +148,34 @@ interface filesystemInterface {
  */
   "filesystemSaveFile": (options: Electron.SaveDialogOptions) => Promise<string | null>;
 
-  /**
- * 读取插件配置文件
- * @param 插件路径
- * @returns 插件配置对象
- */
-  "filesystem-read-plugin-config": (pluginPath: string) => Promise<any>;
-  /**
- * 读取插件配置文件
- * @param 插件路径
- * @returns 插件配置对象
- */
-  "filesystemReadPluginConfig": (pluginPath: string) => Promise<any>;
+  /** 获取插件目录路径 */
+  "filesystem-get-plugins-directory": () => Promise<string>;
+  /** 获取插件目录路径 */
+  "filesystemGetPluginsDirectory": () => Promise<string>;
 
   /**
  * 获取所有已安装的插件（仅第三方插件）
- * @returns 插件配置数组
+ * @returns 插件信息数组，包含路径和配置文件路径
  */
   "filesystem-get-all-installed-plugins": () => Promise<any[]>;
   /**
  * 获取所有已安装的插件（仅第三方插件）
- * @returns 插件配置数组
+ * @returns 插件信息数组，包含路径和配置文件路径
  */
   "filesystemGetAllInstalledPlugins": () => Promise<any[]>;
 
   /**
- * 解压插件zip文件
+ * 安装插件zip文件
  * @param zip文件路径
- * @param 目标目录
+ * @returns 插件安装路径，如果安装失败则返回null
  */
-  "filesystem-extract-plugin-zip": (zipPath: string, targetDir: string) => Promise<void>;
-  /**
- * 解压插件zip文件
- * @param zip文件路径
- * @param 目标目录
- */
-  "filesystemExtractPluginZip": (zipPath: string, targetDir: string) => Promise<void>;
-
+  "filesystem-install-plugin-from-zip": (zipPath: string) => Promise<{ path: string, configPath: string, isDefault: boolean } | null>;
   /**
  * 安装插件zip文件
  * @param zip文件路径
- * @returns 是否安装成功
+ * @returns 插件安装路径，如果安装失败则返回null
  */
-  "filesystem-install-plugin-from-zip": (zipPath: string) => Promise<boolean>;
-  /**
- * 安装插件zip文件
- * @param zip文件路径
- * @returns 是否安装成功
- */
-  "filesystemInstallPluginFromZip": (zipPath: string) => Promise<boolean>;
+  "filesystemInstallPluginFromZip": (zipPath: string) => Promise<{ path: string, configPath: string, isDefault: boolean } | null>;
 
   /**
  * 卸载插件
@@ -210,6 +189,21 @@ interface filesystemInterface {
  * @returns 是否卸载成功
  */
   "filesystemUninstallPlugin": (pluginId: string) => Promise<boolean>;
+
+  /**
+ * 将文件夹打包为zip文件
+ * @param 源文件夹路径
+ * @param 输出zip文件路径
+ * @returns 是否打包成功
+ */
+  "filesystem-zip-directory": (sourceDir: string, outputPath: string) => Promise<boolean>;
+  /**
+ * 将文件夹打包为zip文件
+ * @param 源文件夹路径
+ * @param 输出zip文件路径
+ * @returns 是否打包成功
+ */
+  "filesystemZipDirectory": (sourceDir: string, outputPath: string) => Promise<boolean>;
 }
 
 interface hotkeyInterface {
@@ -319,147 +313,6 @@ interface logInterface {
   lastModified: Date;
   lineCount: number;
 }>;
-}
-
-interface pluginInterface {
-  /**
- * 加载插件
- * @param 插件路径
- * @returns 插件配置对象
- */
-  "plugin-load-plugin": (pluginPath: string) => Promise<any>;
-  /**
- * 加载插件
- * @param 插件路径
- * @returns 插件配置对象
- */
-  "pluginLoadPlugin": (pluginPath: string) => Promise<any>;
-
-  /**
- * 卸载插件
- * @param 插件ID
- * @returns 是否卸载成功
- */
-  "plugin-unload-plugin": (pluginId: string) => Promise<boolean>;
-  /**
- * 卸载插件
- * @param 插件ID
- * @returns 是否卸载成功
- */
-  "pluginUnloadPlugin": (pluginId: string) => Promise<boolean>;
-
-  /**
- * 执行插件项目
- * @param 插件项目
- * @returns 是否执行成功
- */
-  "plugin-execute-plugin-item": (item: any) => Promise<boolean>;
-  /**
- * 执行插件项目
- * @param 插件项目
- * @returns 是否执行成功
- */
-  "pluginExecutePluginItem": (item: any) => Promise<boolean>;
-
-  /**
- * 获取插件列表
- * @returns 插件配置数组
- */
-  "plugin-get-plugin-list": () => Promise<any[]>;
-  /**
- * 获取插件列表
- * @returns 插件配置数组
- */
-  "pluginGetPluginList": () => Promise<any[]>;
-
-  /**
- * 安装插件
- * @param 插件数据
- * @returns 是否安装成功
- */
-  "plugin-install-plugin": (pluginData: any) => Promise<boolean>;
-  /**
- * 安装插件
- * @param 插件数据
- * @returns 是否安装成功
- */
-  "pluginInstallPlugin": (pluginData: any) => Promise<boolean>;
-
-  /**
- * 从ZIP文件安装插件
- * @param ZIP文件路径
- * @returns 是否安装成功
- */
-  "plugin-install-plugin-from-zip-file": (zipPath: string) => Promise<boolean>;
-  /**
- * 从ZIP文件安装插件
- * @param ZIP文件路径
- * @returns 是否安装成功
- */
-  "pluginInstallPluginFromZipFile": (zipPath: string) => Promise<boolean>;
-
-  /**
- * 获取插件配置
- * @param 插件ID
- * @returns 插件配置
- */
-  "plugin-get-plugin-config": (pluginId: string) => Promise<any>;
-  /**
- * 获取插件配置
- * @param 插件ID
- * @returns 插件配置
- */
-  "pluginGetPluginConfig": (pluginId: string) => Promise<any>;
-
-  /**
- * 设置插件配置
- * @param 插件ID
- * @param 配置对象
- * @returns 是否设置成功
- */
-  "plugin-set-plugin-config": (pluginId: string, config: any) => Promise<boolean>;
-  /**
- * 设置插件配置
- * @param 插件ID
- * @param 配置对象
- * @returns 是否设置成功
- */
-  "pluginSetPluginConfig": (pluginId: string, config: any) => Promise<boolean>;
-
-  /**
- * 获取插件目录
- * @returns 插件目录路径
- */
-  "plugin-get-plugin-directory": () => Promise<string>;
-  /**
- * 获取插件目录
- * @returns 插件目录路径
- */
-  "pluginGetPluginDirectory": () => Promise<string>;
-
-  /**
- * 检查插件更新
- * @returns 可更新的插件列表
- */
-  "plugin-check-plugin-updates": () => Promise<any[]>;
-  /**
- * 检查插件更新
- * @returns 可更新的插件列表
- */
-  "pluginCheckPluginUpdates": () => Promise<any[]>;
-
-  /**
- * 更新插件
- * @param 插件ID
- * @returns 是否更新成功
- */
-  "plugin-update-plugin": (pluginId: string) => Promise<boolean>;
-  /**
- * 更新插件
- * @param 插件ID
- * @returns 是否更新成功
- */
-  "pluginUpdatePlugin": (pluginId: string) => Promise<boolean>;
 }
 
 interface searchInterface {
@@ -855,7 +708,7 @@ interface windowInterface {
 }
 
 // 合并所有 IPC 路由类型
-export interface AllIpcRouter extends appInterface, filesystemInterface, hotkeyInterface, logInterface, pluginInterface, searchInterface, storeInterface, windowInterface {}
+export interface AllIpcRouter extends appInterface, filesystemInterface, hotkeyInterface, logInterface, searchInterface, storeInterface, windowInterface {}
 
 // 路由信息类型
 export interface RouteInfo {
@@ -964,22 +817,16 @@ export const ROUTE_INFO: RouteInfo[] = [
     function: "saveFile"
   },
   {
-    route: "filesystem-read-plugin-config",
-    comment: "读取插件配置文件",
+    route: "filesystem-get-plugins-directory",
+    comment: "获取插件目录路径",
     module: "filesystem",
-    function: "readPluginConfig"
+    function: "getPluginsDirectory"
   },
   {
     route: "filesystem-get-all-installed-plugins",
     comment: "获取所有已安装的插件（仅第三方插件）",
     module: "filesystem",
     function: "getAllInstalledPlugins"
-  },
-  {
-    route: "filesystem-extract-plugin-zip",
-    comment: "解压插件zip文件",
-    module: "filesystem",
-    function: "extractPluginZip"
   },
   {
     route: "filesystem-install-plugin-from-zip",
@@ -992,6 +839,12 @@ export const ROUTE_INFO: RouteInfo[] = [
     comment: "卸载插件",
     module: "filesystem",
     function: "uninstallPlugin"
+  },
+  {
+    route: "filesystem-zip-directory",
+    comment: "将文件夹打包为zip文件",
+    module: "filesystem",
+    function: "zipDirectory"
   },
   {
     route: "hotkey-register-global-shortcut",
@@ -1046,72 +899,6 @@ export const ROUTE_INFO: RouteInfo[] = [
     comment: "获取日志文件信息",
     module: "log",
     function: "getLogInfo"
-  },
-  {
-    route: "plugin-load-plugin",
-    comment: "加载插件",
-    module: "plugin",
-    function: "loadPlugin"
-  },
-  {
-    route: "plugin-unload-plugin",
-    comment: "卸载插件",
-    module: "plugin",
-    function: "unloadPlugin"
-  },
-  {
-    route: "plugin-execute-plugin-item",
-    comment: "执行插件项目",
-    module: "plugin",
-    function: "executePluginItem"
-  },
-  {
-    route: "plugin-get-plugin-list",
-    comment: "获取插件列表",
-    module: "plugin",
-    function: "getPluginList"
-  },
-  {
-    route: "plugin-install-plugin",
-    comment: "安装插件",
-    module: "plugin",
-    function: "installPlugin"
-  },
-  {
-    route: "plugin-install-plugin-from-zip-file",
-    comment: "从ZIP文件安装插件",
-    module: "plugin",
-    function: "installPluginFromZipFile"
-  },
-  {
-    route: "plugin-get-plugin-config",
-    comment: "获取插件配置",
-    module: "plugin",
-    function: "getPluginConfig"
-  },
-  {
-    route: "plugin-set-plugin-config",
-    comment: "设置插件配置",
-    module: "plugin",
-    function: "setPluginConfig"
-  },
-  {
-    route: "plugin-get-plugin-directory",
-    comment: "获取插件目录",
-    module: "plugin",
-    function: "getPluginDirectory"
-  },
-  {
-    route: "plugin-check-plugin-updates",
-    comment: "检查插件更新",
-    module: "plugin",
-    function: "checkPluginUpdates"
-  },
-  {
-    route: "plugin-update-plugin",
-    comment: "更新插件",
-    module: "plugin",
-    function: "updatePlugin"
   },
   {
     route: "search-search-apps",

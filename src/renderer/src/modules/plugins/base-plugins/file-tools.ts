@@ -1,5 +1,6 @@
 import type { PluginConfig } from '@/typings/plugin-types'
 import { PluginExecuteType, PluginCategoryType } from '@/typings/plugin-types'
+import { SearchMode } from '@/typings/search-types'
 
 /**
  * 网页工具插件示例
@@ -28,7 +29,10 @@ export const fileToolsPlugin: PluginConfig = {
         for (const file of options.files) {
           await api.addPathToFileList(file.name, file.path)
         }
-      }
+      },
+      showInModes: [SearchMode.ATTACHMENT],
+      hideInModes: [SearchMode.NORMAL],
+      anonymousSearchFields: ['file_tools']
     },
   ],
 }

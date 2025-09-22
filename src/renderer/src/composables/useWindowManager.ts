@@ -15,7 +15,7 @@ export const useWindowManager = () => {
 
   /** 根据插件项目配置来执行相应的操作：隐藏或关闭所有following窗口 */
   const manageFollowingWindows = (pluginItem: PluginItem | null, action?: 'hide' | 'close') => {
-    const closeAction = action || pluginItem?.executeParams?.closeAction
+    const closeAction = action || pluginItem?.closeAction
     if (closeAction) {
       api.ipcRouter.windowManageFollowingWindows(closeAction)
     } else {

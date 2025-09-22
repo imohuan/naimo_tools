@@ -13,7 +13,8 @@ export interface AppEvents {
 
   // 插件相关事件
   'plugin:executed': {
-    pluginItem: any
+    pluginId: string
+    path: string
   }
 
   // 窗口管理事件

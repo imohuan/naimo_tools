@@ -550,8 +550,12 @@ export async function createWebPageWindow(
     ...metadata, url, title, init: false, parentWindowId: windowId, path: metadata?.path,
   });
 
-  // // 加载网页
-  webWindow.loadURL(url);
+  // 加载网页
+  if (url.startsWith("http")) {
+    webWindow.loadURL(url);
+  } else {
+    webWindow.loadFile(url);
+  }
 
   // 窗口准备好后显示（无动画）
   webWindow.once("ready-to-show", () => {

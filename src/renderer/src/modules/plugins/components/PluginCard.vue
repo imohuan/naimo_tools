@@ -1,39 +1,35 @@
 <template>
   <div
     class="bg-white rounded-lg border border-gray-200 p-2 hover:border-gray-500 transition-all duration-200 cursor-pointer"
-    :class="{ 'opacity-60': !plugin.enabled }"
-    @click="$emit('click', plugin)"
-  >
+    :class="{ 'opacity-60': !plugin.enabled }" @click="$emit('click', plugin)">
     <!-- 插件头部信息 -->
     <div class="flex items-start gap-2">
-      <div class="text-2xl flex-shrink-0">{{ plugin.icon || "🔌" }}</div>
+      <div class="w-8 h-8 flex-shrink-0">
+        <IconDisplay :src="plugin.icon" :alt="plugin.name"
+          icon-class="w-full h-full object-contain flex  items-center justify-center"
+          fallback-class="w-full h-full flex items-center justify-center rounded">
+          <template #fallback>
+            <span class="text-sm">🔌</span>
+          </template>
+        </IconDisplay>
+      </div>
       <div class="flex-1 min-w-0">
         <div class="flex items-center justify-between mb-2">
           <div class="flex items-center gap-3">
             <h3 class="text font-semibold text-gray-900">
               {{ plugin.name }}
-              <span
-                class="bg-gray-100 px-2 py-1 rounded text-xs transform scale-75 origin-center-left inline-block"
-                >v{{ plugin.version }}</span
-              >
+              <span class="bg-gray-100 px-2 py-1 rounded text-xs transform scale-75 origin-center-left inline-block">v{{
+                plugin.version }}</span>
             </h3>
           </div>
           <!-- 安装/卸载图标按钮 -->
           <div class="flex items-center gap-1">
-            <button
-              v-if="!isInstalled"
-              @click.stop="$emit('install', plugin)"
-              class="p-1.5 text-green-500 hover:bg-green-50 rounded transition-colors"
-              title="安装插件"
-            >
+            <button v-if="!isInstalled" @click.stop="$emit('install', plugin)"
+              class="p-1.5 text-green-500 hover:bg-green-50 rounded transition-colors" title="安装插件">
               <IconMdiDownload class="w-4 h-4" />
             </button>
-            <button
-              v-else
-              @click.stop="$emit('uninstall', plugin.id)"
-              class="p-1.5 text-red-500 hover:bg-red-50 rounded transition-colors"
-              title="卸载插件"
-            >
+            <button v-else @click.stop="$emit('uninstall', plugin.id)"
+              class="p-1.5 text-red-500 hover:bg-red-50 rounded transition-colors" title="卸载插件">
               <IconMdiDeleteOutline class="w-4 h-4" />
             </button>
           </div>
@@ -47,6 +43,7 @@
 </template>
 
 <script setup lang="ts">
+import IconDisplay from "@/components/IconDisplay.vue";
 import type { PluginConfig } from "@/typings/plugin-types";
 
 interface Props {

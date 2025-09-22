@@ -1,5 +1,15 @@
 import type { AppItem } from "@shared/types";
 
+/** 搜索模式枚举 */
+export enum SearchMode {
+  /** 普通搜索 - 搜索 AppItem 的 name（包括匿名搜索） */
+  NORMAL = 'normal',
+  /** 附件搜索 - 根据自定义的 onSearch 方法 */
+  ATTACHMENT = 'attachment',
+  /** 插件搜索 - 将搜索内容提供给插件 */
+  PLUGIN = 'plugin'
+}
+
 /** 搜索分类 */
 export interface SearchCategory {
   /** 分类唯一标识 */
@@ -14,8 +24,6 @@ export interface SearchCategory {
   maxDisplayCount: number;
   /** 是否展开显示全部 */
   isExpanded: boolean;
-  /** 自定义搜索方法 */
-  customSearch?: (searchText: string, items: AppItem[]) => AppItem[];
   /** 是否为插件分类 */
   isPluginCategory?: boolean;
   /** 插件ID（仅插件分类有效） */

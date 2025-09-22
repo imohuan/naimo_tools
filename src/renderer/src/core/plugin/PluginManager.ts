@@ -35,17 +35,29 @@ export class PluginManager extends BaseSingleton implements CoreAPI {
   }
 
   async initialize(): Promise<any> {
-    this.allAvailablePlugins = await this.getPluginList()
+    await this.updatePluginList()
     await this.loadInstalledPlugins()
+  }
+
+  async updatePluginList(): Promise<void> {
+    this.allAvailablePlugins = await this.getPluginList()
   }
 
   /** 获取插件列表 */
   async getPluginList(): Promise<Map<string, PluginConfig>> {
     const defaultPlugins = getDeafultPlugins()
     const thirdPartyPlugins = await api.ipcRouter.filesystemGetAllInstalledPlugins()
+    const thirdPartyPluginsConfig: PluginConfig[] = await Promise.all(thirdPartyPlugins.map(plugin => webUtils.loadPluginConfig(plugin.configPath)))
+
+    thirdPartyPluginsConfig.forEach(plugin => {
+      // 标记为第三方插件
+      plugin.options = { ...(plugin.options || {}), isThirdParty: true, }
+    })
+
+    // const localPlugins = await webUtils.loadPluginConfig(join(app.getPath('userData'), 'plugins'))
     console.log("📋 默认插件数量:", defaultPlugins.length);
     console.log("📋 第三方插件数量:", thirdPartyPlugins.length);
-    const allPlugins = [...defaultPlugins, ...thirdPartyPlugins]
+    const allPlugins = [...defaultPlugins, ...thirdPartyPluginsConfig]
     return new Map(allPlugins.map(plugin => [plugin.id, plugin]))
   }
 
@@ -153,18 +165,47 @@ export class PluginManager extends BaseSingleton implements CoreAPI {
     }
   }
 
+  /** 从ZIP文件安装插件 */
+  async installZip(zipPath: string): Promise<boolean> {
+    const zipConfig = await api.ipcRouter.filesystemInstallPluginFromZip(zipPath);
+    if (!zipConfig) {
+      console.error(`❌ 安装插件失败: ${zipPath}`);
+      return false;
+    }
+
+    // 使用 webUtils.requirePluginConfig 直接加载插件配置（支持函数）
+    const config = await webUtils.loadPluginConfig(zipConfig.configPath);
+    if (!config) {
+      console.error(`❌ 读取插件配置失败: ${zipConfig.configPath}`);
+      return false;
+    }
+
+    const result = await this.install(config, true);
+    await this.updatePluginList();
+    return result;
+  }
+
   /** 卸载插件 */
   async uninstall(pluginId: string): Promise<boolean> {
     try {
       console.log(`🗑️ 开始卸载插件: ${pluginId}`);
       // 检查是否是默认插件
       const isDefaultPlugin = getDeafultPluginById(pluginId) !== null;
+      const plugin = this.installedPlugins.get(pluginId);
+
+      if (!plugin) {
+        console.warn(`⚠️ 插件未安装: ${pluginId}`);
+        return false;
+      }
+
       // 对于第三方插件，需要删除文件
-      if (!isDefaultPlugin) {
+      if (!isDefaultPlugin || (plugin && plugin.options?.isThirdParty)) {
         const success = await api.ipcRouter.filesystemUninstallPlugin(pluginId);
         if (!success) {
           console.error(`❌ 删除插件文件失败: ${pluginId}`);
           return false;
+        } else {
+          await this.updatePluginList();
         }
       }
 
@@ -248,7 +289,7 @@ export class PluginManager extends BaseSingleton implements CoreAPI {
   }
 
   isPluginItem(app: PluginItem): boolean {
-    return "pluginId" in app && "executeType" in app;
+    return "pluginId" in app
   }
 
   /**

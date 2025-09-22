@@ -5,10 +5,12 @@
 
 import { dialog, BrowserWindow, app } from 'electron';
 import log from 'electron-log';
-import { readFile, readdir, stat, mkdir, writeFile, unlink, rmdir } from 'fs/promises';
-import { join, dirname, basename, extname } from 'path';
-import { createReadStream, createWriteStream } from 'fs';
-import * as yauzl from 'yauzl';
+import { readdir, stat, mkdir, rmdir, readFile } from 'fs/promises';
+import { join, basename, extname } from 'path';
+import { createReadStream, createWriteStream, } from 'fs';
+// @ts-ignore
+import unzipper from 'unzipper';
+import archiver from 'archiver';
 
 /**
  * 选择文件
@@ -104,34 +106,22 @@ export function saveFile(options: Electron.SaveDialogOptions = {}): Promise<stri
 /**
  * 获取插件目录路径
  */
-function getPluginsDirectory(): string {
+export function getPluginsDirectory(): string {
   return join(app.getPath('userData'), 'plugins');
 }
 
 /**
- * 读取插件配置文件
+ * 获取插件配置文件路径
  * @param pluginPath 插件路径
- * @returns 插件配置对象
+ * @returns 插件配置文件路径
  */
-export async function readPluginConfig(pluginPath: string): Promise<any> {
-  try {
-    const configPath = join(pluginPath, 'config.js');
-    const configContent = await readFile(configPath, 'utf-8');
-
-    // 执行配置文件获取配置对象
-    const config = eval(`(${configContent})`);
-
-    log.debug(`读取插件配置成功: ${pluginPath}`);
-    return config;
-  } catch (error) {
-    log.error(`读取插件配置失败: ${pluginPath}`, error);
-    throw error;
-  }
+function getPluginConfigPath(pluginPath: string): string {
+  return join(pluginPath, 'config.js');
 }
 
 /**
  * 获取所有已安装的插件（仅第三方插件）
- * @returns 插件配置数组
+ * @returns 插件信息数组，包含路径和配置文件路径
  */
 export async function getAllInstalledPlugins(): Promise<any[]> {
   try {
@@ -148,15 +138,15 @@ export async function getAllInstalledPlugins(): Promise<any[]> {
         const pluginPath = join(pluginsDir, pluginName);
         const pluginStat = await stat(pluginPath);
         if (pluginStat.isDirectory()) {
+          const configPath = getPluginConfigPath(pluginPath);
+          // 检查配置文件是否存在
           try {
-            const config = await readPluginConfig(pluginPath);
+            await stat(configPath);
             plugins.push({
-              ...config,
-              path: pluginPath,
-              isDefault: false
+              path: pluginPath, configPath: configPath, isDefault: false
             });
           } catch (error) {
-            log.warn(`跳过无效的用户插件: ${pluginName}`, error);
+            log.warn(`跳过无效的用户插件: ${pluginName} (配置文件不存在)`);
           }
         }
       }
@@ -177,64 +167,34 @@ export async function getAllInstalledPlugins(): Promise<any[]> {
  * @param zipPath zip文件路径
  * @param targetDir 目标目录
  */
-export async function extractPluginZip(zipPath: string, targetDir: string): Promise<void> {
-  return new Promise((resolve, reject) => {
-    yauzl.open(zipPath, { lazyEntries: true }, (err, zipfile) => {
-      if (err) {
-        reject(err);
-        return;
-      }
+async function extractPluginZip(zipPath: string, targetDir: string): Promise<void> {
+  try {
+    // 确保目标目录存在
+    await mkdir(targetDir, { recursive: true });
 
-      zipfile.readEntry();
-      zipfile.on('entry', (entry) => {
-        if (/\/$/.test(entry.fileName)) {
-          // 目录条目
-          zipfile.readEntry();
-        } else {
-          // 文件条目
-          zipfile.openReadStream(entry, (err, readStream) => {
-            if (err) {
-              reject(err);
-              return;
-            }
+    // 使用unzipper解压文件
+    const stream = createReadStream(zipPath)
+      .pipe(unzipper.Extract({ path: targetDir }));
 
-            const outputPath = join(targetDir, entry.fileName);
-            const outputDir = dirname(outputPath);
-
-            // 确保目录存在
-            mkdir(outputDir, { recursive: true }).then(() => {
-              const writeStream = createWriteStream(outputPath);
-              readStream.pipe(writeStream);
-
-              writeStream.on('close', () => {
-                zipfile.readEntry();
-              });
-
-              writeStream.on('error', (err) => {
-                reject(err);
-              });
-            }).catch(reject);
-          });
-        }
-      });
-
-      zipfile.on('end', () => {
-        resolve();
-      });
-
-      zipfile.on('error', (err) => {
-        reject(err);
-      });
+    // 等待解压完成
+    await new Promise((resolve, reject) => {
+      stream.on('close', resolve);
+      stream.on('error', reject);
     });
-  });
+
+    log.debug(`插件zip文件解压成功: ${zipPath} -> ${targetDir}`);
+  } catch (error) {
+    log.error(`插件zip文件解压失败: ${zipPath}`, error);
+    throw error;
+  }
 }
 
 /**
  * 安装插件zip文件
  * @param zipPath zip文件路径
- * @returns 是否安装成功
+ * @returns 插件安装路径，如果安装失败则返回null
  */
-export async function installPluginFromZip(zipPath: string): Promise<boolean> {
+export async function installPluginFromZip(zipPath: string): Promise<{ path: string, configPath: string, isDefault: boolean } | null> {
   try {
     const pluginsDir = getPluginsDirectory();
 
@@ -255,16 +215,18 @@ export async function installPluginFromZip(zipPath: string): Promise<boolean> {
     // 解压zip文件
     await extractPluginZip(zipPath, targetDir);
 
-    // 验证插件配置
-    await readPluginConfig(targetDir);
+    // 验证插件配置文件是否存在
+    const configPath = getPluginConfigPath(targetDir);
+    await stat(configPath);
 
-    log.info(`插件安装成功: ${pluginName}`);
-    return true;
+    log.info(`插件安装成功: ${pluginName} -> ${targetDir}`);
+    return { path: targetDir, configPath: configPath, isDefault: false };
   } catch (error) {
     log.error(`插件安装失败: ${zipPath}`, error);
-    return false;
+    return null;
   }
 }
+
 
 /**
  * 卸载插件
@@ -290,4 +252,59 @@ export async function uninstallPlugin(pluginId: string): Promise<boolean> {
     log.error(`插件卸载失败: ${pluginId}`, error);
     return false;
   }
+}
+
+/**
+ * 将文件夹打包为zip文件
+ * @param sourceDir 源文件夹路径
+ * @param outputPath 输出zip文件路径
+ * @returns 是否打包成功
+ */
+export async function zipDirectory(sourceDir: string, outputPath: string): Promise<boolean> {
+  return new Promise((resolve, reject) => {
+    try {
+      // 检查源目录是否存在
+      stat(sourceDir).then(() => {
+        const output = createWriteStream(outputPath);
+        const archive = archiver('zip', {
+          zlib: { level: 9 } // 设置压缩级别
+        });
+
+        output.on('close', () => {
+          log.info(`文件夹打包成功: ${sourceDir} -> ${outputPath}`);
+          resolve(true);
+        });
+
+        archive.on('error', (err: any) => {
+          log.error(`文件夹打包失败: ${sourceDir}`, err);
+          reject(err);
+        });
+
+        // 构建glob模式来过滤文件
+        const globOptions = {
+          ignore: [
+            // 过滤掉zip文件
+            '**/*.zip',
+            // 过滤掉目标文件
+            `**/${basename(outputPath)}`
+          ]
+        };
+
+        log.debug('使用过滤选项:', globOptions);
+
+        archive.pipe(output);
+        archive.glob('**/*', {
+          cwd: sourceDir,
+          ignore: globOptions.ignore
+        });
+        archive.finalize();
+      }).catch((error) => {
+        log.error(`源目录不存在: ${sourceDir}`, error);
+        reject(error);
+      });
+    } catch (error) {
+      log.error(`创建zip文件失败: ${sourceDir}`, error);
+      reject(error);
+    }
+  });
 }

@@ -2,6 +2,7 @@ import { defineConfig } from 'vite';
 import { resolve, normalize } from 'path';
 import { statSync, existsSync } from 'fs';
 import commonjs from 'vite-plugin-commonjs';
+import { builtinModules } from 'module';
 
 // 单文件打包模式 - 通过环境变量指定入口文件
 function getPreloadEntries() {
@@ -47,6 +48,7 @@ export default defineConfig({
         'electron',
         // 'electron-log',
         // 'electron-store',
+        "module",
         'path',
         'url',
         'fs',
@@ -62,7 +64,8 @@ export default defineConfig({
         'lodash-es',
         "extract-file-icon",
         'crypto',
-        'clean-stack'
+        'clean-stack',
+        ...builtinModules
       ],
       output: {
         format: 'cjs',

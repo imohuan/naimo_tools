@@ -52,6 +52,12 @@ import type { PluginItem } from "./typings/plugin-types";
 import { pluginManager } from "./core/plugin/PluginManager";
 
 import { ElectronStoreBridge } from "./core/store/ElectronStoreBridge"
+
+
+//测试打包
+import { useTestLoadPlugin } from "./composables/useTestLoadPlugin"
+
+
 const storeBridge = ElectronStoreBridge.getInstance();
 // ==================== UI 配置管理 ====================
 /**
@@ -540,7 +546,19 @@ const generateApi = async (pluginItem: PluginItem) => {
     })
   }
 
-  return { ...pluginApi, toggleInput, openPluginWindow: () => openPluginWindow(pluginItem), addPathToFileList }
+  const openWebPageWindow = async (url: string) => {
+    await api.ipcRouter.windowCreateWebPageWindow(window.id!, url, { path: pluginItem.path })
+    await openPluginWindow(pluginItem)
+  }
+
+  return {
+    ...pluginApi, toggleInput, openPluginWindow: () => openPluginWindow(pluginItem), addPathToFileList, plugin: {
+      installZip: pluginStore.installZip,
+      install: pluginStore.install,
+      uninstall: pluginStore.uninstall,
+      toggle: pluginStore.toggle,
+    }, openWebPageWindow
+  }
 }
 
 // ==================== 事件处理器 ====================
@@ -549,12 +567,13 @@ const generateApi = async (pluginItem: PluginItem) => {
  * 当插件执行完成时，检查是否需要打开插件窗口
  * @param event 插件执行事件，包含插件项目信息
  */
-const handlePluginExecuted = async (event: { pluginItem: PluginItem }) => {
-  const { pluginItem } = event;
+const handlePluginExecuted = async (event: { pluginId: string, path: string }) => {
+  const { pluginId, path } = event;
+  const pluginItem = pluginManager.getInstalledPluginItem(pluginId, path)!
 
   if (pluginItem.pluginId && pluginItem.onEnter) {
     const genApi = await generateApi(pluginItem)
-    await pluginItem.onEnter?.({ files: attachedFiles.value, searchText: searchText.value }, genApi)
+    await pluginItem.onEnter?.({ files: toRaw(attachedFiles.value), searchText: searchText.value }, genApi)
   } else {
     console.log('🔍 收到插件执行完成事件，插件项目信息:', {
       name: pluginItem.name,
@@ -692,7 +711,7 @@ onMounted(async () => {
 
   // 7. 注册窗口事件监听器
   useEventListener(window, "focus", handleWindowFocus);
-  useEventListener(window, "window-all-blur", handleWindowBlur);
+  // useEventListener(window, "window-all-blur", handleWindowBlur);
   useEventListener(document, "visibilitychange", handleVisibilityChange);
 
   const handleHotkeyTriggered: HotkeyEventListener = (event) => {
@@ -725,7 +744,11 @@ onMounted(async () => {
   // 8. 聚焦到搜索框
   handleSearchFocus();
   console.log("🎉 App.vue onMounted - 应用初始化完成");
+
 });
+
+
+useTestLoadPlugin();
 
 </script>
 

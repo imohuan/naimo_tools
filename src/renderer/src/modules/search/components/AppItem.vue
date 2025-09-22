@@ -14,16 +14,17 @@
       }"></div>
 
     <!-- 应用图标 -->
-    <div class="w-8 h-8 sm:w-10 sm:h-10 mb-1 flex-shrink-0 relative z-10 transition-transform duration-200"
+    <div
+      class="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center mb-1 flex-shrink-0 relative z-10 transition-transform duration-200"
       :class="{ 'scale-110': isSelected }">
-      <img v-if="app.icon" :src="app.icon" :alt="app.name"
-        class="w-full h-full object-contain rounded transition-all duration-200"
-        :class="{ 'brightness-110 drop-shadow-md': isSelected }" />
-      <div v-else class="w-full h-full bg-gray-300 rounded flex items-center justify-center transition-all duration-200"
-        :class="{ 'bg-gray-200': isSelected }">
-        <IconMdiApplication class="w-4 h-4 sm:w-5 sm:h-5 text-gray-600 transition-colors duration-200"
-          :class="{ 'text-gray-700': isSelected }" />
-      </div>
+      <IconDisplay :src="app.icon" :alt="app.name"
+        :icon-class="`w-full h-full object-contain rounded transition-all duration-200 ${isSelected ? 'brightness-110 drop-shadow-md' : ''}`"
+        :fallback-class="`w-full h-full rounded flex items-center justify-center transition-all duration-200`">
+        <template #fallback>
+          <IconMdiApplication class="w-8 h-8 text-gray-600 transition-colors duration-200"
+            :class="{ 'text-gray-700': isSelected }" />
+        </template>
+      </IconDisplay>
     </div>
 
     <!-- 应用名称 -->
@@ -40,6 +41,7 @@
 
 <script setup lang="ts">
 import { ref, watch, nextTick } from "vue";
+import IconDisplay from "@/components/IconDisplay.vue";
 /** @ts-ignore */
 import IconMdiApplication from "~icons/mdi/application";
 

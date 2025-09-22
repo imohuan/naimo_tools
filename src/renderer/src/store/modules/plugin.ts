@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed, readonly } from 'vue'
 import { pluginManager } from '@/core/plugin/PluginManager'
 import type { PluginConfig, PluginItem } from '@/typings/plugin-types'
+import { searchEngine } from '@/core/search/SearchEngine'
 
 /**
  * 插件状态管理
@@ -41,6 +42,16 @@ export const usePluginStore = defineStore('plugin', () => {
   }
 
   /**
+   * 同步插件状态到响应式数据
+   * 通用方法，用于在插件操作后更新状态
+   */
+  const syncPluginState = () => {
+    searchEngine.updatePluginCategories()
+    pluginList.value = Array.from(pluginManager.allAvailablePlugins.values())
+    installedPlugins.value = Array.from(pluginManager.installedPlugins.values())
+  }
+
+  /**
    * 初始化插件系统
    */
   const initialize = async () => {
@@ -49,8 +60,7 @@ export const usePluginStore = defineStore('plugin', () => {
       clearError()
       await pluginManager.initialize()
       // 同步数据到响应式状态
-      pluginList.value = Array.from(pluginManager.allAvailablePlugins.values())
-      installedPlugins.value = Array.from(pluginManager.installedPlugins.values())
+      syncPluginState()
       console.log('🔌 插件系统初始化完成')
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : '初始化插件系统失败'
@@ -69,8 +79,7 @@ export const usePluginStore = defineStore('plugin', () => {
       const success = await pluginManager.install(pluginData)
       if (success) {
         // 同步数据到响应式状态
-        pluginList.value = Array.from(pluginManager.allAvailablePlugins.values())
-        installedPlugins.value = Array.from(pluginManager.installedPlugins.values())
+        syncPluginState()
         console.log(`✅ 插件安装成功: ${pluginData.id}`)
       } else {
         console.error(`❌ 插件安装失败: ${pluginData.id}`)
@@ -84,6 +93,17 @@ export const usePluginStore = defineStore('plugin', () => {
     }
   }
 
+  const installZip = async (zipPath: string): Promise<boolean> => {
+    const success = await pluginManager.installZip(zipPath)
+    if (success) {
+      syncPluginState()
+      console.log(`✅ 插件安装成功: ${zipPath}`)
+      return true
+    }
+    console.error(`❌ 安装插件失败: ${zipPath}`)
+    return false
+  }
+
   /**
    * 卸载插件
    */
@@ -92,8 +112,7 @@ export const usePluginStore = defineStore('plugin', () => {
       const success = await pluginManager.uninstall(pluginId)
       if (success) {
         // 同步数据到响应式状态
-        pluginList.value = Array.from(pluginManager.allAvailablePlugins.values())
-        installedPlugins.value = Array.from(pluginManager.installedPlugins.values())
+        syncPluginState()
         console.log(`✅ 插件卸载成功: ${pluginId}`)
       } else {
         console.error(`❌ 插件卸载失败: ${pluginId}`)
@@ -115,7 +134,7 @@ export const usePluginStore = defineStore('plugin', () => {
       const success = await pluginManager.toggle(pluginId, enabled)
       if (success) {
         // 同步数据到响应式状态
-        installedPlugins.value = Array.from(pluginManager.installedPlugins.values())
+        syncPluginState()
         console.log(`✅ 插件状态更新成功: ${pluginId}`)
       } else {
         console.error(`❌ 插件状态更新失败: ${pluginId}`)
@@ -155,7 +174,7 @@ export const usePluginStore = defineStore('plugin', () => {
    * 获取插件的可见项目
    */
   const getVisiblePluginItems = (pluginId: string): PluginItem[] => {
-    return getPluginItems(pluginId).filter(item => item.visible)
+    return getPluginItems(pluginId).filter(item => !item.hidden)
   }
 
   const reset = () => {
@@ -188,6 +207,7 @@ export const usePluginStore = defineStore('plugin', () => {
     clearError,
     initialize,
     install,
+    installZip,
     uninstall,
     toggle,
     isPluginInstalled,

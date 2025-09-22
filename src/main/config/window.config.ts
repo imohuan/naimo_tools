@@ -77,7 +77,7 @@ export class WindowConfigManager {
       width: config.windowSize.width,
       height: config.windowSize.height,
       webPreferences: {
-        nodeIntegration: false,
+        nodeIntegration: true,
         contextIsolation: true,
         preload: join(__dirname, 'preloads', 'basic.js')
       },

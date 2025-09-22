@@ -133,10 +133,36 @@
           <div class="feature-desc">执行自定义JavaScript代码</div>
         </div>
       </div>
+
+      <div class="feature-item">
+        <div class="feature-icon">🔍</div>
+        <div class="feature-text">
+          <div class="feature-title">文件搜索工具</div>
+          <div class="feature-desc">搜索文件并添加到文件列表（附件模式）</div>
+        </div>
+      </div>
+
+      <div class="feature-item">
+        <div class="feature-icon">🔎</div>
+        <div class="feature-text">
+          <div class="feature-title">插件搜索示例</div>
+          <div class="feature-desc">演示插件搜索功能（插件模式）</div>
+        </div>
+      </div>
+
+      <div class="feature-item">
+        <div class="feature-icon">🚀</div>
+        <div class="feature-text">
+          <div class="feature-title">高级自定义代码</div>
+          <div class="feature-desc">展示高级插件功能和动态内容</div>
+        </div>
+      </div>
     </div>
 
     <button class="button" onclick="testPluginAPI()">测试插件API</button>
     <button class="button" onclick="showNotification()">显示通知</button>
+    <button class="button" onclick="testSearchModes()">测试搜索模式</button>
+    <button class="button" onclick="showAdvancedFeatures()">高级功能演示</button>
 
     <div class="status" id="status">
       插件状态：正常运行 ✅
@@ -165,6 +191,37 @@
         document.getElementById('status').innerHTML =
           '插件API未加载 ❌';
       }
+    }
+
+    function testSearchModes() {
+      const statusEl = document.getElementById('status');
+      statusEl.innerHTML = `
+        <h4>🔍 搜索模式测试</h4>
+        <p>• 普通模式：搜索应用名称</p>
+        <p>• 附件模式：处理文件附件</p>
+        <p>• 插件模式：插件自定义搜索</p>
+        <p>当前插件支持所有搜索模式 ✅</p>
+      `;
+    }
+
+    function showAdvancedFeatures() {
+      const statusEl = document.getElementById('status');
+      const now = new Date();
+      const timeString = now.toLocaleString('zh-CN');
+
+      statusEl.innerHTML = `
+        <h4>🚀 高级功能演示</h4>
+        <p>当前时间: ${timeString}</p>
+        <p>插件版本: 1.0.0</p>
+        <p>支持的功能:</p>
+        <ul style="text-align: left; margin: 10px 0;">
+          <li>✅ 自定义代码执行</li>
+          <li>✅ 文件搜索处理</li>
+          <li>✅ 插件搜索模式</li>
+          <li>✅ 动态内容生成</li>
+          <li>✅ 多搜索模式支持</li>
+        </ul>
+      `;
     }
 
     // 页面加载完成后的初始化

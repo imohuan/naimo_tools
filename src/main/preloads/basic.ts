@@ -3,7 +3,7 @@ import { contextBridge, ipcRenderer, webUtils } from "electron";
 import { RendererErrorHandler } from "@libs/unhandled/renderer";
 import { ipcRouter } from "@shared/ipc-router-client";
 import { isDevelopment } from "@shared/utils";
-
+import { resolve } from "path";
 /**
  * 启用热重载
  * @param name 根据后台修改的文件名 来判断是否重启该页面
@@ -60,8 +60,47 @@ contextBridge.exposeInMainWorld("electronAPI", {
   ipcRouter: ipcRouter,
 });
 
+
+/**
+ * 动态地 require 一个模块，绕过打包器的解析。
+ *
+ * @param {string} moduleId - 模块的绝对路径。
+ * @returns {any} - 导入的模块。
+ */
+function dynamicRequire(moduleId: string): any {
+  try {
+    // 清除模块缓存，确保每次加载都是最新的
+    if (require.cache[moduleId]) {
+      delete require.cache[moduleId];
+    }
+    const requireFunc = new Function('id', 'return require(id);');
+    return requireFunc(moduleId);
+  } catch (error) {
+    console.error(`无法动态加载模块: ${moduleId}`, error);
+    return null;
+  }
+}
+
 // 暴露 webUtils 工具函数
 contextBridge.exposeInMainWorld("webUtils", {
+  async loadPluginConfig(configPath: string) {
+    try {
+      const absoluteConfigPath = resolve(configPath);
+      const directory = await ipcRouter.filesystemGetPluginsDirectory()
+      if (!absoluteConfigPath.startsWith(directory)) {
+        return null
+      }
+      const module = dynamicRequire(absoluteConfigPath);
+      if ("id" in module && "items" in module) {
+        return module;
+      }
+      return null;
+    } catch (e) {
+      log.error("加载插件配置失败", e);
+      return null
+    }
+  },
+
   /**
    * 获取文件的实际路径
    * @param file 文件对象
