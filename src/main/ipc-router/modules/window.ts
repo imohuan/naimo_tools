@@ -582,6 +582,17 @@ export async function createWebPageWindow(
   webWindow.on("closed", () => {
     log.info(`网页窗口已关闭: ${title}`);
     windowManager.unregisterWindow(webWindow.id);
+
+    // 通知主渲染进程插件窗口已关闭
+    const mainWindow = windowManager.getMainWindow();
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send("plugin-window-closed", {
+        windowId: webWindow.id,
+        title: title,
+        path: metadata?.path
+      });
+      log.info(`已通知主渲染进程插件窗口关闭: ${title}`);
+    }
   });
 
   // 注册ESC键关闭功能

@@ -126,4 +126,10 @@ ipcRenderer.on('window-all-blur', () => {
   window.dispatchEvent(customEvent);
 });
 
+ipcRenderer.on('plugin-window-closed', (event, data) => {
+  console.log('Preload收到插件窗口关闭事件:', data);
+  const customEvent = new CustomEvent('plugin-window-closed', { detail: data });
+  window.dispatchEvent(customEvent);
+});
+
 console.log("✅ Preload脚本执行完成，耗时:", Date.now() - preloadStartTime, "ms");

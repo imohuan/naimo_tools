@@ -601,6 +601,23 @@ const handlePluginExecuted = async (event: { pluginId: string, path: string }) =
   await handleSearch("")
 };
 
+/**
+ * 处理插件窗口关闭事件
+ * 当插件窗口关闭时，更新界面状态
+ * @param event 插件窗口关闭事件，包含窗口信息
+ */
+const handlePluginWindowClosed = async (event: { windowId: number, title: string, path?: string }) => {
+  console.log("收到插件窗口关闭事件:", event);
+
+  // 如果当前是插件窗口模式，关闭插件窗口状态
+  if (isPluginWindowOpen.value) {
+    console.log("关闭插件窗口状态");
+    await handleClosePluginWindow();
+    attachedFiles.value = [];
+    currentPluginItem.value = null;
+  }
+};
+
 
 /**
  * 处理关闭窗口请求
@@ -721,6 +738,12 @@ onMounted(async () => {
   useEventListener(window, "focus", handleWindowFocus);
   useEventListener(window, "window-all-blur", handleWindowBlur);
   useEventListener(document, "visibilitychange", handleVisibilityChange);
+
+  // 监听主进程发送的插件窗口关闭消息
+  useEventListener(window, "plugin-window-closed", (event: any) => {
+    console.log("收到主进程插件窗口关闭消息:", event.detail);
+    handlePluginWindowClosed(event.detail);
+  });
 
   const handleHotkeyTriggered: HotkeyEventListener = (event) => {
     switch (event.detail.id) {
