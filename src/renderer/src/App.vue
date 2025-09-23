@@ -546,8 +546,8 @@ const generateApi = async (pluginItem: PluginItem) => {
     })
   }
 
-  const openWebPageWindow = async (url: string) => {
-    await api.ipcRouter.windowCreateWebPageWindow(window.id!, url, { path: pluginItem.path })
+  const openWebPageWindow = async (url: string, options: any = {}) => {
+    await api.ipcRouter.windowCreateWebPageWindow(window.id!, url, { path: pluginItem.path, ...options })
     await openPluginWindow(pluginItem)
   }
 

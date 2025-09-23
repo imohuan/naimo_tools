@@ -531,7 +531,7 @@ export async function createWebPageWindow(
     hasShadow: false, // 移除窗口阴影
     transparent: true, // 透明窗口
     webPreferences: {
-      nodeIntegration: false,
+      nodeIntegration: true,
       contextIsolation: true,
       webSecurity: true,
       preload: preloadScript,

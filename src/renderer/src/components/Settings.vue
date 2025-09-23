@@ -65,8 +65,11 @@ import IconMdiCog from "~icons/mdi/cog";
 import IconMdiInformation from "~icons/mdi/information";
 /** @ts-ignore */
 import IconMdiClose from "~icons/mdi/close";
+/** @ts-ignore */
+import IconMdiSettings from "~icons/mdi/settings";
 import HotkeySettings from "../modules/hotkeys/components/HotkeySettings.vue";
 import PluginManager from "../modules/plugins/components/PluginManager.vue";
+import PluginSettings from "../modules/plugins/components/PluginSettings.vue";
 import CustomHotkeys from "../modules/hotkeys/components/CustomHotkeys.vue";
 import About from "./About.vue";
 
@@ -107,6 +110,13 @@ const tabsConfig: TabConfig[] = [
     description: "管理插件，扩展应用程序功能",
     icon: IconMdiPuzzle,
     component: PluginManager
+  },
+  {
+    id: "plugin-settings",
+    title: "插件设置",
+    description: "配置已安装插件的个性化设置",
+    icon: IconMdiSettings,
+    component: PluginSettings
   },
   {
     id: "about",

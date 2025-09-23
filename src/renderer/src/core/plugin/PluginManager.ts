@@ -1,4 +1,4 @@
-import type { PluginConfig, PluginHook, PluginItem } from '@/typings/plugin-types'
+import type { PluginConfig, PluginHook, PluginItem, CommandConfig } from '@/typings/plugin-types'
 import type { CoreAPI } from '@/typings/core-types'
 import { BaseSingleton } from '../BaseSingleton'
 import { ElectronStoreBridge } from '../store/ElectronStoreBridge'
@@ -18,6 +18,8 @@ export class PluginManager extends BaseSingleton implements CoreAPI {
   public installedPlugins: Map<string, PluginConfig> = new Map()
   /** 钩子 */
   public hooks: Map<string, PluginHook[]> = new Map()
+  /** 命令列表 */
+  public commandList: Map<string, CommandConfig> = new Map()
 
   constructor() {
     super()
@@ -269,6 +271,74 @@ export class PluginManager extends BaseSingleton implements CoreAPI {
     }
   }
 
+  async emitCommand(name: string, ...args: any[]): Promise<any> {
+    const command = this.commandList.get(name);
+    if (command) return await command.handler(...args);
+    return null;
+  }
+
+
+  /**
+   * 获取指定插件的设置值
+   * @param pluginId 插件ID
+   * @returns 插件的设置值对象，如果插件不存在或没有设置则返回空对象
+   */
+  async getPluginSettingValue(pluginId: string): Promise<Record<string, any>> {
+    try {
+      // 检查插件是否存在
+      if (!this.installedPlugins.has(pluginId)) {
+        console.warn(`⚠️ 插件未安装: ${pluginId}`)
+        return {}
+      }
+
+      // 从存储中获取所有插件设置
+      const allPluginSettings = await this.storeBridge.get('pluginSettings') as Record<string, Record<string, any>> || {}
+
+      // 返回指定插件的设置，如果没有则返回空对象
+      return allPluginSettings[pluginId] || {}
+    } catch (error) {
+      console.error(`获取插件设置失败 (${pluginId}):`, error)
+      return {}
+    }
+  }
+
+  /**
+   * 设置指定插件的设置值
+   * @param pluginId 插件ID
+   * @param settings 设置值对象
+   * @returns 是否设置成功
+   */
+  async setPluginSettingValue(pluginId: string, settings: Record<string, any>): Promise<boolean> {
+    try {
+      // 检查插件是否存在
+      if (!this.installedPlugins.has(pluginId)) {
+        console.warn(`⚠️ 插件未安装: ${pluginId}`)
+        return false
+      }
+
+      // 获取当前所有插件设置
+      const allPluginSettings = await this.storeBridge.get('pluginSettings') as Record<string, Record<string, any>> || {}
+
+      // 更新指定插件的设置
+      allPluginSettings[pluginId] = { ...allPluginSettings[pluginId], ...settings }
+
+      // 保存到存储
+      const success = await this.storeBridge.set('pluginSettings', allPluginSettings)
+
+      if (success) {
+        console.log(`✅ 插件设置保存成功: ${pluginId}`)
+      } else {
+        console.error(`❌ 插件设置保存失败: ${pluginId}`)
+      }
+
+      return success
+    } catch (error) {
+      console.error(`设置插件配置失败 (${pluginId}):`, error)
+      return false
+    }
+  }
+
+
   /** 获取插件API */
   async getPluginApi(pluginId: string): Promise<any> {
     const plugin = this.allAvailablePlugins.get(pluginId);
@@ -278,6 +348,20 @@ export class PluginManager extends BaseSingleton implements CoreAPI {
     }
 
     return {
+      getSettingValue: async (settingName?: string) => {
+        const settingValue = await this.getPluginSettingValue(pluginId)
+        return settingName ? settingValue[settingName] || null : settingValue
+      },
+      setSettingValue: async (settingName: string, value: any) => {
+        return await this.setPluginSettingValue(pluginId, { [settingName]: value })
+      },
+      onCommand: (event: string, description: string, handler: PluginHook) => {
+        const commandName = `${event}__${pluginId}`;
+        this.commandList.set(commandName, { name: commandName, handler, description })
+      },
+      emitCommand: (event: string, ...args: any[]) => {
+        this.emitCommand(event, ...args)
+      },
       onHook: (event: string, handler: PluginHook) => {
         const hookName = `${event}__${pluginId}`;
         this.hooks.set(hookName, [...(this.hooks.get(hookName) || []), handler])

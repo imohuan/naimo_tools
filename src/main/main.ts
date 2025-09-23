@@ -26,8 +26,15 @@ appService
   })
   .catch((error) => {
     console.error("❌ 应用初始化失败:", error);
+    appService.cleanup();
     process.exit(1);
   });
+
+// 确保在进程退出时调用清理
+process.on('exit', () => {
+  console.log("进程退出，执行清理...");
+  appService.cleanup();
+});
 
 // 导出应用服务实例，供其他模块使用
 export { appService };

@@ -35,9 +35,12 @@ module.exports = {
       icon: "📝",
       description: "打开系统记事本应用",
       weight: 100,
-      onEnter: (params, api) => {
+      onEnter: async (params, api) => {
         // console.log(1111111, '打开网页', params, api);
-        api.openWebPageWindow("E:\\Code\\Git\\naimo_tools\\plugins\\example-plugin\\index.html")
+        console.log("getSettingValue", await api.getSettingValue());
+        api.openWebPageWindow("E:\\Code\\Git\\naimo_tools\\plugins\\example-plugin\\index.html", {
+          preload: "E:\\Code\\Git\\naimo_tools\\plugins\\example-plugin\\preload.js"
+        })
         // api.ipcRouter.windowCreateWebPageWindow(window.id!, "https://www.baidu.com")
       }
     },
@@ -48,6 +51,46 @@ module.exports = {
     showInMenu: true,
     maxItems: 10
   },
+
+  // 插件设置配置
+  settings: [
+    {
+      name: "themeColor",
+      title: "主题颜色",
+      description: "选择您喜欢的主题颜色",
+      type: "color",
+      defaultValue: "#3b82f6"
+    },
+    {
+      name: "autoStart",
+      title: "自动启动",
+      description: "是否在应用启动时自动运行此插件",
+      type: "checkbox",
+      defaultValue: false
+    },
+    {
+      name: "maxItems",
+      title: "最大项目数",
+      description: "设置插件显示的最大项目数量",
+      type: "number",
+      defaultValue: 10,
+      required: true
+    },
+    {
+      name: "displayMode",
+      title: "显示模式",
+      description: "选择插件的显示模式",
+      type: "select",
+      defaultValue: "grid"
+    },
+    {
+      name: "description",
+      title: "描述信息",
+      description: "输入插件的详细描述",
+      type: "textarea",
+      defaultValue: "这是一个示例插件的描述信息"
+    }
+  ],
 
   // 插件元数据
   metadata: {

@@ -45,6 +45,8 @@ export interface AppConfig {
   };
   /** 自定义快捷键列表 */
   customHotkeys?: any[];
+  /** 插件设置存储 */
+  pluginSettings?: Record<string, Record<string, any>>;
 }
 
 export interface AppItem {

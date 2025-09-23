@@ -4,6 +4,23 @@ import type { SearchMode } from './search-types'
 /** 插件钩子 */
 export type PluginHook = (...args: any[]) => void | Promise<void>
 
+export type CommandConfig = {
+  name: string
+  description: string
+  handler: PluginHook
+}
+
+// JSON配置驱动生成组件
+export type SettingConfig = {
+  name: string
+  title: string
+  description: string
+  type: "input" | "select" | "checkbox" | "radio" | "textarea" | "number" | "date" | "time" | "datetime" | "file" | "image" | "video" | "audio" | "url" | "email" | "password" | "tel" | "search" | "range" | "color" | "hidden"
+  defaultValue?: () => any | any
+  required?: boolean
+  children?: SettingConfig[]
+}
+
 /** 插件执行逻辑类型 */
 export enum PluginExecuteType {
   /** 默认打开软件 */
@@ -116,6 +133,8 @@ export interface PluginConfig {
   items: PluginItem[]
   /** 插件配置选项 */
   options?: Record<string, any>
+  /** 插件设置配置 */
+  settings?: SettingConfig[]
   /** 插件元数据 */
   metadata?: {
     /** 创建时间 */

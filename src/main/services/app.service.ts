@@ -13,6 +13,8 @@ import { join } from "path";
 
 import { dirname } from "path";
 import { fileURLToPath } from "url";
+import { tmpdir } from "os";
+import { existsSync, rmSync } from "fs";
 
 export function getDirname(): string {
   return dirname(fileURLToPath(import.meta.url));
@@ -86,9 +88,9 @@ export class AppService {
     // 监听渲染进程崩溃
     app.on("render-process-gone", (event, webContents, details) => {
       log.error("渲染进程崩溃:", details);
-      // 在生产环境中可以尝试重新创建窗口
-      if (isProduction() && this.mainWindow === null) {
-        this.createMainWindow();
+      // 简单处理：清理主窗口引用，不自动重创建
+      if (this.mainWindow && this.mainWindow.webContents.id === webContents.id) {
+        this.mainWindow = null;
       }
     });
 
@@ -191,13 +193,22 @@ export class AppService {
     // 应用即将退出
     app.on("before-quit", () => {
       log.info("应用即将退出");
+      this.cleanup();
     });
+
+    // 设置进程信号处理
+    this.setupProcessSignalHandlers();
   }
 
   /**
    * 创建主窗口
    */
   private createMainWindow(): void {
+    // 简单检查：如果主窗口已存在且未销毁，直接返回
+    if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+      return;
+    }
+
     this.configManager.set("windowSize", { width: 800, height: 66 });
 
     const config = this.configManager.getConfig();
@@ -273,10 +284,57 @@ export class AppService {
   }
 
   /**
+   * 设置进程信号处理
+   */
+  private setupProcessSignalHandlers(): void {
+    // 处理 SIGTERM 信号（优雅关闭）
+    process.on('SIGTERM', () => {
+      log.info('收到 SIGTERM 信号，正在清理...');
+      this.cleanup();
+      process.exit(0);
+    });
+
+    // 处理 SIGINT 信号（Ctrl+C）
+    process.on('SIGINT', () => {
+      log.info('收到 SIGINT 信号，正在清理...');
+      this.cleanup();
+      process.exit(0);
+    });
+
+    // 处理 SIGHUP 信号（挂起）
+    process.on('SIGHUP', () => {
+      log.info('收到 SIGHUP 信号，正在清理...');
+      this.cleanup();
+      process.exit(0);
+    });
+
+    // 处理未捕获的异常
+    process.on('uncaughtException', (error) => {
+      log.error('未捕获的异常:', error);
+      this.cleanup();
+      process.exit(1);
+    });
+
+    // 处理未处理的 Promise 拒绝
+    process.on('unhandledRejection', (reason, promise) => {
+      log.error('未处理的 Promise 拒绝:', reason);
+      this.cleanup();
+      process.exit(1);
+    });
+  }
+
+  /**
    * 清理资源
    */
   cleanup(): void {
     cleanupIpcRouter()
     log.info("应用服务已清理");
+
+    // 清空临时目录
+    const tempDir = join(tmpdir(), 'naimo-preloads');
+    if (existsSync(tempDir)) {
+      rmSync(tempDir, { recursive: true, force: true });
+      log.info(`已清空临时目录: ${tempDir}`);
+    }
   }
 }
