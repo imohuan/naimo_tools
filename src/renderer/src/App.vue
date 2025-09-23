@@ -316,7 +316,7 @@ const handleContainerClick = (event: MouseEvent) => {
   }
 
   // 点击空白区域时聚焦搜索框
-  handleSearchFocus();
+  // handleSearchFocus();
   return false
 };
 
@@ -327,6 +327,13 @@ const handleContainerClick = (event: MouseEvent) => {
  * @param event 拖拽事件
  */
 const handleFileDrop = async (event: DragEvent) => {
+  // 如果是插件模式，阻止文件拖拽
+  if (isPluginWindowOpen.value) {
+    console.log("插件模式下不支持文件拖拽");
+    event.preventDefault();
+    return;
+  }
+
   // 先调用原有的拖拽处理逻辑
   await handleDrop(event);
 
@@ -570,6 +577,7 @@ const generateApi = async (pluginItem: PluginItem) => {
 const handlePluginExecuted = async (event: { pluginId: string, path: string }) => {
   const { pluginId, path } = event;
   const pluginItem = pluginManager.getInstalledPluginItem(pluginId, path)!
+  toggleInput(false)
 
   if (pluginItem.pluginId && pluginItem.onEnter) {
     const genApi = await generateApi(pluginItem)
@@ -711,7 +719,7 @@ onMounted(async () => {
 
   // 7. 注册窗口事件监听器
   useEventListener(window, "focus", handleWindowFocus);
-  // useEventListener(window, "window-all-blur", handleWindowBlur);
+  useEventListener(window, "window-all-blur", handleWindowBlur);
   useEventListener(document, "visibilitychange", handleVisibilityChange);
 
   const handleHotkeyTriggered: HotkeyEventListener = (event) => {
@@ -744,7 +752,6 @@ onMounted(async () => {
   // 8. 聚焦到搜索框
   handleSearchFocus();
   console.log("🎉 App.vue onMounted - 应用初始化完成");
-
 });
 
 

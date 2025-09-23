@@ -57,8 +57,11 @@
       <!-- 拖拽图标 -->
       <div v-else
         class="h-full aspect-square flex items-center justify-center text-gray-400 transition-colors duration-200"
-        :class="{ 'text-indigo-500': isDragOver }">
-        <IconMdiFileUpload v-if="isDragOver" class="w-5 h-5" />
+        :class="{
+          'text-indigo-500': isDragOver && !currentPluginItem,
+          'text-gray-300': currentPluginItem
+        }">
+        <IconMdiFileUpload v-if="isDragOver && !currentPluginItem" class="w-5 h-5" />
         <IconMdiMagnify v-else class="w-5 h-5" />
       </div>
 
@@ -67,10 +70,10 @@
         :has-files="attachedFiles.length > 0 || currentPluginItem !== null"
         :should-show-search-box="shouldShowSearchBox" @update:model-value="$emit('update:searchText', $event)"
         @enter="$emit('search', $event)" @input="$emit('input', $event)" @paste="$emit('paste', $event)"
-        @clear-files="handleClearFiles" :placeholder="isDragOver
+        @clear-files="handleClearFiles" :placeholder="isDragOver && !currentPluginItem
           ? '释放文件以搜索...'
           : currentPluginItem
-            ? '当前插件: ' + currentPluginItem.name
+            ? '插件模式不支持文件拖拽'
             : attachedFiles.length > 0
               ? '搜索支持该文件的应用...'
               : '搜索应用和指令 / 拖拽文件到此处...'
@@ -140,22 +143,47 @@ const firstFileIcon = computed(() => firstFile.value?.icon);
 
 // 拖拽事件处理
 const handleDragOver = (event: DragEvent) => {
+  // 如果是插件模式，阻止拖拽
+  if (props.currentPluginItem) {
+    event.preventDefault();
+    event.dataTransfer!.dropEffect = "none";
+    return;
+  }
+
   event.preventDefault();
   event.dataTransfer!.dropEffect = "copy";
   emit("drag-over", event);
 };
 
 const handleDragEnter = (event: DragEvent) => {
+  // 如果是插件模式，阻止拖拽
+  if (props.currentPluginItem) {
+    event.preventDefault();
+    return;
+  }
+
   event.preventDefault();
   emit("drag-enter", event);
 };
 
 const handleDragLeave = (event: DragEvent) => {
+  // 如果是插件模式，阻止拖拽
+  if (props.currentPluginItem) {
+    event.preventDefault();
+    return;
+  }
+
   event.preventDefault();
   emit("drag-leave", event);
 };
 
 const handleDrop = (event: DragEvent) => {
+  // 如果是插件模式，阻止拖拽
+  if (props.currentPluginItem) {
+    event.preventDefault();
+    return;
+  }
+
   event.preventDefault();
   emit("drop", event);
 };

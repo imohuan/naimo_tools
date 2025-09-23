@@ -530,6 +530,7 @@ export async function createWebPageWindow(
     skipTaskbar: true, // 不在任务栏显示
     hasShadow: false, // 移除窗口阴影
     transparent: true, // 透明窗口
+    backgroundColor: 'white', // 白色
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: true,
