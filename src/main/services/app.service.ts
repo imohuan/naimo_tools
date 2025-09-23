@@ -249,7 +249,9 @@ export class AppService {
     this.mainWindow.webContents.on("did-finish-load", () => {
       this.mainWindow!.webContents.executeJavaScript(`
         window.id = ${this.mainWindow!.webContents.id};
-      `)
+      `).catch((error) => {
+        log.error("执行主窗口 JavaScript 失败:", error);
+      });
     });
 
     // 监听窗口关闭

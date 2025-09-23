@@ -568,6 +568,13 @@ export async function createWebPageWindow(
   webWindow.webContents.on("did-finish-load", () => {
     windowManager.show(webWindow); // 使用 WindowManager.show 避免动画
     windowManager.setMetadata(webWindow.id, { init: true });
+
+    const __metadata = JSON.stringify(metadata)
+    webWindow.webContents.executeJavaScript(`
+      window.__metadata = ${__metadata};
+    `).catch((error) => {
+      log.error("执行网页窗口 JavaScript 失败:", error);
+    });
   });
 
   // 窗口关闭时的处理

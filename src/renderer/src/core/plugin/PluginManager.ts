@@ -141,7 +141,7 @@ export class PluginManager extends BaseSingleton implements CoreAPI {
       // 设置插件ID
       pluginData.items.forEach(item => {
         item.pluginId = pluginData.id
-        item.path = item.pluginId + ':' + item.name
+        item.path = item.pluginId + ':' + item.path
       })
 
       // 统一处理所有插件
