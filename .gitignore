@@ -72,3 +72,6 @@ coverage/
 
 # Electron Forge
 .webpack/
+
+# Archive files
+*.zip
