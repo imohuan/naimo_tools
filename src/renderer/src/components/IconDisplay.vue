@@ -37,7 +37,7 @@ interface Props {
 const props = withDefaults(defineProps<Props>(), {
   alt: '',
   containerClass: '',
-  iconClass: 'w-full h-full object-contain',
+  iconClass: 'w-full h-full flex items-center justify-center object-contain',
   fallbackClass: 'w-full h-full flex items-center justify-center bg-gray-300 rounded'
 });
 

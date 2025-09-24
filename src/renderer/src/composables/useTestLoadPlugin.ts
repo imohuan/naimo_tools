@@ -63,8 +63,11 @@ export function useTestLoadPlugin() {
       //   return
       // }
 
-      const sourceDir = 'E:\\Code\\Git\\naimo_tools\\plugins\\example-plugin'
-      const savePath = 'E:\\Code\\Git\\naimo_tools\\plugins\\example-plugin\\example-plugin.zip'
+      // const name = "example-plugin"
+      // const name = "translate-plugin"
+      const name = "ocr-trans-plugin"
+      const sourceDir = `E:\\Code\\Git\\naimo_tools\\plugins\\${name}`
+      const savePath = `E:\\Code\\Git\\naimo_tools\\plugins\\${name}\\${name}.zip`
 
       console.log('保存路径:', savePath)
 

@@ -4,7 +4,7 @@
  */
 
 import { BrowserWindow, screen, globalShortcut } from "electron";
-import { dirname, join } from "path";
+import { dirname, join, resolve } from "path";
 import log from "electron-log";
 import { fileURLToPath } from "url";
 import { writeFileSync, readFileSync, mkdirSync } from "fs";
@@ -486,6 +486,22 @@ export async function createWebPageWindow(
     return;
   }
 
+  // 禁止重复创建窗口
+  const followingWindows = windowManager.getWindowInfoByType(WindowType.FOLLOWING)
+  const existingWindow = followingWindows.find(window => window.metadata?.path === metadata?.path)
+  if (existingWindow) {
+    mainWindow.focus();
+    return;
+  }
+
+  // 只保留一个窗口
+  if (followingWindows.length > 0) {
+    followingWindows.forEach(window => {
+      windowManager.windows.delete(window.id)
+      window.window.close()
+    });
+  }
+
   const __filename = fileURLToPath(import.meta.url);
   const __dirname = dirname(__filename);
 
@@ -626,8 +642,10 @@ async function createCombinedPreloadScript(customPreloadPath: string, defaultPre
 // 内置 preload 脚本
 ${builtinPreloadContent}
 
-// 用户自定义 preload 脚本
-${customPreloadContent}
+(() => {
+  // 用户自定义 preload 脚本
+  ${customPreloadContent}
+})()
 `;
 
     // 创建临时文件

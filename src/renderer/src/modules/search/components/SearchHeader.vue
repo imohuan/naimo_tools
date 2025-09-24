@@ -73,7 +73,7 @@
         @clear-files="handleClearFiles" :placeholder="isDragOver && !currentPluginItem
           ? '释放文件以搜索...'
           : currentPluginItem
-            ? '插件模式不支持文件拖拽'
+            ? ''
             : attachedFiles.length > 0
               ? '搜索支持该文件的应用...'
               : '搜索应用和指令 / 拖拽文件到此处...'

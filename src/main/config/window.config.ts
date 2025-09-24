@@ -9,7 +9,7 @@ import { isProduction } from '@shared/utils';
 import { WindowManager, WindowType } from './window-manager';
 
 // 从 package.json 读取渲染进程URL配置
-function getRendererUrl(): string {
+export function getRendererUrl(): string {
   try {
     const packageJsonPath = join(getProjectRoot(), 'package.json');
     const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
@@ -24,7 +24,7 @@ function getRendererUrl(): string {
 }
 
 // 获取项目根目录
-function getProjectRoot(): string {
+export function getProjectRoot(): string {
   const __filename = fileURLToPath(import.meta.url);
   const __dirname = dirname(__filename);
   // 从 src/main/config/ 回到项目根目录

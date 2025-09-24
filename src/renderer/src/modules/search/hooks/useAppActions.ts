@@ -11,7 +11,7 @@ export function useAppActions(
   const storeBridge = ElectronStoreBridge.getInstance();
 
   // 执行应用或插件项目
-  const executeItem = async (app: AppItem | PluginItem) => {
+  const executeItem = async (app: AppItem | PluginItem, hotkeyEmit: boolean = false) => {
     try {
       // 判断是否为插件项目
       if (pluginManager.isPluginItem(app as PluginItem)) {
@@ -28,7 +28,7 @@ export function useAppActions(
         }
 
         // 发送全局事件通知插件执行完成
-        eventSystem.emit('plugin:executed', { pluginId: pluginItem.pluginId!, path: app.path });
+        eventSystem.emit('plugin:executed', { pluginId: pluginItem.pluginId!, path: app.path, hotkeyEmit });
         // 更新使用统计
         await updateRecentApps(pluginItem);
         return true;

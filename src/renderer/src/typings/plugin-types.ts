@@ -1,6 +1,7 @@
 import type { AttachedFile } from '@/composables/useFileHandler'
 import type { AppItem } from '@shared/types'
 import type { SearchMode } from './search-types'
+import type { PluginApi } from '@shared/typings/global'
 /** 插件钩子 */
 export type PluginHook = (...args: any[]) => void | Promise<void>
 
@@ -18,6 +19,7 @@ export type SettingConfig = {
   type: "input" | "select" | "checkbox" | "radio" | "textarea" | "number" | "date" | "time" | "datetime" | "file" | "image" | "video" | "audio" | "url" | "email" | "password" | "tel" | "search" | "range" | "color" | "hidden"
   defaultValue?: () => any | any
   required?: boolean
+  option?: any
   children?: SettingConfig[]
 }
 
@@ -146,10 +148,6 @@ export interface PluginConfig {
   }
 }
 
-export interface PluginApi {
-  onHook: (event: string, handler: PluginHook) => void
-  emitHook: (event: string, ...args: any[]) => void
-}
 
 
 /** 插件项目接口 */

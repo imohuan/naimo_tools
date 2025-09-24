@@ -1,6 +1,5 @@
 // 示例插件配置文件
 // 这个文件定义了插件的基本信息和功能
-
 module.exports = {
   // 插件基本信息
   id: "example-plugin",
@@ -37,9 +36,10 @@ module.exports = {
       onEnter: async (params, api) => {
         // console.log(1111111, '打开网页', params, api);
         console.log("getSettingValue", await api.getSettingValue());
-        api.openWebPageWindow("E:\\Code\\Git\\naimo_tools\\plugins\\example-plugin\\index.html", {
-          preload: "E:\\Code\\Git\\naimo_tools\\plugins\\example-plugin\\preload.js"
-        })
+        // api.openWebPageWindow("E:\\Code\\Git\\naimo_tools\\plugins\\example-plugin\\index.html", {
+        //   preload: "E:\\Code\\Git\\naimo_tools\\plugins\\example-plugin\\preload.js"
+        // })
+        api.openWebPageWindow(api.getResourcePath("index.html"), { preload: api.getResourcePath("preload.js") })
         // api.ipcRouter.windowCreateWebPageWindow(window.id!, "https://www.baidu.com")
       }
     },

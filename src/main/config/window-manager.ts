@@ -90,7 +90,7 @@ interface WindowState {
  */
 export class WindowManager {
   private static instance: WindowManager;
-  private windows: Map<number, WindowInfo> = new Map();
+  windows: Map<number, WindowInfo> = new Map();
   private cleanupInterval: NodeJS.Timeout | null = null;
   private windowStates: Map<number, WindowState> = new Map();
 

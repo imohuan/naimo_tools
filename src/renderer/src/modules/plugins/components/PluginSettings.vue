@@ -65,9 +65,12 @@
             <div class="flex items-start gap-2 cursor-pointer hover:bg-gray-50 rounded-md p-2 -m-2 transition-colors"
               @click="toggleCollapse(pluginSetting.pluginId)">
               <div class="w-8 h-8 flex-shrink-0">
-                <div class="w-full h-full bg-blue-100 rounded flex items-center justify-center">
-                  <span class="text-blue-600 text-sm">🔧</span>
-                </div>
+                <IconDisplay :src="pluginSetting.icon" container-class="w-full h-full bg-gray-100 rounded"
+                  fallback-class="w-full h-full flex items-center justify-center bg-gray-100 rounded">
+                  <template #fallback>
+                    <span class="text-blue-600 text-sm">🔧</span>
+                  </template>
+                </IconDisplay>
               </div>
               <div class="flex-1 min-w-0">
                 <div class="flex items-center justify-between mb-2">
@@ -113,11 +116,13 @@ import { pluginManager } from '@/core/plugin/PluginManager'
 import { ElectronStoreBridge } from '@/core/store/ElectronStoreBridge'
 import type { SettingConfig } from '@/typings/plugin-types'
 import SettingItem from './SettingItem.vue'
+import IconDisplay from '@/components/IconDisplay.vue'
 
 // 插件设置项接口
 interface PluginSettingItem {
   pluginId: string
   pluginName: string
+  icon?: string
   settings: SettingConfig[]
 }
 
@@ -191,6 +196,7 @@ const getPluginSettings = async () => {
         settingsList.push({
           pluginId: plugin.id,
           pluginName: plugin.name,
+          icon: plugin.icon,
           settings: plugin.settings
         })
 
@@ -218,6 +224,9 @@ const getPluginSettings = async () => {
 
     console.log('🔍 最终设置列表:', settingsList)
     pluginSettingsList.value = settingsList
+
+    // 默认全部折叠
+    collapsedPlugins.value = new Set(settingsList.map(plugin => plugin.pluginId))
   } catch (error) {
     console.error('获取插件设置失败:', error)
   } finally {

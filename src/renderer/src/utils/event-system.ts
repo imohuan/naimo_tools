@@ -15,6 +15,7 @@ export interface AppEvents {
   'plugin:executed': {
     pluginId: string
     path: string
+    hotkeyEmit: boolean
   }
 
   // 窗口管理事件

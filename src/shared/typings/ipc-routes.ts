@@ -1,6 +1,6 @@
 /**
  * 自动生成的 IPC 类型定义
- * 生成时间: 2025-09-23T11:58:23.812Z
+ * 生成时间: 2025-09-24T11:38:28.629Z
  * 请勿手动修改此文件
  */
 
@@ -106,6 +106,113 @@ interface appInterface {
  * @returns 图标的 Data URL 或 null
  */
   "appExtractFileIcon": (filePath: string) => Promise<string | null>;
+}
+
+interface clipboardInterface {
+  /**
+ * 读取剪切板文本内容
+ * @returns 剪切板中的文本内容
+ */
+  "clipboard-read-text": () => Promise<string>;
+  /**
+ * 读取剪切板文本内容
+ * @returns 剪切板中的文本内容
+ */
+  "clipboardReadText": () => Promise<string>;
+
+  /**
+ * 写入文本到剪切板
+ * @param 要写入的文本
+ * @returns 是否写入成功
+ */
+  "clipboard-write-text": (text: string) => Promise<boolean>;
+  /**
+ * 写入文本到剪切板
+ * @param 要写入的文本
+ * @returns 是否写入成功
+ */
+  "clipboardWriteText": (text: string) => Promise<boolean>;
+
+  /**
+ * 清空剪切板
+ * @returns 是否清空成功
+ */
+  "clipboard-clear": () => Promise<boolean>;
+  /**
+ * 清空剪切板
+ * @returns 是否清空成功
+ */
+  "clipboardClear": () => Promise<boolean>;
+
+  /**
+ * 检查剪切板是否有文本内容
+ * @returns 是否有文本内容
+ */
+  "clipboard-has-text": () => Promise<boolean>;
+  /**
+ * 检查剪切板是否有文本内容
+ * @returns 是否有文本内容
+ */
+  "clipboardHasText": () => Promise<boolean>;
+
+  /**
+ * 检测剪切板内容是否为中文
+ * @returns 是否包含中文字符
+ */
+  "clipboard-has-chinese-text": () => Promise<boolean>;
+  /**
+ * 检测剪切板内容是否为中文
+ * @returns 是否包含中文字符
+ */
+  "clipboardHasChineseText": () => Promise<boolean>;
+
+  /**
+ * 获取剪切板中的中文文本
+如果剪切板中包含中文，返回文本；否则返回空字符串
+ * @returns 中文文本或空字符串
+ */
+  "clipboard-get-chinese-text": () => Promise<string>;
+  /**
+ * 获取剪切板中的中文文本
+如果剪切板中包含中文，返回文本；否则返回空字符串
+ * @returns 中文文本或空字符串
+ */
+  "clipboardGetChineseText": () => Promise<string>;
+
+  /**
+ * 检查剪切板是否有图片内容
+ * @returns 是否有图片内容
+ */
+  "clipboard-has-image": () => Promise<boolean>;
+  /**
+ * 检查剪切板是否有图片内容
+ * @returns 是否有图片内容
+ */
+  "clipboardHasImage": () => Promise<boolean>;
+
+  /**
+ * 读取剪切板图片内容并转换为base64
+ * @returns base64格式的图片数据，如果没有图片则返回null
+ */
+  "clipboard-read-image-as-base64": () => Promise<string | null>;
+  /**
+ * 读取剪切板图片内容并转换为base64
+ * @returns base64格式的图片数据，如果没有图片则返回null
+ */
+  "clipboardReadImageAsBase64": () => Promise<string | null>;
+
+  /**
+ * 写入图片到剪切板
+ * @param base64格式的图片数据
+ * @returns 是否写入成功
+ */
+  "clipboard-write-image": (imageData: string) => Promise<boolean>;
+  /**
+ * 写入图片到剪切板
+ * @param base64格式的图片数据
+ * @returns 是否写入成功
+ */
+  "clipboardWriteImage": (imageData: string) => Promise<boolean>;
 }
 
 interface filesystemInterface {
@@ -313,6 +420,40 @@ interface logInterface {
   lastModified: Date;
   lineCount: number;
 }>;
+}
+
+interface screenCaptureInterface {
+  /**
+ * 获取屏幕源列表
+ * @param 获取屏幕源的选项
+ * @returns 屏幕源列表
+ */
+  "screen-capture-get-sources": (options: {
+  types: ("screen" | "window")[];
+  thumbnailSize?: { width: number; height: number };
+}) => Promise<Electron.DesktopCapturerSource[]>;
+  /**
+ * 获取屏幕源列表
+ * @param 获取屏幕源的选项
+ * @returns 屏幕源列表
+ */
+  "screenCaptureGetSources": (options: {
+  types: ("screen" | "window")[];
+  thumbnailSize?: { width: number; height: number };
+}) => Promise<Electron.DesktopCapturerSource[]>;
+
+  /**
+ * 截图并裁剪，返回临时文件地址或复制到剪切板
+ * @param 截图选项
+ * @returns 操作结果
+ */
+  "screen-capture-capture-and-get-file-path": (options: { sourceId?: string; }) => Promise<{ success: boolean; filePath?: string; error?: string }>;
+  /**
+ * 截图并裁剪，返回临时文件地址或复制到剪切板
+ * @param 截图选项
+ * @returns 操作结果
+ */
+  "screenCaptureCaptureAndGetFilePath": (options: { sourceId?: string; }) => Promise<{ success: boolean; filePath?: string; error?: string }>;
 }
 
 interface searchInterface {
@@ -708,7 +849,7 @@ interface windowInterface {
 }
 
 // 合并所有 IPC 路由类型
-export interface AllIpcRouter extends appInterface, filesystemInterface, hotkeyInterface, logInterface, searchInterface, storeInterface, windowInterface {}
+export interface AllIpcRouter extends appInterface, clipboardInterface, filesystemInterface, hotkeyInterface, logInterface, screenCaptureInterface, searchInterface, storeInterface, windowInterface {}
 
 // 路由信息类型
 export interface RouteInfo {
@@ -797,6 +938,60 @@ export const ROUTE_INFO: RouteInfo[] = [
     comment: "提取文件图标",
     module: "app",
     function: "extractFileIcon"
+  },
+  {
+    route: "clipboard-read-text",
+    comment: "读取剪切板文本内容",
+    module: "clipboard",
+    function: "readText"
+  },
+  {
+    route: "clipboard-write-text",
+    comment: "写入文本到剪切板",
+    module: "clipboard",
+    function: "writeText"
+  },
+  {
+    route: "clipboard-clear",
+    comment: "清空剪切板",
+    module: "clipboard",
+    function: "clear"
+  },
+  {
+    route: "clipboard-has-text",
+    comment: "检查剪切板是否有文本内容",
+    module: "clipboard",
+    function: "hasText"
+  },
+  {
+    route: "clipboard-has-chinese-text",
+    comment: "检测剪切板内容是否为中文",
+    module: "clipboard",
+    function: "hasChineseText"
+  },
+  {
+    route: "clipboard-get-chinese-text",
+    comment: "获取剪切板中的中文文本 , 如果剪切板中包含中文，返回文本；否则返回空字符串",
+    module: "clipboard",
+    function: "getChineseText"
+  },
+  {
+    route: "clipboard-has-image",
+    comment: "检查剪切板是否有图片内容",
+    module: "clipboard",
+    function: "hasImage"
+  },
+  {
+    route: "clipboard-read-image-as-base64",
+    comment: "读取剪切板图片内容并转换为base64",
+    module: "clipboard",
+    function: "readImageAsBase64"
+  },
+  {
+    route: "clipboard-write-image",
+    comment: "写入图片到剪切板",
+    module: "clipboard",
+    function: "writeImage"
   },
   {
     route: "filesystem-select-file",
@@ -899,6 +1094,18 @@ export const ROUTE_INFO: RouteInfo[] = [
     comment: "获取日志文件信息",
     module: "log",
     function: "getLogInfo"
+  },
+  {
+    route: "screen-capture-get-sources",
+    comment: "获取屏幕源列表",
+    module: "screenCapture",
+    function: "getSources"
+  },
+  {
+    route: "screen-capture-capture-and-get-file-path",
+    comment: "截图并裁剪，返回临时文件地址或复制到剪切板",
+    module: "screenCapture",
+    function: "captureAndGetFilePath"
   },
   {
     route: "search-search-apps",

@@ -50,12 +50,10 @@ export class PluginManager extends BaseSingleton implements CoreAPI {
     const defaultPlugins = getDeafultPlugins()
     const thirdPartyPlugins = await api.ipcRouter.filesystemGetAllInstalledPlugins()
     const thirdPartyPluginsConfig: PluginConfig[] = await Promise.all(thirdPartyPlugins.map(plugin => webUtils.loadPluginConfig(plugin.configPath)))
-
     thirdPartyPluginsConfig.forEach(plugin => {
       // 标记为第三方插件
-      plugin.options = { ...(plugin.options || {}), isThirdParty: true, }
+      if (plugin) plugin.options = { ...(plugin?.options || {}), isThirdParty: true, }
     })
-
     // const localPlugins = await webUtils.loadPluginConfig(join(app.getPath('userData'), 'plugins'))
     console.log("📋 默认插件数量:", defaultPlugins.length);
     console.log("📋 第三方插件数量:", thirdPartyPlugins.length);
@@ -348,6 +346,10 @@ export class PluginManager extends BaseSingleton implements CoreAPI {
     }
 
     return {
+      getResourcePath: (...paths: string[]) => {
+        const getResourcePath = (plugin as any).getResourcePath
+        return getResourcePath ? getResourcePath(...paths) : null;
+      },
       getSettingValue: async (settingName?: string) => {
         const settingValue = await this.getPluginSettingValue(pluginId)
         return settingName ? settingValue[settingName] || null : settingValue

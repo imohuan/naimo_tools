@@ -56,6 +56,7 @@ import { ElectronStoreBridge } from "./core/store/ElectronStoreBridge"
 
 //测试打包
 import { useTestLoadPlugin } from "./composables/useTestLoadPlugin"
+import type { PluginApi } from "@shared/typings/global";
 
 
 const storeBridge = ElectronStoreBridge.getInstance();
@@ -538,7 +539,7 @@ watch(
   }
 );
 
-const generateApi = async (pluginItem: PluginItem) => {
+const generateApi = async (pluginItem: PluginItem): Promise<PluginApi> => {
   const pluginApi = await pluginManager.getPluginApi(pluginItem.pluginId as string)
 
   const addPathToFileList = async (name: string, path: string) => {
@@ -574,13 +575,17 @@ const generateApi = async (pluginItem: PluginItem) => {
  * 当插件执行完成时，检查是否需要打开插件窗口
  * @param event 插件执行事件，包含插件项目信息
  */
-const handlePluginExecuted = async (event: { pluginId: string, path: string }) => {
-  const { pluginId, path } = event;
+const handlePluginExecuted = async (event: { pluginId: string, path: string, hotkeyEmit: boolean }) => {
+  const { pluginId, path, hotkeyEmit } = event;
   const pluginItem = pluginManager.getInstalledPluginItem(pluginId, path)!
-  toggleInput(false)
+  const genApi = await generateApi(pluginItem)
+  const oldOpenWebPageWindow = genApi.openWebPageWindow
+  genApi.openWebPageWindow = (url: string, options: any = {}) => {
+    return oldOpenWebPageWindow(url, { path: pluginItem.path, hotkeyEmit, ...options })
+  }
 
+  toggleInput(false)
   if (pluginItem.pluginId && pluginItem.onEnter) {
-    const genApi = await generateApi(pluginItem)
     await pluginItem.onEnter?.({ files: toRaw(attachedFiles.value), searchText: searchText.value }, genApi)
   } else {
     console.log('🔍 收到插件执行完成事件，插件项目信息:', {
@@ -589,9 +594,7 @@ const handlePluginExecuted = async (event: { pluginId: string, path: string }) =
     });
     // 检查是否为打开新窗口类型的插件
     if (pluginItem.executeType === 3 && pluginItem.executeParams?.url) {
-      // 打开插件窗口并传递插件项目信息
-      await api.ipcRouter.windowCreateWebPageWindow(window.id!, pluginItem.executeParams.url, { path: pluginItem.path })
-      await openPluginWindow(pluginItem);
+      genApi.openWebPageWindow(pluginItem.executeParams.url, { path: pluginItem.path, })
     }
   }
 
@@ -695,12 +698,13 @@ const handleCustomGlobalHotkeyTriggered = async (event: HotkeyTriggeredEventDeta
   }
   searchText.value = name
   await handleSearch(searchText.value)
+  show(null)
+
   // 获取搜索结果
   const items = searchCategories.value.find(category => category.id === 'best-match')?.items
   if (items && items.length > 0) {
-    executeItem(items[0])
+    executeItem(items[0], true)
   } else {
-    show(null)
     console.log("没有搜索结果");
   }
   console.log("搜索结果:", searchCategories.value, { items });
@@ -743,6 +747,14 @@ onMounted(async () => {
   useEventListener(window, "plugin-window-closed", (event: any) => {
     console.log("收到主进程插件窗口关闭消息:", event.detail);
     handlePluginWindowClosed(event.detail);
+  });
+
+  useEventListener(window, "window-main-hide", () => {
+    hide(null, "hide")
+  });
+
+  useEventListener(window, "window-main-show", () => {
+    show(null)
   });
 
   const handleHotkeyTriggered: HotkeyEventListener = (event) => {

@@ -27,12 +27,97 @@ function getDevConfig() {
 
 const devConfig = getDevConfig();
 
+// 自定义插件：修复多入口 HTML 文件的输出路径
+function customHtmlOutputPlugin() {
+  return {
+    name: 'custom-html-output',
+    enforce: 'post' as const,
+    async writeBundle(options: any, bundle: any) {
+      const fs = await import('fs');
+      const path = await import('path');
+
+      const outDir = options.dir || '../../dist/renderer';
+
+      // 处理需要重命名的 HTML 文件
+      const filesToMove = [];
+
+      for (const fileName of Object.keys(bundle)) {
+        if (fileName.endsWith('.html') && fileName.includes('/')) {
+          let newFileName;
+
+          // 为 crop-window 特殊处理
+          if (fileName.includes('crop-window')) {
+            newFileName = 'crop-window.html';
+          } else {
+            // 其他文件只保留文件名部分
+            newFileName = fileName.split('/').pop() || fileName;
+          }
+
+          filesToMove.push({
+            oldPath: path.resolve(outDir, fileName),
+            newPath: path.resolve(outDir, newFileName),
+            oldFileName: fileName,
+            newFileName: newFileName
+          });
+        }
+      }
+
+      // 执行文件移动和路径修复
+      for (const { oldPath, newPath, oldFileName, newFileName } of filesToMove) {
+        try {
+          if (fs.existsSync(oldPath) && oldPath !== newPath) {
+            // 读取 HTML 文件内容
+            let htmlContent = fs.readFileSync(oldPath, 'utf-8');
+
+            // 修复资源路径：将 ../../../assets/ 替换为 ./assets/
+            htmlContent = htmlContent.replace(/\.\.\/\.\.\/\.\.\/assets\//g, './assets/');
+            htmlContent = htmlContent.replace(/\.\.\/\.\.\/assets\//g, './assets/');
+            htmlContent = htmlContent.replace(/\.\.\/assets\//g, './assets/');
+
+            // 确保目标目录存在
+            fs.mkdirSync(path.dirname(newPath), { recursive: true });
+
+            // 写入修复后的内容到新位置
+            fs.writeFileSync(newPath, htmlContent, 'utf-8');
+
+            // 删除原文件
+            fs.unlinkSync(oldPath);
+
+            console.log(`✓ HTML 文件路径和资源引用修复: ${oldFileName} -> ${newFileName}`);
+
+            // 清理空的源目录
+            let dirToClean = path.dirname(oldPath);
+            while (dirToClean !== outDir) {
+              try {
+                if (fs.readdirSync(dirToClean).length === 0) {
+                  fs.rmdirSync(dirToClean);
+                  dirToClean = path.dirname(dirToClean);
+                } else {
+                  break;
+                }
+              } catch {
+                break;
+              }
+            }
+          }
+        } catch (error) {
+          console.warn(`⚠️  处理文件时出错: ${oldFileName}`, error);
+        }
+      }
+    }
+  };
+}
+
 // https://vite.dev/config/
 export default defineConfig({
   base: './', // 设置基础路径为相对路径，确保资源文件能正确加载
   server: {
     port: devConfig.port,
     host: devConfig.host,
+    // 开发环境下，多入口页面的访问路径：
+    // 主页面：http://localhost:5173/
+    // 裁剪窗口：http://localhost:5173/src/pages/crop-window/
+    // 日志查看器：http://localhost:5173/public/log-viewer.html
   },
   resolve: {
     alias: {
@@ -50,6 +135,12 @@ export default defineConfig({
     minify: process.env.NODE_ENV === 'production', // 生产环境压缩代码
     rollupOptions: {
       external: ['electron',],
+      // 多入口配置
+      input: {
+        main: resolve(__dirname, 'index.html'),
+        'crop-window': resolve(__dirname, 'src/pages/crop-window/index.html'),
+        'log-viewer': resolve(__dirname, 'public/log-viewer.html')
+      },
       output: {
         format: 'es',
         sourcemapExcludeSources: false // 包含源代码在source map中
@@ -90,6 +181,7 @@ export default defineConfig({
       ]
     }),
 
-    Renderer()
+    Renderer(),
+    customHtmlOutputPlugin(),// 添加自定义插件修复 HTML 输出路径
   ],
 })

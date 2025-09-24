@@ -31,6 +31,109 @@ interface WebUtils {
   loadPluginConfig: (configPath: string) => Promise<any>;
 }
 
+declare interface PluginApi {
+  /**
+   * 获取插件资源的实际路径
+   * @param path 资源路径
+   * @returns 资源实际路径
+   */
+  getResourcePath: (path: string) => string | null;
+
+  /** 
+   * 注册钩子事件处理器
+   * @param event 事件名称
+   * @param handler 钩子处理函数
+   */
+  onHook: (event: string, handler: (...args: any[]) => void | Promise<void>) => void
+
+  /**
+   * 获取插件设置的值
+   * @param settingName 设置项名称（可选）
+   * @returns 返回设置项的值
+   */
+  getSettingValue: (settingName?: string) => Promise<any>
+
+  /**
+   * 设置插件设置的值
+   * @param settingName 设置项名称
+   * @param value 设置项的值
+   * @returns 设置是否成功
+   */
+  setSettingValue: (settingName: string, value: any) => Promise<boolean>
+
+  /**
+   * 注册命令事件处理器
+   * @param event 命令事件名称
+   * @param description 命令描述
+   * @param handler 命令处理函数
+   */
+  onCommand: (event: string, description: string, handler: (...args: any[]) => void | Promise<void>) => void
+
+  /**
+   * 触发命令事件
+   * @param event 命令事件名称
+   * @param args 命令参数
+   */
+  emitCommand: (event: string, ...args: any[]) => void
+
+  /**
+   * 切换输入框显示状态
+   * @param value 是否显示输入框（可选）
+   */
+  toggleInput: (value?: boolean) => void
+
+  /**
+   * 打开插件窗口
+   */
+  openPluginWindow: () => void
+
+  /**
+   * 添加文件路径到文件列表
+   * @param name 文件名称
+   * @param path 文件路径
+   */
+  addPathToFileList: (name: string, path: string) => Promise<void>
+
+  /**
+   * 打开网页窗口
+   * @param url 网页地址
+   * @param options 其他选项（可选）
+   */
+  openWebPageWindow: (url: string, options?: any) => Promise<void>
+
+  /**
+   * 插件管理对象
+   */
+  plugin: {
+    /**
+     * 通过 zip 包安装插件
+     * @param zipPath zip 文件路径
+     * @returns 安装是否成功
+     */
+    installZip: (zipPath: string) => Promise<boolean>
+    /**
+     * 安装插件
+     * @param pluginData 插件配置信息
+     * @returns 安装是否成功
+     */
+    install: (pluginData: any) => Promise<boolean>
+    /**
+     * 卸载插件
+     * @param pluginId 插件ID
+     * @returns 卸载是否成功
+     */
+    uninstall: (pluginId: string) => Promise<boolean>
+    /**
+     * 启用或禁用插件
+     * @param pluginId 插件ID
+     * @param enabled 是否启用
+     * @returns 操作是否成功
+     */
+    toggle: (pluginId: string, enabled: boolean) => Promise<boolean>
+  }
+}
+
+
 declare global {
   const api: ElectronAPI
   const webUtils: WebUtils

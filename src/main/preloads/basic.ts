@@ -3,7 +3,7 @@ import { contextBridge, ipcRenderer, webUtils } from "electron";
 import { RendererErrorHandler } from "@libs/unhandled/renderer";
 import { ipcRouter } from "@shared/ipc-router-client";
 import { isDevelopment } from "@shared/utils";
-import { resolve } from "path";
+import { resolve, dirname } from "path";
 /**
  * 启用热重载
  * @param name 根据后台修改的文件名 来判断是否重启该页面
@@ -91,8 +91,14 @@ contextBridge.exposeInMainWorld("webUtils", {
         return null
       }
       const module = dynamicRequire(absoluteConfigPath);
+      const __dirname = dirname(absoluteConfigPath);
       if ("id" in module && "items" in module) {
-        return module;
+        return {
+          ...module,
+          getResourcePath: (...paths: string[]) => {
+            return resolve(__dirname, ...paths);
+          }
+        };
       }
       return null;
     } catch (e) {
@@ -129,6 +135,18 @@ ipcRenderer.on('window-all-blur', () => {
 ipcRenderer.on('plugin-window-closed', (event, data) => {
   console.log('Preload收到插件窗口关闭事件:', data);
   const customEvent = new CustomEvent('plugin-window-closed', { detail: data });
+  window.dispatchEvent(customEvent);
+});
+
+ipcRenderer.on('window-main-hide', () => {
+  console.log('Preload收到主窗口隐藏事件');
+  const customEvent = new CustomEvent('window-main-hide');
+  window.dispatchEvent(customEvent);
+});
+
+ipcRenderer.on('window-main-show', () => {
+  console.log('Preload收到主窗口显示事件');
+  const customEvent = new CustomEvent('window-main-show');
   window.dispatchEvent(customEvent);
 });
 
