@@ -35,7 +35,7 @@ export function useAppActions(
       } else {
         // 普通应用项目，使用原有逻辑
         console.log("📱 检测到普通应用项目，使用默认执行逻辑:", app.name);
-        const success = await api.ipcRouter.appLaunchApp(app.path);
+        const success = await naimo.router.appLaunchApp(app.path);
         if (success) {
           await updateRecentApps(app);
           return true;

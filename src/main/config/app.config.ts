@@ -9,6 +9,7 @@ import { isProduction } from '@shared/utils';
  */
 export class AppConfigManager {
   private store: Store<AppConfig>;
+  private static instance: AppConfigManager | null = null;
 
   constructor() {
     this.store = new Store<AppConfig>({
@@ -74,6 +75,13 @@ export class AppConfigManager {
     })
 
     log.info(`存储配置文件路径: ${this.store.path}`);
+  }
+
+  static getInstance(): AppConfigManager {
+    if (!AppConfigManager.instance) {
+      AppConfigManager.instance = new AppConfigManager();
+    }
+    return AppConfigManager.instance;
   }
 
   /**

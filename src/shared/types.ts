@@ -1,6 +1,4 @@
 // 共享类型定义
-
-
 export interface AppConfig {
   /** 主题模式，支持 light 或 dark */
   theme: "light" | "dark";

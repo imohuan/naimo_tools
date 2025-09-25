@@ -1,5 +1,6 @@
 <template>
   <div class="w-full h-full p-[8px]" @keydown="handleKeyNavigation" @click="handleContainerClick">
+    <!-- <Test /> -->
     <!-- 主应用容器 -->
     <div class="w-full bg-transparent relative shadow-lg rounded-xl  overflow-hidden"
       :class="{ 'rounded-b-none': isPluginWindowOpen && searchText.trim() === '' && !isSettingsInterface }"
@@ -57,6 +58,7 @@ import { ElectronStoreBridge } from "./core/store/ElectronStoreBridge"
 //测试打包
 import { useTestLoadPlugin } from "./composables/useTestLoadPlugin"
 import type { PluginApi } from "@shared/typings/global";
+import Test from "./Test.vue";
 
 
 const storeBridge = ElectronStoreBridge.getInstance();
@@ -73,7 +75,7 @@ const uiConstants = ref({ headerHeight: 50, maxHeight: 420, padding: 8 });
  */
 const loadUIConstants = async () => {
   try {
-    const config = await api.ipcRouter.windowGetUIConstants();
+    const config = await naimo.router.windowGetUIConstants();
     if (config) uiConstants.value = config;
   } catch (error) {
     console.warn('获取UI常量配置失败，使用默认值:', error);
@@ -252,7 +254,7 @@ const initializeWindowSize = () => {
  * @param height 新的窗口高度
  */
 const handleWindowResize = (height: number) => {
-  api.ipcRouter.windowSetSize(-1, height);
+  naimo.router.windowSetSize(-1, height);
 };
 
 /**
@@ -555,7 +557,7 @@ const generateApi = async (pluginItem: PluginItem): Promise<PluginApi> => {
   }
 
   const openWebPageWindow = async (url: string, options: any = {}) => {
-    await api.ipcRouter.windowCreateWebPageWindow(window.id!, url, { path: pluginItem.path, ...options })
+    await naimo.router.windowCreateWebPageWindow(window.id!, url, { path: pluginItem.path, ...options })
     await openPluginWindow(pluginItem)
   }
 

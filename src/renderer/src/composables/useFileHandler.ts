@@ -42,7 +42,7 @@ export function useFileHandler() {
     for (const file of fileArray) {
       const attachedFile: AttachedFile = {
         name: file.name,
-        path: webUtils.getPathForFile(file), // 使用 webUtils 获取完整文件路径
+        path: naimo.webUtils.getPathForFile(file), // 使用 webUtils 获取完整文件路径
         type: file.type,
         size: file.size,
       }
@@ -59,7 +59,7 @@ export function useFileHandler() {
           // 对于图片文件，使用FileReader转换为Data URL
           icon = await convertFileToDataURL(fileArray[i])
         } else {
-          icon = await api.ipcRouter.appExtractFileIcon(processedFiles[i].path)
+          icon = await naimo.router.appExtractFileIcon(processedFiles[i].path)
         }
         if (icon) processedFiles[i].icon = icon
       } catch (error) {

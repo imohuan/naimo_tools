@@ -67,7 +67,7 @@ export function useDragDrop(
     //   //         ...(item.usageCount && { usageCount: item.usageCount }),
     //   //       }))
     //   //     }
-    //   //     await api.ipcRouter.storeSet('fileList', serializeAppItems(originalFilesCategory.items))
+    //   //     await naimo.router.storeSet('fileList', serializeAppItems(originalFilesCategory.items))
     //   //   } catch (error) {
     //   //     console.error('保存文件列表失败:', error)
     //   //   }

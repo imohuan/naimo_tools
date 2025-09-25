@@ -63,7 +63,7 @@ const result = await window.ocrPluginAPI.takeScreenshotWithCrop({
 
 ```typescript
 // 主进程中调用
-const result = await api.ipcRouter.screenCaptureCaptureAndCrop({
+const result = await naimo.router.screenCaptureCaptureAndCrop({
   sourceId: "screen:0:0",
   showCursor: true,
 });

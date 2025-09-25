@@ -1,5 +1,5 @@
 import { debounce } from '@main/utils';
-import { BrowserWindow } from 'electron';
+import { BrowserWindow, screen } from 'electron';
 import log from 'electron-log';
 
 /**
@@ -77,11 +77,11 @@ export interface BasicWindowMetadata {
 /**
  * 窗口状态信息
  */
-interface WindowState {
-  /** 窗口位置 */
-  position: { x: number; y: number };
-  /** 窗口是否可见 */
-  visible: boolean;
+interface Position {
+  /** x坐标（小于0表示窗口隐藏） */
+  x: number;
+  /** y坐标 */
+  y: number;
 }
 
 /**
@@ -92,7 +92,7 @@ export class WindowManager {
   private static instance: WindowManager;
   windows: Map<number, WindowInfo> = new Map();
   private cleanupInterval: NodeJS.Timeout | null = null;
-  private windowStates: Map<number, WindowState> = new Map();
+  private windowPositions: Map<number, Position> = new Map();
 
   private constructor() {
     this.startCleanupTimer();
@@ -110,22 +110,28 @@ export class WindowManager {
 
   initPostion(window: BrowserWindow) {
     const [x, y] = window.getPosition();
-    this.windowStates.set(window.id, { position: { x, y }, visible: x > 0 });
+    this.windowPositions.set(window.id, { x, y });
+  }
+
+  setXCenter(window: BrowserWindow, y: number) {
+    const { width } = window.getBounds();
+    const { width: screenWidth } = screen.getPrimaryDisplay().workAreaSize;
+    const centerX = Math.floor((screenWidth - width) / 2);
+    window.setPosition(centerX, y);
+    this.windowPositions.set(window.id, { x: centerX, y });
   }
 
   show(window: BrowserWindow) {
-    const windowState = this.windowStates.get(window.id) || { position: { x: 0, y: 0 }, visible: false };
-    const { x, y } = windowState.position;
+    const { x, y } = this.windowPositions.get(window.id) || { x: 0, y: 0 };
     window.setPosition(x, y);
-    this.windowStates.set(window.id, { position: { x, y }, visible: true });
+    this.windowPositions.set(window.id, { x, y });
   }
 
   hide(window: BrowserWindow) {
     const [x, y] = window.getPosition();
     const newX = x - 2000;
-    const newY = y - 2000;
-    window.setPosition(newX, newY);
-    this.windowStates.set(window.id, { position: { x, y }, visible: false });
+    window.setPosition(newX, y);
+    this.windowPositions.set(window.id, { x, y });
   }
 
   /**
@@ -134,16 +140,17 @@ export class WindowManager {
    * @returns 窗口是否显示
    */
   isWindowVisible(window: BrowserWindow): boolean {
-    const windowState = this.windowStates.get(window.id);
-    return windowState?.visible || false;
+    const windowPosition = this.windowPositions.get(window.id)
+    if (!windowPosition) return true;
+    return windowPosition.x > 0;
   }
 
   isAllWindowBlur(): boolean {
     return this.windows.values().every(info => !info.window.isFocused());
   }
 
-  getMainWindow(): BrowserWindow | undefined {
-    return this.windows.values().find(info => info.type === WindowType.MAIN)?.window;
+  getMainInfo(): WindowInfo | undefined {
+    return this.windows.values().find(info => info.type === WindowType.MAIN);
   }
 
   /**
@@ -171,7 +178,7 @@ export class WindowManager {
     window.on("blur", debounce(() => {
       if (this.isAllWindowBlur()) {
         log.debug("所有窗口失去焦点");
-        this.getMainWindow()?.webContents.send("window-all-blur");
+        this.getMainInfo()?.window.webContents.send("window-all-blur");
       }
     }, 100));
 
@@ -191,6 +198,10 @@ export class WindowManager {
     const windowInfo = this.windows.get(windowId);
     if (windowInfo) {
       this.windows.delete(windowId);
+      this.windowPositions.delete(windowId);
+      if (!windowInfo.window.isDestroyed()) {
+        windowInfo.window.destroy();
+      }
       log.debug(`窗口已注销: ID=${windowId}, 类型=${windowInfo.type}`);
       return true;
     }
@@ -225,9 +236,7 @@ export class WindowManager {
    * 获取指定类型的所有窗口
    */
   public getWindowsByType(type: WindowType): BrowserWindow[] {
-    return Array.from(this.windows.values())
-      .filter(info => info.type === type && !info.window.isDestroyed())
-      .map(info => info.window);
+    return this.getWindowInfoByType(type).map(info => info.window);
   }
 
 
@@ -296,7 +305,7 @@ export class WindowManager {
       }
     });
 
-    toDelete.forEach(id => this.windows.delete(id));
+    toDelete.forEach(id => this.unregisterWindow(id));
 
     if (cleanedCount > 0) {
       log.debug(`清理了 ${cleanedCount} 个已销毁的窗口`);
@@ -330,7 +339,10 @@ export class WindowManager {
    */
   public destroy(): void {
     this.stopCleanupTimer();
-    this.windows.clear();
+    this.windows.forEach(info => {
+      this.unregisterWindow(info.id);
+    });
+    this.windowPositions.clear();
     WindowManager.instance = null as any;
   }
 

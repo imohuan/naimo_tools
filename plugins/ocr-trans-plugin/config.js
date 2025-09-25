@@ -33,28 +33,17 @@ module.exports = {
       description: "快速截图并识别文字",
       weight: 90,
       showInModes: ["normal", "plugin"],
+      anonymousSearchFields: ["imohuan_fast_ocr_translate"],
       onEnter: async (params, api) => {
         try {
-          // 隐藏主窗口输入框
-          api.toggleInput(false);
-
-          // 延迟一下确保窗口隐藏
-          setTimeout(async () => {
-            // 打开OCR窗口并自动开始截图
-            const window = await api.openWebPageWindow(api.getResourcePath("index.html"), {
-              preload: api.getResourcePath("preload.js"),
-            });
-
-            // 通知窗口自动开始截图
-            setTimeout(() => {
-              if (window && window.webContents) {
-                window.webContents.send('auto-start-screenshot');
-              }
-            }, 1000);
-          }, 300);
+          // 打开OCR窗口并传入自动启动标志
+          await api.openWebPageWindow(api.getResourcePath("index.html"), {
+            preload: api.getResourcePath("preload.js"),
+            autoStartScreenshot: true, // 传入自动启动截图的标志
+          });
         } catch (error) {
           console.error("启动快速截图失败:", error);
-          api.ipcRouter.logError(`OCR插件错误: ${error.message}`);
+          naimo.router.logError(`OCR插件错误: ${error.message}`);
         }
       },
     },

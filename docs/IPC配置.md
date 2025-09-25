@@ -154,8 +154,8 @@ declare global {
 
 ```typescript
 // 方式1：使用全局 api 对象（推荐）
-const appName = await api.ipcRouter.appGetName();
-const systemInfo = await api.ipcRouter.appGetSystemInfo();
+const appName = await naimo.router.appGetName();
+const systemInfo = await naimo.router.appGetSystemInfo();
 
 // 方式2：使用 window.electronAPI
 const appName = await window.electronAPI.ipcRouter.appGetName();
@@ -171,8 +171,8 @@ const appName = await ipcRouter.appGetName();
 
 ```typescript
 // 驼峰式（推荐）
-await api.ipcRouter.appGetName();
-await api.ipcRouter.filesystemSelectFile(options);
+await naimo.router.appGetName();
+await naimo.router.filesystemSelectFile(options);
 
 // 短横线式
 await api.ipcRouter["app-get-name"]();
@@ -185,7 +185,7 @@ await api.ipcRouter["filesystem-select-file"](options);
 
 ```typescript
 // 参数类型自动推导
-const filePaths = await api.ipcRouter.filesystemSelectFile({
+const filePaths = await naimo.router.filesystemSelectFile({
   properties: ["openFile", "multiSelections"],
   filters: [{ name: "Images", extensions: ["jpg", "png", "gif"] }],
 });
@@ -196,7 +196,7 @@ const filePaths = await api.ipcRouter.filesystemSelectFile({
 
 ```typescript
 // 返回值类型自动推导
-const systemInfo = await api.ipcRouter.appGetSystemInfo();
+const systemInfo = await naimo.router.appGetSystemInfo();
 // systemInfo 类型自动推导为：
 // {
 //   platform: string;
@@ -215,8 +215,8 @@ export function getConfig<T extends keyof AppConfig>(key: T): AppConfig[T] {
 }
 
 // 使用时类型安全
-const theme = await api.ipcRouter.storeGet("settings.theme"); // 类型为 string
-const user = await api.ipcRouter.storeGet("user"); // 类型为 UserConfig
+const theme = await naimo.router.storeGet("settings.theme"); // 类型为 string
+const user = await naimo.router.storeGet("user"); // 类型为 UserConfig
 ```
 
 ## 开发最佳实践
@@ -286,8 +286,8 @@ console.log(ROUTE_INFO);
 
 ```typescript
 // TypeScript 会在编译时检查类型
-const result = await api.ipcRouter.appGetName(); // ✅ 正确
-const result = await api.ipcRouter.nonExistentMethod(); // ❌ 编译错误
+const result = await naimo.router.appGetName(); // ✅ 正确
+const result = await naimo.router.nonExistentMethod(); // ❌ 编译错误
 ```
 
 ### 3. 开发工具支持
@@ -316,7 +316,7 @@ A: 系统使用 `模块名-函数名` 的命名规则，不同模块下的同名
 A:
 
 1. 在主进程中添加日志记录
-2. 使用 `api.log.debug()` 记录调用参数
+2. 使用 `naimo.log.debug()` 记录调用参数
 3. 检查 `src/shared/typings/ipc-routes.ts` 中的类型定义
 
 ### Q: 支持异步函数吗？

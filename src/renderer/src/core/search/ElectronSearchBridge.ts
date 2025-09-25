@@ -23,7 +23,7 @@ export class ElectronSearchBridge extends BaseSingleton {
         }
 
         try {
-          const icon = await api.ipcRouter.appExtractFileIcon(item.path)
+          const icon = await naimo.router.appExtractFileIcon(item.path)
           if (icon) this.iconCache.set(item.path, icon)
           return { ...item, icon }
         } catch (error) {
@@ -37,12 +37,12 @@ export class ElectronSearchBridge extends BaseSingleton {
 
   /** 获取本地应用 */
   async getApps(): Promise<AppItem[]> {
-    return await api.ipcRouter.appSearchApps()
+    return await naimo.router.appSearchApps()
   }
 
   /** 获取缓存应用数据，支持多个键 */
   async getStoreApps(keys: ('recentApps' | 'pinnedApps' | 'fileList')[]): Promise<AppItem[][]> {
-    return await Promise.all(keys.map(async (key) => await api.ipcRouter.storeGet(key)))
+    return await Promise.all(keys.map(async (key) => await naimo.router.storeGet(key)))
   }
 }
 

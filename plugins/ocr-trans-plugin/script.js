@@ -21,12 +21,23 @@ class OCRTranslator {
     this.setupEventListeners();
     this.setupCanvas();
     this.updateSettingsUI();
+    this.showPlaceholder(); // 初始显示占位符
 
-    // 监听自动截图事件
-    if (window.ocrPluginAPI && window.ocrPluginAPI.onAutoScreenshot) {
-      window.ocrPluginAPI.onAutoScreenshot(() => {
-        setTimeout(() => this.takeScreenshot(), 500);
-      });
+    // 检查是否需要自动启动截图
+    setTimeout(() => {
+      this.checkAutoStartScreenshot();
+    }, 500);
+  }
+
+  checkAutoStartScreenshot() {
+    try {
+      // 从 __metadata 中获取窗口打开时传入的参数
+      if (window.__metadata && window.__metadata.autoStartScreenshot) {
+        console.log('检测到自动启动截图标志，将在500ms后开始截图');
+        this.takeScreenshot();
+      }
+    } catch (error) {
+      console.error('检查自动启动截图失败:', error);
     }
   }
 
@@ -77,7 +88,7 @@ class OCRTranslator {
       translatedTextOffsetY: 0,
       textBackgroundOpacity: 70,
       textBackgroundColor: '#000000',
-      boxBorderColor: '#00FF00',
+      boxBorderColor: '#007AFF',
       boxBorderWidth: 2,
       ...this.settings
     };
@@ -147,6 +158,9 @@ class OCRTranslator {
 
     // 窗口大小改变
     window.addEventListener('resize', () => this.resizeCanvas());
+
+    // 键盘快捷键
+    this.setupKeyboardShortcuts();
   }
 
   setupSettingListeners() {
@@ -253,7 +267,7 @@ class OCRTranslator {
     // 更新背景和边框设置
     document.getElementById('textBackgroundColor').value = this.settings.textBackgroundColor || '#000000';
     document.getElementById('textBackgroundOpacity').value = this.settings.textBackgroundOpacity;
-    document.getElementById('boxBorderColor').value = this.settings.boxBorderColor || '#00FF00';
+    document.getElementById('boxBorderColor').value = this.settings.boxBorderColor || '#007AFF';
     document.getElementById('boxBorderWidth').value = this.settings.boxBorderWidth || 2;
 
     // 更新范围值显示
@@ -282,6 +296,33 @@ class OCRTranslator {
 
   hideSettings() {
     document.getElementById('settingsDrawer').classList.remove('open');
+  }
+
+  toggleSettings() {
+    const drawer = document.getElementById('settingsDrawer');
+    drawer.classList.toggle('open');
+  }
+
+  setupKeyboardShortcuts() {
+    document.addEventListener('keydown', (e) => {
+      // Tab键切换设置面板
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        this.toggleSettings();
+      }
+      // Escape键关闭设置面板
+      else if (e.key === 'Escape') {
+        this.hideSettings();
+      }
+    });
+  }
+
+  showPlaceholder() {
+    document.getElementById('placeholder').classList.remove('hidden');
+  }
+
+  hidePlaceholder() {
+    document.getElementById('placeholder').classList.add('hidden');
   }
 
   setupPasteEvents() {
@@ -534,6 +575,7 @@ class OCRTranslator {
       const img = new Image();
       img.onload = async () => {
         this.currentImage = img;
+        this.hidePlaceholder();
         this.resetView();
         this.redrawCanvas();
 
@@ -655,9 +697,12 @@ class OCRTranslator {
 
       console.log(`文本区域: (${minX}, ${minY}) 到 (${maxX}, ${maxY}), 大小: ${width}x${height}`);
 
-      // 绘制文本背景
+      // 检查是否显示背景和边框
+      const showBorder = this.settings.showBorder === true;
+
+      // 绘制文本背景（仅在开启背景显示时）
       const bgOpacity = this.settings.textBackgroundOpacity / 100;
-      if (bgOpacity > 0) {
+      if (showBorder && bgOpacity > 0) {
         const bgColor = this.settings.textBackgroundColor || '#000000';
         const r = parseInt(bgColor.slice(1, 3), 16);
         const g = parseInt(bgColor.slice(3, 5), 16);
@@ -666,11 +711,10 @@ class OCRTranslator {
         this.ctx.fillRect(minX, minY, width, height);
       }
 
-      // 绘制边框
-      const showBorder = this.settings.showBorder !== false; // 默认显示
+      // 绘制边框（仅在开启边框显示时）
       const borderWidth = this.settings.boxBorderWidth || 2;
       if (showBorder && borderWidth > 0) {
-        this.ctx.strokeStyle = this.settings.boxBorderColor || '#00ff00';
+        this.ctx.strokeStyle = this.settings.boxBorderColor || '#007AFF';
         this.ctx.lineWidth = borderWidth;
         this.ctx.strokeRect(minX, minY, width, height);
       }
@@ -679,7 +723,7 @@ class OCRTranslator {
       const baseX = minX + 5;
       const baseY = minY + Math.max(this.settings.originalTextSize, this.settings.translatedTextSize);
 
-      // 绘制原始文本
+      // 绘制原始文本（不含背景）
       if (showOriginal && result.originalText) {
         console.log(`绘制原始文本: "${result.originalText}"`);
         const offsetX = parseInt(this.settings.originalTextOffsetX) || 0;
@@ -702,7 +746,7 @@ class OCRTranslator {
         );
       }
 
-      // 绘制翻译文本 - 使用相同的基准位置
+      // 绘制翻译文本（不含背景） - 使用相同的基准位置
       if (showTranslated && result.translatedText) {
         console.log(`绘制翻译文本: "${result.translatedText}"`);
         const offsetX = parseInt(this.settings.translatedTextOffsetX) || 0;
@@ -723,6 +767,94 @@ class OCRTranslator {
           this.settings.translatedTextUnderline,
           this.settings.translatedTextWrap
         );
+      }
+    });
+  }
+
+  drawTextWithBackground(text, x, y, maxWidth, color, size, bold, underline, wrap = true) {
+    this.ctx.fillStyle = color;
+    this.ctx.font = `${bold ? 'bold' : 'normal'} ${size}px Arial, sans-serif`;
+    this.ctx.strokeStyle = color;
+    this.ctx.lineWidth = 1;
+
+    console.log(`绘制文本（含背景）: "${text}" 在 (${x}, ${y}), 换行: ${wrap}`);
+
+    // 计算背景透明度和颜色
+    const bgOpacity = this.settings.textBackgroundOpacity / 100;
+    let bgColor = null;
+    if (bgOpacity > 0) {
+      const bgColorHex = this.settings.textBackgroundColor || '#000000';
+      const r = parseInt(bgColorHex.slice(1, 3), 16);
+      const g = parseInt(bgColorHex.slice(3, 5), 16);
+      const b = parseInt(bgColorHex.slice(5, 7), 16);
+      bgColor = `rgba(${r}, ${g}, ${b}, ${bgOpacity})`;
+    }
+
+    if (!wrap) {
+      // 不换行，直接绘制单行
+      const textWidth = this.ctx.measureText(text).width;
+
+      // 绘制背景
+      if (bgColor) {
+        this.ctx.fillStyle = bgColor;
+        this.ctx.fillRect(x - 2, y - size, textWidth + 4, size + 4);
+      }
+
+      // 绘制文本
+      this.ctx.fillStyle = color;
+      this.ctx.fillText(text, x, y);
+
+      if (underline) {
+        this.ctx.beginPath();
+        this.ctx.moveTo(x, y + 2);
+        this.ctx.lineTo(x + textWidth, y + 2);
+        this.ctx.stroke();
+      }
+      return;
+    }
+
+    // 文本换行处理 - 先计算所有行，然后绘制背景和文本
+    const words = text.split('');
+    let line = '';
+    let lineY = y;
+    const lines = [];
+
+    for (let i = 0; i < words.length; i++) {
+      const testLine = line + words[i];
+      const metrics = this.ctx.measureText(testLine);
+
+      if (metrics.width > maxWidth && i > 0) {
+        lines.push({ text: line, y: lineY, width: this.ctx.measureText(line).width });
+        line = words[i];
+        lineY += size + 4;
+      } else {
+        line = testLine;
+      }
+    }
+
+    if (line) {
+      lines.push({ text: line, y: lineY, width: this.ctx.measureText(line).width });
+    }
+
+    // 绘制所有行的背景和文本
+    lines.forEach(lineInfo => {
+      // 绘制背景
+      if (bgColor) {
+        this.ctx.fillStyle = bgColor;
+        this.ctx.fillRect(x - 2, lineInfo.y - size, lineInfo.width + 4, size + 4);
+      }
+
+      // 绘制文本
+      this.ctx.fillStyle = color;
+      this.ctx.fillText(lineInfo.text, x, lineInfo.y);
+
+      // 绘制下划线
+      if (underline) {
+        this.ctx.beginPath();
+        this.ctx.moveTo(x, lineInfo.y + 2);
+        this.ctx.lineTo(x + lineInfo.width, lineInfo.y + 2);
+        this.ctx.strokeStyle = color;
+        this.ctx.stroke();
       }
     });
   }
@@ -926,11 +1058,14 @@ class OCRTranslator {
     toast.className = 'status-toast show';
 
     if (type === 'error') {
-      toast.style.background = 'rgba(244, 67, 54, 0.9)';
+      toast.style.background = 'rgba(244, 67, 54, 0.95)';
+      toast.style.color = 'white';
     } else if (type === 'success') {
-      toast.style.background = 'rgba(76, 175, 80, 0.9)';
+      toast.style.background = 'rgba(76, 175, 80, 0.95)';
+      toast.style.color = 'white';
     } else {
-      toast.style.background = 'rgba(0, 0, 0, 0.8)';
+      toast.style.background = 'rgba(255, 255, 255, 0.95)';
+      toast.style.color = '#333';
     }
 
     setTimeout(() => {

@@ -8,8 +8,8 @@ import { getRendererUrl } from "@main/config/window.config";
 import { WindowManager } from "@main/config/window-manager";
 
 
-function getDirname(): string {
-  return dirname(fileURLToPath(import.meta.url));
+function getCurrentDirname(metaUrl: string): string {
+  return dirname(fileURLToPath(metaUrl));
 }
 
 
@@ -38,13 +38,11 @@ export async function getSources(options: {
  */
 export async function captureAndGetFilePath(options: { sourceId?: string; } = {}): Promise<{ success: boolean; filePath?: string; error?: string }> {
   const windowManager = WindowManager.getInstance();
-  const mainWindow = windowManager.getMainWindow();
-  let wasMainWindowVisible = false;
+  const mainWindow = windowManager.getMainInfo()?.window;
 
   try {
     // 如果主窗口存在且可见，隐藏它
     if (mainWindow && windowManager.isWindowVisible(mainWindow)) {
-      wasMainWindowVisible = true;
       mainWindow.webContents.send("window-main-hide");
       // 等待一小段时间确保窗口隐藏生效
       await new Promise(resolve => setTimeout(resolve, 100));
@@ -87,7 +85,7 @@ export async function captureAndGetFilePath(options: { sourceId?: string; } = {}
     return { success: false, error: (error as Error).message };
   } finally {
     // 恢复主窗口的显示状态
-    if (mainWindow && wasMainWindowVisible) {
+    if (mainWindow) {
       mainWindow.webContents.send("window-main-show");
     }
   }
@@ -149,7 +147,7 @@ async function showCropWindow(screenInfo: {
 
     const htmlPath = isDevelopment() ?
       getRendererUrl() + '/src/pages/crop-window/' :
-      pathResolve(getDirname(), '../renderer/crop-window.html');
+      pathResolve(getCurrentDirname(import.meta.url), '../renderer/crop-window.html');
 
     // 创建全屏无边框透明窗口
     const cropWindow = new BrowserWindow({

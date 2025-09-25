@@ -1,4 +1,4 @@
-import { app, BrowserWindow, autoUpdater } from "electron";
+import { app, BrowserWindow, screen } from "electron";
 import log from "electron-log";
 import { updateElectronApp, UpdateSourceType } from "@libs/update";
 import { AppConfigManager } from "../config/app.config";
@@ -9,16 +9,11 @@ import { isProduction } from "@shared/utils";
 import { MainErrorHandler } from "@libs/unhandled/main";
 import { cleanupIpcRouter, initializeIpcRouter } from "../ipc-router";
 import { createIconWorker, getApps, } from "@libs/app-search";
-import { join } from "path";
+import { join, resolve } from "path";
 
-import { dirname } from "path";
-import { fileURLToPath } from "url";
 import { tmpdir } from "os";
 import { existsSync, rmSync } from "fs";
-
-export function getDirname(): string {
-  return dirname(fileURLToPath(import.meta.url));
-}
+import { getDirname } from "@main/utils";
 
 /**
  * 主应用服务类
@@ -27,12 +22,13 @@ export function getDirname(): string {
 export class AppService {
   private static instance: AppService;
   private mainWindow: BrowserWindow | null = null;
-  private configManager: AppConfigManager;
+
   private windowManager: WindowManager;
+  private configManager: AppConfigManager;
 
   private constructor() {
-    this.configManager = new AppConfigManager();
     this.windowManager = WindowManager.getInstance();
+    this.configManager = AppConfigManager.getInstance();
   }
 
   /**
@@ -157,11 +153,11 @@ export class AppService {
       //   // 开发环境：使用源码路径
       //   workerPath = join(__dirname, 'preloads', 'icon-worker.js');
       // }
-      workerPath = join(getDirname(), 'iconWorker.js');
+      workerPath = resolve(getDirname(import.meta.url), 'iconWorker.js');
       log.info('🖼️ 初始化图标工作进程:', workerPath);
       createIconWorker(workerPath, log);
       log.info('✅ 图标工作进程初始化完成');
-      getApps(join(app.getPath('userData'), 'icons'));
+      getApps(resolve(app.getPath('userData'), 'icons'));
     } catch (error) {
       log.error('❌ 图标工作进程初始化失败:', error);
     }
@@ -221,18 +217,14 @@ export class AppService {
     this.windowManager.registerWindow(this.mainWindow, WindowType.MAIN, {
       title: '主窗口',
       url: '主窗口',
-      parentWindowId: 0,
       init: true,
+      parentWindowId: 0,
       isMainWindow: true,
       version: '1.0.0',
       path: 'MAIN_PATH'
     });
 
-    this.windowManager.initPostion(this.mainWindow);
-
-    // 剧中显示
-    this.mainWindow.center();
-    this.mainWindow.show()
+    this.windowManager.setXCenter(this.mainWindow, 200);
     this.mainWindow.focus()
 
     // 设置窗口事件监听器
@@ -260,8 +252,6 @@ export class AppService {
       this.windowManager.unregisterWindow(this.mainWindow!.id);
       this.mainWindow = null;
     });
-
-    this.mainWindow.center();
   }
 
   /**
@@ -333,7 +323,7 @@ export class AppService {
     log.info("应用服务已清理");
 
     // 清空临时目录
-    const tempDir = join(tmpdir(), 'naimo-preloads');
+    const tempDir = resolve(tmpdir(), 'naimo-preloads');
     if (existsSync(tempDir)) {
       rmSync(tempDir, { recursive: true, force: true });
       log.info(`已清空临时目录: ${tempDir}`);

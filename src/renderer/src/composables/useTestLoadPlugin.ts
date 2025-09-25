@@ -36,7 +36,7 @@ export function useTestLoadPlugin() {
       console.log('🎯 触发测试插件打包功能')
 
       // // 选择要打包的文件夹
-      // const selectedFolders = await api.ipcRouter.filesystemSelectFolder({
+      // const selectedFolders = await naimo.router.filesystemSelectFolder({
       //   properties: ['openDirectory'],
       //   title: '选择要打包的文件夹'
       // })
@@ -50,7 +50,7 @@ export function useTestLoadPlugin() {
       // console.log('选择的文件夹:', sourceDir)
 
       // // 选择保存zip文件的位置
-      // const savePath = await api.ipcRouter.filesystemSaveFile({
+      // const savePath = await naimo.router.filesystemSaveFile({
       //   title: '保存zip文件',
       //   defaultPath: `${sourceDir.split('\\').pop() || 'folder'}.zip`,
       //   filters: [
@@ -72,7 +72,7 @@ export function useTestLoadPlugin() {
       console.log('保存路径:', savePath)
 
       // 调用主进程的zip打包功能
-      const success = await api.ipcRouter.filesystemZipDirectory(sourceDir, savePath)
+      const success = await naimo.router.filesystemZipDirectory(sourceDir, savePath)
 
       if (success) {
         lastZipPath.value = savePath

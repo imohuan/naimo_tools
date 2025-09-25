@@ -24,7 +24,7 @@ module.exports = {
       description: "打开系统记事本应用",
       weight: 100,
       onEnter: (params, api) => {
-        api.ipcRouter.appLaunchApp("C:\\Windows\\System32\\notepad.exe")
+        naimo.router.appLaunchApp("C:\\Windows\\System32\\notepad.exe")
       }
     },
     {
@@ -40,7 +40,7 @@ module.exports = {
         //   preload: "E:\\Code\\Git\\naimo_tools\\plugins\\example-plugin\\preload.js"
         // })
         api.openWebPageWindow(api.getResourcePath("index.html"), { preload: api.getResourcePath("preload.js") })
-        // api.ipcRouter.windowCreateWebPageWindow(window.id!, "https://www.baidu.com")
+        // naimo.router.windowCreateWebPageWindow(window.id!, "https://www.baidu.com")
       }
     },
   ],

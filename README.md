@@ -200,7 +200,7 @@ export function getVersion(): string {
 }
 
 // 渲染进程调用
-const version = await api.ipcRouter.appGetVersion();
+const version = await naimo.router.appGetVersion();
 ```
 
 **特性**：
@@ -220,7 +220,7 @@ import log from "electron-log";
 log.info("应用启动成功");
 
 // 渲染进程
-api.log.info("用户操作", { action: "click" });
+naimo.log.info("用户操作", { action: "click" });
 ```
 
 **特性**：
@@ -240,8 +240,8 @@ const store = new Store();
 store.set("user.name", "John Doe");
 
 // 渲染进程
-await api.ipcRouter.storeSet("user.name", "John Doe");
-const userName = await api.ipcRouter.storeGet("user.name");
+await naimo.router.storeSet("user.name", "John Doe");
+const userName = await naimo.router.storeGet("user.name");
 ```
 
 **特性**：
@@ -378,7 +378,7 @@ const count = ref(0);
 
 1. 在 `src/shared/types.ts` 中定义配置类型
 2. 在 `src/main/config/` 下添加配置文件
-3. 使用 `api.ipcRouter.storeSet/get` 管理配置
+3. 使用 `naimo.router.storeSet/get` 管理配置
 
 ### 调试技巧
 
@@ -426,13 +426,11 @@ A: 推荐使用以下步骤制作专业的应用图标：
 #### 方法一：AI 生成 + 在线工具处理
 
 1. **AI 生成图标**：
-
    - 使用即梦 AI 绘图或其他 AI 绘图工具
    - 提示词示例：`设计一个现代化的应用图标，简洁风格，透明背景，适合桌面应用`
    - 确保生成透明背景的 PNG 格式图片
 
 2. **在线工具处理**：
-
    - 访问 [ICO 转换工具](https://www.butterpig.top/icopro/)
    - 上传生成的 PNG 图片
    - 选择多种尺寸（16x16, 32x32, 48x48, 64x64, 128x128, 256x256）
@@ -447,7 +445,6 @@ A: 推荐使用以下步骤制作专业的应用图标：
 #### 方法二：专业设计工具
 
 1. **使用 Figma/Sketch**：
-
    - 创建 512x512 的画布
    - 设计简洁的图标，确保在小尺寸下仍然清晰
    - 导出为 PNG 格式（透明背景）

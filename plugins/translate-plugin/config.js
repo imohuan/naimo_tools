@@ -32,7 +32,7 @@ module.exports = {
           });
         } catch (error) {
           console.error("翻译插件启动失败:", error);
-          api.ipcRouter.logError(`翻译插件启动失败: ${error.message}`);
+          naimo.router.logError(`翻译插件启动失败: ${error.message}`);
         }
       }
     },
@@ -52,7 +52,7 @@ module.exports = {
           const settings = await api.getSettingValue();
           if (!settings.secretId || !settings.secretKey) {
             console.error("请先配置腾讯云API密钥");
-            api.ipcRouter.logError("请先配置腾讯云API密钥");
+            naimo.router.logError("请先配置腾讯云API密钥");
             return;
           }
 
@@ -67,7 +67,7 @@ module.exports = {
 
             if (textFiles.length > 0) {
               try {
-                const fileContent = await api.ipcRouter.filesystemReadFile(textFiles[0].path);
+                const fileContent = await naimo.router.filesystemReadFile(textFiles[0].path);
                 textToTranslate = fileContent.substring(0, 1000); // 限制文本长度
               } catch (error) {
                 console.error("读取文件失败:", error);
@@ -89,7 +89,7 @@ module.exports = {
           }
         } catch (error) {
           console.error("快速翻译失败:", error);
-          api.ipcRouter.logError(`快速翻译失败: ${error.message}`);
+          naimo.router.logError(`快速翻译失败: ${error.message}`);
         }
       }
     }

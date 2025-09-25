@@ -53,7 +53,7 @@ const move = (event: MouseEvent) => {
 
   // 3. 将计算出的新位置发送给主进程
   // 注意：宽度和高度在拖拽时不应改变，所以直接使用初始值
-  api.sendTo.windowMove(
+  naimo.sendTo.windowMove(
     window.id!,
     Math.round(newX),
     Math.round(newY),

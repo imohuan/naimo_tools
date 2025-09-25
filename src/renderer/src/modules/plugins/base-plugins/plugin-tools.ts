@@ -29,7 +29,7 @@ export const pluginToolsPlugin: PluginConfig = {
         // for (const file of options.files) {
         //   await api.addPathToFileList(file.name, file.path)
         // }
-        // await api.ipcRouter.filesystemInstallPluginFromZip(options.files[0].path)
+        // await naimo.router.filesystemInstallPluginFromZip(options.files[0].path)
         await apis.plugin.installZip(options.files[0].path)
       },
       showInModes: [SearchMode.ATTACHMENT],

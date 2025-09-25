@@ -10,16 +10,16 @@ interface WindowSize {
 export const useWindowManager = () => {
   /** 设置窗口大小 */
   const setSize = (options: Partial<WindowSize> = {}) => {
-    api.ipcRouter.windowSetSize(options.width ?? -1, options.height ?? -1)
+    naimo.router.windowSetSize(options.width ?? -1, options.height ?? -1)
   }
 
   /** 根据插件项目配置来执行相应的操作：隐藏或关闭所有following窗口 */
   const manageFollowingWindows = (pluginItem: PluginItem | null, action?: 'hide' | 'close') => {
     const closeAction = action || pluginItem?.closeAction
     if (closeAction) {
-      api.ipcRouter.windowManageFollowingWindows(closeAction)
+      naimo.router.windowManageFollowingWindows(closeAction)
     } else {
-      api.ipcRouter.windowCloseAllFollowingWindows()
+      naimo.router.windowCloseAllFollowingWindows()
     }
   }
 
@@ -27,24 +27,24 @@ export const useWindowManager = () => {
   const openCurrentItemFollowingWindow = (pluginItem: PluginItem | null) => {
     if (!pluginItem) return
     if (!pluginItem.path) return
-    api.ipcRouter.windowShowSpecificFollowingWindow(pluginItem.path)
+    naimo.router.windowShowSpecificFollowingWindow(pluginItem.path)
   }
 
   /** 检查窗口是否显示 */
   const isWindowVisible = async (): Promise<boolean> => {
-    return await api.ipcRouter.windowIsWindowVisible(window.id!)
+    return await naimo.router.windowIsWindowVisible(window.id!)
   }
 
   /** 显示主窗口和当前插件项目的following窗口 */
   const show = (pluginItem: PluginItem | null) => {
-    api.ipcRouter.windowToggleShow(window.id!, true)
+    naimo.router.windowToggleShow(window.id!, true)
     openCurrentItemFollowingWindow(pluginItem)
   }
 
   /** 隐藏主窗口和所有插件项目的following窗口 */
   const hide = (pluginItem: PluginItem | null, action?: 'hide' | 'close') => {
     manageFollowingWindows(pluginItem, action)
-    api.ipcRouter.windowToggleShow(window.id!, false)
+    naimo.router.windowToggleShow(window.id!, false)
   }
 
   return { setSize, manageFollowingWindows, openCurrentItemFollowingWindow, isWindowVisible, show, hide }

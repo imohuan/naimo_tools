@@ -55,7 +55,7 @@ export const screenshotToolsPlugin: PluginConfig = {
           const autoClose = await apis.getSettingValue('autoCloseAfterCapture') ?? true;
 
           // 调用截图功能
-          const result = await api.ipcRouter.screenCaptureCaptureAndGetFilePath({});
+          const result = await naimo.router.screenCaptureCaptureAndGetFilePath({});
 
           if (result.success && result.filePath) {
             // 截图成功，可以进行后续处理
@@ -63,7 +63,7 @@ export const screenshotToolsPlugin: PluginConfig = {
 
             // 根据设置决定是否复制到剪贴板
             if (copyToClipboard) {
-              await api.ipcRouter.clipboardWriteText(result.filePath);
+              await naimo.router.clipboardWriteText(result.filePath);
               console.log('文件路径已复制到剪贴板');
             }
 
@@ -100,7 +100,7 @@ export const screenshotToolsPlugin: PluginConfig = {
           const autoClose = await apis.getSettingValue('autoCloseAfterCapture') ?? true;
 
           // 使用默认设置快速截图
-          const result = await api.ipcRouter.screenCaptureCaptureAndGetFilePath({
+          const result = await naimo.router.screenCaptureCaptureAndGetFilePath({
             sourceId: undefined // 使用默认屏幕源
           });
 
@@ -109,7 +109,7 @@ export const screenshotToolsPlugin: PluginConfig = {
 
             // 根据设置决定是否复制到剪贴板
             if (copyToClipboard) {
-              await api.ipcRouter.clipboardWriteText(result.filePath);
+              await naimo.router.clipboardWriteText(result.filePath);
               console.log('文件路径已复制到剪贴板');
             }
 

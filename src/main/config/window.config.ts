@@ -1,17 +1,23 @@
 import { BrowserWindow, BrowserWindowConstructorOptions, shell } from 'electron';
-import { join } from 'path';
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
+import { resolve } from 'path';
 import { readFileSync } from 'fs';
 import log from 'electron-log';
 import { AppConfig } from '@shared/types';
 import { isProduction } from '@shared/utils';
-import { WindowManager, WindowType } from './window-manager';
+import { WindowManager, } from './window-manager';
+import { getDirname } from '@main/utils';
+
+// 获取项目根目录
+export function getProjectRoot(): string {
+  const __dirname = getDirname(import.meta.url);
+  // 从 src/main/config/ 回到项目根目录
+  return resolve(__dirname, '../..');
+}
 
 // 从 package.json 读取渲染进程URL配置
 export function getRendererUrl(): string {
   try {
-    const packageJsonPath = join(getProjectRoot(), 'package.json');
+    const packageJsonPath = resolve(getProjectRoot(), 'package.json');
     const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
     const devConfig = packageJson.config?.dev || {};
     const port = devConfig.rendererPort || 5173;
@@ -22,15 +28,6 @@ export function getRendererUrl(): string {
     return 'http://localhost:5173';
   }
 }
-
-// 获取项目根目录
-export function getProjectRoot(): string {
-  const __filename = fileURLToPath(import.meta.url);
-  const __dirname = dirname(__filename);
-  // 从 src/main/config/ 回到项目根目录
-  return join(__dirname, '../..');
-}
-
 
 /**
  * 窗口配置管理类
@@ -70,16 +67,14 @@ export class WindowConfigManager {
    * 创建主窗口配置
    */
   static createMainWindowOptions(config: AppConfig): BrowserWindowConstructorOptions {
-    const __filename = fileURLToPath(import.meta.url);
-    const __dirname = dirname(__filename);
-
+    const __dirname = getDirname(import.meta.url)
     return {
       width: config.windowSize.width,
       height: config.windowSize.height,
       webPreferences: {
         nodeIntegration: true,
         contextIsolation: true,
-        preload: join(__dirname, 'preloads', 'basic.js')
+        preload: resolve(__dirname, 'preloads', 'basic.js')
       },
       show: false,
       titleBarStyle: 'default',
@@ -90,7 +85,7 @@ export class WindowConfigManager {
       transparent: true,
       skipTaskbar: true, // 不在任务栏显示
       hasShadow: false, // 移除窗口阴影
-      icon: isProduction() ? join(__dirname, '../../setup/exe.ico') : undefined
+      icon: isProduction() ? resolve(__dirname, '../../setup/exe.ico') : undefined
     };
   }
 
@@ -150,10 +145,9 @@ export class WindowConfigManager {
    */
   static loadContent(window: BrowserWindow): void {
     if (isProduction()) {
-      const __filename = fileURLToPath(import.meta.url);
-      const __dirname = dirname(__filename);
+      const __dirname = getDirname(import.meta.url)
       // 从 dist/main/config/ 指向 dist/renderer/index.html
-      window.loadFile(join(__dirname, '../renderer/index.html'));
+      window.loadFile(resolve(__dirname, '../renderer/index.html'));
     } else {
       window.loadURL(getRendererUrl());
     }

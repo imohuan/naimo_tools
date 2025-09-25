@@ -600,7 +600,7 @@ export async function createWebPageWindow(
     windowManager.unregisterWindow(webWindow.id);
 
     // 通知主渲染进程插件窗口已关闭
-    const mainWindow = windowManager.getMainWindow();
+    const mainWindow = windowManager.getMainInfo()?.window;
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send("plugin-window-closed", {
         windowId: webWindow.id,

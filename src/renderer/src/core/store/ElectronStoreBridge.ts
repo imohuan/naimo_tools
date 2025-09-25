@@ -28,7 +28,7 @@ export class ElectronStoreBridge {
    */
   public async get<K extends keyof AppConfig>(key?: K): Promise<AppConfig[K] | AppConfig | undefined> {
     try {
-      const result = await api.ipcRouter.storeGet(key)
+      const result = await naimo.router.storeGet(key)
 
       // 更新缓存
       if (key) {
@@ -57,7 +57,7 @@ export class ElectronStoreBridge {
    */
   public async set<K extends keyof AppConfig>(key: K, value: AppConfig[K]): Promise<boolean> {
     try {
-      const success = await api.ipcRouter.storeSet(key, value)
+      const success = await naimo.router.storeSet(key, value)
       if (success) {
         this.cache.set(key, value)
       }
@@ -75,7 +75,7 @@ export class ElectronStoreBridge {
    */
   public async delete<K extends keyof AppConfig>(key: K): Promise<boolean> {
     try {
-      const success = await api.ipcRouter.storeDeleteKey(key)
+      const success = await naimo.router.storeDeleteKey(key)
       if (success) {
         this.cache.delete(key)
       }
@@ -92,7 +92,7 @@ export class ElectronStoreBridge {
    */
   public async clear(): Promise<boolean> {
     try {
-      const success = await api.ipcRouter.storeClear()
+      const success = await naimo.router.storeClear()
       if (success) {
         this.cache.clear()
       }
