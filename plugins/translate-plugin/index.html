@@ -475,8 +475,8 @@
     async function loadSettings() {
       try {
         // 使用基础preload提供的IPC路由获取插件设置
-        if (window.electronAPI && window.electronAPI.ipcRouter) {
-          pluginSettings = await window.electronAPI.ipcRouter.storeGet('pluginSettings.translate-plugin') || {};
+        if (naimo && naimo.ipcRouter) {
+          pluginSettings = await naimo.ipcRouter.storeGet('pluginSettings.translate-plugin') || {};
         }
 
         // 从本地存储加载UI设置
@@ -822,9 +822,9 @@
     async function tryLoadClipboardText() {
       try {
         // 检查是否有剪切板API可用
-        if (window.electronAPI && window.electronAPI.ipcRouter) {
+        if (naimo && naimo.ipcRouter) {
           // 获取剪切板中的中文文本
-          const clipboardText = await window.electronAPI.ipcRouter.clipboardReadText();
+          const clipboardText = await naimo.ipcRouter.clipboardReadText();
 
           if (clipboardText && clipboardText.trim()) {
             sourceText.value = clipboardText.trim();

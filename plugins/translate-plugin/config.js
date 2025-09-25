@@ -32,7 +32,7 @@ module.exports = {
           });
         } catch (error) {
           console.error("翻译插件启动失败:", error);
-          naimo.router.logError(`翻译插件启动失败: ${error.message}`);
+          naimo.log.logError(`翻译插件启动失败: ${error.message}`);
         }
       }
     },
@@ -52,7 +52,7 @@ module.exports = {
           const settings = await api.getSettingValue();
           if (!settings.secretId || !settings.secretKey) {
             console.error("请先配置腾讯云API密钥");
-            naimo.router.logError("请先配置腾讯云API密钥");
+            naimo.log.logError("请先配置腾讯云API密钥");
             return;
           }
 

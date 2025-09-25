@@ -8,7 +8,7 @@ const ocrPluginAPI = {
   async takeScreenshot() {
     try {
       // 调用截图功能，该方法始终会将图片复制到剪切板
-      const result = await ipcRenderer.invoke('screen-capture-capture-and-get-file-path');
+      const result = await naimo.router.screenCaptureCaptureAndGetFilePath();
 
       if (result.success) {
         // 截图完成后，图片已经被复制到剪切板
@@ -16,7 +16,7 @@ const ocrPluginAPI = {
         await new Promise(resolve => setTimeout(resolve, 200));
 
         // 从剪切板读取图片
-        const imageData = await ipcRenderer.invoke('clipboard-read-image-as-base64');
+        const imageData = await naimo.router.clipboardReadImageAsBase64();
 
         if (imageData) {
           // 确保返回完整的data URL格式
@@ -41,7 +41,7 @@ const ocrPluginAPI = {
   async selectImage() {
     try {
       // 在preload中直接使用ipcRenderer调用正确的路由
-      const filePaths = await ipcRenderer.invoke('filesystem-select-file', {
+      const filePaths = await naimo.router.filesystemSelectFile({
         properties: ['openFile'],
         filters: [
           { name: '图片文件', extensions: ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'] }
@@ -390,7 +390,7 @@ const ocrPluginAPI = {
   async getGlobalSettings() {
     try {
       // 在preload中直接使用ipcRenderer调用正确的路由
-      const allSettings = await ipcRenderer.invoke('store-get', 'pluginSettings') || {};
+      const allSettings = await naimo.router.storeGet('pluginSettings') || {};
       return allSettings['ocr-trans-plugin'] || {};
     } catch (error) {
       console.error('获取全局设置失败:', error);
@@ -402,7 +402,7 @@ const ocrPluginAPI = {
   async saveGlobalSettings(settings) {
     try {
       // 在preload中直接使用ipcRenderer调用正确的路由
-      return await ipcRenderer.invoke('store-set', 'pluginSettings.ocr-trans-plugin', settings);
+      return await naimo.router.storeSet('pluginSettings.ocr-trans-plugin', settings);
     } catch (error) {
       console.error('保存全局设置失败:', error);
       return false;

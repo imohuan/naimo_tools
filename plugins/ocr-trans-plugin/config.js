@@ -43,7 +43,7 @@ module.exports = {
           });
         } catch (error) {
           console.error("启动快速截图失败:", error);
-          naimo.router.logError(`OCR插件错误: ${error.message}`);
+          naimo.log.logError(`OCR插件错误: ${error.message}`);
         }
       },
     },

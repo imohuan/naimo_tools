@@ -1,4 +1,4 @@
-const { contextBridge, ipcRenderer } = require('electron');
+const { contextBridge } = require('electron');
 const https = require('https');
 const crypto = require('crypto');
 
@@ -200,11 +200,11 @@ async function translateText({ sourceText, source, target, settings }) {
 }
 
 // 获取插件设置 - 注意：这些方法在融合preload环境中可能不需要
-// 建议在HTML中直接使用 window.electronAPI.ipcRouter.storeGet()
+// 建议在HTML中直接使用 naimo.ipcRouter.storeGet()
 async function getPluginSettings() {
   try {
     // 通过IPC获取插件设置
-    const settings = await ipcRenderer.invoke('store-get', 'plugin-settings.translate-plugin');
+    const settings = await naimo.router.storeGet('plugin-settings.translate-plugin');
     return settings || {};
   } catch (error) {
     console.error('获取插件设置失败:', error);
@@ -215,7 +215,7 @@ async function getPluginSettings() {
 // 保存插件设置 - 注意：建议在HTML中直接使用基础preload的API
 async function savePluginSettings(settings) {
   try {
-    await ipcRenderer.invoke('store-set', 'plugin-settings.translate-plugin', settings);
+    await naimo.router.storeSet('plugin-settings.translate-plugin', settings);
     return true;
   } catch (error) {
     console.error('保存插件设置失败:', error);
@@ -273,19 +273,19 @@ window.addEventListener('DOMContentLoaded', () => {
     // Ctrl/Cmd + W 关闭窗口
     if ((e.ctrlKey || e.metaKey) && e.key === 'w') {
       e.preventDefault();
-      window.electronAPI.closeWindow();
+      naimo.router.windowCloseWindow();
     }
 
     // F11 切换全屏
     if (e.key === 'F11') {
       e.preventDefault();
-      window.electronAPI.invoke('window-toggle-fullscreen');
+      naimo.router.windowToggleFullscreen();
     }
 
     // Esc 最小化窗口
     if (e.key === 'Escape') {
       e.preventDefault();
-      window.electronAPI.minimizeWindow();
+      naimo.router.windowMinimize();
     }
   });
 
