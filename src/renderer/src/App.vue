@@ -1,6 +1,6 @@
 <template>
   <div class="w-full h-full p-[8px]" @keydown="handleKeyNavigation" @click="handleContainerClick">
-    <!-- <Test /> -->
+    <Test />
     <!-- 主应用容器 -->
     <div class="w-full bg-transparent relative shadow-lg rounded-xl  overflow-hidden"
       :class="{ 'rounded-b-none': isPluginWindowOpen && searchText.trim() === '' && !isSettingsInterface }"

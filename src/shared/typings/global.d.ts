@@ -1,6 +1,7 @@
 
 // 类型声明
 import type { AllIpcRouter } from './ipc-routes';
+import type { DomParserConfig, AutomationConfig, HtmlFetchResult } from '../../libs/auto-puppeteer/typings';
 
 interface WebUtils {
   /**
@@ -30,6 +31,12 @@ interface ElectronAPI {
   };
   router: AllIpcRouter;
   webUtils: WebUtils;
+  auto: {
+    parseHtmlByConfig: (config: DomParserConfig | DomParserConfig[], html: string) => any;
+    fetchHTML: (url: string, asyncConfig?: AutomationConfig | null) => Promise<HtmlFetchResult>;
+    fetchJSON: (url: string) => Promise<any>;
+    automateWithJson: (config: AutomationConfig) => Promise<string>;
+  };
   download: {
     startDownload: (params: { url: string; saveAsFilename?: string; directory?: string }) => Promise<string>;
     pauseDownload: (id: string) => Promise<boolean>;

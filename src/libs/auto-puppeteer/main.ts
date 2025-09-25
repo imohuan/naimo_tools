@@ -1,5 +1,5 @@
 import { app, BrowserWindow, ipcMain } from 'electron';
-import { AutomationConfig } from './typings';
+import { AutomationConfig, } from './typings';
 
 import * as puppeteer from 'puppeteer-core';
 import * as pie from 'puppeteer-in-electron';
