@@ -2,6 +2,7 @@ import { BrowserWindow, ipcMain, dialog, shell, app } from 'electron';
 import { dirname } from 'path';
 import { ElectronDownloadManager } from 'electron-dl-manager';
 import { DownloadParams, DownloadStatus, DownloadEvents } from './typings';
+import { unlink } from 'fs/promises';
 
 // 定义存储接口
 export interface StorageProvider {
@@ -937,8 +938,17 @@ export class DownloadManagerMain {
     });
 
     // 删除下载任务
-    ipcMain.handle('delete-download', (event, downloadId: string) => {
+    ipcMain.handle('delete-download', (event, downloadId: string, deleteFile: boolean = false) => {
       try {
+        if (deleteFile) {
+          // 删除文件 自己实现
+          const downloadData = this.downloadManager.getDownloadData(downloadId);
+          if (downloadData) {
+            const filePath = downloadData.item.getSavePath();
+            if (filePath) unlink(filePath);
+          }
+        }
+
         this.downloads.delete(downloadId);
         this.saveDownloadsToStorage();
         this.sendToRenderer('download-deleted', { id: downloadId });

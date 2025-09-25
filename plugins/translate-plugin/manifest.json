@@ -7,6 +7,7 @@
   "description": "Translate plugin",
   "category": "ai_artificial_intelligence",
   "enabled": true,
+  "main": "./config.js",
   "options": {
     "autoStart": false,
     "showInMenu": true,

@@ -45,15 +45,15 @@ interface ElectronAPI {
     getAllDownloads: () => Promise<any[]>;
     selectDownloadDirectory: () => Promise<string | null>;
     openDownloadFolder: (filePath: string) => Promise<boolean>;
-    deleteDownload: (id: string) => Promise<boolean>;
-    onDownloadStarted: (callback: (data: any) => void) => void;
-    onDownloadProgress: (callback: (data: any) => void) => void;
-    onDownloadCompleted: (callback: (data: any) => void) => void;
-    onDownloadError: (callback: (data: any) => void) => void;
-    onDownloadPaused: (callback: (data: any) => void) => void;
-    onDownloadResumed: (callback: (data: any) => void) => void;
-    onDownloadCancelled: (callback: (data: any) => void) => void;
-    onDownloadDeleted: (callback: (data: { id: string }) => void) => void;
+    deleteDownload: (id: string, deleteFile: boolean) => Promise<boolean>;
+    onDownloadStarted: (callback: (data: any) => void) => () => void;
+    onDownloadProgress: (callback: (data: any) => void) => () => void;
+    onDownloadCompleted: (callback: (data: any) => void) => () => void;
+    onDownloadError: (callback: (data: any) => void) => () => void;
+    onDownloadPaused: (callback: (data: any) => void) => () => void;
+    onDownloadResumed: (callback: (data: any) => void) => () => void;
+    onDownloadCancelled: (callback: (data: any) => void) => () => void;
+    onDownloadDeleted: (callback: (data: { id: string }) => void) => () => void;
     removeAllListeners: () => void;
   };
 }

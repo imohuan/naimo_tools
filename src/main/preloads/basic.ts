@@ -73,9 +73,7 @@ const webUtils = {
       }
       const module = dynamicRequire(absoluteConfigPath);
       const __dirname = dirname(absoluteConfigPath);
-      const isPluginConfig = ["id", "name", "description", "version", "author", "icon"].every(key => key in module)
-
-      if (isPluginConfig) {
+      if (module && typeof module === 'object') {
         return {
           ...module,
           getResourcePath: (...paths: string[]) => {
@@ -120,10 +118,9 @@ const electronAPI = {
 
   auto: autoPuppeteerRenderer,
   download: downloadManagerRenderer,
+
   webUtils: webUtils,
 }
-
-console.log(123123123213);
 
 const naimo = electronAPI
 

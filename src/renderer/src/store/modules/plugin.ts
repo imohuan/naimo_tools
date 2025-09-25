@@ -59,6 +59,12 @@ export const usePluginStore = defineStore('plugin', () => {
       setLoading(true)
       clearError()
       await pluginManager.initialize()
+
+      pluginManager.loadAsyncPluginList(true).then(() => {
+        syncPluginState()
+        console.log('🔌 远程数据加载完成')
+      })
+
       // 同步数据到响应式状态
       syncPluginState()
       console.log('🔌 插件系统初始化完成')
@@ -69,6 +75,8 @@ export const usePluginStore = defineStore('plugin', () => {
       setLoading(false)
     }
   }
+
+  // 等待插件系统初始化完成 loadAsyncPluginList
 
 
   /**
@@ -101,6 +109,17 @@ export const usePluginStore = defineStore('plugin', () => {
       return true
     }
     console.error(`❌ 安装插件失败: ${zipPath}`)
+    return false
+  }
+
+  const installUrl = async (url: string): Promise<boolean> => {
+    const success = await pluginManager.installUrl(url)
+    if (success) {
+      syncPluginState()
+      console.log(`✅ 插件安装成功: ${url}`)
+      return true
+    }
+    console.error(`❌ 安装插件失败: ${url}`)
     return false
   }
 
@@ -208,6 +227,7 @@ export const usePluginStore = defineStore('plugin', () => {
     initialize,
     install,
     installZip,
+    installUrl,
     uninstall,
     toggle,
     isPluginInstalled,

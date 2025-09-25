@@ -4,6 +4,7 @@ import { BaseSingleton } from '../BaseSingleton'
 import { ElectronStoreBridge } from '../store/ElectronStoreBridge'
 import type { AppConfig } from '@shared/types'
 import { getDeafultPlugins, getDeafultPluginById } from '@/modules/plugins/config/default-plugins'
+import { PluginGithub } from './PluginGithub'
 
 /**
  * 插件管理器核心类
@@ -22,9 +23,14 @@ export class PluginManager extends BaseSingleton implements CoreAPI {
   /** 命令列表 */
   public commandList: Map<string, CommandConfig> = new Map()
 
+  github: PluginGithub
+  githubPlugins: PluginConfig[] = []
+
+
   constructor() {
     super()
     this.storeBridge = ElectronStoreBridge.getInstance()
+    this.github = PluginGithub.getInstance()
   }
 
   async getInstalledPluginIds(): Promise<Set<string>> {
@@ -44,6 +50,22 @@ export class PluginManager extends BaseSingleton implements CoreAPI {
 
   async updatePluginList(): Promise<void> {
     this.allAvailablePlugins = await this.getPluginList()
+    this.githubPlugins.forEach(plugin => {
+      this.allAvailablePlugins.set(plugin.id, plugin)
+    })
+  }
+
+  async loadAsyncPluginList(init = false): Promise<void> {
+    const githubPlugins = await this.github.getList()
+    const githubPluginsConfig: PluginConfig[] = githubPlugins.items.map(item => item.config).filter(Boolean) as PluginConfig[]
+    this.githubPlugins = githubPluginsConfig
+
+    if (init) {
+      this.githubPlugins.forEach(plugin => {
+        if (this.allAvailablePlugins.has(plugin.id)) return
+        this.allAvailablePlugins.set(plugin.id, plugin)
+      })
+    }
   }
 
   /** 获取插件列表 */
@@ -55,6 +77,7 @@ export class PluginManager extends BaseSingleton implements CoreAPI {
       // 标记为第三方插件
       if (plugin) plugin.options = { ...(plugin?.options || {}), isThirdParty: true, }
     })
+
     // const localPlugins = await naimo.webUtils.loadPluginConfig(join(app.getPath('userData'), 'plugins'))
     console.log("📋 默认插件数量:", defaultPlugins.length);
     console.log("📋 第三方插件数量:", thirdPartyPlugins.length);
@@ -72,10 +95,11 @@ export class PluginManager extends BaseSingleton implements CoreAPI {
       const installedPluginIds = await this.getInstalledPluginIds();
       console.log("📋 已安装的插件ID列表:", installedPluginIds);
       // 2. 从缓存中加载已安装的插件
+      debugger
       for (const pluginId of installedPluginIds) {
         const plugin = this.allAvailablePlugins.get(pluginId);
         if (plugin) {
-          await this.install(plugin, true)
+          await this.preInstall(plugin, true)
         } else {
           console.warn(`⚠️ 插件未在缓存中找到: ${pluginId}`);
         }
@@ -166,6 +190,83 @@ export class PluginManager extends BaseSingleton implements CoreAPI {
     }
   }
 
+  async preInstall(pluginData: PluginConfig, focus = false): Promise<boolean> {
+    if (!pluginData?.items || pluginData?.items?.length === 0) {
+      // 需要加载插件配置文件 x.js
+      if (!pluginData?.main) {
+        throw new Error(`❌ 插件主文件不存在: ${pluginData.id}`);
+      }
+
+      pluginData.main = (pluginData as any)?.getResourcePath(pluginData.main) || pluginData.main
+
+      let items: PluginItem[] = []
+      // 加载配置文件
+      const module: any = await naimo.webUtils.loadPluginConfig(pluginData.main as string)
+      if (module?.items && module?.items?.length > 0) {
+        items = module.items
+      } else if (Array.isArray(module)) {
+        items = module
+      } else if (module && typeof module === 'object') {
+        Object.keys(module).forEach(key => {
+          items.push({ ...module[key], path: key })
+        })
+      }
+
+      pluginData.items = items
+    }
+    return this.install(pluginData, focus)
+  }
+
+  async installUrl(url: string): Promise<boolean> {
+    const downloadId = await naimo.download.startDownload({ url })
+
+    // 等待下载完成
+    return new Promise((resolve, reject) => {
+      let completedUnsubscribe: (() => void) | null = null
+      let errorUnsubscribe: (() => void) | null = null
+      let cancelledUnsubscribe: (() => void) | null = null
+
+      // 清理所有监听器的函数
+      const cleanup = () => {
+        completedUnsubscribe?.()
+        errorUnsubscribe?.()
+        cancelledUnsubscribe?.()
+      }
+
+      // 监听下载完成事件
+      completedUnsubscribe = naimo.download.onDownloadCompleted((data) => {
+        if (data.id === downloadId) {
+          cleanup() // 清理监听器
+          // 下载完成，获取文件路径并安装
+          this.installZip(data.filePath)
+            .then(result => resolve(result))
+            .catch(error => reject(error)).finally(() => {
+              // 删除下载文件
+              naimo.download.deleteDownload(downloadId, true)
+            })
+        }
+      })
+
+      // 监听下载错误事件
+      errorUnsubscribe = naimo.download.onDownloadError((data) => {
+        if (data.id === downloadId) {
+          cleanup() // 清理监听器
+          console.error(`❌ 插件下载失败: ${data.error}`)
+          reject(new Error(data.error))
+        }
+      })
+
+      // 监听下载取消事件
+      cancelledUnsubscribe = naimo.download.onDownloadCancelled((data) => {
+        if (data.id === downloadId) {
+          cleanup() // 清理监听器
+          console.warn(`⚠️ 插件下载已取消`)
+          reject(new Error('下载已取消'))
+        }
+      })
+    })
+  }
+
   /** 从ZIP文件安装插件 */
   async installZip(zipPath: string): Promise<boolean> {
     const zipConfig = await naimo.router.pluginInstallPluginFromZip(zipPath);
@@ -181,7 +282,10 @@ export class PluginManager extends BaseSingleton implements CoreAPI {
       return false;
     }
 
-    const result = await this.install(config, true);
+    if (!config?.options) config.options = {}
+    config.options.isThirdParty = true
+
+    const result = await this.preInstall(config, true);
     await this.updatePluginList();
     return result;
   }
@@ -349,7 +453,7 @@ export class PluginManager extends BaseSingleton implements CoreAPI {
     return {
       getResourcePath: (...paths: string[]) => {
         const getResourcePath = (plugin as any).getResourcePath
-        return getResourcePath ? getResourcePath(...paths) : null;
+        return getResourcePath ? getResourcePath(...paths) : paths.join('/');
       },
       getSettingValue: async (settingName?: string) => {
         const settingValue = await this.getPluginSettingValue(pluginId)

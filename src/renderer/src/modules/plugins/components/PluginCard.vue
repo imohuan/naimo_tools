@@ -24,10 +24,31 @@
           </div>
           <!-- 安装/卸载图标按钮 -->
           <div class="flex items-center gap-1">
-            <button v-if="!isInstalled" @click.stop="$emit('install', plugin)"
-              class="p-1.5 text-green-500 hover:bg-green-50 rounded transition-colors" title="安装插件">
-              <IconMdiDownload class="w-4 h-4" />
-            </button>
+            <!-- 安装按钮（未安装状态） -->
+            <div v-if="!isInstalled" class="relative">
+              <button @click.stop="$emit('install', plugin)" :disabled="isInstalling"
+                class="p-1.5 text-green-500 hover:bg-green-50 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                :title="isInstalling ? '安装中...' : '安装插件'">
+                <!-- 安装进度显示 -->
+                <div v-if="isInstalling" class="relative">
+                  <div class="animate-spin text-green-500">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24">
+                      <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none"
+                        stroke-dasharray="31.416" :stroke-dashoffset="31.416 * (1 - (installProgress || 0) / 100)"
+                        class="transition-all duration-300" />
+                    </svg>
+                  </div>
+                  <!-- 进度百分比（如果有） -->
+                  <div v-if="installProgress !== undefined"
+                    class="absolute -bottom-5 left-1/2 transform -translate-x-1/2 text-xs text-green-600 whitespace-nowrap">
+                    {{ Math.round(installProgress) }}%
+                  </div>
+                </div>
+                <!-- 默认下载图标 -->
+                <IconMdiDownload v-else class="w-4 h-4" />
+              </button>
+            </div>
+            <!-- 卸载按钮（已安装状态） -->
             <button v-else @click.stop="$emit('uninstall', plugin.id)"
               class="p-1.5 text-red-500 hover:bg-red-50 rounded transition-colors" title="卸载插件">
               <IconMdiDeleteOutline class="w-4 h-4" />
@@ -49,6 +70,8 @@ import type { PluginConfig } from "@/typings/plugin-types";
 interface Props {
   plugin: PluginConfig;
   isInstalled: boolean;
+  isInstalling?: boolean;
+  installProgress?: number;
 }
 
 defineProps<Props>();

@@ -119,6 +119,10 @@ export interface PluginConfig {
   id: string
   /** 插件名称 */
   name: string
+  /** 插件主文件 */
+  main?: string
+  /** 插件下载地址 */
+  downloadUrl?: string
   /** 插件描述 */
   description?: string
   /** 插件版本 */
@@ -179,6 +183,8 @@ export interface PluginItem extends AppItem {
   onPluginSearch?: (searchText: string, files: AttachedFile[]) => AppItem[]
   /** 进入回调 */
   onEnter?: (params: { files: AttachedFile[], searchText: string }, api: PluginApi) => void
+  /** 安装回调 */
+  onInstall?: (api: PluginApi) => void
   /** 在哪些搜索模式下隐藏 */
   hideInModes?: SearchMode[]
   /** 在哪些搜索模式下显示 */

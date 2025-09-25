@@ -5,9 +5,9 @@
 
 import { app } from 'electron';
 import log from 'electron-log';
-import { readdir, stat, mkdir, rmdir } from 'fs/promises';
+import { readdir, readFile, stat, mkdir, rmdir, rename, copyFile } from 'fs/promises';
 import { join, basename, extname } from 'path';
-import { createReadStream, createWriteStream } from 'fs';
+import { createReadStream, createWriteStream, read } from 'fs';
 // @ts-ignore
 import unzipper from 'unzipper';
 import archiver from 'archiver';
@@ -100,6 +100,104 @@ async function extractPluginZip(zipPath: string, targetDir: string): Promise<voi
 }
 
 /**
+ * 修复GitHub下载的zip文件结构（移除多余的外层目录）
+ * @param targetDir 目标目录
+ * @returns 返回真实的插件目录路径，如果没有修复则返回原路径
+ */
+async function fixGithubZipStructure(targetDir: string): Promise<string> {
+  try {
+    const items = await readdir(targetDir);
+    // 如果目录中只有一个项目且是目录
+    if (items.length === 1) {
+      const singleItemPath = join(targetDir, items[0]);
+      const itemStat = await stat(singleItemPath);
+
+      if (itemStat.isDirectory()) {
+        // 检查这个子目录是否包含插件文件（manifest.json或config.js）
+        const subItems = await readdir(singleItemPath);
+        const hasPluginConfig = subItems.some(item => item === 'manifest.json');
+
+        const manifestPath = join(singleItemPath, 'manifest.json');
+        const manifest = await readFile(manifestPath, 'utf-8');
+        const manifestJson = JSON.parse(manifest);
+        const pluginId = manifestJson.id;
+
+        if (hasPluginConfig) {
+          log.debug(`检测到GitHub zip结构，正在修复: ${singleItemPath}`);
+
+          // 获取父目录的父目录路径
+          const parentOfParent = join(targetDir, '..');
+          // 获取子目录的名称（这是真实的插件名称）
+          // const realPluginName = items[0];
+          const realPluginName = pluginId;
+          // 构建新的目标路径
+          const newTargetPath = join(parentOfParent, realPluginName);
+
+          // 如果目标路径已存在，先删除
+          try {
+            await rmdir(newTargetPath, { recursive: true });
+            log.debug(`已删除现有目录: ${newTargetPath}`);
+          } catch (error) {
+            // 目录不存在，忽略错误
+          }
+
+          // 将整个子目录移动到父目录的父目录
+          try {
+            await rename(singleItemPath, newTargetPath);
+            log.debug(`已将插件目录移动: ${singleItemPath} -> ${newTargetPath}`);
+          } catch (renameError) {
+            // 如果重命名失败，尝试复制然后删除
+            await copyDirectory(singleItemPath, newTargetPath);
+            await rmdir(singleItemPath, { recursive: true });
+            log.debug(`已复制并删除插件目录: ${singleItemPath} -> ${newTargetPath}`);
+          }
+
+          // 删除原来的父目录（现在应该是空的）
+          try {
+            await rmdir(targetDir, { recursive: true });
+            log.debug(`GitHub zip结构修复完成，已删除原目录: ${targetDir}`);
+          } catch (error) {
+            log.warn(`删除原目录失败: ${targetDir}`, error);
+          }
+
+          // 返回新的插件目录路径
+          return newTargetPath;
+        }
+      }
+    }
+
+    // 如果没有修复，返回原路径
+    return targetDir;
+  } catch (error) {
+    log.error(`修复GitHub zip结构失败: ${targetDir}`, error);
+    // 不抛出错误，因为这是一个可选的修复步骤
+    return targetDir;
+  }
+}
+
+/**
+ * 递归复制目录
+ * @param src 源目录
+ * @param dest 目标目录
+ */
+async function copyDirectory(src: string, dest: string): Promise<void> {
+  await mkdir(dest, { recursive: true });
+  const items = await readdir(src);
+
+  for (const item of items) {
+    const srcPath = join(src, item);
+    const destPath = join(dest, item);
+    const itemStat = await stat(srcPath);
+
+    if (itemStat.isDirectory()) {
+      await copyDirectory(srcPath, destPath);
+    } else {
+      await copyFile(srcPath, destPath);
+    }
+  }
+}
+
+/**
  * 安装插件zip文件
  * @param zipPath zip文件路径
  * @returns 插件安装路径，如果安装失败则返回null
@@ -125,12 +223,14 @@ export async function installPluginFromZip(zipPath: string): Promise<{ path: str
     // 解压zip文件
     await extractPluginZip(zipPath, targetDir);
 
+    // 修复GitHub下载的zip文件多套一层目录的问题，获取实际的插件目录路径
+    const actualPluginDir = await fixGithubZipStructure(targetDir);
+
     // 验证插件配置文件是否存在
-    const configPath = getPluginConfigPath(targetDir);
+    const configPath = getPluginConfigPath(actualPluginDir);
     await stat(configPath);
 
-    log.info(`插件安装成功: ${pluginName} -> ${targetDir}`);
-    return { path: targetDir, configPath: configPath, isDefault: false };
+    return { path: actualPluginDir, configPath: configPath, isDefault: false };
   } catch (error) {
     log.error(`插件安装失败: ${zipPath}`, error);
     return null;

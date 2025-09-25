@@ -31,7 +31,7 @@ import { fileURLToPath } from 'url';
 import { WebSocketServer } from 'ws';
 import { join, dirname } from 'path';
 import { spawn } from 'child_process';
-import { existsSync, mkdirSync, readFileSync, readdirSync, appendFileSync, writeFileSync } from 'fs';
+import { existsSync, rmSync, mkdirSync, readFileSync, readdirSync, appendFileSync, writeFileSync } from 'fs';
 
 // ==================== 配置区域 ====================
 /**
@@ -1134,6 +1134,10 @@ async function main() {
     devServerManager.printWrite(...args);
     oldConsoleLog(...args);
   };
+  // 清空dist目录
+  if (existsSync('dist')) {
+    rmSync('dist', { recursive: true });
+  }
 
   // 清空日志文件
   writeFileSync(devServerManager.config.logPath, '', 'utf-8');

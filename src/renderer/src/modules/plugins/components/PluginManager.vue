@@ -23,7 +23,9 @@
     <div v-else class="flex-1 flex flex-col">
       <!-- 详情页面 -->
       <PluginDetail v-if="selectedPlugin" :plugin="selectedPlugin as PluginConfig"
-        :is-installed="pluginStore.isPluginInstalled(selectedPlugin.id)" @close="closePluginDetail"
+        :is-installed="pluginStore.isPluginInstalled(selectedPlugin.id)"
+        :is-installing="isPluginInstalling(selectedPlugin.id)"
+        :install-progress="getPluginInstallProgress(selectedPlugin.id)" @close="closePluginDetail"
         @install="installPlugin" @uninstall="uninstallPlugin" />
 
       <!-- 插件列表页面 -->
@@ -89,8 +91,9 @@
 
           <div v-else class="grid grid-cols-2 gap-2">
             <PluginCard v-for="plugin in paginatedPlugins" :key="plugin.id" :plugin="plugin as PluginConfig"
-              :is-installed="pluginStore.isPluginInstalled(plugin.id)" @click="showPluginDetail"
-              @install="installPlugin" @uninstall="uninstallPlugin" />
+              :is-installed="pluginStore.isPluginInstalled(plugin.id)" :is-installing="isPluginInstalling(plugin.id)"
+              :install-progress="getPluginInstallProgress(plugin.id)" @click="showPluginDetail" @install="installPlugin"
+              @uninstall="uninstallPlugin" />
           </div>
         </div>
       </template>
@@ -99,7 +102,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from "vue";
+import { ref, computed, watch } from "vue";
 import { usePluginStore } from "@/store/modules/plugin";
 import type { PluginConfig } from "@/typings/plugin-types";
 import { PluginCategoryType, PLUGIN_CATEGORY_CONFIG } from "@/typings/plugin-types";
@@ -113,6 +116,9 @@ const categoryFilter = ref("all");
 const currentPage = ref(1);
 const itemsPerPage = 6;
 const selectedPlugin = ref<PluginConfig | null>(null);
+
+// 安装状态管理
+const installingPlugins = ref<Map<string, { progress?: number, downloadId?: string }>>(new Map());
 
 // 计算过滤后的插件列表
 const filteredPlugins = computed(() => {
@@ -182,6 +188,23 @@ const getPluginCategory = (plugin: PluginConfig): string => {
   }
 };
 
+// 安装状态相关方法
+const isPluginInstalling = (pluginId: string): boolean => {
+  return installingPlugins.value.has(pluginId);
+};
+
+const getPluginInstallProgress = (pluginId: string): number | undefined => {
+  return installingPlugins.value.get(pluginId)?.progress;
+};
+
+const setPluginInstalling = (pluginId: string, downloading: boolean, progress?: number, downloadId?: string) => {
+  if (downloading) {
+    installingPlugins.value.set(pluginId, { progress, downloadId });
+  } else {
+    installingPlugins.value.delete(pluginId);
+  }
+};
+
 // 插件详情相关
 const showPluginDetail = (plugin: PluginConfig) => {
   selectedPlugin.value = plugin;
@@ -192,13 +215,105 @@ const closePluginDetail = () => {
 
 // 安装插件
 const installPlugin = async (pluginConfig: PluginConfig) => {
+  // 防止重复安装
+  if (isPluginInstalling(pluginConfig.id)) {
+    console.warn(`⚠️ 插件正在安装中: ${pluginConfig.id}`);
+    return;
+  }
+
   try {
-    const success = await pluginStore.install(pluginConfig);
-    if (success) {
-      console.log(`✅ 插件安装成功: ${pluginConfig.id}`);
+    if (pluginConfig.downloadUrl) {
+      // 开始安装（显示加载状态）
+      setPluginInstalling(pluginConfig.id, true);
+
+      // 存储当前下载ID以便匹配事件
+      let currentDownloadId: string | null = null;
+
+      // 创建事件监听器
+      let progressUnsubscribe: (() => void) | null = null;
+      let completedUnsubscribe: (() => void) | null = null;
+      let errorUnsubscribe: (() => void) | null = null;
+      let cancelledUnsubscribe: (() => void) | null = null;
+      let startedUnsubscribe: (() => void) | null = null;
+
+      const cleanup = () => {
+        progressUnsubscribe?.();
+        completedUnsubscribe?.();
+        errorUnsubscribe?.();
+        cancelledUnsubscribe?.();
+        startedUnsubscribe?.();
+      };
+
+      // 监听下载开始事件，获取下载ID
+      startedUnsubscribe = naimo.download.onDownloadStarted((data) => {
+        // 简单的时间窗口匹配（如果在安装期间开始的下载，很可能就是这个插件的下载）
+        if (isPluginInstalling(pluginConfig.id)) {
+          currentDownloadId = data.id;
+          console.log(`🔄 插件下载开始: ${pluginConfig.id} (${data.id})`);
+        }
+      });
+
+      // 监听下载进度
+      progressUnsubscribe = naimo.download.onDownloadProgress((data) => {
+        if (data.id === currentDownloadId) {
+          // 确保 totalBytes 不为 0 以避免 NaN
+          let progress = 0;
+          if (data.totalBytes && data.totalBytes > 0) {
+            progress = (data.bytesReceived / data.totalBytes) * 100;
+          } else if (data.progress !== undefined && !isNaN(data.progress)) {
+            // 如果字节信息不可用，使用已计算的进度
+            progress = data.progress;
+          }
+          console.log(`📊 插件下载进度: ${pluginConfig.id} - ${progress.toFixed(1)}%`);
+          setPluginInstalling(pluginConfig.id, true, progress, data.id);
+        }
+      });
+
+      // 监听下载完成
+      completedUnsubscribe = naimo.download.onDownloadCompleted((data) => {
+        if (data.id === currentDownloadId) {
+          console.log(`✅ 插件下载完成: ${pluginConfig.id}`);
+          // 不在这里设置为false，因为还需要安装步骤
+        }
+      });
+
+      // 监听下载错误
+      errorUnsubscribe = naimo.download.onDownloadError((data) => {
+        if (data.id === currentDownloadId) {
+          console.error(`❌ 插件下载失败: ${pluginConfig.id}`, data.error);
+          setPluginInstalling(pluginConfig.id, false);
+          cleanup();
+        }
+      });
+
+      // 监听下载取消
+      cancelledUnsubscribe = naimo.download.onDownloadCancelled((data) => {
+        if (data.id === currentDownloadId) {
+          console.warn(`⚠️ 插件下载取消: ${pluginConfig.id}`);
+          setPluginInstalling(pluginConfig.id, false);
+          cleanup();
+        }
+      });
+
+      const success = await pluginStore.installUrl(pluginConfig.downloadUrl);
+      setPluginInstalling(pluginConfig.id, false);
+      cleanup();
+
+      if (success) {
+        console.log(`✅ 插件安装成功: ${pluginConfig.id}`);
+      }
+    } else {
+      // 普通安装（无下载）
+      setPluginInstalling(pluginConfig.id, true);
+      const success = await pluginStore.install(pluginConfig);
+      setPluginInstalling(pluginConfig.id, false);
+      if (success) {
+        console.log(`✅ 插件安装成功: ${pluginConfig.id}`);
+      }
     }
   } catch (err) {
     console.error(`❌ 安装插件失败: ${pluginConfig.id}`, err);
+    setPluginInstalling(pluginConfig.id, false);
   }
 };
 

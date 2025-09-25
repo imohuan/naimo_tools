@@ -138,8 +138,9 @@ const eventListeners: Map<string, Function[]> = new Map();
  * 添加事件监听器
  * @param channel 频道名称
  * @param callback 回调函数
+ * @returns 取消监听的函数
  */
-function addEventListener(channel: string, callback: Function): void {
+function addEventListener(channel: string, callback: Function): () => void {
   if (!eventListeners.has(channel)) {
     eventListeners.set(channel, []);
     onDownloadEvent(channel, (data: any) => {
@@ -150,6 +151,22 @@ function addEventListener(channel: string, callback: Function): void {
 
   const listeners = eventListeners.get(channel)!;
   listeners.push(callback);
+
+  // 返回取消监听的函数
+  return () => {
+    const currentListeners = eventListeners.get(channel);
+    if (currentListeners) {
+      const index = currentListeners.indexOf(callback);
+      if (index !== -1) {
+        currentListeners.splice(index, 1);
+      }
+      // 如果没有监听器了，清理该频道
+      if (currentListeners.length === 0) {
+        eventListeners.delete(channel);
+        ipcRenderer.removeAllListeners(channel);
+      }
+    }
+  };
 }
 
 /**
@@ -164,81 +181,91 @@ export function removeAllListeners(): void {
 /**
  * 监听下载开始
  * @param callback 回调函数
+ * @returns 取消监听的函数
  */
-export function onDownloadStarted(callback: DownloadEventCallback<'download-started'>): void {
-  addEventListener('download-started', callback);
+export function onDownloadStarted(callback: DownloadEventCallback<'download-started'>): () => void {
+  return addEventListener('download-started', callback);
 }
 
 /**
  * 监听下载进度
  * @param callback 回调函数
+ * @returns 取消监听的函数
  */
-export function onDownloadProgress(callback: DownloadEventCallback<'download-progress'>): void {
-  addEventListener('download-progress', callback);
+export function onDownloadProgress(callback: DownloadEventCallback<'download-progress'>): () => void {
+  return addEventListener('download-progress', callback);
 }
 
 /**
  * 监听下载完成
  * @param callback 回调函数
+ * @returns 取消监听的函数
  */
-export function onDownloadCompleted(callback: DownloadEventCallback<'download-completed'>): void {
-  addEventListener('download-completed', callback);
+export function onDownloadCompleted(callback: DownloadEventCallback<'download-completed'>): () => void {
+  return addEventListener('download-completed', callback);
 }
 
 /**
  * 监听下载错误
  * @param callback 回调函数
+ * @returns 取消监听的函数
  */
-export function onDownloadError(callback: DownloadEventCallback<'download-error'>): void {
-  addEventListener('download-error', callback);
+export function onDownloadError(callback: DownloadEventCallback<'download-error'>): () => void {
+  return addEventListener('download-error', callback);
 }
 
 /**
  * 监听下载暂停
  * @param callback 回调函数
+ * @returns 取消监听的函数
  */
-export function onDownloadPaused(callback: DownloadEventCallback<'download-paused'>): void {
-  addEventListener('download-paused', callback);
+export function onDownloadPaused(callback: DownloadEventCallback<'download-paused'>): () => void {
+  return addEventListener('download-paused', callback);
 }
 
 /**
  * 监听下载恢复
  * @param callback 回调函数
+ * @returns 取消监听的函数
  */
-export function onDownloadResumed(callback: DownloadEventCallback<'download-resumed'>): void {
-  addEventListener('download-resumed', callback);
+export function onDownloadResumed(callback: DownloadEventCallback<'download-resumed'>): () => void {
+  return addEventListener('download-resumed', callback);
 }
 
 /**
  * 监听下载取消
  * @param callback 回调函数
+ * @returns 取消监听的函数
  */
-export function onDownloadCancelled(callback: DownloadEventCallback<'download-cancelled'>): void {
-  addEventListener('download-cancelled', callback);
+export function onDownloadCancelled(callback: DownloadEventCallback<'download-cancelled'>): () => void {
+  return addEventListener('download-cancelled', callback);
 }
 
 /**
  * 监听下载中断
  * @param callback 回调函数
+ * @returns 取消监听的函数
  */
-export function onDownloadInterrupted(callback: DownloadEventCallback<'download-interrupted'>): void {
-  addEventListener('download-interrupted', callback);
+export function onDownloadInterrupted(callback: DownloadEventCallback<'download-interrupted'>): () => void {
+  return addEventListener('download-interrupted', callback);
 }
 
 /**
  * 监听下载持久化
  * @param callback 回调函数
+ * @returns 取消监听的函数
  */
-export function onDownloadPersisted(callback: DownloadEventCallback<'download-persisted'>): void {
-  addEventListener('download-persisted', callback);
+export function onDownloadPersisted(callback: DownloadEventCallback<'download-persisted'>): () => void {
+  return addEventListener('download-persisted', callback);
 }
 
 /**
  * 监听下载删除
  * @param callback 回调函数
+ * @returns 取消监听的函数
  */
-export function onDownloadDeleted(callback: (data: { id: string }) => void): void {
-  addEventListener('download-deleted', callback);
+export function onDownloadDeleted(callback: (data: { id: string }) => void): () => void {
+  return addEventListener('download-deleted', callback);
 }
 
 
