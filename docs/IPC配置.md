@@ -158,7 +158,7 @@ const appName = await naimo.router.appGetName();
 const systemInfo = await naimo.router.appGetSystemInfo();
 
 // 方式2：使用 naimo
-const appName = await naimo.ipcRouter.appGetName();
+const appName = await naimo.router.appGetName();
 
 // 方式3：直接导入（不推荐，需要额外配置）
 import { ipcRouter } from "@shared/ipc-router-client";

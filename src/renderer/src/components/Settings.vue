@@ -67,10 +67,13 @@ import IconMdiInformation from "~icons/mdi/information";
 import IconMdiClose from "~icons/mdi/close";
 /** @ts-ignore */
 import IconMdiSettings from "~icons/mdi/settings";
+/** @ts-ignore */
+import IconMdiDownload from "~icons/mdi/download";
 import HotkeySettings from "../modules/hotkeys/components/HotkeySettings.vue";
 import PluginManager from "../modules/plugins/components/PluginManager.vue";
 import PluginSettings from "../modules/plugins/components/PluginSettings.vue";
 import CustomHotkeys from "../modules/hotkeys/components/CustomHotkeys.vue";
+import DownloadManager from "../modules/downloads/components/DownloadManager.vue";
 import About from "./About.vue";
 
 // 事件定义
@@ -91,6 +94,20 @@ interface TabConfig {
 
 const tabsConfig: TabConfig[] = [
   {
+    id: "plugins",
+    title: "插件管理",
+    description: "管理插件，扩展应用程序功能",
+    icon: IconMdiPuzzle,
+    component: PluginManager
+  },
+  {
+    id: "plugin-settings",
+    title: "插件设置",
+    description: "配置已安装插件的个性化设置",
+    icon: IconMdiSettings,
+    component: PluginSettings
+  },
+  {
     id: "hotkeys",
     title: "快捷键设置",
     description: "配置应用程序的快捷键，提高操作效率",
@@ -105,18 +122,11 @@ const tabsConfig: TabConfig[] = [
     component: CustomHotkeys
   },
   {
-    id: "plugins",
-    title: "插件管理",
-    description: "管理插件，扩展应用程序功能",
-    icon: IconMdiPuzzle,
-    component: PluginManager
-  },
-  {
-    id: "plugin-settings",
-    title: "插件设置",
-    description: "配置已安装插件的个性化设置",
-    icon: IconMdiSettings,
-    component: PluginSettings
+    id: "downloads",
+    title: "下载",
+    description: "管理文件下载任务，监控下载进度",
+    icon: IconMdiDownload,
+    component: DownloadManager
   },
   {
     id: "about",

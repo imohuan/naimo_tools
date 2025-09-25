@@ -1,6 +1,6 @@
 /**
  * 自动生成的 IPC 类型定义
- * 生成时间: 2025-09-25T06:04:48.380Z
+ * 生成时间: 2025-09-25T14:16:56.304Z
  * 请勿手动修改此文件
  */
 
@@ -254,63 +254,6 @@ interface filesystemInterface {
  * @returns 选择的保存路径，如果取消则返回null
  */
   "filesystemSaveFile": (options: Electron.SaveDialogOptions) => Promise<string | null>;
-
-  /** 获取插件目录路径 */
-  "filesystem-get-plugins-directory": () => Promise<string>;
-  /** 获取插件目录路径 */
-  "filesystemGetPluginsDirectory": () => Promise<string>;
-
-  /**
- * 获取所有已安装的插件（仅第三方插件）
- * @returns 插件信息数组，包含路径和配置文件路径
- */
-  "filesystem-get-all-installed-plugins": () => Promise<any[]>;
-  /**
- * 获取所有已安装的插件（仅第三方插件）
- * @returns 插件信息数组，包含路径和配置文件路径
- */
-  "filesystemGetAllInstalledPlugins": () => Promise<any[]>;
-
-  /**
- * 安装插件zip文件
- * @param zip文件路径
- * @returns 插件安装路径，如果安装失败则返回null
- */
-  "filesystem-install-plugin-from-zip": (zipPath: string) => Promise<{ path: string, configPath: string, isDefault: boolean } | null>;
-  /**
- * 安装插件zip文件
- * @param zip文件路径
- * @returns 插件安装路径，如果安装失败则返回null
- */
-  "filesystemInstallPluginFromZip": (zipPath: string) => Promise<{ path: string, configPath: string, isDefault: boolean } | null>;
-
-  /**
- * 卸载插件
- * @param 插件ID
- * @returns 是否卸载成功
- */
-  "filesystem-uninstall-plugin": (pluginId: string) => Promise<boolean>;
-  /**
- * 卸载插件
- * @param 插件ID
- * @returns 是否卸载成功
- */
-  "filesystemUninstallPlugin": (pluginId: string) => Promise<boolean>;
-
-  /**
- * 将文件夹打包为zip文件
- * @param 源文件夹路径
- * @param 输出zip文件路径
- * @returns 是否打包成功
- */
-  "filesystem-zip-directory": (sourceDir: string, outputPath: string) => Promise<boolean>;
-  /**
- * 将文件夹打包为zip文件
- * @param 源文件夹路径
- * @param 输出zip文件路径
- * @returns 是否打包成功
- */
-  "filesystemZipDirectory": (sourceDir: string, outputPath: string) => Promise<boolean>;
 }
 
 interface hotkeyInterface {
@@ -422,6 +365,65 @@ interface logInterface {
 }>;
 }
 
+interface pluginInterface {
+  /** 获取插件目录路径 */
+  "plugin-get-plugins-directory": () => Promise<string>;
+  /** 获取插件目录路径 */
+  "pluginGetPluginsDirectory": () => Promise<string>;
+
+  /**
+ * 获取所有已安装的插件（仅第三方插件）
+ * @returns 插件信息数组，包含路径和配置文件路径
+ */
+  "plugin-get-all-installed-plugins": () => Promise<any[]>;
+  /**
+ * 获取所有已安装的插件（仅第三方插件）
+ * @returns 插件信息数组，包含路径和配置文件路径
+ */
+  "pluginGetAllInstalledPlugins": () => Promise<any[]>;
+
+  /**
+ * 安装插件zip文件
+ * @param zip文件路径
+ * @returns 插件安装路径，如果安装失败则返回null
+ */
+  "plugin-install-plugin-from-zip": (zipPath: string) => Promise<{ path: string, configPath: string, isDefault: boolean } | null>;
+  /**
+ * 安装插件zip文件
+ * @param zip文件路径
+ * @returns 插件安装路径，如果安装失败则返回null
+ */
+  "pluginInstallPluginFromZip": (zipPath: string) => Promise<{ path: string, configPath: string, isDefault: boolean } | null>;
+
+  /**
+ * 卸载插件
+ * @param 插件ID
+ * @returns 是否卸载成功
+ */
+  "plugin-uninstall-plugin": (pluginId: string) => Promise<boolean>;
+  /**
+ * 卸载插件
+ * @param 插件ID
+ * @returns 是否卸载成功
+ */
+  "pluginUninstallPlugin": (pluginId: string) => Promise<boolean>;
+
+  /**
+ * 将文件夹打包为zip文件
+ * @param 源文件夹路径
+ * @param 输出zip文件路径
+ * @returns 是否打包成功
+ */
+  "plugin-zip-directory": (sourceDir: string, outputPath: string) => Promise<boolean>;
+  /**
+ * 将文件夹打包为zip文件
+ * @param 源文件夹路径
+ * @param 输出zip文件路径
+ * @returns 是否打包成功
+ */
+  "pluginZipDirectory": (sourceDir: string, outputPath: string) => Promise<boolean>;
+}
+
 interface screenCaptureInterface {
   /**
  * 获取屏幕源列表
@@ -454,132 +456,6 @@ interface screenCaptureInterface {
  * @returns 操作结果
  */
   "screenCaptureCaptureAndGetFilePath": (options: { sourceId?: string; }) => Promise<{ success: boolean; filePath?: string; error?: string }>;
-}
-
-interface searchInterface {
-  /**
- * 搜索应用程序
- * @param 搜索查询
- * @returns 匹配的应用程序列表
- */
-  "search-search-apps": (query: string) => Promise<AppPath[]>;
-  /**
- * 搜索应用程序
- * @param 搜索查询
- * @returns 匹配的应用程序列表
- */
-  "searchSearchApps": (query: string) => Promise<AppPath[]>;
-
-  /**
- * 获取所有应用程序
- * @returns 所有应用程序列表
- */
-  "search-get-all-apps": () => Promise<AppPath[]>;
-  /**
- * 获取所有应用程序
- * @returns 所有应用程序列表
- */
-  "searchGetAllApps": () => Promise<AppPath[]>;
-
-  /**
- * 获取最近使用的应用程序
- * @param 限制数量
- * @returns 最近使用的应用程序列表
- */
-  "search-get-recent-apps": (limit: number) => Promise<AppPath[]>;
-  /**
- * 获取最近使用的应用程序
- * @param 限制数量
- * @returns 最近使用的应用程序列表
- */
-  "searchGetRecentApps": (limit: number) => Promise<AppPath[]>;
-
-  /**
- * 获取收藏的应用程序
- * @returns 收藏的应用程序列表
- */
-  "search-get-pinned-apps": () => Promise<AppPath[]>;
-  /**
- * 获取收藏的应用程序
- * @returns 收藏的应用程序列表
- */
-  "searchGetPinnedApps": () => Promise<AppPath[]>;
-
-  /**
- * 执行应用程序
- * @param 应用程序项目
- * @returns 是否执行成功
- */
-  "search-execute-app": (appItem: AppPath) => Promise<boolean>;
-  /**
- * 执行应用程序
- * @param 应用程序项目
- * @returns 是否执行成功
- */
-  "searchExecuteApp": (appItem: AppPath) => Promise<boolean>;
-
-  /**
- * 添加到收藏
- * @param 应用程序项目
- * @returns 是否添加成功
- */
-  "search-pin-app": (appItem: AppPath) => Promise<boolean>;
-  /**
- * 添加到收藏
- * @param 应用程序项目
- * @returns 是否添加成功
- */
-  "searchPinApp": (appItem: AppPath) => Promise<boolean>;
-
-  /**
- * 从收藏中移除
- * @param 应用程序项目
- * @returns 是否移除成功
- */
-  "search-unpin-app": (appItem: AppPath) => Promise<boolean>;
-  /**
- * 从收藏中移除
- * @param 应用程序项目
- * @returns 是否移除成功
- */
-  "searchUnpinApp": (appItem: AppPath) => Promise<boolean>;
-
-  /**
- * 获取应用程序图标
- * @param 应用程序项目
- * @returns 图标数据URL或null
- */
-  "search-get-app-icon": (appItem: AppPath) => Promise<string | null>;
-  /**
- * 获取应用程序图标
- * @param 应用程序项目
- * @returns 图标数据URL或null
- */
-  "searchGetAppIcon": (appItem: AppPath) => Promise<string | null>;
-
-  /**
- * 获取应用程序详细信息
- * @param 应用程序项目
- * @returns 应用程序详细信息
- */
-  "search-get-app-details": (appItem: AppPath) => Promise<any>;
-  /**
- * 获取应用程序详细信息
- * @param 应用程序项目
- * @returns 应用程序详细信息
- */
-  "searchGetAppDetails": (appItem: AppPath) => Promise<any>;
-
-  /**
- * 刷新应用程序列表
- * @returns 是否刷新成功
- */
-  "search-refresh-apps": () => Promise<boolean>;
-  /**
- * 刷新应用程序列表
- * @returns 是否刷新成功
- */
-  "searchRefreshApps": () => Promise<boolean>;
 }
 
 interface storeInterface {
@@ -849,7 +725,7 @@ interface windowInterface {
 }
 
 // 合并所有 IPC 路由类型
-export interface AllIpcRouter extends appInterface, clipboardInterface, filesystemInterface, hotkeyInterface, logInterface, screenCaptureInterface, searchInterface, storeInterface, windowInterface {}
+export interface AllIpcRouter extends appInterface, clipboardInterface, filesystemInterface, hotkeyInterface, logInterface, pluginInterface, screenCaptureInterface, storeInterface, windowInterface {}
 
 // 路由信息类型
 export interface RouteInfo {
@@ -1012,36 +888,6 @@ export const ROUTE_INFO: RouteInfo[] = [
     function: "saveFile"
   },
   {
-    route: "filesystem-get-plugins-directory",
-    comment: "获取插件目录路径",
-    module: "filesystem",
-    function: "getPluginsDirectory"
-  },
-  {
-    route: "filesystem-get-all-installed-plugins",
-    comment: "获取所有已安装的插件（仅第三方插件）",
-    module: "filesystem",
-    function: "getAllInstalledPlugins"
-  },
-  {
-    route: "filesystem-install-plugin-from-zip",
-    comment: "安装插件zip文件",
-    module: "filesystem",
-    function: "installPluginFromZip"
-  },
-  {
-    route: "filesystem-uninstall-plugin",
-    comment: "卸载插件",
-    module: "filesystem",
-    function: "uninstallPlugin"
-  },
-  {
-    route: "filesystem-zip-directory",
-    comment: "将文件夹打包为zip文件",
-    module: "filesystem",
-    function: "zipDirectory"
-  },
-  {
     route: "hotkey-register-global-shortcut",
     comment: "注册全局快捷键",
     module: "hotkey",
@@ -1096,6 +942,36 @@ export const ROUTE_INFO: RouteInfo[] = [
     function: "getLogInfo"
   },
   {
+    route: "plugin-get-plugins-directory",
+    comment: "获取插件目录路径",
+    module: "plugin",
+    function: "getPluginsDirectory"
+  },
+  {
+    route: "plugin-get-all-installed-plugins",
+    comment: "获取所有已安装的插件（仅第三方插件）",
+    module: "plugin",
+    function: "getAllInstalledPlugins"
+  },
+  {
+    route: "plugin-install-plugin-from-zip",
+    comment: "安装插件zip文件",
+    module: "plugin",
+    function: "installPluginFromZip"
+  },
+  {
+    route: "plugin-uninstall-plugin",
+    comment: "卸载插件",
+    module: "plugin",
+    function: "uninstallPlugin"
+  },
+  {
+    route: "plugin-zip-directory",
+    comment: "将文件夹打包为zip文件",
+    module: "plugin",
+    function: "zipDirectory"
+  },
+  {
     route: "screen-capture-get-sources",
     comment: "获取屏幕源列表",
     module: "screenCapture",
@@ -1106,66 +982,6 @@ export const ROUTE_INFO: RouteInfo[] = [
     comment: "截图并裁剪，返回临时文件地址或复制到剪切板",
     module: "screenCapture",
     function: "captureAndGetFilePath"
-  },
-  {
-    route: "search-search-apps",
-    comment: "搜索应用程序",
-    module: "search",
-    function: "searchApps"
-  },
-  {
-    route: "search-get-all-apps",
-    comment: "获取所有应用程序",
-    module: "search",
-    function: "getAllApps"
-  },
-  {
-    route: "search-get-recent-apps",
-    comment: "获取最近使用的应用程序",
-    module: "search",
-    function: "getRecentApps"
-  },
-  {
-    route: "search-get-pinned-apps",
-    comment: "获取收藏的应用程序",
-    module: "search",
-    function: "getPinnedApps"
-  },
-  {
-    route: "search-execute-app",
-    comment: "执行应用程序",
-    module: "search",
-    function: "executeApp"
-  },
-  {
-    route: "search-pin-app",
-    comment: "添加到收藏",
-    module: "search",
-    function: "pinApp"
-  },
-  {
-    route: "search-unpin-app",
-    comment: "从收藏中移除",
-    module: "search",
-    function: "unpinApp"
-  },
-  {
-    route: "search-get-app-icon",
-    comment: "获取应用程序图标",
-    module: "search",
-    function: "getAppIcon"
-  },
-  {
-    route: "search-get-app-details",
-    comment: "获取应用程序详细信息",
-    module: "search",
-    function: "getAppDetails"
-  },
-  {
-    route: "search-refresh-apps",
-    comment: "刷新应用程序列表",
-    module: "search",
-    function: "refreshApps"
   },
   {
     route: "store-get",

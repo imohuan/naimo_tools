@@ -9,11 +9,13 @@ import { isProduction } from "@shared/utils";
 import { MainErrorHandler } from "@libs/unhandled/main";
 import { cleanupIpcRouter, initializeIpcRouter } from "../ipc-router";
 import { createIconWorker, getApps, } from "@libs/app-search";
-import { join, resolve } from "path";
+import { resolve } from "path";
 
 import { tmpdir } from "os";
 import { existsSync, rmSync } from "fs";
 import { getDirname } from "@main/utils";
+
+import { DownloadManagerMain, StorageProvider } from "@libs/download-manager/main"
 
 /**
  * 主应用服务类
@@ -25,10 +27,12 @@ export class AppService {
 
   private windowManager: WindowManager;
   private configManager: AppConfigManager;
+  private downloadManagerMain: DownloadManagerMain;
 
   private constructor() {
     this.windowManager = WindowManager.getInstance();
     this.configManager = AppConfigManager.getInstance();
+    this.downloadManagerMain = DownloadManagerMain.getInstance(this.configManager as StorageProvider);
   }
 
   /**
@@ -64,6 +68,8 @@ export class AppService {
     // 设置应用事件监听器
     this.setupAppEvents();
 
+    // 初始化下载管理器
+    this.downloadManagerMain.initialize();
     log.info("主进程服务初始化完成");
   }
 
@@ -226,6 +232,8 @@ export class AppService {
 
     this.windowManager.setXCenter(this.mainWindow, 200);
     this.mainWindow.focus()
+
+    this.downloadManagerMain.setMainWindow(this.mainWindow);
 
     // 设置窗口事件监听器
     WindowConfigManager.setupWindowEvents(this.mainWindow, {

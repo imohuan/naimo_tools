@@ -64,15 +64,15 @@ export function useTestLoadPlugin() {
       // }
 
       // const name = "example-plugin"
-      // const name = "translate-plugin"
-      const name = "ocr-trans-plugin"
+      const name = "translate-plugin"
+      // const name = "ocr-trans-plugin"
       const sourceDir = `E:\\Code\\Git\\naimo_tools\\plugins\\${name}`
       const savePath = `E:\\Code\\Git\\naimo_tools\\plugins\\${name}\\${name}.zip`
 
       console.log('保存路径:', savePath)
 
       // 调用主进程的zip打包功能
-      const success = await naimo.router.filesystemZipDirectory(sourceDir, savePath)
+      const success = await naimo.router.pluginZipDirectory(sourceDir, savePath)
 
       if (success) {
         lastZipPath.value = savePath

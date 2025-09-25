@@ -4,6 +4,7 @@
  */
 
 import { AppService } from "./services/app.service";
+import { autoPuppeteerMain } from "@libs/auto-puppeteer/main";
 
 console.log("🚀 主进程启动中...");
 
@@ -15,6 +16,9 @@ console.log("启动时间:", new Date(startTime).toLocaleTimeString());
 const appService = AppService.getInstance();
 console.log("📦 应用服务实例已创建");
 // console.log("🔍 导入的 IPC 处理器:", import.meta.glob("./ipc/handlers/*.handlers.ts"));
+
+// 初始化自动 Puppeteer
+autoPuppeteerMain.initialize();
 
 // 初始化应用
 console.log("⚙️  开始初始化应用...");

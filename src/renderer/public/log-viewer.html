@@ -980,12 +980,12 @@
 
         try {
           // 检查是否有electronAPI可用
-          if (!naimo || !naimo.ipcRouter) {
+          if (!naimo || !naimo.router) {
             throw new Error('Electron API 不可用');
           }
 
           // 获取原始日志内容
-          const logContent = await naimo.ipcRouter.logGetRawLogContent();
+          const logContent = await naimo.router.logGetRawLogContent();
 
           this.originalContent = logContent;
           this.previousOriginalContent = logContent;
@@ -1015,7 +1015,7 @@
 
         try {
           // 检查是否有electronAPI可用
-          if (!naimo || !naimo.ipcRouter) {
+          if (!naimo || !naimo.router) {
             throw new Error('Electron API 不可用');
           }
 
@@ -1025,7 +1025,7 @@
           const currentScrollLeft = this.editor.getScrollLeft();
 
           // 获取原始日志内容
-          const logContent = await naimo.ipcRouter.logGetRawLogContent();
+          const logContent = await naimo.router.logGetRawLogContent();
 
           // 检查是否有新内容
           const hasNewContent = this.previousOriginalContent !== logContent;
@@ -1670,12 +1670,12 @@
         if (confirm("确定要清空所有Electron应用日志吗？")) {
           try {
             // 检查是否有electronAPI可用
-            if (!naimo || !naimo.ipcRouter) {
+            if (!naimo || !naimo.router) {
               throw new Error('Electron API 不可用');
             }
 
             // 调用IPC清空日志
-            await naimo.ipcRouter.logClearLogs();
+            await naimo.router.logClearLogs();
 
             // 清空本地数据
             this.clear();
@@ -1693,7 +1693,7 @@
       async exportLogs() {
         try {
           // 检查是否有electronAPI可用
-          if (!naimo || !naimo.ipcRouter) {
+          if (!naimo || !naimo.router) {
             throw new Error('Electron API 不可用');
           }
 
@@ -1780,20 +1780,20 @@
 
       // 窗口控制方法
       minimizeWindow() {
-        if (naimo && naimo.ipcRouter) {
-          naimo.ipcRouter.windowMinimize();
+        if (naimo && naimo.router) {
+          naimo.router.windowMinimize();
         }
       }
 
       maximizeWindow() {
-        if (naimo && naimo.ipcRouter) {
-          naimo.ipcRouter.windowMaximize();
+        if (naimo && naimo.router) {
+          naimo.router.windowMaximize();
         }
       }
 
       closeWindow() {
-        if (naimo && naimo.ipcRouter) {
-          naimo.ipcRouter.windowClose();
+        if (naimo && naimo.router) {
+          naimo.router.windowClose();
         }
       }
 

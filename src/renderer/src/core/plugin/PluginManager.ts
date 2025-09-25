@@ -49,7 +49,7 @@ export class PluginManager extends BaseSingleton implements CoreAPI {
   /** 获取插件列表 */
   async getPluginList(): Promise<Map<string, PluginConfig>> {
     const defaultPlugins = getDeafultPlugins()
-    const thirdPartyPlugins = await naimo.router.filesystemGetAllInstalledPlugins()
+    const thirdPartyPlugins = await naimo.router.pluginGetAllInstalledPlugins()
     const thirdPartyPluginsConfig: PluginConfig[] = await Promise.all(thirdPartyPlugins.map(plugin => naimo.webUtils.loadPluginConfig(plugin.configPath)))
     thirdPartyPluginsConfig.forEach(plugin => {
       // 标记为第三方插件
@@ -168,7 +168,7 @@ export class PluginManager extends BaseSingleton implements CoreAPI {
 
   /** 从ZIP文件安装插件 */
   async installZip(zipPath: string): Promise<boolean> {
-    const zipConfig = await naimo.router.filesystemInstallPluginFromZip(zipPath);
+    const zipConfig = await naimo.router.pluginInstallPluginFromZip(zipPath);
     if (!zipConfig) {
       console.error(`❌ 安装插件失败: ${zipPath}`);
       return false;
@@ -201,7 +201,7 @@ export class PluginManager extends BaseSingleton implements CoreAPI {
 
       // 对于第三方插件，需要删除文件
       if (!isDefaultPlugin || (plugin && plugin.options?.isThirdParty)) {
-        const success = await naimo.router.filesystemUninstallPlugin(pluginId);
+        const success = await naimo.router.pluginUninstallPlugin(pluginId);
         if (!success) {
           console.error(`❌ 删除插件文件失败: ${pluginId}`);
           return false;

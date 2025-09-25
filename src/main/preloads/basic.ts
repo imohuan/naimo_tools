@@ -5,6 +5,9 @@ import { ipcRouter } from "@shared/ipc-router-client";
 import { isDevelopment } from "@shared/utils";
 import { resolve, dirname } from "path";
 
+import { autoPuppeteerRenderer } from "@libs/auto-puppeteer/renderer";
+import { downloadManagerRenderer } from "@libs/download-manager/renderer";
+
 /**
  * 启用热重载
  * @param name 根据后台修改的文件名 来判断是否重启该页面
@@ -64,13 +67,15 @@ const webUtils = {
   async loadPluginConfig(configPath: string) {
     try {
       const absoluteConfigPath = resolve(configPath);
-      const directory = await ipcRouter.filesystemGetPluginsDirectory()
+      const directory = await ipcRouter.pluginGetPluginsDirectory()
       if (!absoluteConfigPath.startsWith(directory)) {
         return null
       }
       const module = dynamicRequire(absoluteConfigPath);
       const __dirname = dirname(absoluteConfigPath);
-      if ("id" in module && "items" in module) {
+      const isPluginConfig = ["id", "name", "description", "version", "author", "icon"].every(key => key in module)
+
+      if (isPluginConfig) {
         return {
           ...module,
           getResourcePath: (...paths: string[]) => {
@@ -112,8 +117,13 @@ const electronAPI = {
     },
   },
   router: ipcRouter,
+
+  auto: autoPuppeteerRenderer,
+  download: downloadManagerRenderer,
   webUtils: webUtils,
 }
+
+console.log(123123123213);
 
 const naimo = electronAPI
 

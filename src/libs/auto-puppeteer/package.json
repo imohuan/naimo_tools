@@ -1,0 +1,47 @@
+{
+  "name": "auto-puppeteer",
+  "version": "1.0.0",
+  "description": "Electron 自动化库，支持 Puppeteer 自动化、HTML 解析和缓存管理功能",
+  "main": "main.ts",
+  "types": "main.ts",
+  "exports": {
+    ".": {
+      "import": "./main.ts",
+      "require": "./main.ts"
+    },
+    "./renderer": {
+      "import": "./renderer.ts",
+      "require": "./renderer.ts"
+    }
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "keywords": [
+    "electron",
+    "puppeteer",
+    "automation",
+    "html-parser",
+    "cheerio",
+    "cache"
+  ],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.12.3",
+  "dependencies": {
+    "axios": "^1.12.2",
+    "cheerio": "^1.1.2",
+    "puppeteer-core": "^24.22.3",
+    "puppeteer-in-electron": "^3.0.5",
+    "download-manager": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  },
+  "peerDependencies": {
+    "electron": ">=20.0.0"
+  }
+}

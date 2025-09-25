@@ -30,6 +30,25 @@ interface ElectronAPI {
   };
   router: AllIpcRouter;
   webUtils: WebUtils;
+  download: {
+    startDownload: (params: { url: string; saveAsFilename?: string; directory?: string }) => Promise<string>;
+    pauseDownload: (id: string) => Promise<boolean>;
+    resumeDownload: (id: string) => Promise<boolean>;
+    cancelDownload: (id: string) => Promise<boolean>;
+    getAllDownloads: () => Promise<any[]>;
+    selectDownloadDirectory: () => Promise<string | null>;
+    openDownloadFolder: (filePath: string) => Promise<boolean>;
+    deleteDownload: (id: string) => Promise<boolean>;
+    onDownloadStarted: (callback: (data: any) => void) => void;
+    onDownloadProgress: (callback: (data: any) => void) => void;
+    onDownloadCompleted: (callback: (data: any) => void) => void;
+    onDownloadError: (callback: (data: any) => void) => void;
+    onDownloadPaused: (callback: (data: any) => void) => void;
+    onDownloadResumed: (callback: (data: any) => void) => void;
+    onDownloadCancelled: (callback: (data: any) => void) => void;
+    onDownloadDeleted: (callback: (data: { id: string }) => void) => void;
+    removeAllListeners: () => void;
+  };
 }
 
 

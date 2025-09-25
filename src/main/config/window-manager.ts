@@ -123,8 +123,12 @@ export class WindowManager {
 
   show(window: BrowserWindow) {
     const { x, y } = this.windowPositions.get(window.id) || { x: 0, y: 0 };
-    window.setPosition(x, y);
-    this.windowPositions.set(window.id, { x, y });
+    if (x < 0) {
+      this.setXCenter(window, y);
+    } else {
+      window.setPosition(x, y);
+      this.windowPositions.set(window.id, { x, y });
+    }
   }
 
   hide(window: BrowserWindow) {
@@ -140,9 +144,7 @@ export class WindowManager {
    * @returns 窗口是否显示
    */
   isWindowVisible(window: BrowserWindow): boolean {
-    const windowPosition = this.windowPositions.get(window.id)
-    if (!windowPosition) return true;
-    return windowPosition.x > 0;
+    return window.getPosition()[0] > 0
   }
 
   isAllWindowBlur(): boolean {
