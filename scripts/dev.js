@@ -800,18 +800,20 @@ class DevServerManager {
     console.log(`⚡ 启动 Electron ${debugModeText}...`);
     console.log("参数:", electronArgs);
 
-    this.electronProcess = this.createProcess('npx', ['electron', ...electronArgs], {
-      prefix: 'Electron',
-      onClose: (code) => {
-        console.log(`\n⚡ Electron 进程退出，代码: ${code}`);
-        if (!this.isElectronRestarting) {
-          this.cleanup();
+    setTimeout(() => {
+      this.electronProcess = this.createProcess('npx', ['electron', ...electronArgs], {
+        prefix: 'Electron',
+        onClose: (code) => {
+          console.log(`\n⚡ Electron 进程退出，代码: ${code}`);
+          if (!this.isElectronRestarting) {
+            this.cleanup();
+          }
+        },
+        onError: (error) => {
+          console.error('❌ Electron 启动错误:', error);
         }
-      },
-      onError: (error) => {
-        console.error('❌ Electron 启动错误:', error);
-      }
-    });
+      });
+    }, 500);
   }
 
   /**

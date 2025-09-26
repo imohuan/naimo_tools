@@ -23,12 +23,12 @@
       <!-- 插件列表页面 -->
       <template v-else>
         <!-- 加载状态提示 -->
-        <div v-if="pluginStore.loading" class="px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg shadow-sm mb-2">
+        <!-- <div v-if="pluginStore.loading" class="px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg shadow-sm mb-2">
           <div class="flex items-center gap-3 text-blue-700">
             <div class="animate-spin text-lg">⏳</div>
             <span class="text-sm font-medium">正在加载插件列表...</span>
           </div>
-        </div>
+        </div> -->
 
         <!-- 顶部区域：搜索框、分类列表、分页 -->
         <div class="px-3 py-2 bg-white border border-gray-200 rounded-lg shadow-sm">

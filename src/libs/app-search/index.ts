@@ -1,5 +1,7 @@
 import os from "os";
-import { ChildProcess, exec, fork } from "child_process";
+
+import { utilityProcess, UtilityProcess } from "electron"
+import { ChildProcess, exec } from "child_process";
 import { readdir, stat } from "fs";
 import { promisify } from "util";
 import { join, extname, basename } from "path";
@@ -7,7 +9,7 @@ import { shell } from "electron";
 import type { Logger } from "electron-log";
 import type { WorkerMessage, WorkerResponse } from "./icon-extractor";
 
-let iconWorker: ChildProcess | null = null;
+let iconWorker: UtilityProcess | null = null;
 let requestIdCounter = 0;
 /** Map: { id: resolve() } */
 const pendingIconRequests = new Map();
@@ -28,7 +30,7 @@ export interface AppPath {
  * @param logger 日志器
  */
 export function createIconWorker(workerPath: string, logger: Logger): void {
-  iconWorker = fork(workerPath);
+  iconWorker = utilityProcess.fork(workerPath);
 
   // 监听来自子进程的消息
   iconWorker.on("message", ({ id, icon }: WorkerResponse) => {
@@ -153,7 +155,7 @@ export function getIconDataURLAsync(
   return new Promise((resolve) => {
     const id = requestIdCounter++;
     pendingIconRequests.set(id, resolve);
-    iconWorker?.send({ id, path: filePath, cacheIconsDir } as WorkerMessage);
+    iconWorker?.postMessage({ id, path: filePath, cacheIconsDir } as WorkerMessage);
     // 添加超时以防子进程无响应
     setTimeout(() => {
       if (pendingIconRequests.has(id)) {

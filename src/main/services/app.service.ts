@@ -62,9 +62,6 @@ export class AppService {
     // 初始化 IPC 处理器
     this.initializeIpcHandlers();
 
-    // 初始化图标工作进程
-    this.initializeIconWorker();
-
     // 设置应用事件监听器
     this.setupAppEvents();
 
@@ -176,6 +173,10 @@ export class AppService {
     // 应用准备就绪
     app.whenReady().then(() => {
       log.info("Electron 应用准备就绪");
+
+      // 初始化图标工作进程（必须在 app ready 后）
+      this.initializeIconWorker();
+
       this.createMainWindow();
 
       app.on("activate", () => {

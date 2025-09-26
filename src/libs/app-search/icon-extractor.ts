@@ -84,10 +84,8 @@ export interface WorkerResponse {
 
 export function startWorker() {
   // 监听来自主进程的消息
-  process.on('message', (msg: WorkerMessage) => {
-
-
-
+  process.parentPort.on('message', (event) => {
+    const msg: WorkerMessage = event.data;
     // 确保 msg 是一个对象且包含 id、path 和 cacheIconsDir
     if (typeof msg !== 'object' || msg === null || !msg.id || !msg.path || !msg.cacheIconsDir) {
       return;
@@ -101,7 +99,7 @@ export function startWorker() {
     const icon = getIconDataURL(path, cacheIconsDir);
     // 将结果连同原始ID一起发回给主进程
     const response: WorkerResponse = { id, icon };
-    process.send!(response);
+    process.parentPort.postMessage(response);
   });
 
 }
