@@ -100,16 +100,18 @@
           </div>
 
           <!-- 加载占位符 -->
-          <div v-if="pluginStore.loading" class="grid grid-cols-2 gap-2 mt-2">
-            <div v-for="i in 1" :key="`placeholder-${i}`"
-              class="bg-white rounded-lg border border-gray-200 p-4 animate-pulse">
-              <div class="flex items-start gap-3 mb-3">
-                <div class="w-10 h-10 bg-gray-200 rounded-lg"></div>
-                <div class="flex-1">
-                  <div class="h-4 bg-gray-200 rounded mb-2 w-3/4"></div>
-                  <div class="h-3 bg-gray-200 rounded w-1/2"></div>
-                </div>
-              </div>
+          <div v-if="pluginStore.loading" class="flex items-center justify-center w-full py-1 animate-fade-in">
+            <div class="w-full flex items-center justify-center">
+              <div class="flex-1 border-t border-gray-200"></div>
+              <span class="mx-4 text-gray-500 text-sm flex items-center gap-2">
+                <svg class="animate-spin h-4 w-4 text-blue-400" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none">
+                  </circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                </svg>
+                加载中
+              </span>
+              <div class="flex-1 border-t border-gray-200"></div>
             </div>
           </div>
         </div>

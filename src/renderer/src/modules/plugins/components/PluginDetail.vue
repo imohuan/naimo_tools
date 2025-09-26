@@ -59,7 +59,7 @@
         </div>
 
         <!-- 插件配置选项 -->
-        <div v-if="plugin.options && Object.keys(plugin.options).length > 0" class="mb-4">
+        <!-- <div v-if="plugin.options && Object.keys(plugin.options).length > 0" class="mb-4">
           <h3 class="text-base font-medium text-gray-900 mb-2">配置选项</h3>
           <div class="space-y-2">
             <div v-for="(option, key) in plugin.options" :key="key" class="bg-gray-50 rounded-md p-2.5">
@@ -75,7 +75,7 @@
               </div>
             </div>
           </div>
-        </div>
+        </div> -->
 
         <!-- 安装状态和操作 -->
         <div class="border-t border-gray-200 pt-4">

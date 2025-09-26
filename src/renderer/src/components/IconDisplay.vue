@@ -20,6 +20,7 @@
 import { ref, computed, watch } from 'vue';
 /** @ts-ignore */
 import IconMdiImage from '~icons/mdi/image';
+import { usePathToDataUrl } from '../composables/usePathToDataUrl';
 
 interface Props {
   /** 图标源：图片URL、base64、SVG代码 */
@@ -43,22 +44,47 @@ const props = withDefaults(defineProps<Props>(), {
 
 const hasError = ref(false);
 const isLoaded = ref(false);
+const iconSource = ref<string | null>(null);
 
-// 计算图标源类型
-const iconSource = computed(() => props.src);
+// 使用路径转换 composable
+const { convertPathToDataUrl, isLocalPath } = usePathToDataUrl();
+
+// 处理图标源转换
+const handleIconSource = async (src: string | null) => {
+  if (!src) {
+    iconSource.value = null;
+    return;
+  }
+
+  // 如果是本地绝对路径，转换为 data URL
+  if (isLocalPath(src)) {
+    try {
+      iconSource.value = await convertPathToDataUrl(src);
+      hasError.value = false;
+    } catch (error) {
+      console.error('转换本地路径失败:', error);
+      hasError.value = true;
+      iconSource.value = null;
+    }
+  } else {
+    // 其他情况直接使用原始路径
+    iconSource.value = src;
+    hasError.value = false;
+  }
+};
 const isImageSource = computed(() => {
-  if (!props.src) return false;
+  if (!iconSource.value) return false;
   // 检查是否为base64或URL
-  return props.src.startsWith('data:') ||
-    props.src.startsWith('http') ||
-    props.src.startsWith('/') ||
-    props.src.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i);
+  return iconSource.value.startsWith('data:') ||
+    iconSource.value.startsWith('http') ||
+    iconSource.value.startsWith('/') ||
+    iconSource.value.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i);
 });
 
 const isSvgSource = computed(() => {
-  if (!props.src) return false;
+  if (!iconSource.value) return false;
   // 检查是否为SVG代码
-  return props.src.trim().startsWith('<svg') && props.src.includes('</svg>');
+  return iconSource.value.trim().startsWith('<svg') && iconSource.value.includes('</svg>');
 });
 
 // 处理图片加载错误
@@ -78,11 +104,12 @@ const handleSvgError = () => {
   hasError.value = true;
 };
 
-// 监听src变化，重置错误状态
-watch(() => props.src, () => {
+// 监听src变化，重置错误状态并处理图标源
+watch(() => props.src, (newSrc) => {
   hasError.value = false;
   isLoaded.value = false;
-});
+  handleIconSource(newSrc || null);
+}, { immediate: true });
 
 // 暴露方法
 defineExpose({

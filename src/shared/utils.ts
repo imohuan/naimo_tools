@@ -15,6 +15,15 @@ export function getAppName(): string {
   return 'electron-app';
 }
 
+/**
+ * 判断一个对象是否为函数
+ * @param obj 任意对象
+ * @returns 如果是函数返回 true，否则返回 false
+ */
+export function isFunction(obj: any): boolean {
+  return obj !== null && obj !== undefined && Object.prototype.toString.call(obj) === '[object Function]';
+}
+
 export function validateConfig(config: any): boolean {
   return (
     config &&

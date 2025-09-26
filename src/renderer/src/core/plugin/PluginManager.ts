@@ -5,6 +5,7 @@ import { ElectronStoreBridge } from '../store/ElectronStoreBridge'
 import type { AppConfig } from '@shared/types'
 import { getDeafultPlugins, getDeafultPluginById } from '@/modules/plugins/config/default-plugins'
 import { PluginGithub } from './PluginGithub'
+import { isFunction } from '@shared/utils'
 
 /**
  * 插件管理器核心类
@@ -162,10 +163,19 @@ export class PluginManager extends BaseSingleton implements CoreAPI {
         return true;
       }
 
+      const getResourcePath = (pluginData as any)?.getResourcePath
+
+      if (getResourcePath) {
+        if (pluginData.icon) pluginData.icon = getResourcePath(pluginData.icon)
+      }
+
       // 设置插件ID
       pluginData.items.forEach(item => {
         item.pluginId = pluginData.id
         item.path = item.pluginId + ':' + item.path
+        if (getResourcePath) {
+          if (item.icon) item.icon = getResourcePath(item.icon)
+        }
       })
 
       // 统一处理所有插件
@@ -192,7 +202,9 @@ export class PluginManager extends BaseSingleton implements CoreAPI {
   }
 
   async preInstall(pluginData: PluginConfig, focus = false): Promise<boolean> {
-    if (!pluginData?.items || pluginData?.items?.length === 0) {
+    const hasItems = pluginData?.items && pluginData.items?.length > 0
+    const firstItemHasOnEnter = hasItems && pluginData.items?.[0]?.onEnter && typeof pluginData.items?.[0]?.onEnter === 'function'
+    if (!firstItemHasOnEnter || !hasItems) {
       // 需要加载插件配置文件 x.js
       if (!pluginData?.main) {
         throw new Error(`❌ 插件主文件不存在: ${pluginData.id}`);
@@ -214,6 +226,7 @@ export class PluginManager extends BaseSingleton implements CoreAPI {
         items = module
       } else if (module && typeof module === 'object') {
         Object.keys(module).forEach(key => {
+          if (isFunction(module[key])) return
           items.push({ ...module[key], path: key })
         })
       }

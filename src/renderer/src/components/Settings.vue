@@ -71,11 +71,13 @@ import IconMdiClose from "~icons/mdi/close";
 import IconMdiSettings from "~icons/mdi/settings";
 /** @ts-ignore */
 import IconMdiDownload from "~icons/mdi/download";
+
 import HotkeySettings from "../modules/hotkeys/components/HotkeySettings.vue";
 import PluginManager from "../modules/plugins/components/PluginManager.vue";
 import PluginSettings from "../modules/plugins/components/PluginSettings.vue";
 import CustomHotkeys from "../modules/hotkeys/components/CustomHotkeys.vue";
 import DownloadManager from "../modules/downloads/components/DownloadManager.vue";
+
 import About from "./About.vue";
 import GithubToken from "./GithubToken.vue";
 
@@ -137,7 +139,8 @@ const tabsConfig: TabConfig[] = [
     description: "了解 Naimo 应用程序的详细信息",
     icon: IconMdiInformation,
     component: About
-  }
+  },
+
 ];
 
 // 当前激活的标签页

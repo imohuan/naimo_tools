@@ -202,6 +202,7 @@ export class PluginGithub {
 
         res.items = await Promise.all(res.items.map(async (item: any) => {
           const config = await this.getConfig(item.user, item.repo)
+          if (config.icon) config.icon = await this.getResolveUrl(item.user, item.repo, config.icon)
           config.downloadUrl = await this.getDownloadUrl(item.user, item.repo)
           return { ...item, config }
         }))
@@ -240,6 +241,49 @@ export class PluginGithub {
     const result = await request.get<PluginConfig>(url)
     return result
   }
+
+  /**
+   * 获取资源的绝对URL地址，自动处理相对路径、绝对路径、http(s)等多种情况
+   * @param user 仓库用户
+   * @param repo 仓库名
+   * @param paths 资源路径（支持相对路径、绝对路径、http(s)等）
+   * @returns 资源的可访问URL
+   */
+  async getResolveUrl(user: string, repo: string, ...paths: string[]) {
+    // 处理路径为空的情况
+    if (!paths || paths.length === 0 || !paths[0]) return ""
+
+    let path = paths.join("/")
+    // 去除路径前后的空格
+    path = path.trim()
+
+    // 如果是http/https开头，直接返回
+    if (/^https?:\/\//i.test(path)) {
+      return path
+    }
+
+    // 如果是绝对路径（以/开头），去掉开头的/
+    if (path.startsWith("/")) {
+      path = path.replace(/^\/+/, "")
+    }
+
+    // 如果是相对路径（./ 或 ../），需要规范化
+    // 这里简单处理，去掉开头的./
+    if (path.startsWith("./")) {
+      path = path.replace(/^\.\//, "")
+    }
+
+    // 处理 ../ 的情况
+    // 假设资源都在仓库根目录下，简单去掉 ../
+    while (path.startsWith("../")) {
+      path = path.replace(/^\.\.\//, "")
+    }
+
+    // 拼接最终URL
+    const url = `https://raw.githubusercontent.com/${user}/${repo}/${this.branch}/${path}`
+    return url
+  }
+
 
   async getDownloadUrl(user: string, repo: string) {
     const url = `https://github.com/${user}/${repo}/archive/refs/heads/${this.branch}.zip`
