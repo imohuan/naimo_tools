@@ -350,6 +350,7 @@ const handleFileDrop = async (event: DragEvent) => {
 /**
  * 处理文件粘贴事件
  * 从剪贴板中提取文件并添加到附件列表
+ * 如果是文字内容且超过30个字符，则将其转换为文本文件
  * @param event 粘贴事件
  */
 const handleFilePaste = async (event: ClipboardEvent) => {
@@ -357,19 +358,40 @@ const handleFilePaste = async (event: ClipboardEvent) => {
   if (!items) return;
 
   const files: File[] = [];
+  let hasTextContent = false;
+
   for (let i = 0; i < items.length; i++) {
     const item = items[i];
+
     if (item.kind === "file") {
       const file = item.getAsFile();
       if (file) {
         files.push(file);
       }
+    } else if (item.kind === "string" && item.type === "text/plain") {
+      // 处理文字内容
+      hasTextContent = true;
+      item.getAsString((text: string) => {
+        const trimmedText = text.trim();
+        if (trimmedText.length > 30) {
+          // 创建文本文件
+          // const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+          // const fileName = `粘贴文本_${timestamp}.txt`;
+          const fileName = trimmedText.slice(0, 10) + ".txt";
+          const blob = new Blob([trimmedText], { type: 'text/plain;charset=utf-8' });
+          const file = new File([blob], fileName, { type: 'text/plain' });
+          // 添加到文件列表
+          addFiles([file]);
+        }
+      });
     }
   }
 
   if (files.length > 0) {
     event.preventDefault();
     await addFiles(files);
+  } else if (hasTextContent) {
+    event.preventDefault();
   }
 };
 

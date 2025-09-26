@@ -59,6 +59,8 @@ export function useFileHandler() {
           // 对于图片文件，使用FileReader转换为Data URL
           icon = await convertFileToDataURL(fileArray[i])
         } else {
+          // 如果是剪切板的文件则不提取图标
+          if (processedFiles[i].type === 'text/plain') continue
           icon = await naimo.router.appExtractFileIcon(processedFiles[i].path)
         }
         if (icon) processedFiles[i].icon = icon
