@@ -611,10 +611,31 @@ export async function createWebPageWindow(
     }
   });
 
-  // 注册ESC键关闭功能
+  // 注册ESC键关闭功能和Alt+D快捷键
   webWindow.webContents.on("before-input-event", (event, input) => {
+    // 在调试模式下记录所有键盘事件
+    if (process.env.NODE_ENV === "development") {
+      log.debug(`键盘事件: key=${input.key}, code=${input.code}, type=${input.type}, alt=${input.alt}, ctrl=${input.control}, shift=${input.shift}, meta=${input.meta}`);
+    }
+
     if (input.key === "Escape" && input.type === "keyDown") {
       webWindow.close();
+      return;
+    }
+
+    // Alt + D 快捷键检测 (多种方式确保兼容性)
+    const isAltPressed = input.alt || input.modifiers?.includes?.('alt');
+    const isDKey = input.key === "D" || input.key === "d" || input.code === "KeyD";
+    const isKeyDown = input.type === "keyDown";
+
+    if (isDKey && isKeyDown && isAltPressed) {
+      log.info("触发 Alt+D 快捷键，发送 window-detach 事件");
+      webWindow.webContents.send("window-detach", {
+        windowId: webWindow.id,
+        timestamp: Date.now()
+      });
+      event.preventDefault(); // 阻止默认行为
+      return;
     }
   });
 

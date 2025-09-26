@@ -143,4 +143,11 @@ triggerEventKeys.forEach(key => {
   });
 });
 
+ipcRenderer.on("window-detach", (event, data) => {
+  // 分离窗口
+  console.log("收到 window-detach 事件:", data);
+  const customEvent = new CustomEvent('window-detach', { detail: data });
+  window.dispatchEvent(customEvent);
+});
+
 console.log("✅ Preload脚本执行完成，耗时:", Date.now() - preloadStartTime, "ms");

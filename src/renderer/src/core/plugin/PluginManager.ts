@@ -524,7 +524,7 @@ export class PluginManager extends BaseSingleton implements CoreAPI {
       // 应用相关字段
       name: app.name,
       path: app.path,
-      icon: null,
+      icon: app.icon,
       ...(app.lastUsed && { lastUsed: app.lastUsed }),
       ...(app.usageCount && { usageCount: app.usageCount }),
       ...(app.description && { description: app.description }),

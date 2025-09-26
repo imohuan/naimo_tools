@@ -21,8 +21,8 @@
         :icon-class="`w-full h-full object-contain rounded transition-all duration-200 ${isSelected ? 'brightness-110 drop-shadow-md' : ''}`"
         :fallback-class="`w-full h-full rounded flex items-center justify-center transition-all duration-200`">
         <template #fallback>
-          <!-- <IconMdiApplication class="w-8 h-8 text-gray-600 transition-colors duration-200"
-            :class="{ 'text-gray-700': isSelected }" /> -->
+          <IconMdiApplication class="w-8 h-8 text-gray-600 transition-colors duration-200"
+            :class="{ 'text-gray-700': isSelected }" />
         </template>
       </IconDisplay>
     </div>
