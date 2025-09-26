@@ -37,7 +37,7 @@ export class ElectronSearchBridge extends BaseSingleton {
 
   /** 获取本地应用 */
   async getApps(): Promise<AppItem[]> {
-    return await naimo.router.appSearchApps()
+    return await naimo.router.appSearchApps() as AppItem[]
   }
 
   /** 获取缓存应用数据，支持多个键 */

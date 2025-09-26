@@ -96,7 +96,10 @@ export class SearchEngine extends BaseSingleton implements CoreAPI {
   /** 初始化分类数据 */
   async initCategories(): Promise<SearchCategory[]> {
     const appApps = await this.bridge.getApps()
-    const [recentApps, pinnedApps, fileList] = await this.bridge.getStoreApps(['recentApps', 'pinnedApps', 'fileList'])
+    let [recentApps, pinnedApps, fileList] = await this.bridge.getStoreApps(['recentApps', 'pinnedApps', 'fileList'])
+    recentApps = recentApps || []
+    pinnedApps = pinnedApps || []
+    fileList = fileList || []
 
     console.log('📊 获取到的原始数据:', {
       appApps: appApps.length,
@@ -437,7 +440,10 @@ export class SearchEngine extends BaseSingleton implements CoreAPI {
 
   /** 更新存储分类（因为有一些操作会删除或添加项目，需要及时更新，来让搜索分类及时更新） */
   async updateStoreCategory(): Promise<void> {
-    const [recentApps, pinnedApps, fileList] = await this.bridge.getStoreApps(['recentApps', 'pinnedApps', 'fileList'])
+    let [recentApps, pinnedApps, fileList] = await this.bridge.getStoreApps(['recentApps', 'pinnedApps', 'fileList'])
+    recentApps = recentApps || []
+    pinnedApps = pinnedApps || []
+    fileList = fileList || []
 
     const getCategory = async (category: SearchCategory, newItems: AppItem[]) => {
       const newItemsWithIcons = await this.bridge.loadAppIcons(newItems)
