@@ -1,5 +1,7 @@
 <template>
-  <div class="w-full h-full flex bg-gray-50 min-h-0">
+  <div class="relative w-full h-full flex bg-gray-50 min-h-0">
+    <GithubToken />
+
     <!-- 左侧菜单栏 -->
     <div class="w-48 bg-white border-r border-gray-200 flex flex-col">
       <!-- 设置标题 -->
@@ -75,6 +77,7 @@ import PluginSettings from "../modules/plugins/components/PluginSettings.vue";
 import CustomHotkeys from "../modules/hotkeys/components/CustomHotkeys.vue";
 import DownloadManager from "../modules/downloads/components/DownloadManager.vue";
 import About from "./About.vue";
+import GithubToken from "./GithubToken.vue";
 
 // 事件定义
 interface Emits {

@@ -12,6 +12,7 @@ declare module 'vue' {
     ContentArea: typeof import('./../src/components/ContentArea.vue')['default']
     ContextMenu: typeof import('./../src/components/ContextMenu.vue')['default']
     DraggableArea: typeof import('./../src/components/DraggableArea.vue')['default']
+    GithubToken: typeof import('./../src/components/GithubToken.vue')['default']
     IconDisplay: typeof import('./../src/components/IconDisplay.vue')['default']
     IconMdiChevronLeft: typeof import('~icons/mdi/chevron-left')['default']
     IconMdiChevronRight: typeof import('~icons/mdi/chevron-right')['default']

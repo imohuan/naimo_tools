@@ -60,17 +60,29 @@ export const usePluginStore = defineStore('plugin', () => {
       clearError()
       await pluginManager.initialize()
 
-      pluginManager.loadAsyncPluginList(true).then(() => {
-        syncPluginState()
-        console.log('🔌 远程数据加载完成')
-      })
-
       // 同步数据到响应式状态
       syncPluginState()
       console.log('🔌 插件系统初始化完成')
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : '初始化插件系统失败'
       setError(errorMessage)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+
+  const loadAsyncPluginList = async () => {
+    try {
+      setLoading(true)
+      clearError()
+      await pluginManager.loadAsyncPluginList(true)
+      syncPluginState()
+      console.log('🔌 远程数据加载完成')
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : '加载远程插件列表失败'
+      setError(errorMessage)
+      console.error('❌ 加载远程插件列表失败:', err)
     } finally {
       setLoading(false)
     }
@@ -235,6 +247,7 @@ export const usePluginStore = defineStore('plugin', () => {
     getPluginItems,
     getVisiblePluginItems,
     reset,
-    destroy
+    destroy,
+    loadAsyncPluginList
   }
 })

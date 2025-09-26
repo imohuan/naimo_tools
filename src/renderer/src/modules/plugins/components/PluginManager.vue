@@ -11,16 +11,8 @@
       </button>
     </div>
 
-    <!-- 加载状态 -->
-    <div v-if="pluginStore.loading" class="flex-1 flex items-center justify-center">
-      <div class="flex items-center gap-3 text-gray-600">
-        <div class="animate-spin text-2xl">⏳</div>
-        <span>加载插件中...</span>
-      </div>
-    </div>
-
     <!-- 主要内容 -->
-    <div v-else class="flex-1 flex flex-col">
+    <div class="flex-1 flex flex-col">
       <!-- 详情页面 -->
       <PluginDetail v-if="selectedPlugin" :plugin="selectedPlugin as PluginConfig"
         :is-installed="pluginStore.isPluginInstalled(selectedPlugin.id)"
@@ -30,6 +22,14 @@
 
       <!-- 插件列表页面 -->
       <template v-else>
+        <!-- 加载状态提示 -->
+        <div v-if="pluginStore.loading" class="px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg shadow-sm mb-2">
+          <div class="flex items-center gap-3 text-blue-700">
+            <div class="animate-spin text-lg">⏳</div>
+            <span class="text-sm font-medium">正在加载插件列表...</span>
+          </div>
+        </div>
+
         <!-- 顶部区域：搜索框、分类列表、分页 -->
         <div class="px-3 py-2 bg-white border border-gray-200 rounded-lg shadow-sm">
           <div class="flex items-center justify-between gap-3">
@@ -79,7 +79,9 @@
 
         <!-- 插件列表 -->
         <div class="flex-1 pt-2 flex flex-col pb-2">
-          <div v-if="filteredPlugins.length === 0" class="flex-1 flex items-center justify-center">
+          <!-- 空状态 -->
+          <div v-if="filteredPlugins.length === 0 && !pluginStore.loading"
+            class="flex-1 flex items-center justify-center">
             <div class="flex flex-col items-center justify-center text-center text-gray-500">
               <div class="text-6xl mb-4">📦</div>
               <p class="text-lg mb-2">暂无插件</p>
@@ -89,11 +91,26 @@
             </div>
           </div>
 
-          <div v-else class="grid grid-cols-2 gap-2">
+          <!-- 插件网格 -->
+          <div v-else-if="filteredPlugins.length > 0" class="grid grid-cols-2 gap-2">
             <PluginCard v-for="plugin in paginatedPlugins" :key="plugin.id" :plugin="plugin as PluginConfig"
               :is-installed="pluginStore.isPluginInstalled(plugin.id)" :is-installing="isPluginInstalling(plugin.id)"
               :install-progress="getPluginInstallProgress(plugin.id)" @click="showPluginDetail" @install="installPlugin"
               @uninstall="uninstallPlugin" />
+          </div>
+
+          <!-- 加载占位符 -->
+          <div v-if="pluginStore.loading" class="grid grid-cols-2 gap-2 mt-2">
+            <div v-for="i in 1" :key="`placeholder-${i}`"
+              class="bg-white rounded-lg border border-gray-200 p-4 animate-pulse">
+              <div class="flex items-start gap-3 mb-3">
+                <div class="w-10 h-10 bg-gray-200 rounded-lg"></div>
+                <div class="flex-1">
+                  <div class="h-4 bg-gray-200 rounded mb-2 w-3/4"></div>
+                  <div class="h-3 bg-gray-200 rounded w-1/2"></div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </template>
@@ -110,7 +127,6 @@ import PluginCard from "./PluginCard.vue";
 import PluginDetail from "./PluginDetail.vue";
 
 const pluginStore = usePluginStore();
-
 const searchQuery = ref("");
 const categoryFilter = ref("all");
 const currentPage = ref(1);
@@ -354,4 +370,8 @@ watch([searchQuery, categoryFilter], () => {
 });
 
 useEventListener(document, "keydown", handleKeydown);
+
+onMounted(() => {
+  pluginStore.loadAsyncPluginList();
+});
 </script>

@@ -1,5 +1,7 @@
 import { request } from '@/core/request'
+import { CacheManager } from '@/core/CacheManager'
 import type { PluginConfig } from '@/typings/plugin-types'
+import { uniqueArrayByProperty } from '@/utils'
 
 export interface GithubSearch {
   /** 搜索 */
@@ -14,6 +16,8 @@ export interface GithubSearch {
   total_count: number
   /** 结果 */
   items: PluginGithubItem[]
+  /** 是否加载完毕 */
+  is_complete: boolean
 }
 
 export interface PluginGithubItem {
@@ -23,6 +27,8 @@ export interface PluginGithubItem {
   user: string
   /** 仓库 */
   repo: string
+  /** 完整名称 (user/repo) */
+  full_name: string
   /** 更新时间 */
   updated_at: string
   /** 推送时间 */
@@ -31,13 +37,19 @@ export interface PluginGithubItem {
   config: PluginConfig | null
 }
 
+export interface TokenCallback {
+  (setToken: (token: string) => void): void
+}
+
 export class PluginGithub {
   private static instance: PluginGithub
   private queryPrefix = "naimo_tools-"
   private branch = "build"
   private queryUrl: string = `https://api.github.com/search/repositories?q=${this.queryPrefix}`
-  private result: GithubSearch
-  private cacheExpireTime = 8 * 60 * 60 * 1000 // 8小时的毫秒数
+  result: GithubSearch
+  private cacheManager: CacheManager
+  private githubToken: string = ""
+  private tokenCallback: TokenCallback = () => { }
 
   constructor() {
     this.result = {
@@ -46,11 +58,17 @@ export class PluginGithub {
       loadding: false,
       incomplete_results: false,
       total_count: 0,
-      items: []
+      items: [],
+      is_complete: false
     }
-    // 初始化时清理过期缓存
-    this.clearExpiredCache()
-    this.initialize()
+    // 初始化缓存管理器
+    this.cacheManager = new CacheManager({
+      prefix: 'plugin_github_cache',
+      // expireTime: 8 * 60 * 60 * 1000 // 8小时
+      expireTime: 10 * 1000 // 10秒
+    })
+
+    this.githubToken = localStorage.getItem('github_token') || ""
   }
 
   static getInstance() {
@@ -60,91 +78,21 @@ export class PluginGithub {
     return PluginGithub.instance
   }
 
-  async initialize() {
-    await this.loadMore()
+  setTokenCallback(callback: TokenCallback) {
+    this.tokenCallback = callback
   }
 
-  /**
-   * 生成缓存键
-   */
-  private getCacheKey(searchText: string, page: number): string {
-    return `plugin_github_cache_${searchText}_${page}`
+  async loginGithub() {
+    await naimo.auto.fetchHTML("https://www.github.com", {
+      show: true,
+      timeout: 60 * 1000,
+      steps: [
+        { action: "waitForTimeout", args: [60 * 1000] }
+      ]
+    })
+    console.log("Fetch HTML", 1111111111111);
   }
 
-  /**
-   * 从localStorage获取缓存数据
-   */
-  private getCachedData(searchText: string, page: number): GithubSearch | null {
-    const cacheKey = this.getCacheKey(searchText, page)
-    const cacheData = localStorage.getItem(cacheKey)
-
-    if (!cacheData) {
-      return null
-    }
-
-    try {
-      const parsed = JSON.parse(cacheData)
-      const now = Date.now()
-
-      // 检查缓存是否过期
-      if (now - parsed.timestamp > this.cacheExpireTime) {
-        localStorage.removeItem(cacheKey)
-        return null
-      }
-
-      return parsed.data
-    } catch (error) {
-      console.error('解析缓存数据失败:', error)
-      localStorage.removeItem(cacheKey)
-      return null
-    }
-  }
-
-  /**
-   * 将数据保存到localStorage缓存
-   */
-  private setCachedData(searchText: string, page: number, data: GithubSearch): void {
-    const cacheKey = this.getCacheKey(searchText, page)
-    const cacheData = {
-      timestamp: Date.now(),
-      data: data
-    }
-
-    try {
-      localStorage.setItem(cacheKey, JSON.stringify(cacheData))
-    } catch (error) {
-      console.error('保存缓存数据失败:', error)
-      // 如果localStorage空间不足，清理过期缓存
-      this.clearExpiredCache()
-    }
-  }
-
-  /**
-   * 清理过期的缓存
-   */
-  private clearExpiredCache(): void {
-    const now = Date.now()
-    const keysToRemove: string[] = []
-
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i)
-      if (key && key.startsWith('plugin_github_cache_')) {
-        try {
-          const data = localStorage.getItem(key)
-          if (data) {
-            const parsed = JSON.parse(data)
-            if (now - parsed.timestamp > this.cacheExpireTime) {
-              keysToRemove.push(key)
-            }
-          }
-        } catch (error) {
-          keysToRemove.push(key)
-        }
-      }
-    }
-
-    keysToRemove.forEach(key => localStorage.removeItem(key))
-  }
 
   async getListAynsc(searchText: string = "", page: number = 1) {
     const search = searchText.replace(/&/g, "_")
@@ -154,7 +102,7 @@ export class PluginGithub {
     this.result.items = []
 
     // 检查缓存
-    const cachedData = this.getCachedData(searchText, page)
+    const cachedData = this.cacheManager.get<GithubSearch>(searchText, page)
     if (cachedData) {
       this.result = cachedData
       this.result.loadding = false
@@ -199,36 +147,55 @@ export class PluginGithub {
       this.result.total_count = items.length * 30
 
       // 保存到缓存
-      this.setCachedData(searchText, page, this.result)
+      this.cacheManager.set(this.result, searchText, page)
     }).finally(() => {
       this.result.loadding = false
     })
     return this.result
   }
 
+  setGithubToken(token: string) {
+    this.githubToken = token
+    localStorage.setItem('github_token', token)
+  }
+
   async getList(searchText: string = "", page: number = 1) {
+    if (this.result.is_complete) return
+
     const search = searchText.replace(/&/g, "_")
     this.result.search = searchText
     this.result.page = page
     this.result.loadding = true
 
     // 检查缓存
-    const cachedData = this.getCachedData(searchText, page)
+    const cachedData = this.cacheManager.get<GithubSearch>(searchText, page)
     if (cachedData) {
       this.result = cachedData
       this.result.loadding = false
       return this.result
     }
 
-    const url = this.queryUrl + search
+    // this.tokenCallback((token) => this.setGithubToken(token))
 
-    await request.get<GithubSearch>(url + `&page=${page}`).then(async res => {
+    const url = this.queryUrl + search
+    // const token = "your_github_token_here"
+    const option: any = {}
+    if (this.githubToken.trim()) {
+      option.headers = { 'Authorization': `Bearer ${this.githubToken.trim()}` }
+    }
+
+    await request.get<GithubSearch>(url + `&page=${page}`, option).then(async res => {
       if (!res) return res
       if (res.items) {
+
+        if (res.items.length < 30) {
+          this.result.is_complete = true
+        }
+
         res.items = res.items.map((item: any) => {
           const [user, repo] = item.full_name.split("/")
           return {
-            description: item.description, user, repo,
+            description: item.description, user, repo, full_name: `${user}/${repo}`,
             updated_at: item.updated_at, pushed_at: item.pushed_at, config: null
           }
         }).filter(item => item.repo?.startsWith(this.queryPrefix))
@@ -239,13 +206,21 @@ export class PluginGithub {
           return { ...item, config }
         }))
 
-        this.result.items = res.items
+        const items = [...this.result.items, ...res.items]
+        const newItems = uniqueArrayByProperty(items, 'full_name')
+
+        this.result.items = newItems
         this.result.incomplete_results = res.incomplete_results
         this.result.total_count = res.total_count
 
         // 保存到缓存
-        this.setCachedData(searchText, page, this.result)
+        this.cacheManager.set(this.result, searchText, page)
         return res
+      }
+    }).catch(err => {
+      if (err.message === "拒绝访问") {
+        // 需要获取token
+        this.tokenCallback((token) => this.setGithubToken(token))
       }
     }).finally(() => {
       this.result.loadding = false
@@ -256,7 +231,8 @@ export class PluginGithub {
 
   // 加载更多
   async loadMore() {
-    await this.getListAynsc(this.result.search, this.result.page + 1)
+    // await this.getListAynsc(this.result.search, this.result.page + 1)
+    await this.getList(this.result.search, this.result.page + 1)
   }
 
   async getConfig(user: string, repo: string) {
@@ -274,16 +250,7 @@ export class PluginGithub {
    * 清理所有插件相关的缓存
    */
   public clearAllCache(): void {
-    const keysToRemove: string[] = []
-
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i)
-      if (key && key.startsWith('plugin_github_cache_')) {
-        keysToRemove.push(key)
-      }
-    }
-
-    keysToRemove.forEach(key => localStorage.removeItem(key))
+    this.cacheManager.clearAllCache()
   }
 }
 

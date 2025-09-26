@@ -56,12 +56,14 @@ export class PluginManager extends BaseSingleton implements CoreAPI {
   }
 
   async loadAsyncPluginList(init = false): Promise<void> {
-    const githubPlugins = await this.github.getList()
+    await this.github.loadMore()
+    const githubPlugins = this.github.result
     const githubPluginsConfig: PluginConfig[] = githubPlugins.items.map(item => item.config).filter(Boolean) as PluginConfig[]
     this.githubPlugins = githubPluginsConfig
 
     if (init) {
       this.githubPlugins.forEach(plugin => {
+        // 避免已经下载到本地的插件重复添加
         if (this.allAvailablePlugins.has(plugin.id)) return
         this.allAvailablePlugins.set(plugin.id, plugin)
       })
@@ -95,7 +97,6 @@ export class PluginManager extends BaseSingleton implements CoreAPI {
       const installedPluginIds = await this.getInstalledPluginIds();
       console.log("📋 已安装的插件ID列表:", installedPluginIds);
       // 2. 从缓存中加载已安装的插件
-      debugger
       for (const pluginId of installedPluginIds) {
         const plugin = this.allAvailablePlugins.get(pluginId);
         if (plugin) {
@@ -197,7 +198,12 @@ export class PluginManager extends BaseSingleton implements CoreAPI {
         throw new Error(`❌ 插件主文件不存在: ${pluginData.id}`);
       }
 
-      pluginData.main = (pluginData as any)?.getResourcePath(pluginData.main) || pluginData.main
+      const getResourcePath = (pluginData as any)?.getResourcePath
+      pluginData.main = getResourcePath ? getResourcePath(pluginData.main) : pluginData.main
+
+      // 设置github插件的getResourcePath, 否则在updatePluginList更新的时候, 会丢失getResourcePath属性, 导致最后getPluginApi获取不到getResourcePath
+      const githubPlugin: any = this.githubPlugins.find(p => p.id === pluginData.id)
+      if (githubPlugin) githubPlugin.getResourcePath = getResourcePath
 
       let items: PluginItem[] = []
       // 加载配置文件
