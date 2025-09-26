@@ -1,6 +1,5 @@
 import type { PluginConfig } from '@/typings/plugin-types'
 import { PluginExecuteType, PluginCategoryType } from '@/typings/plugin-types'
-import { SearchMode } from '@/typings/search-types'
 
 /**
  * 网页工具插件示例

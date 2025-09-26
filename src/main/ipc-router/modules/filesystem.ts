@@ -4,6 +4,7 @@
  */
 
 import { dialog, BrowserWindow } from 'electron';
+import { readFile, writeFile } from 'fs/promises';
 import log from 'electron-log';
 
 /**
@@ -95,5 +96,77 @@ export function saveFile(options: Electron.SaveDialogOptions = {}): Promise<stri
       reject(error);
     }
   });
+}
+
+/**
+ * 读取文件内容
+ * @param filePath 文件路径
+ * @param encoding 文件编码，默认为'utf-8'
+ * @returns 文件内容
+ */
+export async function readFileContent(filePath: string, encoding: BufferEncoding = 'utf-8'): Promise<string> {
+  try {
+    const content = await readFile(filePath, encoding);
+    log.debug('读取文件成功:', filePath);
+    return content;
+  } catch (error) {
+    log.error('读取文件失败:', error);
+    throw error;
+  }
+}
+
+/**
+ * 读取文件内容为Base64
+ * @param filePath 文件路径
+ * @returns Base64编码的文件内容
+ */
+export async function readFileAsBase64(filePath: string): Promise<string> {
+  try {
+    const buffer = await readFile(filePath);
+    const base64 = buffer.toString('base64');
+    log.debug('读取文件为Base64成功:', filePath);
+    return base64;
+  } catch (error) {
+    log.error('读取文件为Base64失败:', error);
+    throw error;
+  }
+}
+
+/**
+ * 写入文件内容
+ * @param filePath 文件路径
+ * @param content 文件内容
+ * @param encoding 文件编码，默认为'utf-8'
+ * @returns 是否写入成功
+ */
+export async function writeFileContent(filePath: string, content: string, encoding: BufferEncoding = 'utf-8'): Promise<boolean> {
+  try {
+    await writeFile(filePath, content, encoding);
+    log.debug('写入文件成功:', filePath);
+    return true;
+  } catch (error) {
+    log.error('写入文件失败:', error);
+    return false;
+  }
+}
+
+/**
+ * 从Base64写入文件
+ * @param filePath 文件路径
+ * @param base64Data Base64编码的数据
+ * @returns 是否写入成功
+ */
+export async function writeFileFromBase64(filePath: string, base64Data: string): Promise<boolean> {
+  try {
+    // 移除Base64数据URL前缀（如果存在）
+    const cleanBase64 = base64Data.replace(/^data:image\/[a-z]+;base64,/, '');
+    const buffer = Buffer.from(cleanBase64, 'base64');
+    await writeFile(filePath, buffer);
+    log.debug('从Base64写入文件成功:', filePath);
+    return true;
+  } catch (error) {
+    log.error('从Base64写入文件失败:', error);
+    return false;
+  }
 }
 

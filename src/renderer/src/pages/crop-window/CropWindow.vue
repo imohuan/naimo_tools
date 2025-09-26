@@ -579,10 +579,10 @@ async function downloadCrop() {
     link.href = croppedImageData
     link.click()
 
-    alert('下载成功')
+    // alert('下载成功')
   } catch (error) {
     console.error('下载失败:', error)
-    alert('下载失败: ' + (error as Error).message)
+    // alert('下载失败: ' + (error as Error).message)
   }
 }
 

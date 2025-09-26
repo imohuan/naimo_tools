@@ -29,8 +29,13 @@ export function useAppActions(
 
         // 发送全局事件通知插件执行完成
         eventSystem.emit('plugin:executed', { pluginId: pluginItem.pluginId!, path: app.path, hotkeyEmit });
-        // 更新使用统计
-        await updateRecentApps(pluginItem);
+
+
+        if (!pluginItem?.onSearch) {
+          // 更新使用统计
+          await updateRecentApps(pluginItem);
+        }
+
         return true;
       } else {
         // 普通应用项目，使用原有逻辑

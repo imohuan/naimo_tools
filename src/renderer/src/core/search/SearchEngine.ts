@@ -9,6 +9,7 @@ import { pluginManager } from '../plugin/PluginManager'
 import type { AttachedFile } from '@/composables/useFileHandler'
 import { PinyinSearch } from '@/utils/pinyin-search'
 import type { PluginItem } from '@/typings/plugin-types'
+import { toRaw } from 'vue'
 
 /**
  * 搜索引擎核心类
@@ -324,7 +325,7 @@ export class SearchEngine extends BaseSingleton implements CoreAPI {
           // 必须配置在附件搜索模式下显示
           if (!pluginItem.showInModes || !pluginItem.showInModes.includes(SearchMode.ATTACHMENT)) return false
           // 附件搜索：使用 onSearch 回调
-          const searchResult = pluginItem.onSearch ? pluginItem.onSearch(searchText, attachedFiles) : true
+          const searchResult = pluginItem.onSearch ? pluginItem.onSearch(searchText, toRaw(attachedFiles)) : true
           if (!searchResult) return false
           // 如果搜索词为空，则返回true
           if (searchText.length === 0) return true
@@ -334,7 +335,7 @@ export class SearchEngine extends BaseSingleton implements CoreAPI {
         case SearchMode.PLUGIN:
           // 插件搜索：使用插件搜索回调
           if (pluginItem.onPluginSearch) {
-            const pluginResults = pluginItem.onPluginSearch(searchText, attachedFiles)
+            const pluginResults = pluginItem.onPluginSearch(searchText, toRaw(attachedFiles))
             return pluginResults.length > 0
           }
           return true

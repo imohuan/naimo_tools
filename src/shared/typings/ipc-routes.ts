@@ -1,6 +1,6 @@
 /**
  * 自动生成的 IPC 类型定义
- * 生成时间: 2025-09-26T10:51:33.593Z
+ * 生成时间: 2025-09-26T11:23:16.104Z
  * 请勿手动修改此文件
  */
 
@@ -254,6 +254,66 @@ interface filesystemInterface {
  * @returns 选择的保存路径，如果取消则返回null
  */
   "filesystemSaveFile": (options: Electron.SaveDialogOptions) => Promise<string | null>;
+
+  /**
+ * 读取文件内容
+ * @param 文件路径
+ * @param 文件编码，默认为'utf-8'
+ * @returns 文件内容
+ */
+  "filesystem-read-file-content": (filePath: string, encoding: BufferEncoding) => Promise<string>;
+  /**
+ * 读取文件内容
+ * @param 文件路径
+ * @param 文件编码，默认为'utf-8'
+ * @returns 文件内容
+ */
+  "filesystemReadFileContent": (filePath: string, encoding: BufferEncoding) => Promise<string>;
+
+  /**
+ * 读取文件内容为Base64
+ * @param 文件路径
+ * @returns Base64编码的文件内容
+ */
+  "filesystem-read-file-as-base64": (filePath: string) => Promise<string>;
+  /**
+ * 读取文件内容为Base64
+ * @param 文件路径
+ * @returns Base64编码的文件内容
+ */
+  "filesystemReadFileAsBase64": (filePath: string) => Promise<string>;
+
+  /**
+ * 写入文件内容
+ * @param 文件路径
+ * @param 文件内容
+ * @param 文件编码，默认为'utf-8'
+ * @returns 是否写入成功
+ */
+  "filesystem-write-file-content": (filePath: string, content: string, encoding: BufferEncoding) => Promise<boolean>;
+  /**
+ * 写入文件内容
+ * @param 文件路径
+ * @param 文件内容
+ * @param 文件编码，默认为'utf-8'
+ * @returns 是否写入成功
+ */
+  "filesystemWriteFileContent": (filePath: string, content: string, encoding: BufferEncoding) => Promise<boolean>;
+
+  /**
+ * 从Base64写入文件
+ * @param 文件路径
+ * @param Base64编码的数据
+ * @returns 是否写入成功
+ */
+  "filesystem-write-file-from-base64": (filePath: string, base64Data: string) => Promise<boolean>;
+  /**
+ * 从Base64写入文件
+ * @param 文件路径
+ * @param Base64编码的数据
+ * @returns 是否写入成功
+ */
+  "filesystemWriteFileFromBase64": (filePath: string, base64Data: string) => Promise<boolean>;
 }
 
 interface hotkeyInterface {
@@ -886,6 +946,30 @@ export const ROUTE_INFO: RouteInfo[] = [
     comment: "保存文件",
     module: "filesystem",
     function: "saveFile"
+  },
+  {
+    route: "filesystem-read-file-content",
+    comment: "读取文件内容",
+    module: "filesystem",
+    function: "readFileContent"
+  },
+  {
+    route: "filesystem-read-file-as-base64",
+    comment: "读取文件内容为Base64",
+    module: "filesystem",
+    function: "readFileAsBase64"
+  },
+  {
+    route: "filesystem-write-file-content",
+    comment: "写入文件内容",
+    module: "filesystem",
+    function: "writeFileContent"
+  },
+  {
+    route: "filesystem-write-file-from-base64",
+    comment: "从Base64写入文件",
+    module: "filesystem",
+    function: "writeFileFromBase64"
   },
   {
     route: "hotkey-register-global-shortcut",
