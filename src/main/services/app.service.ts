@@ -1,10 +1,9 @@
-import { app, BrowserWindow, screen } from "electron";
+import { app, BrowserWindow, screen, BaseWindow } from "electron";
 import log from "electron-log";
 import { updateElectronApp, UpdateSourceType } from "@libs/update";
 import { AppConfigManager } from "../config/app.config";
 import { LogConfigManager } from "../config/log.config";
-import { WindowConfigManager } from "../config/window.config";
-import { WindowManager, WindowType } from "../config/window-manager";
+import { NewWindowManager } from "../window/NewWindowManager";
 import { isProduction } from "@shared/utils";
 import { MainErrorHandler } from "@libs/unhandled/main";
 import { cleanupIpcRouter, initializeIpcRouter } from "../ipc-router";
@@ -16,6 +15,7 @@ import { existsSync, rmSync } from "fs";
 import { getDirname } from "@main/utils";
 
 import { DownloadManagerMain, StorageProvider } from "@libs/download-manager/main"
+import { LifecycleType, WindowManagerConfig } from "@renderer/src/typings/window-types";
 
 /**
  * 主应用服务类
@@ -23,16 +23,17 @@ import { DownloadManagerMain, StorageProvider } from "@libs/download-manager/mai
  */
 export class AppService {
   private static instance: AppService;
-  private mainWindow: BrowserWindow | null = null;
 
-  private windowManager: WindowManager;
+  private windowManager: NewWindowManager;
   private configManager: AppConfigManager;
   private downloadManagerMain: DownloadManagerMain;
+  private downloadWindow: BrowserWindow | null = null;
 
   private constructor() {
-    this.windowManager = WindowManager.getInstance();
     this.configManager = AppConfigManager.getInstance();
     this.downloadManagerMain = DownloadManagerMain.getInstance(this.configManager as StorageProvider);
+    // 延迟初始化窗口管理器，在 app ready 后进行
+    this.windowManager = null as any;
   }
 
   /**
@@ -59,15 +60,52 @@ export class AppService {
     // 初始化自动更新（仅在生产环境）
     this.initializeAutoUpdater();
 
-    // 初始化 IPC 处理器
-    this.initializeIpcHandlers();
-
     // 设置应用事件监听器
     this.setupAppEvents();
 
     // 初始化下载管理器
     this.downloadManagerMain.initialize();
+
+    // 等待 app ready，然后初始化窗口管理器
+    await this.initializeWindowManager();
+
+    // 窗口创建完成后，初始化 IPC 处理器
+    this.initializeIpcHandlers();
+
     log.info("主进程服务初始化完成");
+  }
+
+  /**
+   * 初始化窗口管理器
+   */
+  private async initializeWindowManager(): Promise<void> {
+    try {
+      log.info('初始化新窗口管理器');
+
+      // 创建窗口管理器配置
+      const windowManagerConfig: WindowManagerConfig = {
+        layout: {
+          totalBounds: { x: 0, y: 200, width: 800, height: 600 },
+          headerHeight: 60,
+          contentBounds: { x: 0, y: 60, width: 800, height: 540 },
+          padding: 0
+        },
+        defaultLifecycle: {
+          type: LifecycleType.FOREGROUND,
+          persistOnClose: false
+        },
+        memoryRecycleThreshold: 500, // 500MB
+        autoRecycleInterval: 300000 // 5分钟
+      };
+
+      this.windowManager = NewWindowManager.getInstance(windowManagerConfig);
+      await this.windowManager.initialize();
+
+      log.info('新窗口管理器初始化完成');
+    } catch (error) {
+      log.error('初始化窗口管理器失败:', error);
+      throw error;
+    }
   }
 
   /**
@@ -87,9 +125,14 @@ export class AppService {
     // 监听渲染进程崩溃
     app.on("render-process-gone", (event, webContents, details) => {
       log.error("渲染进程崩溃:", details);
-      // 简单处理：清理主窗口引用，不自动重创建
-      if (this.mainWindow && this.mainWindow.webContents.id === webContents.id) {
-        this.mainWindow = null;
+      // 在新的 BaseWindow + WebContentsView 架构中，渲染进程崩溃处理由窗口管理器统一管理
+      // 这里只记录日志，具体的恢复策略由 NewWindowManager 内部处理
+      if (this.windowManager) {
+        const mainWindow = this.windowManager.getMainWindow();
+        if (mainWindow) {
+          log.warn("主窗口相关的渲染进程崩溃，窗口管理器将处理恢复逻辑");
+          // 可以在这里触发特定的恢复策略，如重新加载视图等
+        }
       }
     });
 
@@ -149,13 +192,6 @@ export class AppService {
     try {
       // 确定图标工作进程的路径
       let workerPath: string;
-      // if (isProduction()) {
-      //   // 生产环境：使用打包后的路径
-      //   workerPath = join(process.resourcesPath, 'app.asar', 'dist', 'main', 'preloads', 'icon-worker.js');
-      // } else {
-      //   // 开发环境：使用源码路径
-      //   workerPath = join(__dirname, 'preloads', 'icon-worker.js');
-      // }
       workerPath = resolve(getDirname(import.meta.url), 'iconWorker.js');
       log.info('🖼️ 初始化图标工作进程:', workerPath);
       createIconWorker(workerPath, log);
@@ -171,17 +207,15 @@ export class AppService {
    */
   private setupAppEvents(): void {
     // 应用准备就绪
-    app.whenReady().then(() => {
+    app.whenReady().then(async () => {
       log.info("Electron 应用准备就绪");
-
       // 初始化图标工作进程（必须在 app ready 后）
       this.initializeIconWorker();
 
-      this.createMainWindow();
-
-      app.on("activate", () => {
+      await this.createMainWindow();
+      app.on("activate", async () => {
         if (BrowserWindow.getAllWindows().length === 0) {
-          this.createMainWindow();
+          await this.createMainWindow();
         }
       });
     });
@@ -206,74 +240,132 @@ export class AppService {
   /**
    * 创建主窗口
    */
-  private createMainWindow(): void {
-    // 简单检查：如果主窗口已存在且未销毁，直接返回
-    if (this.mainWindow && !this.mainWindow.isDestroyed()) {
-      return;
-    }
-
-    this.configManager.set("windowSize", { width: 800, height: 66 });
-
-    const config = this.configManager.getConfig();
-    const options = WindowConfigManager.createMainWindowOptions(config);
-
-    log.info("创建主窗口: ", options);
-    this.mainWindow = new BrowserWindow(options);
-
-    // 注册主窗口到窗口管理器
-    this.windowManager.registerWindow(this.mainWindow, WindowType.MAIN, {
-      title: '主窗口',
-      url: '主窗口',
-      init: true,
-      parentWindowId: 0,
-      isMainWindow: true,
-      version: '1.0.0',
-      path: 'MAIN_PATH'
-    });
-
-    this.windowManager.setXCenter(this.mainWindow, 200);
-    this.mainWindow.focus()
-
-    this.downloadManagerMain.setMainWindow(this.mainWindow);
-
-    // 设置窗口事件监听器
-    WindowConfigManager.setupWindowEvents(this.mainWindow, {
-      devToolOptions: { mode: "detach" },
-      onResize: (width, height) => {
-        this.configManager.set("windowSize", { width, height });
+  private async createMainWindow(): Promise<void> {
+    try {
+      // 确保窗口管理器已初始化
+      if (!this.windowManager) {
+        throw new Error('窗口管理器未初始化');
       }
-    });
 
-    // 加载页面内容
-    WindowConfigManager.loadContent(this.mainWindow);
-    this.mainWindow.setResizable(false);
-    this.mainWindow.webContents.on("did-finish-load", () => {
-      this.mainWindow!.webContents.executeJavaScript(`
-        window.id = ${this.mainWindow!.webContents.id};
-      `).catch((error) => {
-        log.error("执行主窗口 JavaScript 失败:", error);
+      // 简单检查：如果主窗口已存在且未销毁，直接返回
+      const mainWindow = this.windowManager.getMainWindow();
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        return;
+      }
+
+      log.info("开始创建主窗口 (使用新架构)");
+
+      // 设置窗口大小配置
+      this.configManager.set("windowSize", { width: 800, height: 600 });
+      const config = this.configManager.getConfig();
+
+      // 使用新的窗口管理器创建主窗口
+      const result = await this.windowManager.createMainWindow(config);
+
+      if (!result.success || !result.data?.window) {
+        throw new Error(result.error || '主窗口创建失败');
+      }
+
+      const createdWindow = result.data.window as BaseWindow;
+
+      // 设置窗口居中
+      this.setWindowCenter(createdWindow, 200);
+
+      // 创建下载专用窗口并设置下载管理器
+      this.createDownloadWindow();
+
+      // 监听窗口关闭事件已在 NewWindowManager 中处理
+
+      log.info(`主窗口创建成功，ID: ${createdWindow.id}`);
+    } catch (error) {
+      log.error("创建主窗口失败:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * 设置窗口居中位置
+   */
+  private setWindowCenter(window: BaseWindow, y: number): void {
+    const { width } = window.getBounds();
+    const { width: screenWidth } = screen.getPrimaryDisplay().workAreaSize;
+    const centerX = Math.floor((screenWidth - width) / 2);
+    window.setPosition(centerX, y);
+  }
+
+  /**
+   * 创建下载专用窗口
+   * 为下载管理器提供专门的 BrowserWindow，因为下载管理器需要 BrowserWindow 而非 BaseWindow
+   */
+  private createDownloadWindow(): void {
+    try {
+      if (this.downloadWindow && !this.downloadWindow.isDestroyed()) {
+        log.info("下载窗口已存在");
+        return;
+      }
+
+      log.info("创建下载专用窗口");
+
+      // 创建隐藏的 BrowserWindow 专门用于下载管理
+      this.downloadWindow = new BrowserWindow({
+        width: 1,
+        height: 1,
+        show: false, // 隐藏窗口，仅用于下载功能
+        webPreferences: {
+          nodeIntegration: true,
+          contextIsolation: true,
+          webSecurity: true,
+        },
+        skipTaskbar: true, // 不在任务栏显示
+        transparent: true, // 透明窗口
+        frame: false, // 无边框
+        alwaysOnTop: false,
+        resizable: false,
+        minimizable: false,
+        maximizable: false,
+        closable: false // 防止意外关闭
       });
-    });
 
-    // 监听窗口关闭
-    this.mainWindow.on("closed", () => {
-      // 从窗口管理器中注销主窗口
-      this.windowManager.unregisterWindow(this.mainWindow!.id);
-      this.mainWindow = null;
-    });
+      // 设置下载管理器的主窗口引用
+      this.downloadManagerMain.setMainWindow(this.downloadWindow);
+
+      // 监听窗口关闭
+      this.downloadWindow.on("closed", () => {
+        log.info("下载专用窗口已关闭");
+        this.downloadWindow = null;
+      });
+
+      // 防止窗口被意外显示
+      this.downloadWindow.on("show", () => {
+        if (this.downloadWindow && !this.downloadWindow.isDestroyed()) {
+          this.downloadWindow.hide();
+          log.debug("下载专用窗口被隐藏（保持后台运行）");
+        }
+      });
+
+      log.info(`下载专用窗口创建成功，ID: ${this.downloadWindow.id}`);
+    } catch (error) {
+      log.error("创建下载专用窗口失败:", error);
+    }
   }
 
   /**
    * 获取主窗口实例
    */
-  getMainWindow(): BrowserWindow | null {
-    return this.mainWindow;
+  getMainWindow(): BaseWindow | null {
+    if (!this.windowManager) {
+      return null;
+    }
+    return this.windowManager.getMainWindow();
   }
 
   /**
    * 获取窗口管理器实例
    */
-  getWindowManager(): WindowManager {
+  getWindowManager(): NewWindowManager {
+    if (!this.windowManager) {
+      throw new Error('窗口管理器未初始化，请确保应用已正确启动');
+    }
     return this.windowManager;
   }
 
@@ -282,6 +374,13 @@ export class AppService {
    */
   getConfigManager(): AppConfigManager {
     return this.configManager;
+  }
+
+  /**
+   * 获取下载专用窗口
+   */
+  getDownloadWindow(): BrowserWindow | null {
+    return this.downloadWindow;
   }
 
   /**
@@ -328,6 +427,13 @@ export class AppService {
    * 清理资源
    */
   cleanup(): void {
+    // 清理下载窗口
+    if (this.downloadWindow && !this.downloadWindow.isDestroyed()) {
+      log.info("清理下载专用窗口");
+      this.downloadWindow.destroy();
+      this.downloadWindow = null;
+    }
+
     cleanupIpcRouter()
     log.info("应用服务已清理");
 

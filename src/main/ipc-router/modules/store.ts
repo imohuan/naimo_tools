@@ -22,10 +22,11 @@ function getConfigManager(): AppConfigManager {
 
 /**
  * 获取存储数据
+ * @param event IPC事件对象
  * @param key 配置键名，如果不提供则返回完整配置
  * @returns 配置值或完整配置对象
  */
-export function get(key?: keyof AppConfig): any {
+export function get(event: Electron.IpcMainInvokeEvent, key?: keyof AppConfig): any {
   try {
     const manager = getConfigManager();
     if (key) {
@@ -41,11 +42,12 @@ export function get(key?: keyof AppConfig): any {
 
 /**
  * 设置存储数据
+ * @param event IPC事件对象
  * @param key 配置键名
  * @param value 配置值
  * @returns 是否设置成功
  */
-export function set(key: keyof AppConfig, value: any): boolean {
+export function set(event: Electron.IpcMainInvokeEvent, key: keyof AppConfig, value: any): boolean {
   try {
     const manager = getConfigManager();
     manager.set(key, value);
@@ -58,10 +60,11 @@ export function set(key: keyof AppConfig, value: any): boolean {
 
 /**
  * 删除存储数据
+ * @param event IPC事件对象
  * @param key 配置键名
  * @returns 是否删除成功
  */
-export function deleteKey(key: keyof AppConfig): boolean {
+export function deleteKey(event: Electron.IpcMainInvokeEvent, key: keyof AppConfig): boolean {
   try {
     const manager = getConfigManager();
     manager.delete(key);
@@ -76,7 +79,7 @@ export function deleteKey(key: keyof AppConfig): boolean {
  * 清空存储数据
  * @returns 是否清空成功
  */
-export function clear(): boolean {
+export function clear(event: Electron.IpcMainInvokeEvent): boolean {
   try {
     const manager = getConfigManager();
     manager.clear();

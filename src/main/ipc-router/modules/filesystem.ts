@@ -9,10 +9,11 @@ import log from 'electron-log';
 
 /**
  * 选择文件
+ * @param event IPC事件对象
  * @param options 对话框选项
  * @returns 选择的文件路径数组，如果取消则返回null
  */
-export function selectFile(options: Electron.OpenDialogOptions = {}): Promise<string[] | null> {
+export function selectFile(event: Electron.IpcMainInvokeEvent, options: Electron.OpenDialogOptions = {}): Promise<string[] | null> {
   return new Promise(async (resolve, reject) => {
     try {
       // 这里需要获取主窗口，在实际使用中应该通过依赖注入获取
@@ -41,10 +42,11 @@ export function selectFile(options: Electron.OpenDialogOptions = {}): Promise<st
 
 /**
  * 选择文件夹
+ * @param event IPC事件对象
  * @param options 对话框选项
  * @returns 选择的文件夹路径数组，如果取消则返回null
  */
-export function selectFolder(options: Electron.OpenDialogOptions = {}): Promise<string[] | null> {
+export function selectFolder(event: Electron.IpcMainInvokeEvent, options: Electron.OpenDialogOptions = {}): Promise<string[] | null> {
   return new Promise(async (resolve, reject) => {
     try {
       const window = BrowserWindow.getFocusedWindow();
@@ -72,10 +74,11 @@ export function selectFolder(options: Electron.OpenDialogOptions = {}): Promise<
 
 /**
  * 保存文件
+ * @param event IPC事件对象
  * @param options 保存对话框选项
  * @returns 选择的保存路径，如果取消则返回null
  */
-export function saveFile(options: Electron.SaveDialogOptions = {}): Promise<string | null> {
+export function saveFile(event: Electron.IpcMainInvokeEvent, options: Electron.SaveDialogOptions = {}): Promise<string | null> {
   return new Promise(async (resolve, reject) => {
     try {
       const window = BrowserWindow.getFocusedWindow();
@@ -100,11 +103,12 @@ export function saveFile(options: Electron.SaveDialogOptions = {}): Promise<stri
 
 /**
  * 读取文件内容
+ * @param event IPC事件对象
  * @param filePath 文件路径
  * @param encoding 文件编码，默认为'utf-8'
  * @returns 文件内容
  */
-export async function readFileContent(filePath: string, encoding: BufferEncoding = 'utf-8'): Promise<string> {
+export async function readFileContent(event: Electron.IpcMainInvokeEvent, filePath: string, encoding: BufferEncoding = 'utf-8'): Promise<string> {
   try {
     const content = await readFile(filePath, encoding);
     log.debug('读取文件成功:', filePath);
@@ -117,10 +121,11 @@ export async function readFileContent(filePath: string, encoding: BufferEncoding
 
 /**
  * 读取文件内容为Base64
+ * @param event IPC事件对象
  * @param filePath 文件路径
  * @returns Base64编码的文件内容
  */
-export async function readFileAsBase64(filePath: string): Promise<string> {
+export async function readFileAsBase64(event: Electron.IpcMainInvokeEvent, filePath: string): Promise<string> {
   try {
     const buffer = await readFile(filePath);
     const base64 = buffer.toString('base64');
@@ -134,12 +139,13 @@ export async function readFileAsBase64(filePath: string): Promise<string> {
 
 /**
  * 写入文件内容
+ * @param event IPC事件对象
  * @param filePath 文件路径
  * @param content 文件内容
  * @param encoding 文件编码，默认为'utf-8'
  * @returns 是否写入成功
  */
-export async function writeFileContent(filePath: string, content: string, encoding: BufferEncoding = 'utf-8'): Promise<boolean> {
+export async function writeFileContent(event: Electron.IpcMainInvokeEvent, filePath: string, content: string, encoding: BufferEncoding = 'utf-8'): Promise<boolean> {
   try {
     await writeFile(filePath, content, encoding);
     log.debug('写入文件成功:', filePath);
@@ -152,11 +158,12 @@ export async function writeFileContent(filePath: string, content: string, encodi
 
 /**
  * 从Base64写入文件
+ * @param event IPC事件对象
  * @param filePath 文件路径
  * @param base64Data Base64编码的数据
  * @returns 是否写入成功
  */
-export async function writeFileFromBase64(filePath: string, base64Data: string): Promise<boolean> {
+export async function writeFileFromBase64(event: Electron.IpcMainInvokeEvent, filePath: string, base64Data: string): Promise<boolean> {
   try {
     // 移除Base64数据URL前缀（如果存在）
     const cleanBase64 = base64Data.replace(/^data:image\/[a-z]+;base64,/, '');

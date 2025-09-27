@@ -683,8 +683,6 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-@import "@/style.css";
-
 /* 调整手柄的特殊位置样式 - 无法用 TailwindCSS 表达的样式 */
 .nw {
   top: -6px;

@@ -45,9 +45,13 @@ function customHtmlOutputPlugin() {
         if (fileName.endsWith('.html') && fileName.includes('/')) {
           let newFileName;
 
-          // 为 crop-window 特殊处理
+          // 为特殊页面处理
           if (fileName.includes('crop-window')) {
             newFileName = 'crop-window.html';
+          } else if (fileName.includes('settings')) {
+            newFileName = 'settings.html';
+          } else if (fileName.includes('detached-window')) {
+            newFileName = 'detached-window.html';
           } else {
             // 其他文件只保留文件名部分
             newFileName = fileName.split('/').pop() || fileName;
@@ -117,6 +121,7 @@ export default defineConfig({
     // 开发环境下，多入口页面的访问路径：
     // 主页面：http://localhost:5173/
     // 裁剪窗口：http://localhost:5173/src/pages/crop-window/
+    // 设置页面：http://localhost:5173/src/pages/settings/
     // 日志查看器：http://localhost:5173/public/log-viewer.html
   },
   resolve: {
@@ -139,6 +144,8 @@ export default defineConfig({
       input: {
         main: resolve(__dirname, 'index.html'),
         'crop-window': resolve(__dirname, 'src/pages/crop-window/index.html'),
+        'settings': resolve(__dirname, 'src/pages/settings/index.html'),
+        'detached-window': resolve(__dirname, 'src/pages/detached-window/index.html'),
         'log-viewer': resolve(__dirname, 'public/log-viewer.html')
       },
       output: {

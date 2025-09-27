@@ -1,37 +1,138 @@
 <template>
-  <div class="w-full h-full p-[8px]" @keydown="handleKeyNavigation" @click="handleContainerClick">
+  <div class="w-full h-full p-2 bg-transparent" @keydown="handleKeyNavigation" @click="handleContainerClick">
     <Test />
-    <!-- 主应用容器 -->
-    <div class="w-full bg-transparent relative shadow-lg rounded-xl  overflow-hidden"
-      :class="{ 'rounded-b-none': isPluginWindowOpen && searchText.trim() === '' && !isSettingsInterface }"
-      style="box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4)">
-      <!-- 搜索框区域 -->
-      <SearchHeader ref="searchHeaderRef" v-model:search-text="searchText" :is-drag-over="isDragOver"
-        :header-height="headerHeight" :attached-files="attachedFiles" :current-plugin-item="currentPluginItem"
-        :should-show-search-box="shouldShowSearchBox" @search="handleSearch" @input="debouncedHandleSearch"
-        @click="handleClick" @drag-over="handleDragOver" @drag-enter="handleDragEnter" @drag-leave="handleDragLeave"
-        @drop="handleFileDrop" @paste="handleFilePaste" @clear-files="clearAttachedFiles"
-        @clear-plugin="clearPluginInfo" @open-settings="openSettings" />
+    <!-- 主应用容器 - 透明背景，恢复阴影和圆角效果 -->
+    <div class="w-full bg-transparent relative overflow-hidden h-full rounded-xl shadow-2xl"
+      style="box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15), 0 2px 6px rgba(0, 0, 0, 0.1);">
 
-      <!-- 内容呈现区域 -->
+      <!-- 搜索头部区域 - 固定区域，支持自定义窗口拖拽 -->
+      <DraggableArea class="w-full flex items-center justify-center"
+        :style="{ height: searchHeaderState.headerHeight + 'px' }" @click="searchHeaderActions.handleClick"
+        @dragover="searchHeaderActions.handleDragOver" @dragenter="searchHeaderActions.handleDragEnter"
+        @dragleave="searchHeaderActions.handleDragLeave" @drop="searchHeaderActions.handleDrop">
+
+        <div class="w-full h-full relative flex items-center bg-white rounded-t-xl transition-all duration-200"
+          :class="{ 'bg-indigo-50': searchHeaderState.isDragOver }">
+
+          <!-- 插件信息显示区域 -->
+          <div v-if="searchHeaderComputed.shouldShowPluginInfo.value" class="h-full flex items-center p-2">
+            <!-- 插件图标容器 -->
+            <div class="h-full p-2 flex items-center space-x-1 border border-indigo-200 bg-indigo-50 rounded-md">
+              <div class="p-1 flex items-center justify-center">
+                <IconDisplay :src="searchHeaderState.currentPluginItem?.icon"
+                  :alt="searchHeaderState.currentPluginItem?.name" icon-class="w-4 h-4 object-cover"
+                  fallback-class="w-5 h-5 flex items-center justify-center">
+                  <template #fallback>
+                    <IconMdiPuzzle class="w-4 h-4 text-indigo-500" />
+                  </template>
+                </IconDisplay>
+              </div>
+
+              <!-- 插件名称和类型 -->
+              <div class="flex items-center justify-center gap-2">
+                <span class="text-sm font-medium text-indigo-700 truncate max-w-24"
+                  :title="searchHeaderState.currentPluginItem?.name">
+                  {{ searchHeaderState.currentPluginItem?.name }}
+                </span>
+                <span class="font-mono bg-indigo-400 rounded-md text-white px-2 text-xs">
+                  插件
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 文件信息显示区域 -->
+          <div v-else-if="searchHeaderComputed.shouldShowFileInfo.value" class="h-full flex items-center p-2">
+            <!-- 文件图标容器 -->
+            <div class="h-full p-2 flex items-center space-x-1 border border-gray-200 bg-gray-50 rounded-md">
+              <div class="p-1">
+                <IconDisplay :src="searchHeaderComputed.firstFile.value?.icon"
+                  :alt="searchHeaderComputed.firstFile.value?.name" icon-class="w-5 h-5 object-cover"
+                  fallback-class="w-5 h-5 flex items-center justify-center">
+                  <template #fallback>
+                    <IconMdiFile class="w-4 h-4 text-gray-500" />
+                  </template>
+                </IconDisplay>
+              </div>
+
+              <!-- 文件名和数量 -->
+              <div class="flex items-center justify-center gap-2">
+                <span class="text-sm font-medium text-gray-700 truncate max-w-24"
+                  :title="searchHeaderComputed.firstFile.value?.name">
+                  {{ searchHeaderComputed.firstFile.value?.name }}
+                </span>
+                <span v-if="searchHeaderState.attachedFiles.length > 1"
+                  class="font-mono bg-gray-400 rounded-md text-white px-2 text-xs">
+                  {{ searchHeaderState.attachedFiles.length }}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 拖拽图标 -->
+          <div v-else
+            class="h-full aspect-square flex items-center justify-center text-gray-400 transition-colors duration-200"
+            :class="{
+              'text-indigo-500': searchHeaderState.isDragOver && !searchHeaderState.currentPluginItem,
+              'text-gray-300': searchHeaderState.currentPluginItem
+            }">
+            <IconMdiFileUpload v-if="searchHeaderState.isDragOver && !searchHeaderState.currentPluginItem"
+              class="w-5 h-5" />
+            <IconMdiMagnify v-else class="w-5 h-5" />
+          </div>
+
+          <!-- 搜索输入框组件 -->
+          <SearchInput ref="searchInputRef" :model-value="searchText"
+            :has-files="searchHeaderState.attachedFiles.length > 0 || searchHeaderState.currentPluginItem !== null"
+            :should-show-search-box="searchHeaderState.shouldShowSearchBox"
+            @update:model-value="(value: string) => searchText = value" @enter="handleSearch"
+            @input="debouncedHandleSearch" @paste="handleFilePaste" @clear-files="handleClearFilesOrPlugin"
+            :placeholder="searchHeaderComputed.placeholderText.value"
+            :style="searchHeaderComputed.noDragStyles.value" />
+
+          <!-- 设置按钮 -->
+          <div class="h-full aspect-square" :style="searchHeaderComputed.noDragStyles.value">
+            <button
+              class="w-full h-full p-3 text-gray-500 transition-colors duration-200 rounded-lg flex items-center justify-center"
+              title="打开设置" @click="openSettings">
+              <IconMdiCog class="w-5 h-5 hover:text-gray-700" />
+            </button>
+          </div>
+        </div>
+      </DraggableArea>
+
+      <!-- 内容呈现区域 - 动态区域 -->
       <ContentArea ref="contentAreaRef" :content-area-visible="contentAreaVisible" :search-categories="searchCategories"
-        :selected-index="selectedIndex" :flat-items="flatItems" :show-settings="isSettingsInterface"
-        :show-plugin-window="isPluginWindowOpen && searchText.trim() === ''" :max-height="maxHeight"
-        :header-height="headerHeight" :padding="padding" @app-click="customExecuteItem"
+        :selected-index="selectedIndex" :flat-items="flatItems"
+        :show-plugin-window="isPluginWindowOpen && searchText.trim() === ''"
+        :show-settings-background="isSettingsInterface" @app-click="customExecuteItem"
         @category-toggle="handleCategoryToggle" @category-drag-end="handleCategoryDragEnd" @app-delete="handleAppDelete"
-        @app-pin="handleAppPin" @close-settings="closeSettings" @window-resize="handleWindowResize" />
+        @app-pin="handleAppPin" @window-resize="handleWindowResize" />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 // ==================== 导入依赖 ====================
-import { ref, onMounted, nextTick, watch, computed } from "vue";
+import { ref, onMounted, nextTick, watch, computed, toRaw } from "vue";
 import { useDebounceFn, watchDebounced, useEventListener } from "@vueuse/core";
 
 // 组件导入
-import SearchHeader from "@/modules/search/components/SearchHeader.vue";
 import ContentArea from "@/components/ContentArea.vue";
+import SearchInput from "@/modules/search/components/SearchInput.vue";
+import IconDisplay from "@/components/IconDisplay.vue";
+import DraggableArea from "@/components/DraggableArea.vue";
+
+// 新窗口管理相关导入
+import { useSearchHeader } from "@/core/window/useSearchHeader";
+import type { SearchHeaderConfig } from "@/core/window/SearchHeaderManager";
+
+// 图标导入
+import IconMdiPuzzle from "~icons/mdi/puzzle";
+import IconMdiFile from "~icons/mdi/file";
+import IconMdiFileUpload from "~icons/mdi/file-upload";
+import IconMdiMagnify from "~icons/mdi/magnify";
+import IconMdiCog from "~icons/mdi/cog";
 
 // Composables 导入
 import { useDragDrop } from "@/composables/useDragDrop";
@@ -53,21 +154,43 @@ import type { PluginItem } from "./typings/plugin-types";
 import { pluginManager } from "./core/plugin/PluginManager";
 
 import { ElectronStoreBridge } from "./core/store/ElectronStoreBridge"
+import { DEFAULT_WINDOW_LAYOUT } from "@shared/config/window-layout.config"
 
 
 //测试打包
-import { useTestLoadPlugin } from "./composables/useTestLoadPlugin"
 import type { PluginApi } from "@shared/typings/global";
 import Test from "./Test.vue";
 
 
 const storeBridge = ElectronStoreBridge.getInstance();
+// ==================== 新窗口管理系统初始化 ====================
+/**
+ * 搜索头部管理器 - 使用新的窗口管理系统
+ */
+const searchHeaderConfig: Partial<SearchHeaderConfig> = {
+  defaultHeight: 50,
+  enableFileDrop: true,
+  enableNativeDrag: false, // 禁用原生拖拽，使用自定义拖拽
+  searchDelay: 300,
+  maxAttachedFiles: 10
+};
+
+const {
+  state: searchHeaderState,
+  computed: searchHeaderComputed,
+  actions: searchHeaderActions,
+  events: searchHeaderEvents
+} = useSearchHeader({ config: searchHeaderConfig });
+
 // ==================== UI 配置管理 ====================
 /**
  * UI常量配置 - 从应用配置中获取
  * 包含窗口高度、最大高度、内边距等UI相关常量
  */
-const uiConstants = ref({ headerHeight: 50, maxHeight: 420, padding: 8 });
+const uiConstants = ref({
+  headerHeight: DEFAULT_WINDOW_LAYOUT.searchHeaderHeight,
+  padding: DEFAULT_WINDOW_LAYOUT.appPadding
+});
 
 /**
  * 从主进程获取UI常量配置
@@ -76,15 +199,22 @@ const uiConstants = ref({ headerHeight: 50, maxHeight: 420, padding: 8 });
 const loadUIConstants = async () => {
   try {
     const config = await naimo.router.windowGetUIConstants();
-    if (config) uiConstants.value = config;
+    if (config) {
+      uiConstants.value = config;
+      // 同步到搜索头部管理器
+      searchHeaderActions.updateSearchText('');
+      // 更新头部高度
+      if (config.headerHeight) {
+        searchHeaderState.headerHeight = config.headerHeight;
+      }
+    }
   } catch (error) {
     console.warn('获取UI常量配置失败，使用默认值:', error);
   }
 };
 
 // 创建响应式的UI常量引用
-const headerHeight = computed(() => uiConstants.value.headerHeight);
-const maxHeight = computed(() => uiConstants.value.maxHeight);
+const headerHeight = computed(() => searchHeaderState.headerHeight);
 const padding = computed(() => uiConstants.value.padding);
 
 // ==================== 插件状态管理 ====================
@@ -111,23 +241,21 @@ const {
   isPluginWindowOpen,
   contentAreaVisible,
   currentPluginItem,
-  shouldShowSearchBox,
-  switchToSettings,
   openPluginWindow,
   closePluginWindow,
   updateSearchResults,
   currentInterface: uiCurrentInterface,
-  closeSettings: uiCloseSettings,
   toggleInput,
   resetToDefault,
   switchToSearch,
+  switchToSettings,
 } = useUIStatus();
 
 // ==================== 组件引用 ====================
 /**
- * 搜索头部组件引用
+ * 搜索输入框组件引用
  */
-const searchHeaderRef = ref<InstanceType<typeof SearchHeader>>();
+const searchInputRef = ref<InstanceType<typeof SearchInput>>();
 
 /**
  * 内容区域组件引用
@@ -174,13 +302,10 @@ const searchText = computed({
 // ==================== 拖拽管理 ====================
 /**
  * 拖拽处理器 - 管理文件拖拽、应用拖拽等功能
+ * 现在通过搜索头部管理器处理
  */
 const {
-  isDragOver,
-  handleDragOver,
-  handleDragEnter,
-  handleDragLeave,
-  handleDrop,
+  handleDrop: originalHandleDrop,
 } = useDragDrop();
 
 // ==================== 全局快捷键初始化 ====================
@@ -192,7 +317,7 @@ const { initializeHotkeys, addHotKeyListener } = useHotkeyManager();
 /**
  * 事件系统 - 管理应用内部事件通信
  */
-const { on } = useEventSystem();
+const eventSystem = useEventSystem();
 
 // ==================== 核心业务函数 ====================
 /**
@@ -250,11 +375,18 @@ const initializeWindowSize = () => {
 
 /**
  * 处理窗口大小调整
- * 通过IPC调用主进程设置窗口大小
+ * 使用新的动态高度调整方法
  * @param height 新的窗口高度
  */
-const handleWindowResize = (height: number) => {
-  naimo.router.windowSetSize(-1, height);
+const handleWindowResize = async (height: number) => {
+  try {
+    // 使用新的动态高度调整方法，传递前端计算的高度
+    await naimo.router.windowAdjustHeight(height);
+  } catch (error) {
+    console.error('调整窗口高度失败:', error);
+    // 回退到传统方法
+    naimo.router.windowSetSize(height);
+  }
 };
 
 /**
@@ -279,22 +411,16 @@ const handleResetToDefault = () => {
 // ==================== 用户交互处理 ====================
 /**
  * 聚焦搜索框
- * 在下一个tick中调用搜索头部组件的focus方法
+ * 通过搜索输入框引用直接聚焦
  */
 const handleSearchFocus = () => {
-  // SearchHeader组件的focus方法内部会检查搜索框是否可见
   nextTick(() => {
-    searchHeaderRef.value?.focus();
+    if (searchHeaderState.shouldShowSearchBox && searchInputRef.value) {
+      searchInputRef.value.focus();
+    }
   });
 }
 
-/**
- * 处理点击事件
- * 点击时聚焦搜索框
- */
-const handleClick = () => {
-  handleSearchFocus()
-};
 
 /**
  * 处理容器点击事件
@@ -323,37 +449,21 @@ const handleContainerClick = (event: MouseEvent) => {
   return false
 };
 
-// ==================== 文件处理事件 ====================
+// ==================== 新搜索头部事件集成 ====================
 /**
- * 处理文件拖拽事件
- * 先处理拖拽逻辑，然后添加拖拽的文件
- * @param event 拖拽事件
+ * 集成新搜索头部管理器的事件处理
  */
-const handleFileDrop = async (event: DragEvent) => {
-  // 如果是插件模式，阻止文件拖拽
-  if (isPluginWindowOpen.value) {
-    console.log("插件模式下不支持文件拖拽");
-    event.preventDefault();
-    return;
-  }
-
-  // 先调用原有的拖拽处理逻辑
-  await handleDrop(event);
-
-  // 然后处理文件附加
-  const files = event.dataTransfer?.files;
-  if (files && files.length > 0) {
-    await addFiles(files);
-  }
-};
 
 /**
  * 处理文件粘贴事件
- * 从剪贴板中提取文件并添加到附件列表
- * 如果是文字内容且超过30个字符，则将其转换为文本文件
+ * 通过搜索头部管理器处理粘贴事件
  * @param event 粘贴事件
  */
 const handleFilePaste = async (event: ClipboardEvent) => {
+  // 先调用搜索头部管理器的粘贴处理
+  searchHeaderActions.handlePaste(event);
+
+  // 提取文件并添加到附件列表
   const items = event.clipboardData?.items;
   if (!items) return;
 
@@ -375,8 +485,6 @@ const handleFilePaste = async (event: ClipboardEvent) => {
         const trimmedText = text.trim();
         if (trimmedText.length > 30) {
           // 创建文本文件
-          // const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-          // const fileName = `粘贴文本_${timestamp}.txt`;
           const fileName = trimmedText.slice(0, 10) + ".txt";
           const blob = new Blob([trimmedText], { type: 'text/plain;charset=utf-8' });
           const file = new File([blob], fileName, { type: 'text/plain' });
@@ -396,21 +504,46 @@ const handleFilePaste = async (event: ClipboardEvent) => {
 };
 
 /**
- * 清除插件信息
- * 关闭当前打开的插件窗口
+ * 清除文件或插件信息
+ * 通过搜索头部管理器处理清除操作
  */
-const clearPluginInfo = async () => {
-  // 调用界面管理器的关闭插件窗口方法
-  await handleClosePluginWindow();
+const handleClearFilesOrPlugin = async () => {
+  if (searchHeaderState.currentPluginItem) {
+    // 清除插件
+    searchHeaderActions.clearCurrentPlugin();
+    await handleClosePluginWindow();
+  } else {
+    // 清除文件
+    searchHeaderActions.clearAttachedFiles();
+    clearAttachedFiles();
+  }
 };
+
 
 // ==================== 设置页面管理 ====================
 /**
  * 打开设置页面
- * 切换到设置界面
+ * 创建设置页面的 WebContentsView
  */
-const openSettings = () => {
-  switchToSettings();
+const openSettings = async () => {
+  try {
+    // 切换到设置界面状态
+    switchToSettings();
+
+    // 确保窗口高度调整到最大高度
+    await nextTick();
+    contentAreaRef.value?.handleResize();
+
+    // 调用 IPC 方法创建设置页面 WebContentsView
+    const result = await naimo.router.windowCreateSettingsView();
+    if (result.success) {
+      console.log('设置页面 WebContentsView 创建成功:', result.viewId);
+    } else {
+      console.error('设置页面 WebContentsView 创建失败:', result.error);
+    }
+  } catch (error) {
+    console.error('打开设置页面失败:', error);
+  }
 };
 
 /**
@@ -418,17 +551,25 @@ const openSettings = () => {
  * 关闭设置后根据搜索内容决定显示内容，并聚焦搜索框
  */
 const closeSettings = async () => {
-  // 调用界面管理器的关闭设置方法
-  uiCloseSettings();
+  try {
+    // 调用 IPC 方法关闭设置页面 WebContentsView
+    const result = await naimo.router.windowCloseSettingsView();
+    if (result.success) {
+      console.log('设置页面 WebContentsView 关闭成功');
+    } else {
+      console.error('设置页面 WebContentsView 关闭失败:', result.error);
+    }
+  } catch (error) {
+    console.error('关闭设置页面失败:', error);
+  }
 
-  // 关闭设置后，如果有搜索内容则显示搜索结果，否则显示默认内容
-  nextTick(() => {
-    if (uiCurrentInterface.value !== UIInterfaceType.SEARCH) return
-    handleSearch(searchText.value.trim())
-    // 聚焦到搜索输入框（如果可见）
-    handleSearchFocus();
-  })
+  // 切换回搜索界面状态
+  switchToSearch();
+
+  // 聚焦到搜索输入框
+  handleSearchFocus();
 };
+
 
 // ==================== 窗口焦点管理 ====================
 /**
@@ -500,10 +641,14 @@ watchDebounced(
 /**
  * 监听附件文件变化，自动执行搜索
  * 深度监听文件列表变化，当文件真正发生变化时重新搜索
+ * 同时同步到搜索头部管理器
  */
 watch(
   () => attachedFiles.value,
   (newFiles, oldFiles) => {
+    // 同步到搜索头部管理器
+    searchHeaderActions.addAttachedFiles(newFiles);
+
     // 只有当文件列表真正发生变化时才执行搜索
     if (
       newFiles.length !== oldFiles?.length ||
@@ -525,7 +670,7 @@ watch(
 );
 
 /**
- * 监听搜索文本变化，同步到搜索模块
+ * 监听搜索文本变化，同步到搜索模块和搜索头部管理器
  * 当搜索文本变化时，同步到搜索模块并执行防抖搜索
  */
 watch(
@@ -535,6 +680,10 @@ watch(
     if (newSearchText === oldSearchText) return;
     // 同步到搜索模块
     searchModuleText.value = newSearchText;
+    // 同步到搜索头部管理器
+    if (searchHeaderState.searchText !== newSearchText) {
+      searchHeaderActions.updateSearchText(newSearchText);
+    }
     // 执行搜索（使用防抖）
     debouncedHandleSearch();
   }
@@ -544,7 +693,17 @@ watch(
  * 监听插件窗口状态变化
  * 当界面类型切换到窗口模式时，显示对应的插件窗口
  * 当从窗口模式切换出去时，管理跟随窗口的显示状态
+ * 同步插件状态到搜索头部管理器
  */
+watch(
+  () => currentPluginItem.value,
+  (newPluginItem) => {
+    // 同步插件状态到搜索头部管理器
+    searchHeaderActions.setCurrentPluginItem(newPluginItem);
+  },
+  { immediate: true }
+);
+
 watch(
   () => uiCurrentInterface.value,
   (newVal, oldVal) => {
@@ -579,7 +738,9 @@ const generateApi = async (pluginItem: PluginItem): Promise<PluginApi> => {
   }
 
   const openWebPageWindow = async (url: string, options: any = {}) => {
-    await naimo.router.windowCreateWebPageWindow(window.id!, url, { path: pluginItem.path, ...options })
+    const currentViewInfo = await naimo.router.windowGetCurrentViewInfo()
+    if (!currentViewInfo) return;
+    await naimo.router.windowCreateWebPageWindow(url, options)
     await openPluginWindow(pluginItem)
   }
 
@@ -781,6 +942,29 @@ onMounted(async () => {
     show(null)
   });
 
+  // 监听视图恢复请求事件（来自主进程的WebContentsView关闭通知）
+  useEventListener(window, "view-restore-requested", (event: any) => {
+    console.log("收到视图恢复请求:", event.detail);
+    const { reason } = event.detail;
+
+    if (reason === 'settings-closed') {
+      // 设置视图关闭，恢复到搜索状态
+      console.log("设置视图已关闭，恢复到搜索状态");
+      switchToSearch();
+      // 确保窗口高度调整到合适大小
+      nextTick(() => {
+        contentAreaRef.value?.handleResize();
+      });
+    } else if (reason === 'plugin-closed') {
+      // 插件视图关闭，恢复到搜索状态
+      console.log("插件视图已关闭，恢复到搜索状态");
+      closePluginWindow();
+      nextTick(() => {
+        contentAreaRef.value?.handleResize();
+      });
+    }
+  });
+
   const handleHotkeyTriggered: HotkeyEventListener = (event) => {
     switch (event.detail.id) {
       case 'app_focus_search':
@@ -806,10 +990,41 @@ onMounted(async () => {
   addHotKeyListener('app-hotkey-triggered', handleHotkeyTriggered);
 
   // 插件执行完成 - 进入插件界面
-  on('plugin:executed', handlePluginExecuted);
+  eventSystem.on('plugin:executed', handlePluginExecuted);
 
-  // 8. 聚焦到搜索框
+  // 8. 设置搜索头部管理器事件监听
+  searchHeaderEvents.on('search', (text: string) => {
+    handleSearch(text);
+  });
+
+  searchHeaderEvents.on('input', () => {
+    debouncedHandleSearch();
+  });
+
+  searchHeaderEvents.on('search-text-updated', (text: string) => {
+    if (searchText.value !== text) {
+      searchText.value = text;
+    }
+  });
+
+  searchHeaderEvents.on('open-settings', () => {
+    openSettings();
+  });
+
+  searchHeaderEvents.on('drop', async (event: DragEvent) => {
+    // 处理文件拖拽
+    await originalHandleDrop(event);
+    const files = event.dataTransfer?.files;
+    if (files && files.length > 0) {
+      await addFiles(files);
+    }
+  });
+
+  // 9. 聚焦到搜索框
   handleSearchFocus();
+
+  // 10. 其他初始化完成
+
   console.log("🎉 App.vue onMounted - 应用初始化完成");
 });
 

@@ -1,12 +1,13 @@
 /**
  * 自动生成的 IPC 类型定义
- * 生成时间: 2025-09-26T14:52:43.386Z
+ * 生成时间: 2025-09-27T17:45:01.311Z
  * 请勿手动修改此文件
  */
 
 import { AppPath } from '@libs/app-search';
 import { AppConfig } from '@shared/types';
-import { BasicWindowMetadata } from '../../main/config/window-manager';
+import { ViewType, LifecycleType } from '../../renderer/src/typings/window-types';
+import { PluginItem } from '../../renderer/src/typings/plugin-types';
 
 // 各个模块的接口定义
 interface appInterface {
@@ -83,12 +84,14 @@ interface appInterface {
 
   /**
  * 启动应用
+ * @param IPC事件对象
  * @param 应用路径
  * @returns 是否启动成功
  */
   "app-launch-app": (appPath: string) => Promise<boolean>;
   /**
  * 启动应用
+ * @param IPC事件对象
  * @param 应用路径
  * @returns 是否启动成功
  */
@@ -96,12 +99,14 @@ interface appInterface {
 
   /**
  * 提取文件图标
+ * @param IPC事件对象
  * @param 文件路径
  * @returns 图标的 Data URL 或 null
  */
   "app-extract-file-icon": (filePath: string) => Promise<string | null>;
   /**
  * 提取文件图标
+ * @param IPC事件对象
  * @param 文件路径
  * @returns 图标的 Data URL 或 null
  */
@@ -122,12 +127,14 @@ interface clipboardInterface {
 
   /**
  * 写入文本到剪切板
+ * @param IPC事件对象
  * @param 要写入的文本
  * @returns 是否写入成功
  */
   "clipboard-write-text": (text: string) => Promise<boolean>;
   /**
  * 写入文本到剪切板
+ * @param IPC事件对象
  * @param 要写入的文本
  * @returns 是否写入成功
  */
@@ -203,12 +210,14 @@ interface clipboardInterface {
 
   /**
  * 写入图片到剪切板
+ * @param IPC事件对象
  * @param base64格式的图片数据
  * @returns 是否写入成功
  */
   "clipboard-write-image": (imageData: string) => Promise<boolean>;
   /**
  * 写入图片到剪切板
+ * @param IPC事件对象
  * @param base64格式的图片数据
  * @returns 是否写入成功
  */
@@ -218,12 +227,14 @@ interface clipboardInterface {
 interface filesystemInterface {
   /**
  * 选择文件
+ * @param IPC事件对象
  * @param 对话框选项
  * @returns 选择的文件路径数组，如果取消则返回null
  */
   "filesystem-select-file": (options: Electron.OpenDialogOptions) => Promise<string[] | null>;
   /**
  * 选择文件
+ * @param IPC事件对象
  * @param 对话框选项
  * @returns 选择的文件路径数组，如果取消则返回null
  */
@@ -231,12 +242,14 @@ interface filesystemInterface {
 
   /**
  * 选择文件夹
+ * @param IPC事件对象
  * @param 对话框选项
  * @returns 选择的文件夹路径数组，如果取消则返回null
  */
   "filesystem-select-folder": (options: Electron.OpenDialogOptions) => Promise<string[] | null>;
   /**
  * 选择文件夹
+ * @param IPC事件对象
  * @param 对话框选项
  * @returns 选择的文件夹路径数组，如果取消则返回null
  */
@@ -244,12 +257,14 @@ interface filesystemInterface {
 
   /**
  * 保存文件
+ * @param IPC事件对象
  * @param 保存对话框选项
  * @returns 选择的保存路径，如果取消则返回null
  */
   "filesystem-save-file": (options: Electron.SaveDialogOptions) => Promise<string | null>;
   /**
  * 保存文件
+ * @param IPC事件对象
  * @param 保存对话框选项
  * @returns 选择的保存路径，如果取消则返回null
  */
@@ -257,6 +272,7 @@ interface filesystemInterface {
 
   /**
  * 读取文件内容
+ * @param IPC事件对象
  * @param 文件路径
  * @param 文件编码，默认为'utf-8'
  * @returns 文件内容
@@ -264,6 +280,7 @@ interface filesystemInterface {
   "filesystem-read-file-content": (filePath: string, encoding: BufferEncoding) => Promise<string>;
   /**
  * 读取文件内容
+ * @param IPC事件对象
  * @param 文件路径
  * @param 文件编码，默认为'utf-8'
  * @returns 文件内容
@@ -272,12 +289,14 @@ interface filesystemInterface {
 
   /**
  * 读取文件内容为Base64
+ * @param IPC事件对象
  * @param 文件路径
  * @returns Base64编码的文件内容
  */
   "filesystem-read-file-as-base64": (filePath: string) => Promise<string>;
   /**
  * 读取文件内容为Base64
+ * @param IPC事件对象
  * @param 文件路径
  * @returns Base64编码的文件内容
  */
@@ -285,6 +304,7 @@ interface filesystemInterface {
 
   /**
  * 写入文件内容
+ * @param IPC事件对象
  * @param 文件路径
  * @param 文件内容
  * @param 文件编码，默认为'utf-8'
@@ -293,6 +313,7 @@ interface filesystemInterface {
   "filesystem-write-file-content": (filePath: string, content: string, encoding: BufferEncoding) => Promise<boolean>;
   /**
  * 写入文件内容
+ * @param IPC事件对象
  * @param 文件路径
  * @param 文件内容
  * @param 文件编码，默认为'utf-8'
@@ -302,6 +323,7 @@ interface filesystemInterface {
 
   /**
  * 从Base64写入文件
+ * @param IPC事件对象
  * @param 文件路径
  * @param Base64编码的数据
  * @returns 是否写入成功
@@ -309,6 +331,7 @@ interface filesystemInterface {
   "filesystem-write-file-from-base64": (filePath: string, base64Data: string) => Promise<boolean>;
   /**
  * 从Base64写入文件
+ * @param IPC事件对象
  * @param 文件路径
  * @param Base64编码的数据
  * @returns 是否写入成功
@@ -319,6 +342,7 @@ interface filesystemInterface {
 interface hotkeyInterface {
   /**
  * 注册全局快捷键
+ * @param IPC事件对象
  * @param 快捷键组合
  * @param 回调函数
  * @returns 是否注册成功
@@ -326,6 +350,7 @@ interface hotkeyInterface {
   "hotkey-register-global-shortcut": (keys: string, callback: () => void) => Promise<boolean>;
   /**
  * 注册全局快捷键
+ * @param IPC事件对象
  * @param 快捷键组合
  * @param 回调函数
  * @returns 是否注册成功
@@ -334,12 +359,14 @@ interface hotkeyInterface {
 
   /**
  * 注销全局快捷键
+ * @param IPC事件对象
  * @param 快捷键ID
  * @returns 是否注销成功
  */
   "hotkey-unregister-global-shortcut": (id: string) => Promise<boolean>;
   /**
  * 注销全局快捷键
+ * @param IPC事件对象
  * @param 快捷键ID
  * @returns 是否注销成功
  */
@@ -347,12 +374,14 @@ interface hotkeyInterface {
 
   /**
  * 检查全局快捷键是否已注册
+ * @param IPC事件对象
  * @param 快捷键组合
  * @returns 是否已注册
  */
   "hotkey-is-global-shortcut-registered": (keys: string) => Promise<boolean>;
   /**
  * 检查全局快捷键是否已注册
+ * @param IPC事件对象
  * @param 快捷键组合
  * @returns 是否已注册
  */
@@ -487,6 +516,7 @@ interface pluginInterface {
 interface screenCaptureInterface {
   /**
  * 获取屏幕源列表
+ * @param IPC事件对象
  * @param 获取屏幕源的选项
  * @returns 屏幕源列表
  */
@@ -496,6 +526,7 @@ interface screenCaptureInterface {
 }) => Promise<Electron.DesktopCapturerSource[]>;
   /**
  * 获取屏幕源列表
+ * @param IPC事件对象
  * @param 获取屏幕源的选项
  * @returns 屏幕源列表
  */
@@ -521,12 +552,14 @@ interface screenCaptureInterface {
 interface storeInterface {
   /**
  * 获取存储数据
+ * @param IPC事件对象
  * @param 配置键名，如果不提供则返回完整配置
  * @returns 配置值或完整配置对象
  */
   "store-get": (key?: keyof AppConfig) => Promise<any>;
   /**
  * 获取存储数据
+ * @param IPC事件对象
  * @param 配置键名，如果不提供则返回完整配置
  * @returns 配置值或完整配置对象
  */
@@ -534,6 +567,7 @@ interface storeInterface {
 
   /**
  * 设置存储数据
+ * @param IPC事件对象
  * @param 配置键名
  * @param 配置值
  * @returns 是否设置成功
@@ -541,6 +575,7 @@ interface storeInterface {
   "store-set": (key: keyof AppConfig, value: any) => Promise<boolean>;
   /**
  * 设置存储数据
+ * @param IPC事件对象
  * @param 配置键名
  * @param 配置值
  * @returns 是否设置成功
@@ -549,12 +584,14 @@ interface storeInterface {
 
   /**
  * 删除存储数据
+ * @param IPC事件对象
  * @param 配置键名
  * @returns 是否删除成功
  */
   "store-delete-key": (key: keyof AppConfig) => Promise<boolean>;
   /**
  * 删除存储数据
+ * @param IPC事件对象
  * @param 配置键名
  * @returns 是否删除成功
  */
@@ -635,6 +672,19 @@ interface windowInterface {
  * @param 窗口高度
  */
   "windowSetSize": (width: number, height: number) => Promise<void>;
+
+  /**
+ * 动态调整窗口高度
+使用前端传递的高度直接设置窗口大小
+ * @param 前端计算的目标高度
+ */
+  "window-adjust-height": (height: number) => Promise<void>;
+  /**
+ * 动态调整窗口高度
+使用前端传递的高度直接设置窗口大小
+ * @param 前端计算的目标高度
+ */
+  "windowAdjustHeight": (height: number) => Promise<void>;
 
   /**
  * 设置窗口是否可调整大小
@@ -769,19 +819,230 @@ interface windowInterface {
   "windowShowSpecificFollowingWindow": (pathId: string) => Promise<void>;
 
   /**
- * 创建网页显示窗口
+ * 创建网页显示窗口 (重构版本 - 使用 WebContentsView)
  * @param 主窗口ID
  * @param 要显示的网页URL
  * @param 元数据，包含title、preload等额外信息
+ * @deprecated 此函数正在被新的 showNewView 函数替代
  */
-  "window-create-web-page-window": (windowId: number, url: string, metadata?: Omit<BasicWindowMetadata, "init" | "parentWindowId" | "url" | "path">) => Promise<void>;
+  "window-create-web-page-window": (windowId: number, url: string, metadata?: Record<string, any>) => Promise<void>;
   /**
- * 创建网页显示窗口
+ * 创建网页显示窗口 (重构版本 - 使用 WebContentsView)
  * @param 主窗口ID
  * @param 要显示的网页URL
  * @param 元数据，包含title、preload等额外信息
+ * @deprecated 此函数正在被新的 showNewView 函数替代
  */
-  "windowCreateWebPageWindow": (windowId: number, url: string, metadata?: Omit<BasicWindowMetadata, "init" | "parentWindowId" | "url" | "path">) => Promise<void>;
+  "windowCreateWebPageWindow": (windowId: number, url: string, metadata?: Record<string, any>) => Promise<void>;
+
+  /** 初始化新窗口管理器 */
+  "window-initialize-new-window-manager": () => Promise<{ success: boolean; error?: string }>;
+  /** 初始化新窗口管理器 */
+  "windowInitializeNewWindowManager": () => Promise<{ success: boolean; error?: string }>;
+
+  /** 创建主窗口（新架构） */
+  "window-create-new-main-window": () => Promise<{ success: boolean; windowId?: number; error?: string }>;
+  /** 创建主窗口（新架构） */
+  "windowCreateNewMainWindow": () => Promise<{ success: boolean; windowId?: number; error?: string }>;
+
+  /** 显示视图（新架构） */
+  "window-show-new-view": (params: {
+  type: ViewType
+  path?: string
+  url?: string
+  pluginItem?: PluginItem
+  forceNew?: boolean
+  lifecycleType?: LifecycleType
+}) => Promise<{ success: boolean; viewId?: string; error?: string }>;
+  /** 显示视图（新架构） */
+  "windowShowNewView": (params: {
+  type: ViewType
+  path?: string
+  url?: string
+  pluginItem?: PluginItem
+  forceNew?: boolean
+  lifecycleType?: LifecycleType
+}) => Promise<{ success: boolean; viewId?: string; error?: string }>;
+
+  /** 隐藏视图（新架构） */
+  "window-hide-new-view": (viewId: string) => Promise<{ success: boolean; error?: string }>;
+  /** 隐藏视图（新架构） */
+  "windowHideNewView": (viewId: string) => Promise<{ success: boolean; error?: string }>;
+
+  /** 移除视图（新架构） */
+  "window-remove-new-view": (viewId: string) => Promise<{ success: boolean; error?: string }>;
+  /** 移除视图（新架构） */
+  "windowRemoveNewView": (viewId: string) => Promise<{ success: boolean; error?: string }>;
+
+  /** 切换到视图（新架构） */
+  "window-switch-to-new-view": (viewId: string) => Promise<{ success: boolean; error?: string }>;
+  /** 切换到视图（新架构） */
+  "windowSwitchToNewView": (viewId: string) => Promise<{ success: boolean; error?: string }>;
+
+  /** 分离视图（新架构） */
+  "window-detach-new-view": (viewId: string, config?: {
+  title?: string
+  width?: number
+  height?: number
+  showControlBar?: boolean
+}) => Promise<{ success: boolean; detachedWindowId?: number; error?: string }>;
+  /** 分离视图（新架构） */
+  "windowDetachNewView": (viewId: string, config?: {
+  title?: string
+  width?: number
+  height?: number
+  showControlBar?: boolean
+}) => Promise<{ success: boolean; detachedWindowId?: number; error?: string }>;
+
+  /** 重新附加视图（新架构） */
+  "window-reattach-new-view": (detachedWindowId: number) => Promise<{ success: boolean; error?: string }>;
+  /** 重新附加视图（新架构） */
+  "windowReattachNewView": (detachedWindowId: number) => Promise<{ success: boolean; error?: string }>;
+
+  /** 获取活跃视图信息（新架构） */
+  "window-get-active-new-view": () => Promise<{ success: boolean; viewInfo?: any; error?: string }>;
+  /** 获取活跃视图信息（新架构） */
+  "windowGetActiveNewView": () => Promise<{ success: boolean; viewInfo?: any; error?: string }>;
+
+  /** 获取所有视图信息（新架构） */
+  "window-get-all-new-views": () => Promise<{ success: boolean; views?: any[]; error?: string }>;
+  /** 获取所有视图信息（新架构） */
+  "windowGetAllNewViews": () => Promise<{ success: boolean; views?: any[]; error?: string }>;
+
+  /** 获取窗口管理器性能指标（新架构） */
+  "window-get-new-window-manager-metrics": () => Promise<{ success: boolean; metrics?: any; error?: string }>;
+  /** 获取窗口管理器性能指标（新架构） */
+  "windowGetNewWindowManagerMetrics": () => Promise<{ success: boolean; metrics?: any; error?: string }>;
+
+  /** 清理后台视图（新架构） */
+  "window-cleanup-new-background-views": () => Promise<{ success: boolean; report?: any; error?: string }>;
+  /** 清理后台视图（新架构） */
+  "windowCleanupNewBackgroundViews": () => Promise<{ success: boolean; report?: any; error?: string }>;
+
+  /** 更新窗口管理器配置（新架构） */
+  "window-update-new-window-manager-config": (config: {
+  memoryRecycleThreshold?: number
+  autoRecycleInterval?: number
+  maxActiveViews?: number
+}) => Promise<{ success: boolean; error?: string }>;
+  /** 更新窗口管理器配置（新架构） */
+  "windowUpdateNewWindowManagerConfig": (config: {
+  memoryRecycleThreshold?: number
+  autoRecycleInterval?: number
+  maxActiveViews?: number
+}) => Promise<{ success: boolean; error?: string }>;
+
+  /** 销毁窗口管理器（新架构） */
+  "window-destroy-new-window-manager": () => Promise<{ success: boolean; error?: string }>;
+  /** 销毁窗口管理器（新架构） */
+  "windowDestroyNewWindowManager": () => Promise<{ success: boolean; error?: string }>;
+
+  /**
+ * 创建插件视图（新架构专用）
+这是一个为插件系统优化的便利函数
+ */
+  "window-create-plugin-view": (params: {
+  path: string
+  pluginId?: string
+  name?: string
+  title?: string
+  url?: string
+  closeAction?: 'hide' | 'close'
+  executeParams?: any
+  preload?: string
+}) => Promise<{ success: boolean; viewId?: string; error?: string }>;
+  /**
+ * 创建插件视图（新架构专用）
+这是一个为插件系统优化的便利函数
+ */
+  "windowCreatePluginView": (params: {
+  path: string
+  pluginId?: string
+  name?: string
+  title?: string
+  url?: string
+  closeAction?: 'hide' | 'close'
+  executeParams?: any
+  preload?: string
+}) => Promise<{ success: boolean; viewId?: string; error?: string }>;
+
+  /** 关闭插件视图（新架构专用） */
+  "window-close-plugin-view": (viewId: string) => Promise<{ success: boolean; error?: string }>;
+  /** 关闭插件视图（新架构专用） */
+  "windowClosePluginView": (viewId: string) => Promise<{ success: boolean; error?: string }>;
+
+  /** 创建设置页面 WebContentsView */
+  "window-create-settings-view": () => Promise<{ success: boolean; viewId?: string; error?: string }>;
+  /** 创建设置页面 WebContentsView */
+  "windowCreateSettingsView": () => Promise<{ success: boolean; viewId?: string; error?: string }>;
+
+  /** 关闭设置页面 WebContentsView */
+  "window-close-settings-view": () => Promise<{ success: boolean; error?: string }>;
+  /** 关闭设置页面 WebContentsView */
+  "windowCloseSettingsView": () => Promise<{ success: boolean; error?: string }>;
+
+  /**
+ * 获取当前WebContentsView的完整信息
+通过webContents查找对应的WebContentsViewInfo，并返回序列化后的信息
+ * @param IPC事件对象
+ * @returns 序列化后的视图信息，如果找不到则返回null
+ */
+  "window-get-current-view-info": () => Promise<{
+  id: string;
+  parentWindowId: number;
+  config: any;
+  state: {
+    isVisible: boolean;
+    isActive: boolean;
+    lastAccessTime: number;
+    memoryUsage?: number;
+  };
+  createdAt: string; // 序列化为ISO字符串
+} | null>;
+  /**
+ * 获取当前WebContentsView的完整信息
+通过webContents查找对应的WebContentsViewInfo，并返回序列化后的信息
+ * @param IPC事件对象
+ * @returns 序列化后的视图信息，如果找不到则返回null
+ */
+  "windowGetCurrentViewInfo": () => Promise<{
+  id: string;
+  parentWindowId: number;
+  config: any;
+  state: {
+    isVisible: boolean;
+    isActive: boolean;
+    lastAccessTime: number;
+    memoryUsage?: number;
+  };
+  createdAt: string; // 序列化为ISO字符串
+} | null>;
+
+  /**
+ * 获取当前窗口ID（兼容性函数）
+ * @param IPC事件对象
+ * @returns 窗口ID，如果找不到则返回null
+ */
+  "window-get-current-window-id": () => Promise<number | null>;
+  /**
+ * 获取当前窗口ID（兼容性函数）
+ * @param IPC事件对象
+ * @returns 窗口ID，如果找不到则返回null
+ */
+  "windowGetCurrentWindowId": () => Promise<number | null>;
+
+  /**
+ * 获取当前WebContentsView ID（兼容性函数）
+ * @param IPC事件对象
+ * @returns 视图ID，如果找不到则返回null
+ */
+  "window-get-current-view-id": () => Promise<string | null>;
+  /**
+ * 获取当前WebContentsView ID（兼容性函数）
+ * @param IPC事件对象
+ * @returns 视图ID，如果找不到则返回null
+ */
+  "windowGetCurrentViewId": () => Promise<string | null>;
 }
 
 // 合并所有 IPC 路由类型
@@ -1134,6 +1395,12 @@ export const ROUTE_INFO: RouteInfo[] = [
     function: "setSize"
   },
   {
+    route: "window-adjust-height",
+    comment: "动态调整窗口高度, 使用前端传递的高度直接设置窗口大小",
+    module: "window",
+    function: "adjustHeight"
+  },
+  {
     route: "window-set-resizable",
     comment: "设置窗口是否可调整大小",
     module: "window",
@@ -1219,9 +1486,135 @@ export const ROUTE_INFO: RouteInfo[] = [
   },
   {
     route: "window-create-web-page-window",
-    comment: "创建网页显示窗口",
+    comment: "创建网页显示窗口 (重构版本 - 使用 WebContentsView)",
     module: "window",
     function: "createWebPageWindow"
+  },
+  {
+    route: "window-initialize-new-window-manager",
+    comment: "初始化新窗口管理器",
+    module: "window",
+    function: "initializeNewWindowManager"
+  },
+  {
+    route: "window-create-new-main-window",
+    comment: "创建主窗口（新架构）",
+    module: "window",
+    function: "createNewMainWindow"
+  },
+  {
+    route: "window-show-new-view",
+    comment: "显示视图（新架构）",
+    module: "window",
+    function: "showNewView"
+  },
+  {
+    route: "window-hide-new-view",
+    comment: "隐藏视图（新架构）",
+    module: "window",
+    function: "hideNewView"
+  },
+  {
+    route: "window-remove-new-view",
+    comment: "移除视图（新架构）",
+    module: "window",
+    function: "removeNewView"
+  },
+  {
+    route: "window-switch-to-new-view",
+    comment: "切换到视图（新架构）",
+    module: "window",
+    function: "switchToNewView"
+  },
+  {
+    route: "window-detach-new-view",
+    comment: "分离视图（新架构）",
+    module: "window",
+    function: "detachNewView"
+  },
+  {
+    route: "window-reattach-new-view",
+    comment: "重新附加视图（新架构）",
+    module: "window",
+    function: "reattachNewView"
+  },
+  {
+    route: "window-get-active-new-view",
+    comment: "获取活跃视图信息（新架构）",
+    module: "window",
+    function: "getActiveNewView"
+  },
+  {
+    route: "window-get-all-new-views",
+    comment: "获取所有视图信息（新架构）",
+    module: "window",
+    function: "getAllNewViews"
+  },
+  {
+    route: "window-get-new-window-manager-metrics",
+    comment: "获取窗口管理器性能指标（新架构）",
+    module: "window",
+    function: "getNewWindowManagerMetrics"
+  },
+  {
+    route: "window-cleanup-new-background-views",
+    comment: "清理后台视图（新架构）",
+    module: "window",
+    function: "cleanupNewBackgroundViews"
+  },
+  {
+    route: "window-update-new-window-manager-config",
+    comment: "更新窗口管理器配置（新架构）",
+    module: "window",
+    function: "updateNewWindowManagerConfig"
+  },
+  {
+    route: "window-destroy-new-window-manager",
+    comment: "销毁窗口管理器（新架构）",
+    module: "window",
+    function: "destroyNewWindowManager"
+  },
+  {
+    route: "window-create-plugin-view",
+    comment: "创建插件视图（新架构专用）, 这是一个为插件系统优化的便利函数",
+    module: "window",
+    function: "createPluginView"
+  },
+  {
+    route: "window-close-plugin-view",
+    comment: "关闭插件视图（新架构专用）",
+    module: "window",
+    function: "closePluginView"
+  },
+  {
+    route: "window-create-settings-view",
+    comment: "创建设置页面 WebContentsView",
+    module: "window",
+    function: "createSettingsView"
+  },
+  {
+    route: "window-close-settings-view",
+    comment: "关闭设置页面 WebContentsView",
+    module: "window",
+    function: "closeSettingsView"
+  },
+  {
+    route: "window-get-current-view-info",
+    comment: "获取当前WebContentsView的完整信息, 通过webContents查找对应的WebContentsViewInfo，并返回序列化后的信息",
+    module: "window",
+    function: "getCurrentViewInfo"
+  },
+  {
+    route: "window-get-current-window-id",
+    comment: "获取当前窗口ID（兼容性函数）",
+    module: "window",
+    function: "getCurrentWindowId"
+  },
+  {
+    route: "window-get-current-view-id",
+    comment: "获取当前WebContentsView ID（兼容性函数）",
+    module: "window",
+    function: "getCurrentViewId"
   }
 ];
 

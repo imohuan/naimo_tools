@@ -120,6 +120,107 @@ const electronAPI = {
   download: downloadManagerRenderer,
 
   webUtils: webUtils,
+
+  // 窗口相关API
+  window: {
+    /**
+     * 获取当前WebContentsView的完整信息
+     * @returns 当前视图的完整信息，如果无法获取则返回null
+     */
+    getCurrentViewInfo: async (): Promise<{
+      id: string;
+      parentWindowId: number;
+      config: any;
+      state: {
+        isVisible: boolean;
+        isActive: boolean;
+        lastAccessTime: number;
+        memoryUsage?: number;
+      };
+      createdAt: string;
+    } | null> => {
+      try {
+        // 方法1: 从URL参数中获取 (适用于分离窗口)
+        const urlParams = new URLSearchParams(window.location.search);
+        const viewId = urlParams.get('viewId');
+        const windowId = urlParams.get('windowId');
+
+        if (viewId && windowId) {
+          // 分离窗口情况，构建基本信息
+          return {
+            id: viewId,
+            parentWindowId: parseInt(windowId),
+            config: { type: 'detached' },
+            state: {
+              isVisible: true,
+              isActive: true,
+              lastAccessTime: Date.now()
+            },
+            createdAt: new Date().toISOString()
+          };
+        }
+
+        // 方法2: 通过IPC获取完整信息
+        return await ipcRouter.windowGetCurrentViewInfo();
+      } catch (error) {
+        log.error('获取当前视图信息失败:', error);
+        return null;
+      }
+    },
+
+    /**
+     * 获取当前窗口ID（兼容性方法）
+     * @returns 当前窗口的ID，如果无法获取则返回null
+     */
+    getCurrentWindowId: async (): Promise<number | null> => {
+      try {
+        const viewInfo = await electronAPI.window.getCurrentViewInfo();
+        return viewInfo ? viewInfo.parentWindowId : null;
+      } catch (error) {
+        log.error('获取当前窗口ID失败:', error);
+        return null;
+      }
+    },
+
+    /**
+     * 获取当前WebContentsView ID（兼容性方法）
+     * @returns 当前视图的ID，如果无法获取则返回null
+     */
+    getCurrentViewId: async (): Promise<string | null> => {
+      try {
+        const viewInfo = await electronAPI.window.getCurrentViewInfo();
+        return viewInfo ? viewInfo.id : null;
+      } catch (error) {
+        log.error('获取当前视图ID失败:', error);
+        return null;
+      }
+    },
+
+    /**
+     * 获取当前窗口的基本信息（兼容性方法）
+     * @returns 窗口信息对象
+     */
+    getCurrentWindowInfo: async (): Promise<{ windowId: number | null; viewId: string | null; isDetached: boolean }> => {
+      try {
+        const viewInfo = await electronAPI.window.getCurrentViewInfo();
+        const urlParams = new URLSearchParams(window.location.search);
+        const isDetached = urlParams.has('windowId') && urlParams.has('viewId');
+
+        return {
+          windowId: viewInfo ? viewInfo.parentWindowId : null,
+          viewId: viewInfo ? viewInfo.id : null,
+          isDetached
+        };
+      } catch (error) {
+        log.error('获取窗口信息失败:', error);
+        return {
+          windowId: null,
+          viewId: null,
+          isDetached: false
+        };
+      }
+    }
+  }
 }
 
 const naimo = electronAPI
@@ -133,6 +234,7 @@ const triggerEventKeys = [
   'window-main-hide',       // 主窗口隐藏事件
   'window-main-show',       // 主窗口显示事件
   'plugin-window-closed',   // 插件窗口关闭事件
+  'view-restore-requested', // 视图恢复请求事件
 ]
 
 triggerEventKeys.forEach(key => {

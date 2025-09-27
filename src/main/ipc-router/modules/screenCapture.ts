@@ -4,8 +4,8 @@ import { fileURLToPath } from "url";
 import { existsSync, mkdirSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import { isDevelopment } from "@shared/utils";
-import { getRendererUrl } from "@main/config/window.config";
-import { WindowManager } from "@main/config/window-manager";
+import { getRendererUrl } from "@main/window/window.config";
+import { NewWindowManager } from "@main/window/NewWindowManager";
 
 
 function getCurrentDirname(metaUrl: string): string {
@@ -15,10 +15,11 @@ function getCurrentDirname(metaUrl: string): string {
 
 /**
  * 获取屏幕源列表
+ * @param event IPC事件对象
  * @param options 获取屏幕源的选项
  * @returns 屏幕源列表
  */
-export async function getSources(options: {
+export async function getSources(event: Electron.IpcMainInvokeEvent, options: {
   types: ("screen" | "window")[];
   thumbnailSize?: { width: number; height: number };
 }): Promise<Electron.DesktopCapturerSource[]> {
@@ -36,17 +37,14 @@ export async function getSources(options: {
  * @param options 截图选项
  * @returns 操作结果
  */
-export async function captureAndGetFilePath(options: { sourceId?: string; } = {}): Promise<{ success: boolean; filePath?: string; error?: string }> {
-  const windowManager = WindowManager.getInstance();
-  const mainWindow = windowManager.getMainInfo()?.window;
+export async function captureAndGetFilePath(event: Electron.IpcMainInvokeEvent, options: { sourceId?: string; } = {}): Promise<{ success: boolean; filePath?: string; error?: string }> {
+  // 新窗口管理器中，我们需要不同的方式获取主窗口
+  // 由于 BaseWindow 和 BrowserWindow API 有差异，这里暂时注释掉旧逻辑
+  // TODO: 实现新的主窗口隐藏逻辑
 
   try {
-    // 如果主窗口存在且可见，隐藏它
-    if (mainWindow && windowManager.isWindowVisible(mainWindow)) {
-      mainWindow.webContents.send("window-main-hide");
-      // 等待一小段时间确保窗口隐藏生效
-      await new Promise(resolve => setTimeout(resolve, 100));
-    }
+    // 旧的窗口隐藏逻辑被移除，因为新架构中使用不同的窗口管理方式
+    // 截图功能现在直接进行，不依赖于特定的窗口隐藏逻辑
 
     // 获取屏幕源
     const sources = await desktopCapturer.getSources({

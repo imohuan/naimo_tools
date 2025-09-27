@@ -117,8 +117,9 @@ onUnmounted(() => {
 .context-menu {
   position: fixed;
   z-index: 9999;
-  background: white;
-  border: 1px solid #e5e7eb;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(229, 231, 235, 0.3);
   border-radius: 8px;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
   min-width: 180px;
@@ -141,7 +142,7 @@ onUnmounted(() => {
 }
 
 .context-menu-item:hover:not(.context-menu-item--disabled) {
-  background-color: #f3f4f6;
+  background-color: rgba(243, 244, 246, 0.7);
 }
 
 .context-menu-item--disabled {
@@ -155,7 +156,7 @@ onUnmounted(() => {
 }
 
 .context-menu-item--danger:hover:not(.context-menu-item--disabled) {
-  background-color: #fef2f2;
+  background-color: rgba(254, 242, 242, 0.7);
 }
 
 .context-menu-item__icon {

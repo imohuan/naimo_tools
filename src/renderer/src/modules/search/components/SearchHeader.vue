@@ -1,7 +1,7 @@
 <template>
-  <DraggableArea class="w-full flex items-center justify-center" :style="{ height: headerHeight + 'px' }"
-    @click="$emit('click')" @dragover="handleDragOver" @dragenter="handleDragEnter" @dragleave="handleDragLeave"
-    @drop="handleDrop">
+  <div class="w-full flex items-center justify-center native-drag-area"
+    :style="{ height: headerHeight + 'px', 'webkitAppRegion': 'drag', 'userSelect': 'none' }" @click="$emit('click')"
+    @dragover="handleDragOver" @dragenter="handleDragEnter" @dragleave="handleDragLeave" @drop="handleDrop">
     <div class="w-full h-full relative flex items-center bg-white border border-gray-200 transition-all duration-200"
       :class="{ 'bg-indigo-50 border-indigo-400': isDragOver }">
       <!-- 插件信息显示区域 -->
@@ -77,10 +77,10 @@
             : attachedFiles.length > 0
               ? '搜索支持该文件的应用...'
               : '搜索应用和指令 / 拖拽文件到此处...'
-          " />
+          " :style="{ 'webkitAppRegion': 'no-drag' }" />
 
       <!-- 设置按钮 -->
-      <div class="h-full aspect-square">
+      <div class="h-full aspect-square" :style="{ 'webkitAppRegion': 'no-drag' }">
         <button
           class="w-full h-full p-3 text-gray-500 transition-colors duration-200 rounded-lg flex items-center justify-center"
           title="打开设置" @click="$emit('open-settings')">
@@ -88,12 +88,11 @@
         </button>
       </div>
     </div>
-  </DraggableArea>
+  </div>
 </template>
 
 <script setup lang="ts">
 import { watch, ref, computed } from "vue";
-import DraggableArea from "@/components/DraggableArea.vue";
 import SearchInput from "./SearchInput.vue";
 import IconDisplay from "@/components/IconDisplay.vue";
 import type { AttachedFile } from "@/composables/useFileHandler";
@@ -102,6 +101,12 @@ import type { PluginItem } from "@/typings/plugin-types";
 import IconMdiPuzzle from "~icons/mdi/puzzle";
 /** @ts-ignore */
 import IconMdiFile from "~icons/mdi/file";
+/** @ts-ignore */
+import IconMdiFileUpload from "~icons/mdi/file-upload";
+/** @ts-ignore */
+import IconMdiMagnify from "~icons/mdi/magnify";
+/** @ts-ignore */
+import IconMdiCog from "~icons/mdi/cog";
 
 interface Props {
   searchText: string;

@@ -1,24 +1,18 @@
-import { BrowserWindow, ipcMain } from "electron";
-import { WindowConfigManager } from "../config/window.config";
-import { calculateFollowingWindowBounds } from "./modules/window";
-import { WindowType } from "../config/window-manager";
+import { BaseWindow, ipcMain } from "electron";
 
 
 export function initializeCustomOn() {
   ipcMain.on("window-move", (event, id: number, x: number, y: number, width: number, height: number) => {
-    const window = BrowserWindow.fromId(id);
-    const windowManager = WindowConfigManager.getWindowManager();
-
-    if (window) window.setBounds({ x, y, width, height });
-
-    // 使用抽象函数计算跟随窗口的最终边界
-    const bounds = calculateFollowingWindowBounds(x, y, width, height, 2);
-
-    // 获取所有跟随窗口并更新位置
-    const followingWindows = windowManager.getWindowsByType(WindowType.FOLLOWING);
-    followingWindows.forEach(win => {
-      // 设置计算好的边界
-      win.setBounds(bounds);
-    });
+    try {
+      // 只移动主窗口位置，使用 BaseWindow API
+      const window = BaseWindow.fromId(id);
+      if (window) {
+        window.setBounds({ x, y, width, height });
+      } else {
+        console.warn(`窗口 ID ${id} 不存在或尚未创建`);
+      }
+    } catch (error) {
+      console.error("处理窗口移动事件时发生错误:", error);
+    }
   });
 }

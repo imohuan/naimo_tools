@@ -959,9 +959,4 @@ export class DownloadManagerMain {
       }
     });
   }
-
-
 }
-
-// 不要在这里预先创建实例，让AppService来管理
-// export const downloadManagerMain = DownloadManagerMain.getInstance();

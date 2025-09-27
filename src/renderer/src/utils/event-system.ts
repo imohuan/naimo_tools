@@ -42,6 +42,38 @@ export interface AppEvents {
   'global-hotkey-trigger': {
     detail: any
   }
+
+  // 插件视图相关事件
+  'plugin:view:active': {
+    viewId: string
+    pluginPath?: string
+    pluginName?: string
+  }
+  'plugin:view:closed': {
+    viewId: string
+    pluginPath?: string
+  }
+
+  // 窗口分离相关事件
+  'window:detached': {
+    success: boolean
+    detachedWindowId?: number
+    viewId?: string
+    error?: string
+  }
+  'window:detached:closed': {
+    windowId: number
+    viewId?: string
+    timestamp: number
+  }
+
+  // 通知相关事件
+  'notification:show': {
+    message: string
+    type: 'success' | 'warning' | 'error' | 'info'
+    duration?: number
+    source?: string
+  }
 }
 
 // 创建全局事件发射器

@@ -31,6 +31,39 @@ interface ElectronAPI {
   };
   router: AllIpcRouter;
   webUtils: WebUtils;
+  window: {
+    /**
+     * 获取当前WebContentsView的完整信息
+     * @returns 当前视图的完整信息，如果无法获取则返回null
+     */
+    getCurrentViewInfo: () => Promise<{
+      id: string;
+      parentWindowId: number;
+      config: any;
+      state: {
+        isVisible: boolean;
+        isActive: boolean;
+        lastAccessTime: number;
+        memoryUsage?: number;
+      };
+      createdAt: string;
+    } | null>;
+    /**
+     * 获取当前窗口ID（兼容性方法）
+     * @returns 当前窗口的ID，如果无法获取则返回null
+     */
+    getCurrentWindowId: () => Promise<number | null>;
+    /**
+     * 获取当前WebContentsView ID（兼容性方法）
+     * @returns 当前视图的ID，如果无法获取则返回null
+     */
+    getCurrentViewId: () => Promise<string | null>;
+    /**
+     * 获取当前窗口的基本信息（兼容性方法）
+     * @returns 窗口信息对象
+     */
+    getCurrentWindowInfo: () => Promise<{ windowId: number | null; viewId: string | null; isDetached: boolean }>;
+  };
   auto: {
     parseHtmlByConfig: (config: DomParserConfig | DomParserConfig[], html: string) => any;
     fetchHTML: (url: string, asyncConfig?: AutomationConfig | null) => Promise<HtmlFetchResult>;

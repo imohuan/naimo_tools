@@ -10,7 +10,7 @@ import { readFile, writeFile, stat } from 'fs/promises';
  * 获取日志数据
  * @returns 日志数据数组
  */
-export async function getLogs(): Promise<any[]> {
+export async function getLogs(event: Electron.IpcMainInvokeEvent): Promise<any[]> {
   try {
     // 获取日志文件路径
     const logPath = log.transports.file.getFile().path;
@@ -41,7 +41,7 @@ export async function getLogs(): Promise<any[]> {
  * 获取原始日志文件内容
  * @returns 原始日志文件内容
  */
-export async function getRawLogContent(): Promise<string> {
+export async function getRawLogContent(event: Electron.IpcMainInvokeEvent): Promise<string> {
   try {
     // 获取日志文件路径
     const logPath = log.transports.file.getFile().path;
@@ -68,7 +68,7 @@ export async function getRawLogContent(): Promise<string> {
 /**
  * 清空日志
  */
-export async function clearLogs(): Promise<void> {
+export async function clearLogs(event: Electron.IpcMainInvokeEvent): Promise<void> {
   try {
     const logPath = log.transports.file.getFile().path;
     // 清空日志文件
@@ -84,7 +84,7 @@ export async function clearLogs(): Promise<void> {
  * 导出日志
  * @param format 导出格式 (txt, json)
  */
-export async function exportLogs(format: 'txt' | 'json' = 'txt'): Promise<string> {
+export async function exportLogs(event: Electron.IpcMainInvokeEvent, format: 'txt' | 'json' = 'txt'): Promise<string> {
   try {
     const logs = await getLogs();
 
@@ -162,7 +162,7 @@ function parseLogLine(line: string): any | null {
 /**
  * 获取日志文件信息
  */
-export async function getLogInfo(): Promise<{
+export async function getLogInfo(event: Electron.IpcMainInvokeEvent): Promise<{
   path: string;
   size: number;
   lastModified: Date;

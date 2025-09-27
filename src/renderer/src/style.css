@@ -1,5 +1,12 @@
 @import "tailwindcss";
 
+/* 设置页面背景透明 */
+html,
+body {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
 .v-icon {
   display: inline-block;
   width: 1em;

@@ -11,42 +11,42 @@ import { join } from "path";
 /**
  * 获取应用版本
  */
-export function getVersion(): string {
+export function getVersion(event: Electron.IpcMainInvokeEvent): string {
   return app.getVersion();
 }
 
 /**
  * 获取应用名称
  */
-export function getName(): string {
+export function getName(event: Electron.IpcMainInvokeEvent): string {
   return app.getName();
 }
 
 /**
  * 获取应用路径
  */
-export function getAppPath(): string {
+export function getAppPath(event: Electron.IpcMainInvokeEvent): string {
   return app.getAppPath();
 }
 
 /**
  * 获取用户数据路径
  */
-export function getUserDataPath(): string {
+export function getUserDataPath(event: Electron.IpcMainInvokeEvent): string {
   return app.getPath("userData");
 }
 
 /**
  * 检查应用是否打包
  */
-export function isPackaged(): boolean {
+export function isPackaged(event: Electron.IpcMainInvokeEvent): boolean {
   return app.isPackaged;
 }
 
 /**
  * 获取系统信息
  */
-export function getSystemInfo(): {
+export function getSystemInfo(event: Electron.IpcMainInvokeEvent): {
   platform: string;
   arch: string;
   version: string;
@@ -63,7 +63,7 @@ export function getSystemInfo(): {
 /**
  * 退出应用
  */
-export function quit(): void {
+export function quit(event: Electron.IpcMainInvokeEvent): void {
   log.info("应用即将退出");
   app.quit();
 }
@@ -71,7 +71,7 @@ export function quit(): void {
 /**
  * 重启应用
  */
-export function restart(): void {
+export function restart(event: Electron.IpcMainInvokeEvent): void {
   log.info("应用即将重启");
   app.relaunch();
   app.quit();
@@ -80,7 +80,7 @@ export function restart(): void {
 /**
  * 显示关于对话框
  */
-export function showAbout(): void {
+export function showAbout(event: Electron.IpcMainInvokeEvent): void {
   // 这里可以调用原生的 about 对话框
   log.info("显示关于对话框");
 }
@@ -88,7 +88,7 @@ export function showAbout(): void {
 /**
  * 获取应用配置
  */
-export function getConfig(): Record<string, any> {
+export function getConfig(event: Electron.IpcMainInvokeEvent): Record<string, any> {
   return {
     version: app.getVersion(),
     name: app.getName(),
@@ -120,10 +120,11 @@ export async function searchApps(): Promise<Array<AppPath>> {
 
 /**
  * 启动应用
+ * @param event IPC事件对象
  * @param appPath 应用路径
  * @returns 是否启动成功
  */
-export async function launchApp(appPath: string): Promise<boolean> {
+export async function launchApp(event: Electron.IpcMainInvokeEvent, appPath: string): Promise<boolean> {
   try {
     log.info("🚀 启动应用:", appPath);
     await shell.openPath(appPath); // 使用 shell.openPath 启动应用
@@ -137,10 +138,11 @@ export async function launchApp(appPath: string): Promise<boolean> {
 
 /**
  * 提取文件图标
+ * @param event IPC事件对象
  * @param filePath 文件路径
  * @returns 图标的 Data URL 或 null
  */
-export async function extractFileIcon(filePath: string): Promise<string | null> {
+export async function extractFileIcon(event: Electron.IpcMainInvokeEvent, filePath: string): Promise<string | null> {
   try {
     log.info("🖼️ 提取文件图标:", filePath);
     const cacheIconsDir = join(app.getPath("userData"), "icons");

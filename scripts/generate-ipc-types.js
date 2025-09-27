@@ -219,7 +219,11 @@ function generateTypesFromDirectory(dirPath, outputPath) {
         }
 
         // 构建参数列表，包含泛型信息，并收集使用的类型
-        const params = func.getParameters().map(param => {
+        // 对于IPC函数，如果有参数则直接忽略第一个参数（因为第一个参数总是event）
+        const allParams = func.getParameters();
+        const paramsToProcess = allParams.length > 0 ? allParams.slice(1) : allParams;
+
+        const params = paramsToProcess.map(param => {
           const paramName = param.getName();
           const isOptional = param.hasQuestionToken(); // 检查是否有 ? 标记
           const type = param.getTypeNode() ? param.getTypeNode().getText() : 'any';

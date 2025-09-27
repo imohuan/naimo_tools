@@ -1,0 +1,1225 @@
+/**
+ * NewWindowManager - 新一代窗口管理器
+ * 统一管理所有窗口和视图操作，集成 BaseWindowController、ViewManager、LifecycleManager、DetachManager
+ * 提供统一的窗口管理接口，支持 BaseWindow + WebContentsView 架构
+ */
+
+import { BaseWindow, } from 'electron'
+import { resolve } from 'path'
+import log from 'electron-log'
+import { DEFAULT_WINDOW_LAYOUT, calculateSettingsViewBounds, calculateMainViewBounds, calculateWindowHeight } from '../../shared/config/window-layout.config'
+import type { AppConfig } from '@shared/types'
+import type {
+  WebContentsViewConfig,
+  WebContentsViewInfo,
+  WindowOperationResult,
+  ViewOperationResult,
+  MainWindowLayoutConfig,
+} from './window-types'
+import type {
+  ViewConfig,
+  DetachedWindowConfig,
+  LifecycleStrategy,
+  Rectangle,
+  WindowManagerConfig,
+  PerformanceMetrics
+} from '@renderer/src/typings/window-types'
+import {
+  ViewType
+} from '@renderer/src/typings/window-types'
+import type { PluginItem } from '@renderer/src/typings/plugin-types'
+
+// 导入子管理器
+import { BaseWindowController } from './BaseWindowController'
+import { ViewManager } from './ViewManager'
+import { LifecycleManager } from './LifecycleManager'
+import { DetachManager } from './DetachManager'
+import { getDirname } from '@main/utils'
+
+/**
+ * 窗口管理器操作选项
+ */
+export interface WindowManagerOptions {
+  /** 是否启用自动清理 */
+  enableAutoCleanup?: boolean
+  /** 是否启用详细日志 */
+  enableVerboseLogging?: boolean
+  /** 性能监控间隔（毫秒） */
+  performanceMonitorInterval?: number
+  /** 最大窗口数量限制 */
+  maxWindows?: number
+  /** 内存管理配置 */
+  memoryManagement?: {
+    /** 内存阈值（MB） */
+    threshold: number
+    /** 检查间隔（毫秒） */
+    checkInterval: number
+  }
+}
+
+/**
+ * 视图操作参数
+ */
+export interface ViewOperationParams {
+  /** 视图类型 */
+  type: ViewType
+  /** 视图配置 */
+  config?: Partial<ViewConfig>
+  /** 插件信息（用于插件视图） */
+  pluginItem?: PluginItem
+  /** 是否强制创建新视图 */
+  forceNew?: boolean
+  /** 自定义生命周期策略 */
+  lifecycleStrategy?: LifecycleStrategy
+}
+
+/**
+ * NewWindowManager 类
+ * 新一代窗口管理器主类
+ */
+export class NewWindowManager {
+  private static instance: NewWindowManager
+  private config: WindowManagerConfig
+  private options: WindowManagerOptions
+
+  // 子管理器实例
+  private baseWindowController!: BaseWindowController
+  private viewManager!: ViewManager
+  private lifecycleManager!: LifecycleManager
+  private detachManager!: DetachManager
+
+  // 内部状态
+  private mainWindow: BaseWindow | null = null
+  private activeViewId: string | null = null
+  private eventHandlers: Map<string, Function[]> = new Map()
+  private performanceTimer?: NodeJS.Timeout
+  private isInitialized = false
+
+  private constructor(config: WindowManagerConfig, options: WindowManagerOptions = {}) {
+    this.config = config
+    this.options = {
+      enableAutoCleanup: true,
+      enableVerboseLogging: false,
+      performanceMonitorInterval: 30000, // 30秒
+      maxWindows: 10,
+      memoryManagement: {
+        threshold: 1000, // 1GB
+        checkInterval: 60000 // 1分钟
+      },
+      ...options
+    }
+
+    this.initializeSubManagers()
+    this.setupEventHandlers()
+    this.startPerformanceMonitoring()
+  }
+
+  /**
+   * 获取单例实例
+   */
+  public static getInstance(
+    config?: WindowManagerConfig,
+    options?: WindowManagerOptions
+  ): NewWindowManager {
+    if (!NewWindowManager.instance) {
+      if (!config) {
+        throw new Error('首次创建 NewWindowManager 实例时必须提供配置')
+      }
+      NewWindowManager.instance = new NewWindowManager(config, options)
+    }
+    return NewWindowManager.instance
+  }
+
+  /**
+   * 初始化窗口管理器
+   */
+  public async initialize(): Promise<void> {
+    if (this.isInitialized) {
+      log.warn('NewWindowManager 已经初始化')
+      return
+    }
+
+    try {
+      log.info('初始化 NewWindowManager')
+
+      // 等待子管理器初始化完成（如果需要）
+      await this.initializeMainWindow()
+
+      this.isInitialized = true
+      this.emit('manager:initialized', { timestamp: Date.now() })
+
+      log.info('NewWindowManager 初始化完成')
+    } catch (error) {
+      log.error('NewWindowManager 初始化失败:', error)
+      throw error
+    }
+  }
+
+  /**
+   * 创建主窗口
+   */
+  public async createMainWindow(appConfig?: AppConfig): Promise<WindowOperationResult> {
+    try {
+      log.info('创建主窗口')
+
+      if (this.mainWindow) {
+        log.warn('主窗口已存在')
+        return {
+          success: true,
+          windowId: this.mainWindow.id,
+          data: { window: this.mainWindow, message: '主窗口已存在' }
+        }
+      }
+
+      // 使用 BaseWindowController 创建主窗口
+      const layoutConfig: MainWindowLayoutConfig = {
+        totalBounds: this.config.layout.totalBounds,
+        headerHeight: this.config.layout.headerHeight,
+        contentBounds: this.config.layout.contentBounds,
+        padding: this.config.layout.padding
+      }
+
+      const result = this.baseWindowController.createMainWindow(
+        appConfig || {} as AppConfig,
+        layoutConfig
+      )
+
+      if (!result.success || !result.data?.window) {
+        throw new Error(result.error || '主窗口创建失败')
+      }
+
+      this.mainWindow = result.data.window as BaseWindow
+
+      // 设置主窗口事件
+      this.setupMainWindowEvents()
+
+      // 暂时禁用背景阴影视图，改用前端实现
+      // await this.createBackgroundShadowView()
+
+      // 创建主视图
+      await this.createMainView()
+
+      // 触发主窗口创建事件
+      this.emit('window:main-created', {
+        windowId: this.mainWindow.id,
+        timestamp: Date.now()
+      })
+
+      log.info(`主窗口创建成功，ID: ${this.mainWindow.id}`)
+
+      return {
+        success: true,
+        windowId: this.mainWindow.id,
+        data: { window: this.mainWindow }
+      }
+    } catch (error) {
+      log.error('创建主窗口失败:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : '未知错误'
+      }
+    }
+  }
+
+  /**
+   * 创建主视图
+   */
+  private async createMainView(): Promise<void> {
+    try {
+      if (!this.mainWindow) {
+        throw new Error('主窗口未创建')
+      }
+
+      log.info('创建主视图')
+
+      const viewId = 'main-view'
+
+      // 检查是否已经存在主视图
+      const existingView = this.viewManager.getViewInfo(viewId)
+      if (existingView) {
+        log.info('主视图已存在')
+        return
+      }
+
+      // 计算主视图的边界（填满整个窗口）
+      const windowBounds = this.mainWindow.getBounds()
+      const bounds = {
+        x: 0,
+        y: 0,
+        width: windowBounds.width,
+        height: windowBounds.height
+      }
+
+      // 准备主视图配置
+      const mainViewConfig: WebContentsViewConfig = {
+        id: viewId,
+        type: ViewType.MAIN,
+        bounds,
+        lifecycle: {
+          type: 'FOREGROUND' as any,
+          persistOnClose: true
+        },
+        webPreferences: {
+          nodeIntegration: true,
+          contextIsolation: true,
+          webSecurity: true,
+          preload: resolve(getDirname(import.meta.url), './preloads/basic.js')
+        }
+      }
+
+      // 设置主页面URL
+      if (process.env.NODE_ENV === 'development') {
+        // 开发模式：使用开发服务器
+        mainViewConfig.url = 'http://localhost:5173'
+        log.info('加载开发环境内容: http://localhost:5173')
+      } else {
+        // 生产模式：使用构建后的文件
+        const indexPath = resolve(getDirname(import.meta.url), '../renderer/index.html')
+        mainViewConfig.url = `file://${indexPath.replace(/\\/g, '/')}`
+        log.info(`加载生产环境内容: ${indexPath}`)
+      }
+
+      // 创建主视图
+      const createResult = this.viewManager.createView(this.mainWindow, mainViewConfig)
+      if (!createResult.success) {
+        throw new Error(`创建主视图失败: ${createResult.error}`)
+      }
+
+      // 设置生命周期策略
+      this.lifecycleManager.setLifecycleStrategy(viewId, mainViewConfig.lifecycle)
+
+      // 切换到主视图并激活
+      const switchResult = this.viewManager.switchToView(this.mainWindow.id, viewId)
+      if (switchResult.success) {
+        await this.handleViewActivated(viewId)
+      }
+
+      log.info('主视图创建完成')
+    } catch (error) {
+      log.error('创建主视图失败:', error)
+      throw error
+    }
+  }
+
+  /**
+   * 显示视图
+   */
+  public async showView(params: ViewOperationParams): Promise<ViewOperationResult> {
+    try {
+      if (!this.mainWindow) {
+        throw new Error('主窗口未创建')
+      }
+
+      log.info(`显示视图: 类型=${params.type}, 强制新建=${params.forceNew}`)
+
+      // 生成视图ID
+      const viewId = this.generateViewId(params.type, params.config?.path)
+
+      // 检查视图是否已存在
+      let viewInfo = this.viewManager.getViewInfo(viewId)
+
+      if (viewInfo && !params.forceNew) {
+        // 视图已存在，切换到该视图
+        const switchResult = this.viewManager.switchToView(this.mainWindow.id, viewId)
+        if (switchResult.success) {
+          await this.handleViewActivated(viewId)
+          return switchResult
+        }
+      }
+
+      // 创建新视图
+      const viewConfig = this.prepareViewConfig(viewId, params)
+      const createResult = this.viewManager.createView(this.mainWindow, viewConfig)
+
+      if (!createResult.success) {
+        throw new Error(createResult.error || '视图创建失败')
+      }
+
+      // 设置生命周期策略
+      if (params.pluginItem) {
+        const lifecycleStrategy = params.lifecycleStrategy ||
+          this.lifecycleManager.inferLifecycleFromPlugin(params.pluginItem)
+
+        this.lifecycleManager.setLifecycleStrategy(viewId, lifecycleStrategy, params.pluginItem)
+      }
+
+      // 切换到新创建的视图
+      const switchResult = this.viewManager.switchToView(this.mainWindow.id, viewId)
+      if (switchResult.success) {
+        await this.handleViewActivated(viewId)
+      }
+
+      log.info(`视图显示成功: ${viewId}`)
+
+      return {
+        success: true,
+        viewId,
+        data: { created: true, switched: switchResult.success }
+      }
+    } catch (error) {
+      log.error('显示视图失败:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : '未知错误'
+      }
+    }
+  }
+
+  /**
+   * 创建设置页面 WebContentsView
+   */
+  public async createSettingsView(): Promise<ViewOperationResult> {
+    try {
+      if (!this.mainWindow) {
+        throw new Error('主窗口未创建')
+      }
+
+      log.info('创建设置页面 WebContentsView')
+
+      const viewId = 'settings-view'
+
+      // 检查是否已经存在设置视图
+      const existingView = this.viewManager.getViewInfo(viewId)
+      if (existingView) {
+        // 如果已存在，直接切换到设置视图
+        const switchResult = this.viewManager.switchToView(this.mainWindow.id, viewId)
+        if (switchResult.success) {
+          await this.handleViewActivated(viewId)
+          // 调整窗口高度
+          await this.adjustWindowForMaxHeight()
+        }
+        return switchResult
+      }
+
+      // 计算设置视图的边界 - 使用统一配置
+      const windowBounds = this.mainWindow.getBounds()
+      const settingsBounds = calculateSettingsViewBounds(windowBounds)
+
+      // 准备设置页面配置
+      const settingsConfig: WebContentsViewConfig = {
+        id: viewId,
+        type: ViewType.SETTINGS,
+        bounds: settingsBounds,
+        lifecycle: {
+          type: 'FOREGROUND' as any,
+          persistOnClose: false
+        },
+        webPreferences: {
+          nodeIntegration: true,
+          contextIsolation: true,
+          webSecurity: true,
+          preload: resolve(getDirname(import.meta.url), './preloads/basic.js')
+        }
+      }
+
+      // 设置页面URL - 使用独立的设置页面
+      if (process.env.NODE_ENV === 'development') {
+        // 开发模式：使用开发服务器的设置页面路径
+        settingsConfig.url = 'http://localhost:5173/src/pages/settings/'
+        log.info('加载开发环境设置页面: http://localhost:5173/src/pages/settings/')
+      } else {
+        // 生产模式：使用构建后的独立设置页面文件
+        const settingsPath = resolve(getDirname(import.meta.url), '../renderer/settings.html')
+        settingsConfig.url = `file://${settingsPath.replace(/\\/g, '/')}`
+        log.info(`加载生产环境设置页面: ${settingsPath}`)
+      }
+
+      // 创建视图
+      const createResult = this.viewManager.createView(this.mainWindow, settingsConfig)
+      if (!createResult.success) {
+        throw new Error(`创建设置视图失败: ${createResult.error}`)
+      }
+
+      // 设置生命周期策略
+      this.lifecycleManager.setLifecycleStrategy(viewId, settingsConfig.lifecycle)
+
+      // 切换到设置视图（使用新的多视图布局）
+      const switchResult = this.viewManager.switchToView(this.mainWindow.id, viewId)
+      if (switchResult.success) {
+        await this.handleViewActivated(viewId)
+        // 调整窗口高度为最大高度（设置页面需要更多空间）
+        await this.adjustWindowForMaxHeight()
+      }
+
+      log.info('设置页面 WebContentsView 创建成功')
+
+      return {
+        success: true,
+        viewId,
+        data: { created: true, switched: switchResult.success }
+      }
+    } catch (error) {
+      log.error('创建设置页面失败:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : '未知错误'
+      }
+    }
+  }
+
+  /**
+   * 调整窗口高度为最大高度模式
+   * 用于设置页面和插件窗口
+   */
+  private async adjustWindowForMaxHeight(): Promise<void> {
+    try {
+      if (!this.mainWindow) {
+        log.error('主窗口未创建')
+        return
+      }
+
+      const currentBounds = this.mainWindow.getBounds()
+      const maxHeight = DEFAULT_WINDOW_LAYOUT.contentMaxHeight + DEFAULT_WINDOW_LAYOUT.searchHeaderHeight + DEFAULT_WINDOW_LAYOUT.appPadding * 2
+
+      const newBounds = {
+        ...currentBounds,
+        height: maxHeight
+      }
+
+      this.mainWindow.setBounds(newBounds)
+      log.info(`窗口高度已调整为最大高度模式: ${maxHeight}px`)
+    } catch (error) {
+      log.error('调整窗口高度失败:', error)
+    }
+  }
+
+  /**
+   * 调整窗口高度为搜索模式（只有搜索框）
+   */
+  private async adjustWindowForSearchMode(): Promise<void> {
+    try {
+      if (!this.mainWindow) {
+        log.error('主窗口未创建')
+        return
+      }
+
+      const currentBounds = this.mainWindow.getBounds()
+      const searchOnlyHeight = 60 // 只有搜索框的高度
+
+      const newBounds = {
+        ...currentBounds,
+        height: searchOnlyHeight
+      }
+
+      this.mainWindow.setBounds(newBounds)
+      log.info(`窗口高度已调整为搜索模式: ${searchOnlyHeight}px`)
+    } catch (error) {
+      log.error('调整窗口高度失败:', error)
+    }
+  }
+
+  /**
+   * 动态调整窗口高度
+   * 直接使用前端传递的高度，并使用配置文件中的布局设置
+   * @param targetHeight 前端计算的目标高度
+   */
+  public async adjustWindowHeight(targetHeight: number): Promise<void> {
+    try {
+      if (!this.mainWindow) {
+        log.error('主窗口未创建')
+        return
+      }
+
+      // 导入窗口布局配置
+      const { DEFAULT_WINDOW_LAYOUT } = await import('../../shared/config/window-layout.config')
+
+      const currentBounds = this.mainWindow.getBounds()
+
+      // 直接使用前端传递的高度，不做额外的计算
+      const finalHeight = targetHeight
+
+      // 只有高度变化时才调整
+      if (Math.abs(currentBounds.height - finalHeight) > 5) {
+        const newBounds = {
+          ...currentBounds,
+          height: finalHeight,
+          width: DEFAULT_WINDOW_LAYOUT.windowWidth // 确保宽度也符合配置
+        }
+
+        this.mainWindow.setBounds(newBounds)
+
+        // 更新所有视图的布局以适应新的窗口大小
+        const windowViews = this.viewManager.getWindowViews(this.mainWindow.id)
+
+        windowViews.forEach(async (viewInfo) => {
+          if (viewInfo.id === 'main-view') {
+            // 主视图占满整个窗口
+            viewInfo.view.setBounds({
+              x: 0,
+              y: 0,
+              width: newBounds.width,
+              height: newBounds.height
+            })
+          } else if (viewInfo.id === 'settings-view') {
+            // 设置视图使用配置文件中的布局计算
+            const { calculateSettingsViewBounds } = await import('../../shared/config/window-layout.config')
+            const settingsBounds = calculateSettingsViewBounds(newBounds)
+            viewInfo.view.setBounds(settingsBounds)
+          }
+          // 其他视图保持原有逻辑或根据需要调整
+        })
+
+        log.info(`窗口高度已调整: ${currentBounds.height} -> ${finalHeight}px (使用配置: ${DEFAULT_WINDOW_LAYOUT.windowWidth}x${finalHeight})`)
+      }
+    } catch (error) {
+      log.error('动态调整窗口高度失败:', error)
+    }
+  }
+
+  /**
+   * 关闭设置页面 WebContentsView
+   */
+  public async closeSettingsView(): Promise<ViewOperationResult> {
+    try {
+      const viewId = 'settings-view'
+
+      log.info('关闭设置页面 WebContentsView')
+
+      // 移除视图
+      const removeResult = this.viewManager.removeView(viewId)
+      if (removeResult.success) {
+        // TODO: 清理生命周期管理（需要检查LifecycleManager的API）
+        // this.lifecycleManager.removeView(viewId)
+
+        // 切换回主视图
+        const switchResult = this.viewManager.switchToView(this.mainWindow!.id, 'main-view')
+        if (switchResult.success) {
+          await this.handleViewActivated('main-view')
+          // 恢复窗口为搜索模式的高度
+          await this.adjustWindowForSearchMode()
+        }
+
+        log.info('设置页面 WebContentsView 关闭成功')
+      }
+
+      return removeResult
+    } catch (error) {
+      log.error('关闭设置页面失败:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : '未知错误'
+      }
+    }
+  }
+
+  /**
+   * 隐藏视图
+   */
+  public async hideView(viewId: string): Promise<ViewOperationResult> {
+    try {
+      log.info(`隐藏视图: ${viewId}`)
+
+      if (!this.mainWindow) {
+        throw new Error('主窗口未创建')
+      }
+
+      // 隐藏视图（需要检查ViewManager的正确API）
+      // TODO: 修复ViewManager.hideView方法调用
+      try {
+        // this.viewManager.hideView(viewId)
+        log.info(`视图 ${viewId} 准备隐藏`)
+      } catch (error) {
+        log.warn(`隐藏视图时出现问题: ${error}`)
+      }
+
+      // 处理生命周期
+      const lifecycleResult = await this.lifecycleManager.handleViewClose(viewId)
+      if (!lifecycleResult.success) {
+        log.warn(`生命周期处理失败: ${viewId}, 错误: ${lifecycleResult.error}`)
+      }
+
+      // 更新活跃视图
+      if (this.activeViewId === viewId) {
+        this.activeViewId = null
+      }
+
+      log.info(`视图隐藏成功: ${viewId}`)
+
+      return {
+        success: true,
+        viewId,
+        data: { hidden: true, lifecycleHandled: lifecycleResult.success }
+      }
+    } catch (error) {
+      log.error(`隐藏视图失败: ${viewId}`, error)
+      return {
+        success: false,
+        viewId,
+        error: error instanceof Error ? error.message : '未知错误'
+      }
+    }
+  }
+
+  /**
+   * 移除视图
+   */
+  public async removeView(viewId: string): Promise<ViewOperationResult> {
+    try {
+      log.info(`移除视图: ${viewId}`)
+
+      if (!this.mainWindow) {
+        throw new Error('主窗口未创建')
+      }
+
+      // 先处理生命周期（如果是前台模式，会销毁视图）
+      const lifecycleResult = await this.lifecycleManager.handleViewClose(viewId)
+
+      // 从视图管理器中移除
+      const removeResult = this.viewManager.removeView(viewId)
+
+      // 更新活跃视图
+      if (this.activeViewId === viewId) {
+        this.activeViewId = null
+      }
+
+      log.info(`视图移除完成: ${viewId}`)
+
+      return {
+        success: true,
+        viewId,
+        data: {
+          removed: removeResult.success,
+          lifecycleHandled: lifecycleResult.success
+        }
+      }
+    } catch (error) {
+      log.error(`移除视图失败: ${viewId}`, error)
+      return {
+        success: false,
+        viewId,
+        error: error instanceof Error ? error.message : '未知错误'
+      }
+    }
+  }
+
+  /**
+   * 分离视图到独立窗口
+   */
+  public async detachView(viewId: string, config?: Partial<DetachedWindowConfig>): Promise<ViewOperationResult> {
+    try {
+      log.info(`分离视图: ${viewId}`)
+
+      if (!this.mainWindow) {
+        throw new Error('主窗口未创建')
+      }
+
+      // 获取视图信息
+      const viewInfo = this.viewManager.getViewInfo(viewId)
+      if (!viewInfo) {
+        throw new Error('视图不存在')
+      }
+
+      // 执行分离操作
+      const detachResult = await this.detachManager.detachView(
+        viewInfo,
+        this.mainWindow.id,
+        config
+      )
+
+      if (!detachResult.success) {
+        throw new Error(detachResult.error || '视图分离失败')
+      }
+
+      // 从主窗口移除视图
+      await this.removeView(viewId)
+
+      log.info(`视图分离成功: ${viewId}`)
+
+      return {
+        success: true,
+        viewId,
+        data: {
+          detached: true,
+          detachedWindowId: detachResult.detachedWindow?.windowId
+        }
+      }
+    } catch (error) {
+      log.error(`分离视图失败: ${viewId}`, error)
+      return {
+        success: false,
+        viewId,
+        error: error instanceof Error ? error.message : '未知错误'
+      }
+    }
+  }
+
+  /**
+   * 重新附加分离的视图
+   */
+  public async reattachView(detachedWindowId: number): Promise<ViewOperationResult> {
+    try {
+      log.info(`重新附加视图: 窗口ID ${detachedWindowId}`)
+
+      if (!this.mainWindow) {
+        throw new Error('主窗口未创建')
+      }
+
+      // 执行重新附加操作
+      const reattachResult = await this.detachManager.reattachView(
+        detachedWindowId,
+        this.mainWindow.id
+      )
+
+      if (!reattachResult.success) {
+        throw new Error(reattachResult.error || '重新附加失败')
+      }
+
+      log.info(`视图重新附加成功: 窗口ID ${detachedWindowId}`)
+
+      return reattachResult
+    } catch (error) {
+      log.error(`重新附加视图失败: 窗口ID ${detachedWindowId}`, error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : '未知错误'
+      }
+    }
+  }
+
+  /**
+   * 切换视图
+   */
+  public async switchToView(viewId: string): Promise<ViewOperationResult> {
+    try {
+      log.info(`切换到视图: ${viewId}`)
+
+      if (!this.mainWindow) {
+        throw new Error('主窗口未创建')
+      }
+
+      // 执行切换
+      const switchResult = this.viewManager.switchToView(this.mainWindow.id, viewId)
+
+      if (switchResult.success) {
+        await this.handleViewActivated(viewId)
+      }
+
+      return switchResult
+    } catch (error) {
+      log.error(`切换视图失败: ${viewId}`, error)
+      return {
+        success: false,
+        viewId,
+        error: error instanceof Error ? error.message : '未知错误'
+      }
+    }
+  }
+
+  /**
+   * 获取活跃视图
+   */
+  public getActiveView(): WebContentsViewInfo | null {
+    if (!this.activeViewId) {
+      return null
+    }
+    return this.viewManager.getViewInfo(this.activeViewId) || null
+  }
+
+  /**
+   * 获取所有视图
+   */
+  public getAllViews(): WebContentsViewInfo[] {
+    return this.viewManager.getAllViews()
+  }
+
+  /**
+   * 获取主窗口
+   */
+  public getMainWindow(): BaseWindow | null {
+    return this.mainWindow
+  }
+
+  /**
+   * 获取性能指标
+   */
+  public getPerformanceMetrics(): PerformanceMetrics {
+    // TODO: 修复性能指标获取API
+    try {
+      const lifecycleMetrics = this.lifecycleManager.getPerformanceMetrics()
+      const mainWindowId = this.mainWindow?.id
+      const viewMetrics = mainWindowId ? this.viewManager.getPerformanceMetrics(mainWindowId) : undefined
+
+      // 整合 lifecycle 和 view 的性能指标
+      const memoryUsage = Math.max(
+        lifecycleMetrics.memoryUsage || 0,
+        viewMetrics?.memoryUsage || 0
+      )
+
+      const activeViewCount = Math.max(
+        lifecycleMetrics.activeViewCount || 0,
+        viewMetrics?.activeViewCount || 0
+      )
+
+      const cpuUsage = Math.max(
+        lifecycleMetrics.cpuUsage || 0,
+        viewMetrics?.cpuUsage || 0
+      )
+
+      return {
+        switchTime: 0, // TODO: 实现视图切换耗时统计
+        memoryUsage,
+        activeViewCount,
+        cpuUsage,
+        lastUpdated: Date.now()
+      }
+    } catch (error) {
+      log.warn('获取性能指标失败:', error)
+      return {
+        switchTime: 0,
+        memoryUsage: 0,
+        activeViewCount: 0,
+        cpuUsage: 0,
+        lastUpdated: Date.now()
+      }
+    }
+  }
+
+  /**
+   * 获取统计信息
+   */
+  public getStatistics(): {
+    windows: { main: number; detached: number }
+    views: { total: number; active: number; paused: number }
+    memory: { usage: number; threshold: number }
+    performance: PerformanceMetrics
+  } {
+    const lifecycleStats = this.lifecycleManager.getStatistics()
+    const detachStats = this.detachManager.getStatistics()
+    const performance = this.getPerformanceMetrics()
+
+    return {
+      windows: {
+        main: this.mainWindow ? 1 : 0,
+        detached: detachStats.totalDetachedWindows
+      },
+      views: {
+        total: lifecycleStats.totalViews,
+        active: lifecycleStats.activeViews,
+        paused: lifecycleStats.pausedViews
+      },
+      memory: {
+        usage: lifecycleStats.totalMemoryUsage,
+        threshold: this.options.memoryManagement?.threshold || 1000
+      },
+      performance
+    }
+  }
+
+  /**
+   * 清理后台视图
+   */
+  public async cleanupBackgroundViews(): Promise<void> {
+    try {
+      log.info('开始清理后台视图')
+
+      const report = await this.lifecycleManager.cleanupBackgroundViews()
+
+      this.emit('cleanup:completed', {
+        report,
+        timestamp: Date.now()
+      })
+
+      log.info(`后台视图清理完成，释放内存: ${report.freedMemory.toFixed(1)}MB`)
+    } catch (error) {
+      log.error('清理后台视图失败:', error)
+    }
+  }
+
+  /**
+   * 更新配置
+   */
+  public updateConfig(newConfig: Partial<WindowManagerConfig>): void {
+    this.config = { ...this.config, ...newConfig }
+
+    // 更新子管理器配置
+    this.lifecycleManager.updateConfig({
+      memoryRecycleThreshold: newConfig.memoryRecycleThreshold,
+      autoRecycleInterval: newConfig.autoRecycleInterval
+    })
+
+    log.info('窗口管理器配置已更新')
+  }
+
+  /**
+   * 初始化子管理器
+   */
+  private initializeSubManagers(): void {
+    this.baseWindowController = BaseWindowController.getInstance()
+    this.viewManager = ViewManager.getInstance()
+    this.lifecycleManager = LifecycleManager.getInstance()
+    this.detachManager = DetachManager.getInstance()
+  }
+
+  /**
+   * 设置事件处理器
+   */
+  private setupEventHandlers(): void {
+    // 设置分离管理器事件
+    this.detachManager.on('view:reattach-requested', async (data: any) => {
+      // 处理重新附加请求
+      await this.handleReattachRequest(data)
+    })
+
+    // 设置生命周期管理器事件
+    this.lifecycleManager.on('lifecycle:cleanup-completed', (report: any) => {
+      this.emit('cleanup:completed', { report, timestamp: Date.now() })
+    })
+
+    // 设置视图管理器事件
+    this.viewManager.on('view:switched', (data: any) => {
+      this.handleViewSwitched(data)
+    })
+  }
+
+  /**
+   * 初始化主窗口（如果需要）
+   */
+  private async initializeMainWindow(): Promise<void> {
+    // 这里可以添加主窗口的预初始化逻辑
+    // 目前保持空实现，主窗口在需要时通过 createMainWindow 创建
+  }
+
+  /**
+   * 设置主窗口事件
+   */
+  private setupMainWindowEvents(): void {
+    if (!this.mainWindow) return
+
+    // 窗口关闭事件
+    this.mainWindow.on('closed', () => {
+      this.handleMainWindowClosed()
+    })
+
+    // 窗口失焦事件
+    this.mainWindow.on('blur', () => {
+      this.emit('window:main-blurred', { timestamp: Date.now() })
+    })
+
+    // 窗口聚焦事件
+    this.mainWindow.on('focus', () => {
+      this.emit('window:main-focused', { timestamp: Date.now() })
+    })
+  }
+
+  /**
+   * 生成视图ID
+   */
+  private generateViewId(type: ViewType, path?: string): string {
+    if (type === ViewType.PLUGIN && path) {
+      return `plugin:${path}`
+    }
+    return `${type}:${Date.now()}`
+  }
+
+  /**
+   * 准备视图配置
+   */
+  private prepareViewConfig(viewId: string, params: ViewOperationParams): WebContentsViewConfig {
+    const bounds = this.calculateViewBounds()
+
+    const config: WebContentsViewConfig = {
+      id: viewId,
+      type: params.type,
+      bounds,
+      lifecycle: params.lifecycleStrategy || this.config.defaultLifecycle,
+      webPreferences: {
+        nodeIntegration: true,
+        contextIsolation: true,
+        webSecurity: true
+      },
+      ...params.config
+    }
+
+    // 添加插件元数据
+    if (params.pluginItem) {
+      config.pluginMetadata = {
+        pluginId: params.pluginItem.pluginId,
+        path: params.pluginItem.path,
+        name: params.pluginItem.name
+      }
+    }
+
+    return config
+  }
+
+  /**
+   * 计算视图边界
+   */
+  private calculateViewBounds(): Rectangle {
+    const layout = this.config.layout
+    return {
+      x: layout.contentBounds.x,
+      y: layout.contentBounds.y,
+      width: layout.contentBounds.width,
+      height: layout.contentBounds.height
+    }
+  }
+
+  /**
+   * 处理视图激活
+   */
+  private async handleViewActivated(viewId: string): Promise<void> {
+    this.activeViewId = viewId
+
+    // 更新生命周期管理器的访问时间
+    this.lifecycleManager.updateViewAccess(viewId)
+
+    this.emit('view:activated', {
+      viewId,
+      timestamp: Date.now()
+    })
+  }
+
+  /**
+   * 处理视图切换
+   */
+  private handleViewSwitched(data: any): void {
+    this.activeViewId = data.toViewId
+    this.emit('view:switched', data)
+  }
+
+  /**
+   * 处理重新附加请求
+   */
+  private async handleReattachRequest(data: any): Promise<void> {
+    try {
+      // 这里可以实现重新附加的具体逻辑
+      // 例如重新创建视图并加载内容
+      log.info(`处理重新附加请求: ${data.sourceViewId}`)
+
+      // 触发重新附加完成事件
+      this.emit('view:reattached', {
+        sourceViewId: data.sourceViewId,
+        targetWindowId: data.targetWindowId,
+        timestamp: Date.now()
+      })
+    } catch (error) {
+      log.error('处理重新附加请求失败:', error)
+    }
+  }
+
+  /**
+   * 处理主窗口关闭
+   */
+  private handleMainWindowClosed(): void {
+    log.info('主窗口已关闭')
+
+    this.mainWindow = null
+    this.activeViewId = null
+
+    this.emit('window:main-closed', { timestamp: Date.now() })
+
+    // 清理所有资源
+    this.cleanup()
+  }
+
+  /**
+   * 开始性能监控
+   */
+  private startPerformanceMonitoring(): void {
+    if (!this.options.performanceMonitorInterval) return
+
+    this.performanceTimer = setInterval(() => {
+      this.checkPerformance()
+    }, this.options.performanceMonitorInterval)
+  }
+
+  /**
+   * 检查性能
+   */
+  private checkPerformance(): void {
+    const metrics = this.getPerformanceMetrics()
+    const memoryThreshold = this.options.memoryManagement?.threshold || 1000
+
+    // 检查内存使用
+    if (metrics.memoryUsage > memoryThreshold) {
+      log.warn(`内存使用超过阈值: ${metrics.memoryUsage}MB > ${memoryThreshold}MB`)
+
+      // 触发内存清理
+      this.cleanupBackgroundViews()
+    }
+
+    // 触发性能监控事件
+    this.emit('performance:metrics', {
+      metrics,
+      timestamp: Date.now()
+    })
+  }
+
+  /**
+   * 添加事件监听器
+   */
+  public on(event: string, handler: Function): void {
+    if (!this.eventHandlers.has(event)) {
+      this.eventHandlers.set(event, [])
+    }
+    this.eventHandlers.get(event)!.push(handler)
+  }
+
+  /**
+   * 移除事件监听器
+   */
+  public off(event: string, handler: Function): void {
+    const handlers = this.eventHandlers.get(event)
+    if (handlers) {
+      const index = handlers.indexOf(handler)
+      if (index !== -1) {
+        handlers.splice(index, 1)
+      }
+    }
+  }
+
+  /**
+   * 触发事件
+   */
+  private emit(event: string, data: any): void {
+    const handlers = this.eventHandlers.get(event)
+    if (handlers) {
+      handlers.forEach(handler => {
+        try {
+          handler(data)
+        } catch (error) {
+          log.error(`事件处理器执行失败: ${event}`, error)
+        }
+      })
+    }
+  }
+
+  /**
+   * 清理资源
+   */
+  private cleanup(): void {
+    log.info('清理 NewWindowManager 资源')
+
+    // 停止性能监控
+    if (this.performanceTimer) {
+      clearInterval(this.performanceTimer)
+      this.performanceTimer = undefined
+    }
+
+    // 清理事件处理器
+    this.eventHandlers.clear()
+  }
+
+  /**
+   * 销毁管理器
+   */
+  public destroy(): void {
+    log.info('销毁 NewWindowManager')
+
+    // 清理资源
+    this.cleanup()
+
+    // 销毁子管理器
+    this.lifecycleManager.destroy()
+    this.detachManager.destroy()
+
+    // 重置状态
+    this.mainWindow = null
+    this.activeViewId = null
+    this.isInitialized = false
+
+    // 重置单例
+    NewWindowManager.instance = null as any
+  }
+}

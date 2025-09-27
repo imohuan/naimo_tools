@@ -15,7 +15,7 @@ import archiver from 'archiver';
 /**
  * 获取插件目录路径
  */
-export function getPluginsDirectory(): string {
+export function getPluginsDirectory(event: Electron.IpcMainInvokeEvent): string {
   return join(app.getPath('userData'), 'plugins');
 }
 
@@ -33,7 +33,7 @@ function getPluginConfigPath(pluginPath: string): string {
  * 获取所有已安装的插件（仅第三方插件）
  * @returns 插件信息数组，包含路径和配置文件路径
  */
-export async function getAllInstalledPlugins(): Promise<any[]> {
+export async function getAllInstalledPlugins(event: Electron.IpcMainInvokeEvent): Promise<any[]> {
   try {
     const pluginsDir = getPluginsDirectory();
     const plugins: any[] = [];
@@ -202,7 +202,7 @@ async function copyDirectory(src: string, dest: string): Promise<void> {
  * @param zipPath zip文件路径
  * @returns 插件安装路径，如果安装失败则返回null
  */
-export async function installPluginFromZip(zipPath: string): Promise<{ path: string, configPath: string, isDefault: boolean } | null> {
+export async function installPluginFromZip(event: Electron.IpcMainInvokeEvent, zipPath: string): Promise<{ path: string, configPath: string, isDefault: boolean } | null> {
   try {
     const pluginsDir = getPluginsDirectory();
 
@@ -242,7 +242,7 @@ export async function installPluginFromZip(zipPath: string): Promise<{ path: str
  * @param pluginId 插件ID
  * @returns 是否卸载成功
  */
-export async function uninstallPlugin(pluginId: string): Promise<boolean> {
+export async function uninstallPlugin(event: Electron.IpcMainInvokeEvent, pluginId: string): Promise<boolean> {
   try {
     const pluginsDir = getPluginsDirectory();
     const pluginPath = join(pluginsDir, pluginId);
@@ -269,7 +269,7 @@ export async function uninstallPlugin(pluginId: string): Promise<boolean> {
  * @param outputPath 输出zip文件路径
  * @returns 是否打包成功
  */
-export async function zipDirectory(sourceDir: string, outputPath: string): Promise<boolean> {
+export async function zipDirectory(event: Electron.IpcMainInvokeEvent, sourceDir: string, outputPath: string): Promise<boolean> {
   return new Promise((resolve, reject) => {
     try {
       // 检查源目录是否存在

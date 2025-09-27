@@ -11,11 +11,12 @@ const registeredGlobalShortcuts = new Map<string, string>()
 
 /**
  * 注册全局快捷键
+ * @param event IPC事件对象
  * @param keys 快捷键组合
  * @param callback 回调函数
  * @returns 是否注册成功
  */
-export async function registerGlobalShortcut(keys: string, callback: () => void): Promise<boolean> {
+export async function registerGlobalShortcut(event: Electron.IpcMainInvokeEvent, keys: string, callback: () => void): Promise<boolean> {
   try {
     log.info(`🔧 注册全局快捷键: ${keys}`)
 
@@ -47,10 +48,11 @@ export async function registerGlobalShortcut(keys: string, callback: () => void)
 
 /**
  * 注销全局快捷键
+ * @param event IPC事件对象
  * @param id 快捷键ID
  * @returns 是否注销成功
  */
-export async function unregisterGlobalShortcut(id: string): Promise<boolean> {
+export async function unregisterGlobalShortcut(event: Electron.IpcMainInvokeEvent, id: string): Promise<boolean> {
   try {
     log.info(`🔧 注销全局快捷键: ${id}`)
 
@@ -79,10 +81,11 @@ export async function unregisterGlobalShortcut(id: string): Promise<boolean> {
 
 /**
  * 检查全局快捷键是否已注册
+ * @param event IPC事件对象
  * @param keys 快捷键组合
  * @returns 是否已注册
  */
-export async function isGlobalShortcutRegistered(keys: string): Promise<boolean> {
+export async function isGlobalShortcutRegistered(event: Electron.IpcMainInvokeEvent, keys: string): Promise<boolean> {
   try {
     const isRegistered = globalShortcut.isRegistered(keys)
     log.debug(`🔧 检查快捷键状态: ${keys} -> ${isRegistered ? '已注册' : '未注册'}`)
@@ -97,7 +100,7 @@ export async function isGlobalShortcutRegistered(keys: string): Promise<boolean>
  * 清除所有全局快捷键
  * @returns 是否清除成功
  */
-export async function clearAllGlobalShortcuts(): Promise<boolean> {
+export async function clearAllGlobalShortcuts(event: Electron.IpcMainInvokeEvent): Promise<boolean> {
   try {
     log.info('🔧 清除所有全局快捷键')
 

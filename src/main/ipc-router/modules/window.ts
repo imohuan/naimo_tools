@@ -3,21 +3,82 @@
  * 展示新的 IPC 路由系统使用方式
  */
 
-import { BrowserWindow, screen, globalShortcut } from "electron";
+import { BrowserWindow, screen, globalShortcut, app } from "electron";
 import { dirname, join, resolve } from "path";
 import log from "electron-log";
 import { fileURLToPath } from "url";
+import { getDirname } from "@main/utils";
 import { writeFileSync, readFileSync, mkdirSync } from "fs";
 import { tmpdir } from "os";
 import { AppConfigManager } from "../../config/app.config";
-import { BasicWindowMetadata, WindowType, WindowManager } from "../../config/window-manager";
+// 移除对旧 WindowManager 的依赖，使用新的 NewWindowManager
 const configManager = new AppConfigManager();
-const windowManager = WindowManager.getInstance();
+
+// 简化的兼容性实现 - 临时解决方案
+interface LegacyWindowInfo {
+  id: number;
+  window: BrowserWindow;
+  metadata?: any;
+}
+
+class LegacyWindowManager {
+  public windows: Map<number, LegacyWindowInfo> = new Map();
+
+  registerWindow(window: BrowserWindow, type: any, metadata?: any): void {
+    this.windows.set(window.id, { id: window.id, window, metadata });
+  }
+
+  unregisterWindow(windowId: number): boolean {
+    return this.windows.delete(windowId);
+  }
+
+  setMetadata(windowId: number, metadata: any): void {
+    const windowInfo = this.windows.get(windowId);
+    if (windowInfo) {
+      windowInfo.metadata = { ...windowInfo.metadata, ...metadata };
+    }
+  }
+
+  isWindowVisible(window: BrowserWindow): boolean {
+    return window.getPosition()[0] > 0;
+  }
+
+  show(window: BrowserWindow): void {
+    window.show();
+  }
+
+  hide(window: BrowserWindow): void {
+    window.hide();
+  }
+
+  getWindowsByType(type: any): BrowserWindow[] {
+    return Array.from(this.windows.values()).map(info => info.window);
+  }
+
+  getWindowInfoByType(type: any): LegacyWindowInfo[] {
+    return Array.from(this.windows.values());
+  }
+
+  getMainInfo(): LegacyWindowInfo | undefined {
+    // 简化实现：返回第一个窗口作为主窗口
+    return Array.from(this.windows.values())[0];
+  }
+}
+
+const windowManager = new LegacyWindowManager();
+
+// 窗口类型枚举
+enum WindowType {
+  MAIN = 'main',
+  FOLLOWING = 'following',
+  SEPARATED = 'separated',
+  BACKGROUND = 'background'
+}
 
 /**
  * 最小化窗口
  */
-export function minimize(): void {
+export function minimize(event: Electron.IpcMainInvokeEvent): void {
   const window = BrowserWindow.getFocusedWindow();
   if (window) {
     window.minimize();
@@ -28,7 +89,7 @@ export function minimize(): void {
 /**
  * 最大化/还原窗口
  */
-export function maximize(): void {
+export function maximize(event: Electron.IpcMainInvokeEvent): void {
   const window = BrowserWindow.getFocusedWindow();
   if (window) {
     if (window.isMaximized()) {
@@ -44,7 +105,7 @@ export function maximize(): void {
 /**
  * 关闭窗口
  */
-export function close(): void {
+export function close(event: Electron.IpcMainInvokeEvent): void {
   const window = BrowserWindow.getFocusedWindow();
   if (window) {
     window.close();
@@ -56,7 +117,7 @@ export function close(): void {
  * 切换窗口显示状态
  * @param show 可选参数，指定是否显示窗口。不传则进行toggle
  */
-export function toggleShow(id: number, show?: boolean): void {
+export function toggleShow(event: Electron.IpcMainInvokeEvent, id: number, show?: boolean): void {
   const window = BrowserWindow.fromId(id);
   if (!window) {
     log.warn("没有找到焦点窗口");
@@ -82,7 +143,7 @@ export function toggleShow(id: number, show?: boolean): void {
  * 检查窗口是否最大化
  * @returns 窗口是否最大化
  */
-export function isMaximized(): boolean {
+export function isMaximized(event: Electron.IpcMainInvokeEvent): boolean {
   const window = BrowserWindow.getFocusedWindow();
   return window ? window.isMaximized() : false;
 }
@@ -92,7 +153,7 @@ export function isMaximized(): boolean {
  * @param id 窗口ID
  * @returns 窗口是否显示
  */
-export function isWindowVisible(id: number): boolean {
+export function isWindowVisible(event: Electron.IpcMainInvokeEvent, id: number): boolean {
   const window = BrowserWindow.fromId(id);
   if (!window) {
     return false;
@@ -105,7 +166,7 @@ export function isWindowVisible(id: number): boolean {
  * @param width 窗口宽度
  * @param height 窗口高度
  */
-export function setSize(width: number, height: number): void {
+export function setSize(event: Electron.IpcMainInvokeEvent, width: number, height: number): void {
   const window = BrowserWindow.getFocusedWindow();
   if (window) {
     const [w, h] = window.getSize();
@@ -131,10 +192,40 @@ export function setSize(width: number, height: number): void {
 }
 
 /**
+ * 动态调整窗口高度
+ * 使用前端传递的高度直接设置窗口大小
+ * @param height 前端计算的目标高度
+ */
+export async function adjustHeight(event: Electron.IpcMainInvokeEvent, height: number): Promise<void> {
+  try {
+    // 导入 NewWindowManager（动态导入避免循环依赖）
+    const { NewWindowManager } = await import('../../window/NewWindowManager');
+    const windowManager = NewWindowManager.getInstance();
+
+    // 使用新的动态高度调整方法，直接传递前端计算的高度
+    await windowManager.adjustWindowHeight(height);
+
+    log.debug(`动态调整窗口高度: ${height}px`);
+  } catch (error) {
+    log.error('动态调整窗口高度失败:', error);
+
+    // 回退到传统的设置方法
+    const window = BrowserWindow.getFocusedWindow();
+    if (window) {
+      const bounds = window.getBounds();
+      window.setBounds({
+        ...bounds,
+        height: height
+      });
+    }
+  }
+}
+
+/**
  * 设置窗口是否可调整大小
  * @param resizable 是否可调整大小
  */
-export function setResizable(resizable: boolean, windowId: number): void {
+export function setResizable(event: Electron.IpcMainInvokeEvent, resizable: boolean, windowId: number): void {
   const window = BrowserWindow.fromId(windowId);
   if (window) {
     window.setResizable(resizable);
@@ -145,7 +236,7 @@ export function setResizable(resizable: boolean, windowId: number): void {
 /**
  * 打开日志查看器窗口
  */
-export function openLogViewer(): void {
+export function openLogViewer(event: Electron.IpcMainInvokeEvent): void {
   const __filename = fileURLToPath(import.meta.url);
   const __dirname = dirname(__filename);
 
@@ -170,15 +261,15 @@ export function openLogViewer(): void {
     show: false,
     hasShadow: false, // 移除窗口阴影
     webPreferences: {
-      nodeIntegration: false,
+      nodeIntegration: true,
       contextIsolation: true,
-      preload: join(__dirname, "preloads/basic.js"), // 注入basic.js preload
+      preload: resolve(app.getAppPath(), 'dist/main/preloads/basic.js'), // 注入basic.js preload
       webSecurity: true,
     },
   });
 
   // 加载日志查看器HTML文件
-  const logViewerPath = join(__dirname, "../renderer/log-viewer.html");
+  const logViewerPath = resolve(app.getAppPath(), 'dist/renderer/log-viewer.html');
   logWindow.loadFile(logViewerPath);
 
   // 窗口准备好后显示
@@ -204,7 +295,7 @@ const registeredGlobalShortcuts = new Map<string, string>();
 /**
  * 注册全局快捷键
  */
-export function registerGlobalHotkey(accelerator: string, id: string): boolean {
+export function registerGlobalHotkey(event: Electron.IpcMainInvokeEvent, accelerator: string, id: string): boolean {
   try {
     log.info(`🔧 主进程开始注册全局快捷键: ${accelerator} (${id})`);
 
@@ -256,7 +347,7 @@ export function registerGlobalHotkey(accelerator: string, id: string): boolean {
 /**
  * 注销全局快捷键
  */
-export function unregisterGlobalHotkey(accelerator: string, id: string = "-1"): boolean {
+export function unregisterGlobalHotkey(event: Electron.IpcMainInvokeEvent, accelerator: string, id: string = "-1"): boolean {
   try {
     const cacheAccelerator = registeredGlobalShortcuts.get(id);
     const accelerators: string[] = [cacheAccelerator, accelerator].filter(
@@ -279,7 +370,7 @@ export function unregisterGlobalHotkey(accelerator: string, id: string = "-1"): 
 /**
  * 注销所有全局快捷键
  */
-export function unregisterAllGlobalHotkeys(): void {
+export function unregisterAllGlobalHotkeys(event: Electron.IpcMainInvokeEvent): void {
   try {
     globalShortcut.unregisterAll();
     registeredGlobalShortcuts.clear();
@@ -292,14 +383,14 @@ export function unregisterAllGlobalHotkeys(): void {
 /**
  * 检查快捷键是否已注册
  */
-export function isGlobalHotkeyRegistered(accelerator: string): boolean {
+export function isGlobalHotkeyRegistered(event: Electron.IpcMainInvokeEvent, accelerator: string): boolean {
   return globalShortcut.isRegistered(accelerator);
 }
 
 /**
  * 获取所有已注册的全局快捷键
  */
-export function getAllRegisteredGlobalHotkeys(): Array<{
+export function getAllRegisteredGlobalHotkeys(event: Electron.IpcMainInvokeEvent): Array<{
   id: string;
   accelerator: string;
 }> {
@@ -313,7 +404,7 @@ export function getAllRegisteredGlobalHotkeys(): Array<{
  * 获取UI常量配置
  * @returns UI常量配置对象，包含headerHeight、maxHeight、padding
  */
-export function getUIConstants(): {
+export function getUIConstants(event: Electron.IpcMainInvokeEvent): {
   headerHeight: number;
   maxHeight: number;
   padding: number;
@@ -330,8 +421,20 @@ export function getUIConstants(): {
   } catch (error) {
     log.warn("获取UI常量配置失败，使用默认值:", error);
   }
-  // 返回默认值
-  return { headerHeight: 50, maxHeight: 420, padding: 8 };
+
+  // 使用配置文件中的默认值
+  try {
+    const { DEFAULT_WINDOW_LAYOUT } = require('../../shared/config/window-layout.config');
+    return {
+      headerHeight: DEFAULT_WINDOW_LAYOUT.searchHeaderHeight,
+      maxHeight: DEFAULT_WINDOW_LAYOUT.contentMaxHeight,
+      padding: DEFAULT_WINDOW_LAYOUT.appPadding
+    };
+  } catch (error) {
+    log.warn("加载窗口布局配置失败，使用硬编码默认值:", error);
+    // 最后的备用默认值
+    return { headerHeight: 50, maxHeight: 420, padding: 8 };
+  }
 }
 
 /**
@@ -343,6 +446,7 @@ export function getUIConstants(): {
  * @returns 跟随窗口的最终边界配置
  */
 export function calculateFollowingWindowBounds(
+  event: Electron.IpcMainInvokeEvent,
   mainX: number,
   mainY: number,
   mainWidth: number,
@@ -354,7 +458,7 @@ export function calculateFollowingWindowBounds(
   width: number;
   height: number;
 } {
-  let { headerHeight, maxHeight, padding } = getUIConstants();
+  let { headerHeight, maxHeight, padding } = getUIConstants(event);
   padding += addPadding;
 
   return {
@@ -366,7 +470,7 @@ export function calculateFollowingWindowBounds(
 }
 
 /** 显示所有following类型的窗口 */
-export function showAllFollowingWindows(): void {
+export function showAllFollowingWindows(event: Electron.IpcMainInvokeEvent): void {
   const followingWindows = windowManager.getWindowInfoByType(WindowType.FOLLOWING);
   followingWindows.forEach(followingWindow => {
     if (followingWindow.metadata?.init) {
@@ -379,7 +483,7 @@ export function showAllFollowingWindows(): void {
 /**
  * 隐藏所有following类型的窗口
  */
-export function hideAllFollowingWindows(): void {
+export function hideAllFollowingWindows(event: Electron.IpcMainInvokeEvent): void {
   try {
     const followingWindows = windowManager.getWindowsByType(WindowType.FOLLOWING);
 
@@ -401,7 +505,7 @@ export function hideAllFollowingWindows(): void {
 /**
  * 关闭所有following类型的窗口
  */
-export function closeAllFollowingWindows(): void {
+export function closeAllFollowingWindows(event: Electron.IpcMainInvokeEvent): void {
   try {
     const followingWindows = windowManager.getWindowsByType(WindowType.FOLLOWING);
 
@@ -422,14 +526,14 @@ export function closeAllFollowingWindows(): void {
  * 根据配置隐藏或关闭所有following窗口
  * @param action 操作类型：'hide' 隐藏，'close' 关闭
  */
-export function manageFollowingWindows(action: 'hide' | 'close'): void {
+export function manageFollowingWindows(event: Electron.IpcMainInvokeEvent, action: 'hide' | 'close'): void {
   if (action === 'hide') {
-    hideAllFollowingWindows();
+    hideAllFollowingWindows(event);
   } else if (action === 'close') {
-    closeAllFollowingWindows();
+    closeAllFollowingWindows(event);
   } else {
     log.warn(`未知的操作类型: ${action}，默认执行隐藏操作`);
-    hideAllFollowingWindows();
+    hideAllFollowingWindows(event);
   }
 }
 
@@ -437,7 +541,7 @@ export function manageFollowingWindows(action: 'hide' | 'close'): void {
  * 根据插件信息显示特定的following窗口
  * @param pluginItem 插件项目信息，包含pluginId和名称
  */
-export function showSpecificFollowingWindow(pathId: string): void {
+export function showSpecificFollowingWindow(event: Electron.IpcMainInvokeEvent, pathId: string): void {
   try {
     const followingWindows = windowManager.getWindowInfoByType(WindowType.FOLLOWING);
 
@@ -469,16 +573,90 @@ export function showSpecificFollowingWindow(pathId: string): void {
 }
 
 /**
- * 创建网页显示窗口
+ * 创建网页显示窗口 (重构版本 - 使用 WebContentsView)
  * @param windowId 主窗口ID
  * @param url 要显示的网页URL
  * @param metadata 元数据，包含title、preload等额外信息
+ * @deprecated 此函数正在被新的 showNewView 函数替代
  */
 export async function createWebPageWindow(
+  event: Electron.IpcMainInvokeEvent,
   windowId: number,
   url: string,
-  metadata?: Omit<BasicWindowMetadata, "init" | "parentWindowId" | "url" | "path">
+  metadata?: Record<string, any>
 ): Promise<void> {
+  log.info('⚠️ createWebPageWindow 被调用，转发到新的视图管理系统')
+
+  try {
+    // 确保 NewWindowManager 已初始化
+    if (!newWindowManager) {
+      const initResult = await initializeNewWindowManager(event)
+      if (!initResult.success) {
+        log.error('NewWindowManager 初始化失败，回退到旧版本窗口创建')
+        return createLegacyWebPageWindow(event, windowId, url, metadata)
+      }
+    }
+
+    // 构建插件项目信息
+    const pluginItem: PluginItem | undefined = metadata ? {
+      path: metadata.path || url,
+      name: metadata.name || metadata.title || 'Web Page',
+      icon: metadata.icon || null,
+      pluginId: metadata.pluginId || metadata.path,
+      executeType: PluginExecuteType.SHOW_WEBPAGE,
+      executeParams: { url },
+      closeAction: 'close' // 默认关闭行为
+    } : undefined
+
+    // 使用新的视图系统显示插件
+    const result = await showNewView(event, {
+      type: ViewType.PLUGIN,
+      url,
+      path: metadata?.path,
+      pluginItem,
+      forceNew: false,
+      lifecycleType: metadata?.closeAction === 'hide' ? LifecycleType.BACKGROUND : LifecycleType.FOREGROUND
+    })
+
+    if (result.success) {
+      log.info(`插件视图创建成功: ${result.viewId}`)
+
+      // 通知主渲染进程插件窗口已打开
+      const mainWindow = windowManager.getMainInfo()?.window
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send("plugin-window-opened", {
+          viewId: result.viewId,
+          title: metadata?.title || 'Web Page',
+          path: metadata?.path,
+          url
+        })
+        log.info(`已通知主渲染进程插件视图打开: ${result.viewId}`)
+      }
+    } else {
+      log.error(`插件视图创建失败: ${result.error}，回退到旧版本窗口创建`)
+      return createLegacyWebPageWindow(event, windowId, url, metadata)
+    }
+  } catch (error) {
+    log.error('使用新视图系统创建插件失败:', error)
+    log.info('回退到旧版本窗口创建方式')
+    return createLegacyWebPageWindow(event, windowId, url, metadata)
+  }
+}
+
+/**
+ * 旧版本的网页窗口创建逻辑（作为备用方案）
+ * @param windowId 主窗口ID
+ * @param url 要显示的网页URL
+ * @param metadata 元数据
+ */
+async function createLegacyWebPageWindow(
+  event: Electron.IpcMainInvokeEvent,
+  windowId: number,
+  url: string,
+  metadata?: Record<string, any>
+): Promise<void> {
+  log.info('使用旧版本窗口创建逻辑')
+
   // 获取主窗口位置和大小
   const mainWindow = BrowserWindow.fromId(windowId);
   if (!mainWindow) {
@@ -509,23 +687,15 @@ export async function createWebPageWindow(
   // 检查是否已经有相同URL的网页窗口打开
   const title = metadata?.title || 'Web Page';
 
-  // windowManager.getWindowInfoByType(WindowType.FOLLOWING).forEach(followingWindow => {
-  //   const { name, pluginId } = followingWindow.metadata as any || {}
-  //   if (name === metadata?.name && pluginId === metadata?.pluginId) {
-  //     mainWindow.focus();
-  //     return;
-  //   }
-  // });
-
   const [mainX, mainY] = mainWindow.getPosition();
   const [mainWidth, mainHeight] = mainWindow.getSize();
 
   // 计算网页窗口的位置和大小
   // 使用抽象函数计算最终边界
-  const bounds = calculateFollowingWindowBounds(mainX, mainY, mainWidth, mainHeight, 2);
+  const bounds = calculateFollowingWindowBounds(event, mainX, mainY, mainWidth, mainHeight, 2);
 
   // 默认使用内置 preload 脚本，如果有用户自定义的 preload，则创建组合脚本
-  let preloadScript: string | undefined = join(__dirname, 'preloads', 'webpage-preload.js');
+  let preloadScript: string | undefined = resolve(app.getAppPath(), 'dist/main/preloads/webpage-preload.js');
   if (metadata?.preload) {
     // 如果有用户自定义的 preload，创建组合脚本
     preloadScript = await createCombinedPreloadScript(metadata.preload, preloadScript);
@@ -645,6 +815,559 @@ export async function createWebPageWindow(
   }
 }
 
+// ===== 新窗口管理 API =====
+// 以下是基于 NewWindowManager 的新窗口管理 API
+
+import { NewWindowManager } from '../../window/NewWindowManager'
+import { ViewManager } from '../../window/ViewManager'
+import { ViewType, LifecycleType } from '../../../renderer/src/typings/window-types'
+import type { PluginItem } from '../../../renderer/src/typings/plugin-types'
+import { PluginExecuteType } from '../../../renderer/src/typings/plugin-types'
+import { BaseWindow } from 'electron'
+
+// 创建 NewWindowManager 实例（在需要时初始化）
+let newWindowManager: NewWindowManager | null = null
+
+/**
+ * 初始化新窗口管理器
+ */
+export async function initializeNewWindowManager(event: Electron.IpcMainInvokeEvent): Promise<{ success: boolean; error?: string }> {
+  try {
+    if (newWindowManager) {
+      return { success: true }
+    }
+
+    // 创建默认配置
+    const defaultConfig = {
+      layout: {
+        headerHeight: 60,
+        contentBounds: { x: 0, y: 60, width: 800, height: 540 },
+        totalBounds: { x: 0, y: 0, width: 800, height: 600 },
+        padding: 0
+      },
+      defaultLifecycle: {
+        type: LifecycleType.FOREGROUND,
+        persistOnClose: false,
+        maxIdleTime: 5 * 60 * 1000,
+        memoryThreshold: 100
+      },
+      maxActiveViews: 5,
+      memoryRecycleThreshold: 500,
+      autoRecycleInterval: 30 * 1000
+    }
+
+    newWindowManager = NewWindowManager.getInstance(defaultConfig)
+    await newWindowManager.initialize()
+
+    log.info('NewWindowManager 初始化成功')
+    return { success: true }
+  } catch (error) {
+    log.error('NewWindowManager 初始化失败:', error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : '未知错误'
+    }
+  }
+}
+
+/**
+ * 创建主窗口（新架构）
+ */
+export async function createNewMainWindow(event: Electron.IpcMainInvokeEvent): Promise<{ success: boolean; windowId?: number; error?: string }> {
+  try {
+    if (!newWindowManager) {
+      const initResult = await initializeNewWindowManager(event)
+      if (!initResult.success) {
+        return initResult
+      }
+    }
+
+    const config = configManager.getConfig()
+    const result = await newWindowManager!.createMainWindow(config)
+
+    if (result.success && result.windowId) {
+      log.info(`新主窗口创建成功，ID: ${result.windowId}`)
+      return { success: true, windowId: result.windowId }
+    } else {
+      return { success: false, error: result.error }
+    }
+  } catch (error) {
+    log.error('创建新主窗口失败:', error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : '未知错误'
+    }
+  }
+}
+
+/**
+ * 显示视图（新架构）
+ */
+export async function showNewView(event: Electron.IpcMainInvokeEvent, params: {
+  type: ViewType
+  path?: string
+  url?: string
+  pluginItem?: PluginItem
+  forceNew?: boolean
+  lifecycleType?: LifecycleType
+}): Promise<{ success: boolean; viewId?: string; error?: string }> {
+  try {
+    if (!newWindowManager) {
+      const initResult = await initializeNewWindowManager(event)
+      if (!initResult.success) {
+        return initResult
+      }
+    }
+
+    const viewParams = {
+      type: params.type,
+      config: {
+        path: params.path,
+        url: params.url
+      },
+      pluginItem: params.pluginItem,
+      forceNew: params.forceNew || false,
+      lifecycleStrategy: params.lifecycleType ? {
+        type: params.lifecycleType,
+        persistOnClose: params.lifecycleType === LifecycleType.BACKGROUND,
+        maxIdleTime: 5 * 60 * 1000,
+        memoryThreshold: 100
+      } : undefined
+    }
+
+    const result = await newWindowManager!.showView(viewParams)
+
+    if (result.success && result.viewId) {
+      log.info(`视图显示成功，ID: ${result.viewId}`)
+      return { success: true, viewId: result.viewId }
+    } else {
+      return { success: false, error: result.error }
+    }
+  } catch (error) {
+    log.error('显示视图失败:', error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : '未知错误'
+    }
+  }
+}
+
+/**
+ * 隐藏视图（新架构）
+ */
+export async function hideNewView(event: Electron.IpcMainInvokeEvent, viewId: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    if (!newWindowManager) {
+      return { success: false, error: 'NewWindowManager 未初始化' }
+    }
+
+    const result = await newWindowManager.hideView(viewId)
+
+    if (result.success) {
+      log.info(`视图隐藏成功，ID: ${viewId}`)
+      return { success: true }
+    } else {
+      return { success: false, error: result.error }
+    }
+  } catch (error) {
+    log.error('隐藏视图失败:', error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : '未知错误'
+    }
+  }
+}
+
+/**
+ * 移除视图（新架构）
+ */
+export async function removeNewView(event: Electron.IpcMainInvokeEvent, viewId: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    if (!newWindowManager) {
+      return { success: false, error: 'NewWindowManager 未初始化' }
+    }
+
+    const result = await newWindowManager.removeView(viewId)
+
+    if (result.success) {
+      log.info(`视图移除成功，ID: ${viewId}`)
+      return { success: true }
+    } else {
+      return { success: false, error: result.error }
+    }
+  } catch (error) {
+    log.error('移除视图失败:', error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : '未知错误'
+    }
+  }
+}
+
+/**
+ * 切换到视图（新架构）
+ */
+export async function switchToNewView(event: Electron.IpcMainInvokeEvent, viewId: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    if (!newWindowManager) {
+      return { success: false, error: 'NewWindowManager 未初始化' }
+    }
+
+    const result = await newWindowManager.switchToView(viewId)
+
+    if (result.success) {
+      log.info(`切换到视图成功，ID: ${viewId}`)
+      return { success: true }
+    } else {
+      return { success: false, error: result.error }
+    }
+  } catch (error) {
+    log.error('切换视图失败:', error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : '未知错误'
+    }
+  }
+}
+
+/**
+ * 分离视图（新架构）
+ */
+export async function detachNewView(event: Electron.IpcMainInvokeEvent, viewId: string, config?: {
+  title?: string
+  width?: number
+  height?: number
+  showControlBar?: boolean
+}): Promise<{ success: boolean; detachedWindowId?: number; error?: string }> {
+  try {
+    if (!newWindowManager) {
+      return { success: false, error: 'NewWindowManager 未初始化' }
+    }
+
+    const detachConfig = config ? {
+      title: config.title,
+      bounds: config.width && config.height ? {
+        x: 0, y: 0, width: config.width, height: config.height
+      } : undefined,
+      showControlBar: config.showControlBar !== false,
+      sourceViewId: viewId
+    } : undefined
+
+    const result = await newWindowManager.detachView(viewId, detachConfig)
+
+    if (result.success && result.data?.detachedWindowId) {
+      log.info(`视图分离成功，ID: ${viewId}, 窗口ID: ${result.data.detachedWindowId}`)
+      return { success: true, detachedWindowId: result.data.detachedWindowId }
+    } else {
+      return { success: false, error: result.error }
+    }
+  } catch (error) {
+    log.error('分离视图失败:', error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : '未知错误'
+    }
+  }
+}
+
+/**
+ * 重新附加视图（新架构）
+ */
+export async function reattachNewView(event: Electron.IpcMainInvokeEvent, detachedWindowId: number): Promise<{ success: boolean; error?: string }> {
+  try {
+    if (!newWindowManager) {
+      return { success: false, error: 'NewWindowManager 未初始化' }
+    }
+
+    const result = await newWindowManager.reattachView(detachedWindowId)
+
+    if (result.success) {
+      log.info(`视图重新附加成功，窗口ID: ${detachedWindowId}`)
+      return { success: true }
+    } else {
+      return { success: false, error: result.error }
+    }
+  } catch (error) {
+    log.error('重新附加视图失败:', error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : '未知错误'
+    }
+  }
+}
+
+/**
+ * 获取活跃视图信息（新架构）
+ */
+export function getActiveNewView(event: Electron.IpcMainInvokeEvent): { success: boolean; viewInfo?: any; error?: string } {
+  try {
+    if (!newWindowManager) {
+      return { success: false, error: 'NewWindowManager 未初始化' }
+    }
+
+    const viewInfo = newWindowManager.getActiveView()
+
+    return {
+      success: true,
+      viewInfo: viewInfo ? {
+        id: viewInfo.id,
+        type: viewInfo.config.type,
+        isVisible: viewInfo.state.isVisible,
+        isActive: viewInfo.state.isActive,
+        createdAt: viewInfo.createdAt,
+        config: viewInfo.config
+      } : null
+    }
+  } catch (error) {
+    log.error('获取活跃视图失败:', error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : '未知错误'
+    }
+  }
+}
+
+/**
+ * 获取所有视图信息（新架构）
+ */
+export function getAllNewViews(event: Electron.IpcMainInvokeEvent): { success: boolean; views?: any[]; error?: string } {
+  try {
+    if (!newWindowManager) {
+      return { success: false, error: 'NewWindowManager 未初始化' }
+    }
+
+    const views = newWindowManager.getAllViews()
+
+    return {
+      success: true,
+      views: views.map(viewInfo => ({
+        id: viewInfo.id,
+        type: viewInfo.config.type,
+        isVisible: viewInfo.state.isVisible,
+        isActive: viewInfo.state.isActive,
+        createdAt: viewInfo.createdAt,
+        config: viewInfo.config
+      }))
+    }
+  } catch (error) {
+    log.error('获取所有视图失败:', error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : '未知错误'
+    }
+  }
+}
+
+/**
+ * 获取窗口管理器性能指标（新架构）
+ */
+export function getNewWindowManagerMetrics(event: Electron.IpcMainInvokeEvent): { success: boolean; metrics?: any; error?: string } {
+  try {
+    if (!newWindowManager) {
+      return { success: false, error: 'NewWindowManager 未初始化' }
+    }
+
+    const metrics = newWindowManager.getPerformanceMetrics()
+    const statistics = newWindowManager.getStatistics()
+
+    return {
+      success: true,
+      metrics: {
+        performance: metrics,
+        statistics
+      }
+    }
+  } catch (error) {
+    log.error('获取性能指标失败:', error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : '未知错误'
+    }
+  }
+}
+
+/**
+ * 清理后台视图（新架构）
+ */
+export async function cleanupNewBackgroundViews(event: Electron.IpcMainInvokeEvent): Promise<{ success: boolean; report?: any; error?: string }> {
+  try {
+    if (!newWindowManager) {
+      return { success: false, error: 'NewWindowManager 未初始化' }
+    }
+
+    await newWindowManager.cleanupBackgroundViews()
+
+    log.info('后台视图清理完成')
+    return { success: true }
+  } catch (error) {
+    log.error('清理后台视图失败:', error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : '未知错误'
+    }
+  }
+}
+
+/**
+ * 更新窗口管理器配置（新架构）
+ */
+export function updateNewWindowManagerConfig(event: Electron.IpcMainInvokeEvent, config: {
+  memoryRecycleThreshold?: number
+  autoRecycleInterval?: number
+  maxActiveViews?: number
+}): { success: boolean; error?: string } {
+  try {
+    if (!newWindowManager) {
+      return { success: false, error: 'NewWindowManager 未初始化' }
+    }
+
+    newWindowManager.updateConfig(config)
+
+    log.info('窗口管理器配置更新成功')
+    return { success: true }
+  } catch (error) {
+    log.error('更新配置失败:', error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : '未知错误'
+    }
+  }
+}
+
+/**
+ * 销毁窗口管理器（新架构）
+ */
+export function destroyNewWindowManager(event: Electron.IpcMainInvokeEvent): { success: boolean; error?: string } {
+  try {
+    if (newWindowManager) {
+      newWindowManager.destroy()
+      newWindowManager = null
+      log.info('NewWindowManager 已销毁')
+    }
+
+    return { success: true }
+  } catch (error) {
+    log.error('销毁窗口管理器失败:', error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : '未知错误'
+    }
+  }
+}
+
+/**
+ * 创建插件视图（新架构专用）
+ * 这是一个为插件系统优化的便利函数
+ */
+export async function createPluginView(event: Electron.IpcMainInvokeEvent, params: {
+  path: string
+  pluginId?: string
+  name?: string
+  title?: string
+  url?: string
+  closeAction?: 'hide' | 'close'
+  executeParams?: any
+  preload?: string
+}): Promise<{ success: boolean; viewId?: string; error?: string }> {
+  try {
+    if (!newWindowManager) {
+      const initResult = await initializeNewWindowManager(event)
+      if (!initResult.success) {
+        return { success: false, error: initResult.error }
+      }
+    }
+
+    // 构建插件项目信息
+    const pluginItem: PluginItem = {
+      path: params.path,
+      name: params.name || params.title || 'Plugin',
+      icon: null, // 暂时设为null，后续可以根据需要设置
+      pluginId: params.pluginId || params.path,
+      executeType: params.url ? PluginExecuteType.SHOW_WEBPAGE : PluginExecuteType.CUSTOM_CODE,
+      executeParams: params.executeParams || (params.url ? { url: params.url } : {}),
+      closeAction: params.closeAction || 'close'
+    }
+
+    // 确定生命周期类型
+    const lifecycleType = params.closeAction === 'hide'
+      ? LifecycleType.BACKGROUND
+      : LifecycleType.FOREGROUND
+
+    const result = await showNewView(event, {
+      type: ViewType.PLUGIN,
+      url: params.url,
+      path: params.path,
+      pluginItem,
+      forceNew: false,
+      lifecycleType
+    })
+
+    if (result.success) {
+      log.info(`插件视图创建成功: ${result.viewId} (${params.name || params.path})`)
+
+      // 通知主渲染进程插件视图已打开
+      const mainWindow = windowManager.getMainInfo()?.window
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send("plugin-view-opened", {
+          viewId: result.viewId,
+          path: params.path,
+          pluginId: params.pluginId,
+          name: params.name,
+          title: params.title,
+          url: params.url
+        })
+        log.debug(`已通知主渲染进程插件视图打开: ${result.viewId}`)
+      }
+
+      return { success: true, viewId: result.viewId }
+    } else {
+      return { success: false, error: result.error }
+    }
+  } catch (error) {
+    log.error('创建插件视图失败:', error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : '未知错误'
+    }
+  }
+}
+
+/**
+ * 关闭插件视图（新架构专用）
+ */
+export async function closePluginView(event: Electron.IpcMainInvokeEvent, viewId: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    if (!newWindowManager) {
+      return { success: false, error: 'NewWindowManager 未初始化' }
+    }
+
+    const result = await newWindowManager.removeView(viewId)
+
+    if (result.success) {
+      log.info(`插件视图关闭成功: ${viewId}`)
+
+      // 通知主渲染进程插件视图已关闭
+      const mainWindow = windowManager.getMainInfo()?.window
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send("plugin-view-closed", {
+          viewId
+        })
+        log.debug(`已通知主渲染进程插件视图关闭: ${viewId}`)
+      }
+
+      return { success: true }
+    } else {
+      return { success: false, error: result.error }
+    }
+  } catch (error) {
+    log.error('关闭插件视图失败:', error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : '未知错误'
+    }
+  }
+}
+
 /**
  * 创建组合的 preload 脚本
  * 将内置 preload 和用户自定义 preload 合并
@@ -684,4 +1407,147 @@ ${builtinPreloadContent}
     // 如果失败，回退到内置 preload
     return defaultPreloadPath
   }
+}
+
+/**
+ * 创建设置页面 WebContentsView
+ */
+export async function createSettingsView(event: Electron.IpcMainInvokeEvent): Promise<{ success: boolean; viewId?: string; error?: string }> {
+  try {
+    if (!newWindowManager) {
+      const initResult = await initializeNewWindowManager(event)
+      if (!initResult.success) {
+        return { success: false, error: initResult.error }
+      }
+    }
+
+    log.info('通过 IPC 创建设置页面 WebContentsView')
+
+    const result = await newWindowManager!.createSettingsView()
+
+    if (result.success) {
+      log.info(`设置页面创建成功: ${result.viewId}`)
+      return {
+        success: true,
+        viewId: result.viewId
+      }
+    } else {
+      log.error(`设置页面创建失败: ${result.error}`)
+      return {
+        success: false,
+        error: result.error
+      }
+    }
+  } catch (error) {
+    log.error('创建设置页面时发生错误:', error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : '未知错误'
+    }
+  }
+}
+
+/**
+ * 关闭设置页面 WebContentsView
+ */
+export async function closeSettingsView(event: Electron.IpcMainInvokeEvent): Promise<{ success: boolean; error?: string }> {
+  try {
+    if (!newWindowManager) {
+      return { success: false, error: 'NewWindowManager 未初始化' }
+    }
+
+    log.info('通过 IPC 关闭设置页面 WebContentsView')
+
+    const result = await newWindowManager.closeSettingsView()
+
+    if (result.success) {
+      log.info('设置页面关闭成功')
+      return { success: true }
+    } else {
+      log.error(`设置页面关闭失败: ${result.error}`)
+      return {
+        success: false,
+        error: result.error
+      }
+    }
+  } catch (error) {
+    log.error('关闭设置页面时发生错误:', error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : '未知错误'
+    }
+  }
+}
+
+/**
+ * 获取当前WebContentsView的完整信息
+ * 通过webContents查找对应的WebContentsViewInfo，并返回序列化后的信息
+ * @param event IPC事件对象
+ * @returns 序列化后的视图信息，如果找不到则返回null
+ */
+export function getCurrentViewInfo(event: Electron.IpcMainInvokeEvent): {
+  id: string;
+  parentWindowId: number;
+  config: any;
+  state: {
+    isVisible: boolean;
+    isActive: boolean;
+    lastAccessTime: number;
+    memoryUsage?: number;
+  };
+  createdAt: string; // 序列化为ISO字符串
+} | null {
+  try {
+    const webContents = event.sender;
+
+    // 获取ViewManager实例并遍历所有视图
+    const viewManager = ViewManager.getInstance();
+    const allViews = viewManager.getAllViews();
+
+    for (const viewInfo of allViews) {
+      if (viewInfo.view.webContents === webContents) {
+        // 找到匹配的WebContentsView，返回序列化后的信息
+        log.debug(`找到当前WebContentsView: ${viewInfo.id}, 父窗口ID: ${viewInfo.parentWindowId}`);
+
+        return {
+          id: viewInfo.id,
+          parentWindowId: viewInfo.parentWindowId,
+          config: viewInfo.config,
+          state: {
+            isVisible: viewInfo.state.isVisible,
+            isActive: viewInfo.state.isActive,
+            lastAccessTime: viewInfo.state.lastAccessTime,
+            memoryUsage: viewInfo.state.memoryUsage
+          },
+          createdAt: viewInfo.createdAt.toISOString()
+        };
+      }
+    }
+
+    log.warn('无法找到当前webContents对应的视图信息');
+    return null;
+  } catch (error) {
+    log.error('获取当前视图信息时发生错误:', error);
+    return null;
+  }
+}
+
+/**
+ * 获取当前窗口ID（兼容性函数）
+ * @param event IPC事件对象
+ * @returns 窗口ID，如果找不到则返回null
+ */
+export function getCurrentWindowId(event: Electron.IpcMainInvokeEvent): number | null {
+  const viewInfo = getCurrentViewInfo(event);
+  return viewInfo ? viewInfo.parentWindowId : null;
+}
+
+/**
+ * 获取当前WebContentsView ID（兼容性函数）
+ * @param event IPC事件对象
+ * @returns 视图ID，如果找不到则返回null
+ */
+export function getCurrentViewId(event: Electron.IpcMainInvokeEvent): string | null {
+  const viewInfo = getCurrentViewInfo(event);
+  return viewInfo ? viewInfo.id : null;
 }

@@ -70,7 +70,7 @@ export class IpcRouter {
 
       try {
         log.debug(`IPC 调用开始: ${routeInfo}`, args);
-        const result = await handler(...args);
+        const result = await handler(event, ...args);
         const duration = Date.now() - startTime;
         log.debug(`IPC 调用完成: ${routeInfo} (${duration}ms)`);
         return result;

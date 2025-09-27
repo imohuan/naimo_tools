@@ -813,7 +813,7 @@ class DevServerManager {
           console.error('❌ Electron 启动错误:', error);
         }
       });
-    }, 500);
+    }, 1000);
   }
 
   /**

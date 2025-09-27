@@ -20,6 +20,7 @@ const emit = defineEmits<{
 
 // 响应式数据
 const draggableElement = ref<HTMLElement>();
+let windowId = 1
 
 // --- 修正后的拖拽状态变量 ---
 // 我们需要在 mousedown 时捕获窗口和鼠标的初始位置
@@ -53,8 +54,9 @@ const move = (event: MouseEvent) => {
 
   // 3. 将计算出的新位置发送给主进程
   // 注意：宽度和高度在拖拽时不应改变，所以直接使用初始值
+
   naimo.sendTo.windowMove(
-    window.id!,
+    windowId,
     Math.round(newX),
     Math.round(newY),
     initialWindowPos.width,
@@ -107,6 +109,11 @@ const handleMouseUp = (event: MouseEvent) => {
   document.removeEventListener("mouseup", handleMouseUp); // 修正：mouseup 也应该在 document 上移除
   moveIng = false;
 };
+
+naimo.router.windowGetCurrentViewInfo().then(res => {
+  if (!res) return;
+  windowId = res.parentWindowId;
+});
 </script>
 
 <style scoped>

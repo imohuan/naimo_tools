@@ -10,7 +10,7 @@ import log from "electron-log";
  * 读取剪切板文本内容
  * @returns 剪切板中的文本内容
  */
-export function readText(): string {
+export function readText(event: Electron.IpcMainInvokeEvent): string {
   try {
     const text = clipboard.readText();
     log.info("📋 读取剪切板文本成功");
@@ -23,10 +23,11 @@ export function readText(): string {
 
 /**
  * 写入文本到剪切板
+ * @param event IPC事件对象
  * @param text 要写入的文本
  * @returns 是否写入成功
  */
-export function writeText(text: string): boolean {
+export function writeText(event: Electron.IpcMainInvokeEvent, text: string): boolean {
   try {
     clipboard.writeText(text);
     log.info("📋 写入剪切板文本成功");
@@ -41,7 +42,7 @@ export function writeText(text: string): boolean {
  * 清空剪切板
  * @returns 是否清空成功
  */
-export function clear(): boolean {
+export function clear(event: Electron.IpcMainInvokeEvent): boolean {
   try {
     clipboard.clear();
     log.info("📋 清空剪切板成功");
@@ -56,7 +57,7 @@ export function clear(): boolean {
  * 检查剪切板是否有文本内容
  * @returns 是否有文本内容
  */
-export function hasText(): boolean {
+export function hasText(event: Electron.IpcMainInvokeEvent): boolean {
   try {
     const text = clipboard.readText();
     return text.trim().length > 0;
@@ -70,7 +71,7 @@ export function hasText(): boolean {
  * 检测剪切板内容是否为中文
  * @returns 是否包含中文字符
  */
-export function hasChineseText(): boolean {
+export function hasChineseText(event: Electron.IpcMainInvokeEvent): boolean {
   try {
     const text = clipboard.readText();
     // 使用正则表达式检测中文字符
@@ -87,7 +88,7 @@ export function hasChineseText(): boolean {
  * 如果剪切板中包含中文，返回文本；否则返回空字符串
  * @returns 中文文本或空字符串
  */
-export function getChineseText(): string {
+export function getChineseText(event: Electron.IpcMainInvokeEvent): string {
   try {
     const text = clipboard.readText();
     const chineseRegex = /[\u4e00-\u9fff]/;
@@ -109,7 +110,7 @@ export function getChineseText(): string {
  * 检查剪切板是否有图片内容
  * @returns 是否有图片内容
  */
-export function hasImage(): boolean {
+export function hasImage(event: Electron.IpcMainInvokeEvent): boolean {
   try {
     const image = clipboard.readImage();
     return !image.isEmpty();
@@ -123,7 +124,7 @@ export function hasImage(): boolean {
  * 读取剪切板图片内容并转换为base64
  * @returns base64格式的图片数据，如果没有图片则返回null
  */
-export function readImageAsBase64(): string | null {
+export function readImageAsBase64(event: Electron.IpcMainInvokeEvent): string | null {
   try {
     const image = clipboard.readImage();
     if (image.isEmpty()) {
@@ -143,10 +144,11 @@ export function readImageAsBase64(): string | null {
 
 /**
  * 写入图片到剪切板
+ * @param event IPC事件对象
  * @param imageData base64格式的图片数据
  * @returns 是否写入成功
  */
-export function writeImage(imageData: string): boolean {
+export function writeImage(event: Electron.IpcMainInvokeEvent, imageData: string): boolean {
   try {
     // 移除data:image/png;base64,前缀
     const base64Data = imageData.replace(/^data:image\/[a-z]+;base64,/, '');

@@ -68,8 +68,8 @@ export default defineConfig({
         ...builtinModules
       ],
       output: {
-        format: 'cjs',
-        entryFileNames: '[name].js',
+        format: 'cjs', // 改为 CommonJS 格式
+        entryFileNames: '[name].js', // 使用 .js 扩展名
         // chunkFileNames: '[name].js',
         exports: 'auto',
         sourcemapExcludeSources: true, // 包含源代码在source map中
