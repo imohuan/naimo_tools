@@ -1,0 +1,14 @@
+{
+  "filePath": ".spec-workflow/steering/structure.md",
+  "currentVersion": 1,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2025-09-27T03:36:12.946Z",
+      "trigger": "approved",
+      "approvalId": "approval_1758943983983_structure",
+      "approvalTitle": "Naimo 结构文档审批"
+    }
+  ]
+}

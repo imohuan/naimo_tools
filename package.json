@@ -24,7 +24,8 @@
     "version:tag": "node scripts/version.js patch",
     "add-sync-origin": "git remote add upstream https://github.com/imohuan/electron-vue3-template.git",
     "sync": "git fetch upstream && git merge upstream/main",
-    "sync:allow": "git fetch upstream && git merge upstream/main --allow-unrelated-histories"
+    "sync:allow": "git fetch upstream && git merge upstream/main --allow-unrelated-histories",
+    "ai_ui": "npx -y @pimzino/spec-workflow-mcp@latest E:\\Code\\Git\\naimo_tools --dashboard"
   },
   "keywords": [
     "electron",

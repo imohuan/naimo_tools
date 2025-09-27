@@ -1,0 +1,27 @@
+{
+  "id": "approval_1758944757070_abm76mzhb",
+  "title": "窗口管理重构 - 设计文档",
+  "filePath": ".spec-workflow/specs/window-management-refactor/design.md",
+  "type": "document",
+  "status": "needs-revision",
+  "createdAt": "2025-09-27T03:45:57.070Z",
+  "category": "spec",
+  "categoryName": "window-management-refactor",
+  "response": "Feedback Summary (1 comments):\n\nSpecific Text Comments:\n1. \"graph TD\n    A[BaseWindow 主窗口] --> B[搜索头部区域 - 固定]\n...\": 搜索结果一个作为主窗口中的内容，无需插件一个单独的WebContentsView\n",
+  "annotations": "{\n  \"decision\": \"needs-revision\",\n  \"comments\": [\n    {\n      \"type\": \"selection\",\n      \"comment\": \"搜索结果一个作为主窗口中的内容，无需插件一个单独的WebContentsView\",\n      \"timestamp\": \"2025-09-27T03:48:02.404Z\",\n      \"selectedText\": \"graph TD\\n    A[BaseWindow 主窗口] --> B[搜索头部区域 - 固定]\\n    A --> C[内容区域 - 动态]\\n    C --> D[WebContentsView - 设置]\\n    C --> E[WebContentsView - 插件]\\n    C --> F[WebContentsView - 搜索结果]\",\n      \"highlightColor\": {\n        \"bg\": \"rgba(255, 235, 59, 0.3)\",\n        \"border\": \"#FFEB3B\",\n        \"name\": \"#ffeb3b\"\n      },\n      \"id\": \"comment_1758944882404_pi5mmp9oa\"\n    }\n  ],\n  \"summary\": \"Feedback Summary (1 comments):\\n\\nSpecific Text Comments:\\n1. \\\"graph TD\\n    A[BaseWindow 主窗口] --> B[搜索头部区域 - 固定]\\n...\\\": 搜索结果一个作为主窗口中的内容，无需插件一个单独的WebContentsView\\n\",\n  \"timestamp\": \"2025-09-27T03:48:33.022Z\"\n}",
+  "respondedAt": "2025-09-27T03:48:33.347Z",
+  "comments": [
+    {
+      "type": "selection",
+      "comment": "搜索结果一个作为主窗口中的内容，无需插件一个单独的WebContentsView",
+      "timestamp": "2025-09-27T03:48:02.404Z",
+      "selectedText": "graph TD\n    A[BaseWindow 主窗口] --> B[搜索头部区域 - 固定]\n    A --> C[内容区域 - 动态]\n    C --> D[WebContentsView - 设置]\n    C --> E[WebContentsView - 插件]\n    C --> F[WebContentsView - 搜索结果]",
+      "highlightColor": {
+        "bg": "rgba(255, 235, 59, 0.3)",
+        "border": "#FFEB3B",
+        "name": "#ffeb3b"
+      },
+      "id": "comment_1758944882404_pi5mmp9oa"
+    }
+  ]
+}

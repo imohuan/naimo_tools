@@ -1,0 +1,21 @@
+{
+  "id": "approval_1758944242158_tzzu1xnd6",
+  "title": "Window Management Refactor - Requirements Document",
+  "filePath": ".spec-workflow/specs/window-management-refactor/requirements.md",
+  "type": "document",
+  "status": "needs-revision",
+  "createdAt": "2025-09-27T03:37:22.158Z",
+  "category": "spec",
+  "categoryName": "window-management-refactor",
+  "response": "Feedback Summary (1 comments):\n\nGeneral Comments:\n1. 使用中文\n\n",
+  "annotations": "{\n  \"decision\": \"needs-revision\",\n  \"comments\": [\n    {\n      \"type\": \"general\",\n      \"comment\": \"使用中文\",\n      \"timestamp\": \"2025-09-27T03:38:11.880Z\",\n      \"id\": \"comment_1758944291880_7nwaiuuu0\"\n    }\n  ],\n  \"summary\": \"Feedback Summary (1 comments):\\n\\nGeneral Comments:\\n1. 使用中文\\n\\n\",\n  \"timestamp\": \"2025-09-27T03:38:16.408Z\"\n}",
+  "respondedAt": "2025-09-27T03:38:16.422Z",
+  "comments": [
+    {
+      "type": "general",
+      "comment": "使用中文",
+      "timestamp": "2025-09-27T03:38:11.880Z",
+      "id": "comment_1758944291880_7nwaiuuu0"
+    }
+  ]
+}

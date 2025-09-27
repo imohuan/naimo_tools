@@ -1,0 +1,30 @@
+{
+  "filePath": ".spec-workflow/specs/window-management-refactor/design.md",
+  "currentVersion": 3,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2025-09-27T03:45:57.076Z",
+      "trigger": "initial",
+      "approvalId": "approval_1758944757070_abm76mzhb",
+      "approvalTitle": "窗口管理重构 - 设计文档"
+    },
+    {
+      "version": 2,
+      "filename": "snapshot-002.json",
+      "timestamp": "2025-09-27T03:48:33.333Z",
+      "trigger": "revision_requested",
+      "approvalId": "approval_1758944757070_abm76mzhb",
+      "approvalTitle": "窗口管理重构 - 设计文档"
+    },
+    {
+      "version": 3,
+      "filename": "snapshot-003.json",
+      "timestamp": "2025-09-27T03:49:08.015Z",
+      "trigger": "approved",
+      "approvalId": "approval_1758944945619_hcnjuzejd",
+      "approvalTitle": "窗口管理重构 - 设计文档（修订版）"
+    }
+  ]
+}

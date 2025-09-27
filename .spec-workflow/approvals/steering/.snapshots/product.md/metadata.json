@@ -1,0 +1,22 @@
+{
+  "filePath": ".spec-workflow/steering/product.md",
+  "currentVersion": 2,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2025-09-27T03:15:31.143Z",
+      "trigger": "initial",
+      "approvalId": "approval_1758942931134_6yqr299lk",
+      "approvalTitle": "Naimo 产品文档审批"
+    },
+    {
+      "version": 2,
+      "filename": "snapshot-002.json",
+      "timestamp": "2025-09-27T03:21:53.809Z",
+      "trigger": "approved",
+      "approvalId": "approval_1758942931134_6yqr299lk",
+      "approvalTitle": "Naimo 产品文档审批"
+    }
+  ]
+}
