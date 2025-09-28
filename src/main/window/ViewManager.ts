@@ -42,6 +42,10 @@ export class ViewManager {
   private constructor() {
     this.baseWindowController = BaseWindowController.getInstance()
     this.detachManager = DetachManager.getInstance()
+
+    // 设置 DetachManager 的 ViewManager 引用（避免循环依赖）
+    this.detachManager.setViewManager(this)
+
     this.initializeEventHandlers()
     this.setupDetachManagerEvents()
   }
@@ -1228,6 +1232,64 @@ export class ViewManager {
       return {
         success: false,
         windowId,
+        error: error instanceof Error ? error.message : '未知错误'
+      }
+    }
+  }
+
+  /**
+   * 更新视图的父窗口ID
+   * @param viewId 视图ID
+   * @param newParentWindowId 新的父窗口ID
+   * @returns 操作结果
+   */
+  public updateViewParentWindow(viewId: string, newParentWindowId: number): ViewOperationResult {
+    try {
+      const viewInfo = this.views.get(viewId)
+      if (!viewInfo) {
+        return {
+          success: false,
+          viewId,
+          error: '视图不存在'
+        }
+      }
+
+      const oldParentWindowId = viewInfo.parentWindowId
+
+      // 更新视图信息中的父窗口ID
+      viewInfo.parentWindowId = newParentWindowId
+
+      // 从旧窗口的视图映射中移除
+      this.removeViewFromWindow(oldParentWindowId, viewId)
+
+      // 添加到新窗口的视图映射中
+      this.addViewToWindow(newParentWindowId, viewId)
+
+      // 如果该视图是旧窗口的活跃视图，清除活跃状态
+      if (this.activeViews.get(oldParentWindowId) === viewId) {
+        this.activeViews.delete(oldParentWindowId)
+      }
+
+      log.info(`视图父窗口ID已更新: ${viewId}, ${oldParentWindowId} -> ${newParentWindowId}`)
+
+      // 触发事件
+      this.emit('view:parent-window-updated', {
+        viewId,
+        oldParentWindowId,
+        newParentWindowId,
+        timestamp: Date.now()
+      })
+
+      return {
+        success: true,
+        viewId,
+        data: { oldParentWindowId, newParentWindowId }
+      }
+    } catch (error) {
+      log.error(`更新视图父窗口ID失败: ${viewId}`, error)
+      return {
+        success: false,
+        viewId,
         error: error instanceof Error ? error.message : '未知错误'
       }
     }

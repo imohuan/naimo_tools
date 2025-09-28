@@ -223,11 +223,11 @@ const pluginStore = usePluginStore();
 
 // ==================== 界面状态管理 ====================
 /**
- * 窗口管理器 - 负责窗口大小设置和跟随窗口管理
+ * 窗口管理器 - 负责窗口大小设置和显示隐藏
  */
-const { setSize, manageFollowingWindows, openCurrentItemFollowingWindow, isWindowVisible, show: handleWindowShow, hide } = useWindowManager();
-const show = (pluginItem: PluginItem | null) => {
-  handleWindowShow(pluginItem)
+const { setSize, isWindowVisible, show: handleWindowShow, hide } = useWindowManager();
+const show = () => {
+  handleWindowShow()
   contentAreaRef.value?.handleResize()
 }
 
@@ -391,11 +391,11 @@ const handleWindowResize = async (height: number) => {
 
 /**
  * 关闭插件窗口
- * @param action 关闭动作类型：'hide' 隐藏 | 'close' 关闭
+ * @param _action 关闭动作类型：'hide' 隐藏 | 'close' 关闭（在新架构中不再使用）
  */
-const handleClosePluginWindow = (action?: 'hide' | 'close') => {
+const handleClosePluginWindow = (_action?: 'hide' | 'close') => {
   closePluginWindow()
-  manageFollowingWindows(currentPluginItem.value, action)
+  // 在新架构中，插件窗口的生命周期由BaseWindow统一管理，不需要单独处理
 };
 
 /**
@@ -556,8 +556,8 @@ const openSettings = async () => {
     switchToSettings();
 
     // 确保窗口高度调整到最大高度
-    await nextTick();
     contentAreaRef.value?.handleResize();
+    await nextTick();
 
     // 调用 IPC 方法创建设置页面 WebContentsView
     const result = await naimo.router.windowCreateSettingsView();
@@ -603,7 +603,7 @@ const closeSettings = async () => {
  */
 const handleWindowFocus = () => {
   handleSearchFocus();
-  show(currentPluginItem.value)
+  show()
 };
 
 /**
@@ -613,12 +613,12 @@ const handleWindowFocus = () => {
 const handleWindowBlur = () => {
   // 窗口失去焦点时，延迟一点时间后隐藏窗口
   setTimeout(() => {
-    hide(currentPluginItem.value, "hide")
+    hide()
     // console.log("窗口失去焦点", document.hasFocus(), isSettingsInterface.value);
     // // 检查窗口是否仍然失去焦点且不在设置页面
     // if (!document.hasFocus() && !isSettingsInterface.value) {
     //   // 调用主进程隐藏窗口
-    //   hide(currentPluginItem.value, "hide")
+    //   hide()
     // }
   }, 100);
 };
@@ -734,15 +734,13 @@ watch(
   (newVal, oldVal) => {
     // 打开插件窗口时，切换到窗口界面
     if (newVal === UIInterfaceType.WINDOW && oldVal !== UIInterfaceType.WINDOW && currentPluginItem.value) {
-      // 如果有当前插件项目，显示特定插件窗口；否则显示所有窗口
-      openCurrentItemFollowingWindow(currentPluginItem.value)
+      // 在新架构中，插件窗口的显示由BaseWindow统一管理
+      // 插件内容会在下方的WebContentsView中显示
+      console.log('切换到插件窗口界面:', currentPluginItem.value?.name)
     } else if (newVal !== UIInterfaceType.WINDOW && oldVal === UIInterfaceType.WINDOW) {
-      // 在插件窗口界面的时候点击设置，隐藏插件窗口而不是关闭，因为从设置页面返回时，需要显示插件窗口
-      if (isPluginWindowOpen.value) {
-        manageFollowingWindows(currentPluginItem.value, "hide")
-      } else {
-        manageFollowingWindows(currentPluginItem.value)
-      }
+      // 在新架构中，不需要单独管理插件窗口的隐藏
+      // 所有内容都在同一个BaseWindow中的WebContentsView里显示
+      console.log('从插件窗口界面切换出去')
     }
   }
 );
@@ -887,7 +885,7 @@ const handleCloseWindowRequested = async () => {
     return;
   }
 
-  hide(currentPluginItem.value)
+  hide()
 };
 
 /**
@@ -903,9 +901,9 @@ const handleShowHideWindowRequested = async () => {
   // 使用 IPC 方法检查主窗口当前是否可见
   const isMainWindowVisible = await isWindowVisible();
   if (isMainWindowVisible) {
-    hide(currentPluginItem.value, "hide")
+    hide()
   } else {
-    show(currentPluginItem.value)
+    show()
   }
 };
 
@@ -918,7 +916,7 @@ const handleCustomGlobalHotkeyTriggered = async (event: HotkeyTriggeredEventDeta
   }
   searchText.value = name
   await handleSearch(searchText.value)
-  show(null)
+  show()
 
   // 获取搜索结果
   const items = searchCategories.value.find(category => category.id === 'best-match')?.items
@@ -970,11 +968,11 @@ onMounted(async () => {
   });
 
   useEventListener(window, "window-main-hide", () => {
-    hide(null, "hide")
+    hide()
   });
 
   useEventListener(window, "window-main-show", () => {
-    show(null)
+    show()
   });
 
   // 分离视图或分离窗口关闭时，恢复到搜索状态
@@ -1025,6 +1023,10 @@ onMounted(async () => {
 
   // 插件执行完成 - 进入插件界面
   eventSystem.on('plugin:executed', handlePluginExecuted);
+
+  searchHeaderEvents.on("click", () => {
+    handleSearchFocus()
+  })
 
   // 8. 设置搜索头部管理器事件监听
   searchHeaderEvents.on('search', (text: string) => {

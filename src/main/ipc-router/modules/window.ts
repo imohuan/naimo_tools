@@ -3,7 +3,7 @@
  * 展示新的 IPC 路由系统使用方式
  */
 
-import { globalShortcut, app, BrowserWindow } from "electron";
+import { app, BrowserWindow } from "electron";
 import { join, resolve } from "path";
 import log from "electron-log";
 import { readFileSync, mkdirSync, writeFileSync } from "fs";
@@ -287,115 +287,78 @@ export function openLogViewer(event: Electron.IpcMainInvokeEvent): void {
   }
 }
 
-// 全局快捷键管理
-const registeredGlobalShortcuts = new Map<string, string>();
 
 /**
- * 注册全局快捷键
+ * 显示主窗口
+ * 通过ViewManager获取main-view的父窗口并显示
  */
-export function registerGlobalHotkey(event: Electron.IpcMainInvokeEvent, accelerator: string, id: string): boolean {
+export async function show(event: Electron.IpcMainInvokeEvent): Promise<boolean> {
   try {
-    log.info(`🔧 主进程开始注册全局快捷键: ${accelerator} (${id})`);
+    const viewManager = ViewManager.getInstance();
+    const mainViewInfo = viewManager.getViewInfo('main-view');
 
-    // 检查是否已注册，如果已注册则先注销
-    if (registeredGlobalShortcuts.has(id)) {
-      log.warn(`全局快捷键 ${id} 已存在，先注销再重新注册`);
-      const oldAccelerator = registeredGlobalShortcuts.get(id);
-      if (oldAccelerator && globalShortcut.isRegistered(oldAccelerator)) {
-        globalShortcut.unregister(oldAccelerator);
-        log.info(`已注销旧的全局快捷键: ${oldAccelerator}`);
-      }
-      registeredGlobalShortcuts.delete(id);
-    }
-
-    // 检查快捷键是否已被其他应用使用
-    if (globalShortcut.isRegistered(accelerator)) {
-      log.warn(`快捷键 ${accelerator} 已被其他应用注册`);
+    if (!mainViewInfo) {
+      log.warn('显示窗口失败：找不到main-view');
       return false;
     }
 
-    log.info(`快捷键 ${accelerator} 未被占用，可以注册`);
+    const baseWindowController = BaseWindowController.getInstance();
+    const parentWindow = baseWindowController.getWindow(mainViewInfo.parentWindowId);
 
-    // 注册全局快捷键
-    const success = globalShortcut.register(accelerator, () => {
-      log.info(`🎉 全局快捷键被触发: ${accelerator} (${id})`);
-      // 发送事件到渲染进程
-      const windows = BrowserWindow.getAllWindows();
-      log.info(`发送事件到 ${windows.length} 个窗口`);
-      windows.forEach((window) => {
-        window.webContents.send("global-hotkey-trigger", { hotkeyId: id });
-        log.debug(`已发送事件到窗口: ${window.id}`);
-      });
-    });
+    if (!parentWindow || parentWindow.isDestroyed()) {
+      log.warn('显示窗口失败：主窗口不存在或已销毁');
+      return false;
+    }
 
-    if (success) {
-      registeredGlobalShortcuts.set(id, accelerator);
-      log.info(`注册全局快捷键成功: ${accelerator} (${id})`);
+    if (!baseWindowController.isWindowVisible(parentWindow)) {
+      baseWindowController.showWindow(parentWindow);
+      parentWindow.focus();
+      log.debug('主窗口已显示');
     } else {
-      log.error(`注册全局快捷键失败: ${accelerator} (${id})`);
+      log.debug('主窗口已是显示状态');
     }
 
-    return success;
-  } catch (error) {
-    log.error(`注册全局快捷键异常: ${accelerator} (${id})`, error);
-    return false;
-  }
-}
-
-/**
- * 注销全局快捷键
- */
-export function unregisterGlobalHotkey(event: Electron.IpcMainInvokeEvent, accelerator: string, id: string = "-1"): boolean {
-  try {
-    const cacheAccelerator = registeredGlobalShortcuts.get(id);
-    const accelerators: string[] = [cacheAccelerator, accelerator].filter(
-      Boolean
-    ) as string[];
-    for (const accelerator of accelerators) {
-      if (globalShortcut.isRegistered(accelerator)) {
-        globalShortcut.unregister(accelerator);
-      }
-      registeredGlobalShortcuts.delete(id);
-    }
-    log.info(`注销全局快捷键成功: ${accelerator} (${id})`);
     return true;
   } catch (error) {
-    log.error(`注销全局快捷键异常: ${id}`, error);
+    log.error('显示窗口失败:', error);
     return false;
   }
 }
 
 /**
- * 注销所有全局快捷键
+ * 隐藏主窗口
+ * 通过ViewManager获取main-view的父窗口并隐藏
  */
-export function unregisterAllGlobalHotkeys(event: Electron.IpcMainInvokeEvent): void {
+export async function hide(event: Electron.IpcMainInvokeEvent): Promise<boolean> {
   try {
-    globalShortcut.unregisterAll();
-    registeredGlobalShortcuts.clear();
-    log.info("已注销所有全局快捷键");
+    const viewManager = ViewManager.getInstance();
+    const mainViewInfo = viewManager.getViewInfo('main-view');
+
+    if (!mainViewInfo) {
+      log.warn('隐藏窗口失败：找不到main-view');
+      return false;
+    }
+
+    const baseWindowController = BaseWindowController.getInstance();
+    const parentWindow = baseWindowController.getWindow(mainViewInfo.parentWindowId);
+
+    if (!parentWindow || parentWindow.isDestroyed()) {
+      log.warn('隐藏窗口失败：主窗口不存在或已销毁');
+      return false;
+    }
+
+    if (baseWindowController.isWindowVisible(parentWindow)) {
+      baseWindowController.hideWindow(parentWindow);
+      log.debug('主窗口已隐藏');
+    } else {
+      log.debug('主窗口已是隐藏状态');
+    }
+
+    return true;
   } catch (error) {
-    log.error("注销所有全局快捷键异常", error);
+    log.error('隐藏窗口失败:', error);
+    return false;
   }
-}
-
-/**
- * 检查快捷键是否已注册
- */
-export function isGlobalHotkeyRegistered(event: Electron.IpcMainInvokeEvent, accelerator: string): boolean {
-  return globalShortcut.isRegistered(accelerator);
-}
-
-/**
- * 获取所有已注册的全局快捷键
- */
-export function getAllRegisteredGlobalHotkeys(event: Electron.IpcMainInvokeEvent): Array<{
-  id: string;
-  accelerator: string;
-}> {
-  return Array.from(registeredGlobalShortcuts.entries()).map(([id, accelerator]) => ({
-    id,
-    accelerator,
-  }));
 }
 
 /**

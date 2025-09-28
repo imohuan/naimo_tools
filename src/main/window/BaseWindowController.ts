@@ -10,7 +10,7 @@ import type {
   MainWindowLayoutConfig,
   DetachedWindowConfig,
   WindowOperationResult,
-  WindowPosition
+  HiddenWindowPosition
 } from './window-types'
 import type { AppConfig } from '@shared/types'
 import { isProduction } from '@shared/utils'
@@ -22,7 +22,7 @@ import { isProduction } from '@shared/utils'
 export class BaseWindowController {
   private static instance: BaseWindowController
   private createdWindows: Map<number, BaseWindow> = new Map()
-  private windowPositions: Map<number, WindowPosition> = new Map()
+  private hiddenWindowPositions: Map<number, HiddenWindowPosition> = new Map()
   private defaultConfig: Partial<BaseWindowConfig> = {}
 
   private constructor() {
@@ -100,7 +100,6 @@ export class BaseWindowController {
 
       // 记录创建的窗口
       this.createdWindows.set(window.id, window)
-      this.initializeWindowPosition(window)
 
       log.info(`BaseWindow 主窗口创建成功，ID: ${window.id}`)
 
@@ -147,7 +146,6 @@ export class BaseWindowController {
 
       // 记录创建的窗口
       this.createdWindows.set(window.id, window)
-      this.initializeWindowPosition(window)
 
       log.info(`分离窗口创建成功，ID: ${window.id}`)
 
@@ -223,7 +221,6 @@ export class BaseWindowController {
       }
 
       window.setBounds(newBounds)
-      this.updateWindowPosition(window, newBounds.x, newBounds.y)
 
       log.debug(`窗口边界已更新: ID=${window.id}, bounds=${JSON.stringify(newBounds)}`)
 
@@ -255,7 +252,6 @@ export class BaseWindowController {
       const y = Math.floor((screenHeight - bounds.height) / 2)
 
       window.setPosition(x, y)
-      this.updateWindowPosition(window, x, y, true)
 
       log.debug(`窗口已居中: ID=${window.id}, position=(${x}, ${y})`)
     } catch (error) {
@@ -269,16 +265,23 @@ export class BaseWindowController {
    */
   public showWindow(window: BaseWindow): void {
     try {
-      const position = this.windowPositions.get(window.id)
+      const [currentX] = window.getPosition()
 
-      if (position && position.x < 0) {
-        // 窗口被隐藏，恢复到可见位置
-        const visibleX = position.isCentered ? this.getCenterX(window) : Math.abs(position.x)
-        window.setPosition(visibleX, position.y)
-        this.updateWindowPosition(window, visibleX, position.y, position.isCentered, true)
+      // 如果窗口当前是隐藏状态（x < 0），恢复到之前的可见位置
+      if (currentX < 0) {
+        const cachedPosition = this.hiddenWindowPositions.get(window.id)
+        if (cachedPosition) {
+          window.setPosition(cachedPosition.x, cachedPosition.y)
+          this.hiddenWindowPositions.delete(window.id) // 清除缓存
+          log.debug(`窗口已显示并恢复位置: ID=${window.id}, position=(${cachedPosition.x}, ${cachedPosition.y})`)
+        } else {
+          // 没有缓存位置，居中显示
+          this.centerWindow(window)
+          log.debug(`窗口已显示并居中: ID=${window.id}`)
+        }
+      } else {
+        log.debug(`窗口已是显示状态: ID=${window.id}`)
       }
-
-      log.debug(`窗口已显示: ID=${window.id}`)
     } catch (error) {
       log.error('显示窗口失败:', error)
     }
@@ -291,10 +294,16 @@ export class BaseWindowController {
   public hideWindow(window: BaseWindow): void {
     try {
       const [x, y] = window.getPosition()
-      const hiddenX = x - 2000  // 移到屏幕外
 
+      // 只有当窗口当前是可见状态时才缓存位置
+      if (x >= 0) {
+        this.hiddenWindowPositions.set(window.id, { x, y })
+        log.debug(`缓存窗口显示位置: ID=${window.id}, position=(${x}, ${y})`)
+      }
+
+      // 将窗口移到屏幕外隐藏
+      const hiddenX = x - 8000
       window.setPosition(hiddenX, y)
-      this.updateWindowPosition(window, x, y, false, false)  // 保存原位置
 
       log.debug(`窗口已隐藏: ID=${window.id}`)
     } catch (error) {
@@ -328,7 +337,7 @@ export class BaseWindowController {
       if (!window) return { success: false, windowId, error: '窗口不存在' }
       if (!window.isDestroyed()) window.destroy()
       this.createdWindows.delete(windowId)
-      this.windowPositions.delete(windowId)
+      this.hiddenWindowPositions.delete(windowId)
       log.info(`窗口已销毁: ID=${windowId}`)
       return { success: true, windowId }
     } catch (error) {
@@ -354,55 +363,6 @@ export class BaseWindowController {
     return new Map(this.createdWindows)
   }
 
-  /**
-   * 初始化窗口位置记录
-   * @param window BaseWindow 实例
-   */
-  private initializeWindowPosition(window: BaseWindow): void {
-    const [x, y] = window.getPosition()
-    this.windowPositions.set(window.id, {
-      x,
-      y,
-      isCentered: false,
-      isVisible: true
-    })
-  }
-
-  /**
-   * 更新窗口位置记录
-   * @param window BaseWindow 实例
-   * @param x X 坐标
-   * @param y Y 坐标
-   * @param isCentered 是否居中
-   * @param isVisible 是否可见
-   */
-  private updateWindowPosition(
-    window: BaseWindow,
-    x: number,
-    y: number,
-    isCentered?: boolean,
-    isVisible?: boolean
-  ): void {
-    const position = this.windowPositions.get(window.id) || { x: 0, y: 0 }
-
-    this.windowPositions.set(window.id, {
-      x,
-      y,
-      isCentered: isCentered ?? position.isCentered,
-      isVisible: isVisible ?? position.isVisible
-    })
-  }
-
-  /**
-   * 获取居中 X 坐标
-   * @param window BaseWindow 实例
-   * @returns X 坐标
-   */
-  private getCenterX(window: BaseWindow): number {
-    const bounds = window.getBounds()
-    const { width: screenWidth } = screen.getPrimaryDisplay().workAreaSize
-    return Math.floor((screenWidth - bounds.width) / 2)
-  }
 
   /**
    * 应用窗口样式（透明背景，为 CSS 阴影做准备）
@@ -428,13 +388,7 @@ export class BaseWindowController {
     window.on('closed', () => {
       log.info(`BaseWindow 主窗口已关闭: ID=${window.id}`)
       this.createdWindows.delete(window.id)
-      this.windowPositions.delete(window.id)
-    })
-
-    // 窗口移动处理
-    window.on('moved', () => {
-      const [x, y] = window.getPosition()
-      this.updateWindowPosition(window, x, y)
+      this.hiddenWindowPositions.delete(window.id)
     })
 
     // 开发环境下的额外设置
@@ -455,13 +409,7 @@ export class BaseWindowController {
     window.on('closed', () => {
       log.info(`分离窗口已关闭: ${config.title}, ID=${window.id}`)
       this.createdWindows.delete(window.id)
-      this.windowPositions.delete(window.id)
-    })
-
-    // 窗口移动处理
-    window.on('moved', () => {
-      const [x, y] = window.getPosition()
-      this.updateWindowPosition(window, x, y)
+      this.hiddenWindowPositions.delete(window.id)
     })
 
     log.info(`分离窗口事件设置完成: ${config.title}`)
@@ -484,7 +432,7 @@ export class BaseWindowController {
     })
 
     this.createdWindows.clear()
-    this.windowPositions.clear()
+    this.hiddenWindowPositions.clear()
 
     log.info('BaseWindow 清理完成')
   }

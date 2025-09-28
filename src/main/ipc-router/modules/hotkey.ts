@@ -1,117 +1,131 @@
 /**
  * 快捷键管理模块
- * 处理全局快捷键的注册、注销等操作
+ * 从 window.ts 中分离出来的全局快捷键管理功能
  */
 
-import log from 'electron-log'
-import { globalShortcut } from 'electron'
+import { globalShortcut } from "electron";
+import log from "electron-log";
+import { ViewManager } from "@main/window/ViewManager";
 
 // 全局快捷键管理
-const registeredGlobalShortcuts = new Map<string, string>()
+const registeredGlobalShortcuts = new Map<string, string>();
 
 /**
  * 注册全局快捷键
- * @param event IPC事件对象
- * @param keys 快捷键组合
- * @param callback 回调函数
- * @returns 是否注册成功
  */
-export async function registerGlobalShortcut(event: Electron.IpcMainInvokeEvent, keys: string, callback: () => void): Promise<boolean> {
+export function registerGlobalHotkey(event: Electron.IpcMainInvokeEvent, accelerator: string, id: string): boolean {
   try {
-    log.info(`🔧 注册全局快捷键: ${keys}`)
+    log.info(`🔧 主进程开始注册全局快捷键: ${accelerator} (${id})`);
 
-    // 检查是否已注册
-    if (globalShortcut.isRegistered(keys)) {
-      log.warn(`⚠️ 快捷键 ${keys} 已被其他应用注册`)
-      return false
+    // 检查是否已注册，如果已注册则先注销
+    if (registeredGlobalShortcuts.has(id)) {
+      log.warn(`全局快捷键 ${id} 已存在，先注销再重新注册`);
+      const oldAccelerator = registeredGlobalShortcuts.get(id);
+      if (oldAccelerator && globalShortcut.isRegistered(oldAccelerator)) {
+        globalShortcut.unregister(oldAccelerator);
+        log.info(`已注销旧的全局快捷键: ${oldAccelerator}`);
+      }
+      registeredGlobalShortcuts.delete(id);
     }
+
+    // 检查快捷键是否已被其他应用使用
+    if (globalShortcut.isRegistered(accelerator)) {
+      log.warn(`快捷键 ${accelerator} 已被其他应用注册`);
+      return false;
+    }
+
+    log.info(`快捷键 ${accelerator} 未被占用，可以注册`);
 
     // 注册全局快捷键
-    const success = globalShortcut.register(keys, () => {
-      log.info(`🎉 全局快捷键被触发: ${keys}`)
-      callback()
-    })
+    const success = globalShortcut.register(accelerator, () => {
+      log.info(`🎉 全局快捷键被触发: ${accelerator} (${id})`);
+      // 发送事件到所有WebContentsView
+      try {
+        const viewManager = ViewManager.getInstance();
+        const allViews = viewManager.getAllViews();
+        log.info(`发送事件到 ${allViews.length} 个视图`);
+
+        allViews.forEach((viewInfo) => {
+          try {
+            if (viewInfo.view.webContents && !viewInfo.view.webContents.isDestroyed()) {
+              viewInfo.view.webContents.send("global-hotkey-trigger", { hotkeyId: id });
+              log.debug(`已发送事件到视图: ${viewInfo.id}`);
+            }
+          } catch (error) {
+            log.warn(`发送事件到视图 ${viewInfo.id} 失败:`, error);
+          }
+        });
+      } catch (error) {
+        log.error('获取视图列表失败:', error);
+      }
+    });
 
     if (success) {
-      registeredGlobalShortcuts.set(keys, keys)
-      log.info(`✅ 注册全局快捷键成功: ${keys}`)
+      registeredGlobalShortcuts.set(id, accelerator);
+      log.info(`注册全局快捷键成功: ${accelerator} (${id})`);
     } else {
-      log.error(`❌ 注册全局快捷键失败: ${keys}`)
+      log.error(`注册全局快捷键失败: ${accelerator} (${id})`);
     }
 
-    return success
+    return success;
   } catch (error) {
-    log.error(`❌ 注册全局快捷键异常: ${keys}`, error)
-    return false
+    log.error(`注册全局快捷键异常: ${accelerator} (${id})`, error);
+    return false;
   }
 }
 
 /**
  * 注销全局快捷键
- * @param event IPC事件对象
- * @param id 快捷键ID
- * @returns 是否注销成功
  */
-export async function unregisterGlobalShortcut(event: Electron.IpcMainInvokeEvent, id: string): Promise<boolean> {
+export function unregisterGlobalHotkey(event: Electron.IpcMainInvokeEvent, accelerator: string, id: string = "-1"): boolean {
   try {
-    log.info(`🔧 注销全局快捷键: ${id}`)
-
-    // 查找对应的快捷键
-    const keys = registeredGlobalShortcuts.get(id)
-    if (!keys) {
-      log.warn(`⚠️ 快捷键 ${id} 未注册`)
-      return false
+    const cacheAccelerator = registeredGlobalShortcuts.get(id);
+    const accelerators: string[] = [cacheAccelerator, accelerator].filter(
+      Boolean
+    ) as string[];
+    for (const accelerator of accelerators) {
+      if (globalShortcut.isRegistered(accelerator)) {
+        globalShortcut.unregister(accelerator);
+      }
+      registeredGlobalShortcuts.delete(id);
     }
-
-    // 注销全局快捷键
-    if (globalShortcut.isRegistered(keys)) {
-      globalShortcut.unregister(keys)
-      registeredGlobalShortcuts.delete(id)
-      log.info(`✅ 注销全局快捷键成功: ${keys}`)
-      return true
-    } else {
-      log.warn(`⚠️ 快捷键 ${keys} 未在系统中注册`)
-      return false
-    }
+    log.info(`注销全局快捷键成功: ${accelerator} (${id})`);
+    return true;
   } catch (error) {
-    log.error(`❌ 注销全局快捷键异常: ${id}`, error)
-    return false
+    log.error(`注销全局快捷键异常: ${id}`, error);
+    return false;
   }
 }
 
 /**
- * 检查全局快捷键是否已注册
- * @param event IPC事件对象
- * @param keys 快捷键组合
- * @returns 是否已注册
+ * 注销所有全局快捷键
  */
-export async function isGlobalShortcutRegistered(event: Electron.IpcMainInvokeEvent, keys: string): Promise<boolean> {
+export function unregisterAllGlobalHotkeys(event: Electron.IpcMainInvokeEvent): void {
   try {
-    const isRegistered = globalShortcut.isRegistered(keys)
-    log.debug(`🔧 检查快捷键状态: ${keys} -> ${isRegistered ? '已注册' : '未注册'}`)
-    return isRegistered
+    globalShortcut.unregisterAll();
+    registeredGlobalShortcuts.clear();
+    log.info("已注销所有全局快捷键");
   } catch (error) {
-    log.error(`❌ 检查快捷键状态异常: ${keys}`, error)
-    return false
+    log.error("注销所有全局快捷键异常", error);
   }
 }
 
 /**
- * 清除所有全局快捷键
- * @returns 是否清除成功
+ * 检查快捷键是否已注册
  */
-export async function clearAllGlobalShortcuts(event: Electron.IpcMainInvokeEvent): Promise<boolean> {
-  try {
-    log.info('🔧 清除所有全局快捷键')
+export function isGlobalHotkeyRegistered(event: Electron.IpcMainInvokeEvent, accelerator: string): boolean {
+  return globalShortcut.isRegistered(accelerator);
+}
 
-    // 注销所有全局快捷键
-    globalShortcut.unregisterAll()
-    registeredGlobalShortcuts.clear()
-
-    log.info('✅ 清除所有全局快捷键成功')
-    return true
-  } catch (error) {
-    log.error('❌ 清除所有全局快捷键异常:', error)
-    return false
-  }
+/**
+ * 获取所有已注册的全局快捷键
+ */
+export function getAllRegisteredGlobalHotkeys(event: Electron.IpcMainInvokeEvent): Array<{
+  id: string;
+  accelerator: string;
+}> {
+  return Array.from(registeredGlobalShortcuts.entries()).map(([id, accelerator]) => ({
+    id,
+    accelerator,
+  }));
 }

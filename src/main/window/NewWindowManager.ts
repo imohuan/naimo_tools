@@ -87,6 +87,7 @@ export class NewWindowManager {
   private viewManager!: ViewManager
   private lifecycleManager!: LifecycleManager
   private detachManager!: DetachManager
+  private resizeTimeout: NodeJS.Timeout | null = null // 防抖定时器
 
   // 内部状态
   private mainWindow: BaseWindow | null = null
@@ -385,8 +386,10 @@ export class NewWindowManager {
         const switchResult = this.viewManager.switchToView(this.mainWindow.id, viewId)
         if (switchResult.success) {
           await this.handleViewActivated(viewId)
-          // 调整窗口高度
-          await this.adjustWindowForMaxHeight()
+          // 延迟调整窗口高度，确保所有视图都准备就绪
+          setTimeout(async () => {
+            await this.adjustWindowForMaxHeight()
+          }, 100)
         }
         return switchResult
       }
@@ -433,12 +436,19 @@ export class NewWindowManager {
       // 设置生命周期策略
       this.lifecycleManager.setLifecycleStrategy(viewId, settingsConfig.lifecycle)
 
+      // 等待视图完全创建
+      await new Promise(resolve => setTimeout(resolve, 50))
+
       // 切换到设置视图（使用新的多视图布局）
       const switchResult = this.viewManager.switchToView(this.mainWindow.id, viewId)
       if (switchResult.success) {
         await this.handleViewActivated(viewId)
-        // 调整窗口高度为最大高度（设置页面需要更多空间）
-        await this.adjustWindowForMaxHeight()
+
+        // 延迟调整窗口高度，确保视图布局完成并避免与前端高度调整冲突
+        setTimeout(async () => {
+          log.info('延迟调整窗口到最大高度（设置模式）')
+          await this.adjustWindowForMaxHeight()
+        }, 150)
       }
 
       log.info('设置页面 WebContentsView 创建成功')
@@ -460,6 +470,7 @@ export class NewWindowManager {
   /**
    * 调整窗口高度为最大高度模式
    * 用于设置页面和插件窗口
+   * 优先级高于前端的高度调整请求
    */
   private async adjustWindowForMaxHeight(): Promise<void> {
     try {
@@ -468,16 +479,27 @@ export class NewWindowManager {
         return
       }
 
+      // 清除任何待处理的高度调整
+      if (this.resizeTimeout) {
+        clearTimeout(this.resizeTimeout)
+        this.resizeTimeout = null
+      }
+
       const currentBounds = this.mainWindow.getBounds()
       const maxHeight = DEFAULT_WINDOW_LAYOUT.contentMaxHeight + DEFAULT_WINDOW_LAYOUT.searchHeaderHeight + DEFAULT_WINDOW_LAYOUT.appPadding * 2
 
       const newBounds = {
         ...currentBounds,
-        height: maxHeight
+        height: maxHeight,
+        width: DEFAULT_WINDOW_LAYOUT.windowWidth
       }
 
       this.mainWindow.setBounds(newBounds)
-      log.info(`窗口高度已调整为最大高度模式: ${maxHeight}px`)
+
+      // 使用统一的视图布局更新方法
+      this.updateAllViewsLayout(newBounds)
+
+      log.info(`窗口高度已调整为最大高度模式: ${maxHeight}px（优先级调整）`)
     } catch (error) {
       log.error('调整窗口高度失败:', error)
     }
@@ -511,6 +533,7 @@ export class NewWindowManager {
   /**
    * 动态调整窗口高度
    * 直接使用前端传递的高度，并使用配置文件中的布局设置
+   * 添加防抖机制避免频繁调整
    * @param targetHeight 前端计算的目标高度
    */
   public async adjustWindowHeight(targetHeight: number): Promise<void> {
@@ -520,46 +543,38 @@ export class NewWindowManager {
         return
       }
 
-      // 使用窗口布局配置
-
-      const currentBounds = this.mainWindow.getBounds()
-
-      // 直接使用前端传递的高度，不做额外的计算
-      const finalHeight = targetHeight
-
-      // 只有高度变化时才调整
-      if (Math.abs(currentBounds.height - finalHeight) > 5) {
-        const newBounds = {
-          ...currentBounds,
-          height: finalHeight,
-          width: DEFAULT_WINDOW_LAYOUT.windowWidth // 确保宽度也符合配置
-        }
-
-        this.mainWindow.setBounds(newBounds)
-
-        // 更新所有视图的布局以适应新的窗口大小
-        const windowViews = this.viewManager.getWindowViews(this.mainWindow.id)
-
-        windowViews.forEach(async (viewInfo) => {
-          if (viewInfo.id === 'main-view') {
-            // 主视图占满整个窗口
-            viewInfo.view.setBounds({
-              x: 0,
-              y: 0,
-              width: newBounds.width,
-              height: newBounds.height
-            })
-          } else if (viewInfo.id === 'settings-view') {
-            // 设置视图使用配置文件中的布局计算
-            // 使用已导入的 calculateSettingsViewBounds
-            const settingsBounds = calculateSettingsViewBounds(newBounds)
-            viewInfo.view.setBounds(settingsBounds)
-          }
-          // 其他视图保持原有逻辑或根据需要调整
-        })
-
-        log.info(`窗口高度已调整: ${currentBounds.height} -> ${finalHeight}px (使用配置: ${DEFAULT_WINDOW_LAYOUT.windowWidth}x${finalHeight})`)
+      // 清除之前的定时器
+      if (this.resizeTimeout) {
+        clearTimeout(this.resizeTimeout)
       }
+
+      // 使用防抖机制，延迟执行高度调整
+      this.resizeTimeout = setTimeout(async () => {
+        try {
+          const currentBounds = this.mainWindow!.getBounds()
+
+          // 直接使用前端传递的高度，不做额外的计算
+          const finalHeight = targetHeight
+
+          // 只有高度变化时才调整
+          if (Math.abs(currentBounds.height - finalHeight) > 5) {
+            const newBounds = {
+              ...currentBounds,
+              height: finalHeight,
+              width: DEFAULT_WINDOW_LAYOUT.windowWidth // 确保宽度也符合配置
+            }
+
+            this.mainWindow!.setBounds(newBounds)
+
+            // 使用统一的视图布局更新方法
+            this.updateAllViewsLayout(newBounds)
+
+            log.info(`窗口高度已调整: ${currentBounds.height} -> ${finalHeight}px (使用配置: ${DEFAULT_WINDOW_LAYOUT.windowWidth}x${finalHeight})`)
+          }
+        } catch (error) {
+          log.error('防抖调整窗口高度失败:', error)
+        }
+      }, 50) // 50ms防抖延迟
     } catch (error) {
       log.error('动态调整窗口高度失败:', error)
     }
@@ -1100,6 +1115,44 @@ export class NewWindowManager {
   }
 
   /**
+   * 更新所有视图的布局以适应新的窗口大小
+   * 统一处理视图边界计算，避免重复代码
+   * @param newBounds 新的窗口边界
+   */
+  private updateAllViewsLayout(newBounds: { width: number; height: number }): void {
+    if (!this.mainWindow) return
+
+    const windowViews = this.viewManager.getWindowViews(this.mainWindow.id)
+
+    windowViews.forEach((viewInfo) => {
+      // 跳过已分离的视图
+      if (this.detachManager.isViewDetached(viewInfo.id)) {
+        log.debug(`跳过已分离视图的布局更新: ${viewInfo.id}`)
+        return
+      }
+
+      if (viewInfo.id === 'main-view') {
+        // 主视图占满整个窗口
+        const mainViewBounds = {
+          x: 0,
+          y: 0,
+          width: newBounds.width,
+          height: newBounds.height
+        }
+        viewInfo.view.setBounds(mainViewBounds)
+        viewInfo.config.bounds = mainViewBounds
+      } else {
+        // 其他视图（设置页面、插件等）使用设置视图的布局计算
+        const settingsBounds = calculateSettingsViewBounds(newBounds)
+        viewInfo.view.setBounds(settingsBounds)
+        viewInfo.config.bounds = settingsBounds
+      }
+    })
+
+    log.debug(`已更新 ${windowViews.length} 个视图的布局`)
+  }
+
+  /**
    * 处理视图激活
    */
   private async handleViewActivated(viewId: string): Promise<void> {
@@ -1250,6 +1303,12 @@ export class NewWindowManager {
    */
   public destroy(): void {
     log.info('销毁 NewWindowManager')
+
+    // 清理定时器
+    if (this.resizeTimeout) {
+      clearTimeout(this.resizeTimeout)
+      this.resizeTimeout = null
+    }
 
     // 清理资源
     this.cleanup()

@@ -245,6 +245,13 @@ export interface WindowManagerEventData {
     parentWindowId: number
     timestamp: number
   }
+  /** 视图父窗口更新事件 */
+  'view:parent-window-updated': {
+    viewId: string
+    oldParentWindowId: number
+    newParentWindowId: number
+    timestamp: number
+  }
   /** 内存清理事件 */
   'memory:cleanup': {
     cleanedViews: string[]
@@ -278,16 +285,12 @@ export interface WebContentsViewFactoryConfig {
   memoryThreshold?: number
 }
 
-/** 窗口位置管理 */
-export interface WindowPosition {
-  /** X 坐标（负数表示隐藏） */
+/** 隐藏窗口的位置缓存 */
+export interface HiddenWindowPosition {
+  /** 隐藏前的 X 坐标 */
   x: number
-  /** Y 坐标 */
+  /** 隐藏前的 Y 坐标 */
   y: number
-  /** 是否居中 */
-  isCentered?: boolean
-  /** 显示状态 */
-  isVisible?: boolean
 }
 
 /** 性能监控数据 */

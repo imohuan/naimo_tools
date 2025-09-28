@@ -33,7 +33,7 @@ export class ElectronHotkeyBridge extends BaseSingleton {
       // 这里不需要创建回调函数，因为主进程会直接调用
 
       // 调用Electron API注册全局快捷键
-      const success = await naimo.router.windowRegisterGlobalHotkey(normalizedKeys, id)
+      const success = await naimo.router.hotkeyRegisterGlobalHotkey(normalizedKeys, id)
 
       if (success) {
         this.registeredHotkeys.set(id, config)
@@ -61,7 +61,7 @@ export class ElectronHotkeyBridge extends BaseSingleton {
       }
 
       // 调用Electron API注销全局快捷键
-      const success = await naimo.router.windowUnregisterGlobalHotkey(config.keys, id)
+      const success = await naimo.router.hotkeyUnregisterGlobalHotkey(config.keys, id)
 
       if (success) {
         this.registeredHotkeys.delete(id)
@@ -83,7 +83,7 @@ export class ElectronHotkeyBridge extends BaseSingleton {
   async isGlobalHotkeyRegistered(keys: string): Promise<boolean> {
     try {
       const normalizedKeys = this.normalizeElectronKeys(keys)
-      return await naimo.router.windowIsGlobalHotkeyRegistered(normalizedKeys)
+      return await naimo.router.hotkeyIsGlobalHotkeyRegistered(normalizedKeys)
     } catch (error) {
       console.error('🔌 检查全局快捷键状态异常:', error)
       return false
@@ -109,7 +109,7 @@ export class ElectronHotkeyBridge extends BaseSingleton {
       for (const hotkeyId of hotkeyIds) {
         const config = this.registeredHotkeys.get(hotkeyId)
         if (config) {
-          const success = await naimo.router.windowUnregisterGlobalHotkey(config.keys, hotkeyId)
+          const success = await naimo.router.hotkeyUnregisterGlobalHotkey(config.keys, hotkeyId)
           if (!success) {
             allSuccess = false
           }

@@ -1,6 +1,6 @@
 /**
  * 自动生成的 IPC 类型定义
- * 生成时间: 2025-09-28T03:31:46.930Z
+ * 生成时间: 2025-09-28T04:49:06.212Z
  * 请勿手动修改此文件
  */
 
@@ -340,63 +340,36 @@ interface filesystemInterface {
 }
 
 interface hotkeyInterface {
-  /**
- * 注册全局快捷键
- * @param IPC事件对象
- * @param 快捷键组合
- * @param 回调函数
- * @returns 是否注册成功
- */
-  "hotkey-register-global-shortcut": (keys: string, callback: () => void) => Promise<boolean>;
-  /**
- * 注册全局快捷键
- * @param IPC事件对象
- * @param 快捷键组合
- * @param 回调函数
- * @returns 是否注册成功
- */
-  "hotkeyRegisterGlobalShortcut": (keys: string, callback: () => void) => Promise<boolean>;
+  /** 注册全局快捷键 */
+  "hotkey-register-global-hotkey": (accelerator: string, id: string) => Promise<boolean>;
+  /** 注册全局快捷键 */
+  "hotkeyRegisterGlobalHotkey": (accelerator: string, id: string) => Promise<boolean>;
 
-  /**
- * 注销全局快捷键
- * @param IPC事件对象
- * @param 快捷键ID
- * @returns 是否注销成功
- */
-  "hotkey-unregister-global-shortcut": (id: string) => Promise<boolean>;
-  /**
- * 注销全局快捷键
- * @param IPC事件对象
- * @param 快捷键ID
- * @returns 是否注销成功
- */
-  "hotkeyUnregisterGlobalShortcut": (id: string) => Promise<boolean>;
+  /** 注销全局快捷键 */
+  "hotkey-unregister-global-hotkey": (accelerator: string, id: string) => Promise<boolean>;
+  /** 注销全局快捷键 */
+  "hotkeyUnregisterGlobalHotkey": (accelerator: string, id: string) => Promise<boolean>;
 
-  /**
- * 检查全局快捷键是否已注册
- * @param IPC事件对象
- * @param 快捷键组合
- * @returns 是否已注册
- */
-  "hotkey-is-global-shortcut-registered": (keys: string) => Promise<boolean>;
-  /**
- * 检查全局快捷键是否已注册
- * @param IPC事件对象
- * @param 快捷键组合
- * @returns 是否已注册
- */
-  "hotkeyIsGlobalShortcutRegistered": (keys: string) => Promise<boolean>;
+  /** 注销所有全局快捷键 */
+  "hotkey-unregister-all-global-hotkeys": () => Promise<void>;
+  /** 注销所有全局快捷键 */
+  "hotkeyUnregisterAllGlobalHotkeys": () => Promise<void>;
 
-  /**
- * 清除所有全局快捷键
- * @returns 是否清除成功
- */
-  "hotkey-clear-all-global-shortcuts": () => Promise<boolean>;
-  /**
- * 清除所有全局快捷键
- * @returns 是否清除成功
- */
-  "hotkeyClearAllGlobalShortcuts": () => Promise<boolean>;
+  /** 检查快捷键是否已注册 */
+  "hotkey-is-global-hotkey-registered": (accelerator: string) => Promise<boolean>;
+  /** 检查快捷键是否已注册 */
+  "hotkeyIsGlobalHotkeyRegistered": (accelerator: string) => Promise<boolean>;
+
+  /** 获取所有已注册的全局快捷键 */
+  "hotkey-get-all-registered-global-hotkeys": () => Promise<Array<{
+  id: string;
+  accelerator: string;
+}>>;
+  /** 获取所有已注册的全局快捷键 */
+  "hotkeyGetAllRegisteredGlobalHotkeys": () => Promise<Array<{
+  id: string;
+  accelerator: string;
+}>>;
 }
 
 interface logInterface {
@@ -702,36 +675,27 @@ interface windowInterface {
   /** 打开日志查看器窗口 */
   "windowOpenLogViewer": () => Promise<void>;
 
-  /** 注册全局快捷键 */
-  "window-register-global-hotkey": (accelerator: string, id: string) => Promise<boolean>;
-  /** 注册全局快捷键 */
-  "windowRegisterGlobalHotkey": (accelerator: string, id: string) => Promise<boolean>;
+  /**
+ * 显示主窗口
+通过ViewManager获取main-view的父窗口并显示
+ */
+  "window-show": () => Promise<boolean>;
+  /**
+ * 显示主窗口
+通过ViewManager获取main-view的父窗口并显示
+ */
+  "windowShow": () => Promise<boolean>;
 
-  /** 注销全局快捷键 */
-  "window-unregister-global-hotkey": (accelerator: string, id: string) => Promise<boolean>;
-  /** 注销全局快捷键 */
-  "windowUnregisterGlobalHotkey": (accelerator: string, id: string) => Promise<boolean>;
-
-  /** 注销所有全局快捷键 */
-  "window-unregister-all-global-hotkeys": () => Promise<void>;
-  /** 注销所有全局快捷键 */
-  "windowUnregisterAllGlobalHotkeys": () => Promise<void>;
-
-  /** 检查快捷键是否已注册 */
-  "window-is-global-hotkey-registered": (accelerator: string) => Promise<boolean>;
-  /** 检查快捷键是否已注册 */
-  "windowIsGlobalHotkeyRegistered": (accelerator: string) => Promise<boolean>;
-
-  /** 获取所有已注册的全局快捷键 */
-  "window-get-all-registered-global-hotkeys": () => Promise<Array<{
-  id: string;
-  accelerator: string;
-}>>;
-  /** 获取所有已注册的全局快捷键 */
-  "windowGetAllRegisteredGlobalHotkeys": () => Promise<Array<{
-  id: string;
-  accelerator: string;
-}>>;
+  /**
+ * 隐藏主窗口
+通过ViewManager获取main-view的父窗口并隐藏
+ */
+  "window-hide": () => Promise<boolean>;
+  /**
+ * 隐藏主窗口
+通过ViewManager获取main-view的父窗口并隐藏
+ */
+  "windowHide": () => Promise<boolean>;
 
   /**
  * 获取UI常量配置
@@ -1124,28 +1088,34 @@ export const ROUTE_INFO: RouteInfo[] = [
     function: "writeFileFromBase64"
   },
   {
-    route: "hotkey-register-global-shortcut",
+    route: "hotkey-register-global-hotkey",
     comment: "注册全局快捷键",
     module: "hotkey",
-    function: "registerGlobalShortcut"
+    function: "registerGlobalHotkey"
   },
   {
-    route: "hotkey-unregister-global-shortcut",
+    route: "hotkey-unregister-global-hotkey",
     comment: "注销全局快捷键",
     module: "hotkey",
-    function: "unregisterGlobalShortcut"
+    function: "unregisterGlobalHotkey"
   },
   {
-    route: "hotkey-is-global-shortcut-registered",
-    comment: "检查全局快捷键是否已注册",
+    route: "hotkey-unregister-all-global-hotkeys",
+    comment: "注销所有全局快捷键",
     module: "hotkey",
-    function: "isGlobalShortcutRegistered"
+    function: "unregisterAllGlobalHotkeys"
   },
   {
-    route: "hotkey-clear-all-global-shortcuts",
-    comment: "清除所有全局快捷键",
+    route: "hotkey-is-global-hotkey-registered",
+    comment: "检查快捷键是否已注册",
     module: "hotkey",
-    function: "clearAllGlobalShortcuts"
+    function: "isGlobalHotkeyRegistered"
+  },
+  {
+    route: "hotkey-get-all-registered-global-hotkeys",
+    comment: "获取所有已注册的全局快捷键",
+    module: "hotkey",
+    function: "getAllRegisteredGlobalHotkeys"
   },
   {
     route: "log-get-logs",
@@ -1304,34 +1274,16 @@ export const ROUTE_INFO: RouteInfo[] = [
     function: "openLogViewer"
   },
   {
-    route: "window-register-global-hotkey",
-    comment: "注册全局快捷键",
+    route: "window-show",
+    comment: "显示主窗口, 通过ViewManager获取main-view的父窗口并显示",
     module: "window",
-    function: "registerGlobalHotkey"
+    function: "show"
   },
   {
-    route: "window-unregister-global-hotkey",
-    comment: "注销全局快捷键",
+    route: "window-hide",
+    comment: "隐藏主窗口, 通过ViewManager获取main-view的父窗口并隐藏",
     module: "window",
-    function: "unregisterGlobalHotkey"
-  },
-  {
-    route: "window-unregister-all-global-hotkeys",
-    comment: "注销所有全局快捷键",
-    module: "window",
-    function: "unregisterAllGlobalHotkeys"
-  },
-  {
-    route: "window-is-global-hotkey-registered",
-    comment: "检查快捷键是否已注册",
-    module: "window",
-    function: "isGlobalHotkeyRegistered"
-  },
-  {
-    route: "window-get-all-registered-global-hotkeys",
-    comment: "获取所有已注册的全局快捷键",
-    module: "window",
-    function: "getAllRegisteredGlobalHotkeys"
+    function: "hide"
   },
   {
     route: "window-get-u-i-constants",

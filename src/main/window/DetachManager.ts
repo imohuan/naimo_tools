@@ -103,6 +103,7 @@ export class DetachManager {
   private sourceViewMapping: Map<string, number> = new Map() // 源视图ID -> 分离窗口ID
   private baseWindowController: BaseWindowController
   private eventHandlers: Map<string, Function[]> = new Map()
+  private viewManager?: any // 避免循环依赖，延迟设置
 
   private constructor(config?: Partial<DetachManagerConfig>) {
     this.config = {
@@ -127,6 +128,14 @@ export class DetachManager {
       DetachManager.instance = new DetachManager(config)
     }
     return DetachManager.instance
+  }
+
+  /**
+   * 设置 ViewManager 实例（避免循环依赖）
+   * @param viewManager ViewManager 实例
+   */
+  public setViewManager(viewManager: any): void {
+    this.viewManager = viewManager
   }
 
   /**
@@ -262,6 +271,18 @@ export class DetachManager {
       this.detachedWindows.set(detachedWindow.id, detachedWindowInfo)
       this.sourceViewMapping.set(sourceView.id, detachedWindow.id)
 
+      // 更新 ViewManager 中视图的父窗口ID
+      if (this.viewManager && typeof this.viewManager.updateViewParentWindow === 'function') {
+        const updateResult = this.viewManager.updateViewParentWindow(sourceView.id, detachedWindow.id)
+        if (updateResult.success) {
+          log.info(`已更新视图 ${sourceView.id} 的父窗口ID: ${parentWindowId} -> ${detachedWindow.id}`)
+        } else {
+          log.warn(`更新视图父窗口ID失败: ${sourceView.id}, 错误: ${updateResult.error}`)
+        }
+      } else {
+        log.warn('ViewManager 未设置或不支持 updateViewParentWindow 方法')
+      }
+
       // 显示分离窗口
       detachedWindow.show()
 
@@ -332,6 +353,18 @@ export class DetachManager {
         log.warn('更新视图布局失败:', error);
       }
       log.info(`已将视图 ${detachedWindowInfo.sourceViewId} 重新附加到窗口 ${targetWindowId}`)
+
+      // 更新 ViewManager 中视图的父窗口ID
+      if (this.viewManager && typeof this.viewManager.updateViewParentWindow === 'function') {
+        const updateResult = this.viewManager.updateViewParentWindow(detachedWindowInfo.sourceViewId, targetWindowId)
+        if (updateResult.success) {
+          log.info(`已恢复视图 ${detachedWindowInfo.sourceViewId} 的父窗口ID: ${detachedWindowId} -> ${targetWindowId}`)
+        } else {
+          log.warn(`恢复视图父窗口ID失败: ${detachedWindowInfo.sourceViewId}, 错误: ${updateResult.error}`)
+        }
+      } else {
+        log.warn('ViewManager 未设置或不支持 updateViewParentWindow 方法')
+      }
 
       // 触发重新附加事件，通知 ViewManager 更新状态
       this.emit('view:reattach-requested', {
