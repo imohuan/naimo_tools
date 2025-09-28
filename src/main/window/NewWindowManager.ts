@@ -7,17 +7,18 @@
 import { BaseWindow, } from 'electron'
 import { resolve } from 'path'
 import log from 'electron-log'
-import { sendPluginViewOpened, sendPluginViewClosed } from '@main/ipc-router/main-events'
+import { sendPluginViewOpened, sendPluginViewClosed } from '@main/ipc-router/mainEvents'
 import { mainProcessEventManager } from './MainProcessEventManager'
-import { DEFAULT_WINDOW_LAYOUT, calculateSettingsViewBounds, } from '@shared/config/window-layout.config'
-import type { AppConfig } from '@shared/types'
+import { DEFAULT_WINDOW_LAYOUT } from '@shared/constants'
+import { calculateSettingsViewBounds } from '@shared/config/windowLayoutConfig'
+import type { AppConfig } from '@shared/typings/appTypes'
 import type {
   WebContentsViewConfig,
   WebContentsViewInfo,
   WindowOperationResult,
   ViewOperationResult,
   MainWindowLayoutConfig,
-} from './window-types'
+} from '../typings/windowTypes'
 import {
   ViewConfig,
   DetachedWindowConfig,
@@ -26,11 +27,11 @@ import {
   WindowManagerConfig,
   PerformanceMetrics,
   LifecycleType
-} from '@renderer/src/typings/window-types'
+} from '@renderer/src/typings/windowTypes'
 import {
   ViewType
-} from '@renderer/src/typings/window-types'
-import type { PluginItem } from '@renderer/src/typings/plugin-types'
+} from '@renderer/src/typings/windowTypes'
+import type { PluginItem } from '@renderer/src/typings/pluginTypes'
 
 // 导入子管理器
 import { BaseWindowController } from './BaseWindowController'
@@ -1184,7 +1185,9 @@ export class NewWindowManager {
    */
   private handleViewSwitched(data: any): void {
     this.activeViewId = data.toViewId
-    mainProcessEventManager.emit('view:switched', data)
+    // 注意：不要在这里重复发出 view:switched 事件，避免无限循环
+    // 这个方法是响应 view:switched 事件的，不应该再发出同样的事件
+    log.debug(`视图切换处理完成: ${data.fromViewId || 'unknown'} -> ${data.toViewId}`)
   }
 
   /**

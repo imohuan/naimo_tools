@@ -4,8 +4,8 @@
  */
 
 import log from 'electron-log';
-import { AppConfigManager } from '@main/config/app.config';
-import { AppConfig } from '@shared/types';
+import { AppConfigManager } from '@main/config/appConfig';
+import { AppConfig } from '@shared/typings/appTypes';
 
 // 全局配置管理器实例
 let configManager: AppConfigManager | null = null;

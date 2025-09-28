@@ -1,5 +1,5 @@
-import type { PluginConfig } from '@/typings/plugin-types'
-import { PluginExecuteType, PluginCategoryType } from '@/typings/plugin-types'
+import type { PluginConfig } from '@/typings/pluginTypes'
+import { PluginExecuteType, PluginCategoryType } from '@/typings/pluginTypes'
 
 /**
  * 网页工具插件示例

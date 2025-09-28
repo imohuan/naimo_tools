@@ -54,7 +54,7 @@ const emit = defineEmits<Emits>();
 // ==================== 响应式数据 ====================
 const inputRef = ref<HTMLInputElement>();
 const isComposing = ref(false); // 是否正在输入中文
-const compositionText = ref(""); // 预输入的拼音文字
+const compositionText = ref(''); // 预输入的拼音文字
 
 // ==================== Hooks ====================
 const { useTextWidthCalculator } = useTextWidth();
@@ -68,36 +68,36 @@ const { width: inputWidth, updateWidthAsync } = useTextWidthCalculator(inputRef,
 
 // ==================== 计算属性 ====================
 const currentText = computed(() => {
-  if (!inputRef.value) return props.modelValue || "";
+  if (!inputRef.value) return props.modelValue || '';
 
   // 如果正在输入中文，需要组合当前值和预输入拼音
   if (isComposing.value) {
-    const currentValue = props.modelValue || "";
+    const currentValue = props.modelValue || '';
     const fullText = currentValue + compositionText.value;
     return fullText;
   }
 
   // 非中文输入状态，使用正常的文本内容
-  return props.modelValue || "";
+  return props.modelValue || '';
 });
 
 // ==================== 方法 ====================
 const handleInputClick = () => {
   // 确保输入框获得焦点
   inputRef.value?.focus();
-  emit("input-click");
+  emit('input-click');
 };
 
 const handleEnter = () => {
   if (props.modelValue.trim()) {
-    emit("enter", props.modelValue);
+    emit('enter', props.modelValue);
   }
 };
 
 const handleDelete = () => {
   // 如果当前没有文字且存在文件，则清除文件
   if (!props.modelValue.trim() && props.hasFiles) {
-    emit("clear-files");
+    emit('clear-files');
   }
 };
 
@@ -105,20 +105,20 @@ const handleInput = (event: Event) => {
   const target = event.target as HTMLInputElement;
   const value = target.value;
   // 触发 v-model 更新
-  emit("update:modelValue", value);
+  emit('update:modelValue', value);
   // 更新宽度
   updateWidthAsync(currentText.value);
 };
 
 const handlePaste = (event: ClipboardEvent) => {
-  emit("paste", event);
+  emit('paste', event);
 };
 
 // 中文输入法事件处理
 const handleCompositionStart = () => {
   isComposing.value = true;
-  compositionText.value = "";
-  console.log("开始中文输入");
+  compositionText.value = '';
+  console.log('开始中文输入');
 };
 
 const handleCompositionUpdate = (event: CompositionEvent) => {

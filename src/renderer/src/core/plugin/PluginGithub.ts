@@ -1,6 +1,6 @@
 import { request } from '@/core/request'
 import { CacheManager } from '@/core/CacheManager'
-import type { PluginConfig } from '@/typings/plugin-types'
+import type { PluginConfig } from '@/typings/pluginTypes'
 import { uniqueArrayByProperty } from '@/utils'
 
 export interface GithubSearch {

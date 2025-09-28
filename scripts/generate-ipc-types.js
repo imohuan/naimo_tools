@@ -397,7 +397,7 @@ export type IpcRouteReturn<T extends IpcRouteKey> = ReturnType<AllIpcRouter[T]>;
 // 主函数
 function main() {
   const modulesDir = path.join(process.cwd(), 'src/main/ipc-router/modules');
-  const outputPath = path.join(process.cwd(), 'src/shared/typings/ipc-routes.ts');
+  const outputPath = path.join(process.cwd(), 'src/shared/typings/ipcRoutes.ts');
 
   console.log('🚀 开始生成 IPC 类型定义...');
   console.log(`📁 扫描目录: ${modulesDir}`);

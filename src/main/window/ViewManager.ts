@@ -6,24 +6,24 @@
 import { BaseWindow, WebContentsView, screen } from 'electron'
 import { resolve } from 'path'
 import log from 'electron-log'
+import { DEFAULT_WINDOW_LAYOUT } from '@shared/constants'
 import {
-  DEFAULT_WINDOW_LAYOUT,
   calculateSettingsViewBounds,
   calculateMainViewBounds
-} from '@shared/config/window-layout.config'
+} from '@shared/config/windowLayoutConfig'
 import type {
   WebContentsViewConfig,
   WebContentsViewInfo,
   ViewOperationResult,
   WindowPerformanceMetrics,
   WindowManagerEventData
-} from './window-types'
+} from '../typings/windowTypes'
 import { isProduction } from '@shared/utils'
 import { getDirname } from '@main/utils'
-import { getRendererUrl } from './window.config'
+import { getRendererUrl } from './windowConfig'
 import { BaseWindowController } from './BaseWindowController'
 import { DetachManager } from './DetachManager'
-import { sendViewRestoreRequested, sendViewDetached } from '@main/ipc-router/main-events'
+import { sendViewRestoreRequested, sendViewDetached } from '@main/ipc-router/mainEvents'
 import { mainProcessEventManager } from './MainProcessEventManager'
 
 /**

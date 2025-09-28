@@ -16,11 +16,12 @@
  * 8. 日志记录 - 记录开发过程中的日志
  * 
  * 使用方法：
- * - 普通模式：node scripts/dev-class.js
- * - 主进程调试：node scripts/dev-class.js --debug
- * - 渲染进程调试：node scripts/dev-class.js --renderer-debug
- * - 启用 IPC Types：node scripts/dev-class.js --enable-ipc-types
- * - 启用日志记录：node scripts/dev-class.js --enable-log
+ * - 普通模式：node scripts/dev.js
+ * - 主进程调试：node scripts/dev.js --debug
+ * - 渲染进程调试：node scripts/dev.js --renderer-debug
+ * - 启用 IPC Types：node scripts/dev.js --enable-ipc-types
+ * - 启用 Events 生成：node scripts/dev.js --enable-events
+ * - 启用日志记录：node scripts/dev.js --debug-log
  * 
  * @author 重构自 dev.js
  * @version 2.0.0
@@ -53,6 +54,7 @@ const CONFIG = {
     enableMainDebug: process.argv.includes('--debug'),           // 是否启用主进程调试模式
     enableRendererDebug: process.argv.includes('--renderer-debug'),       // 是否启用渲染进程调试模式
     enableIpcTypesGeneration: process.argv.includes('--enable-ipc-types') || process.env.ENABLE_IPC_TYPES === 'true',   // 是否启用 IPC Types 自动生成功能
+    enableEventsGeneration: process.argv.includes('--enable-events') || process.env.ENABLE_EVENTS === 'true',   // 是否启用 Events 代码自动生成功能
     enableWebSocketLog: false,      // 是否启用 WebSocket 日志
   },
 
@@ -63,6 +65,7 @@ const CONFIG = {
     electronRestart: 500,           // Electron 重启防抖延迟
     preloadRebuild: 1000,           // Preload 脚本重建防抖延迟
     ipcTypesGeneration: 1000,       // IPC Types 生成防抖延迟
+    eventsGeneration: 1000,         // Events 生成防抖延迟
     mainProcessRebuild: 1000        // Main 进程重建防抖延迟
   },
 
@@ -112,6 +115,8 @@ class DevServerManager {
     this.preloadRebuildTimeout = null;  // Preload 重建防抖定时器
     this.ipcTypesWatchers = [];         // IPC Types 监听器
     this.ipcTypesGenerationTimeout = null; // IPC Types 生成防抖定时器
+    this.eventsWatchers = [];           // Events 监听器
+    this.eventsGenerationTimeout = null; // Events 生成防抖定时器
 
     // 主进程监听器
     this.mainProcessWatcher = null;    // 主进程监听器
@@ -172,6 +177,10 @@ class DevServerManager {
 
     if (this.config.features.enableIpcTypesGeneration) {
       console.log('📝 IPC Types 自动生成已启用');
+    }
+
+    if (this.config.features.enableEventsGeneration) {
+      console.log('📝 Events 代码自动生成已启用');
     }
 
     // 确保必要目录存在
@@ -807,6 +816,109 @@ class DevServerManager {
     }, this.config.debounce.ipcTypesGeneration);
   }
 
+  // ==================== Events 管理 ====================
+
+  /**
+   * 生成 Events 代码
+   * 自动生成主进程和渲染进程的类型安全事件方法
+   * 只有在启用 Events 自动生成功能时才会执行
+   */
+  async generateEvents() {
+    if (!this.config.features.enableEventsGeneration) {
+      return;
+    }
+
+    console.log('📝 生成 Events 代码...');
+
+    try {
+      const generateProcess = this.createProcess('npm', ['run', 'generate:events'], {
+        prefix: 'Events',
+        onStdout: (data) => {
+          const prefix = 'Events';
+          process.stdout.write(`[${prefix}] ${data}`);
+        },
+        onError: (error) => {
+          console.error('❌ Events 代码生成错误:', error);
+        },
+        onClose: (code) => {
+          if (code === 0) {
+            console.log('✅ Events 代码生成完成');
+            this.sendToWebSocketClients({
+              type: 'events_generated',
+              message: 'Events 代码生成完成'
+            });
+          } else {
+            console.error(`❌ Events 代码生成失败，退出代码: ${code}`);
+          }
+        }
+      });
+    } catch (error) {
+      console.error('❌ 启动 Events 代码生成失败:', error);
+    }
+  }
+
+  /**
+   * 设置 Events 配置文件监听器
+   */
+  setupEventsConfigWatcher() {
+    if (!this.config.features.enableEventsGeneration) {
+      return;
+    }
+
+    const configPath = join(process.cwd(), 'src/shared/config/eventsConfig.ts');
+
+    if (!existsSync(configPath)) {
+      console.log('📁 Events 配置文件不存在，跳过监听');
+      return;
+    }
+
+    // 先生成一次 Events 代码
+    this.generateEvents();
+
+    console.log(`👀 开始监听 Events 配置文件: ${configPath}`);
+
+    const watcher = chokidar.watch(configPath, {
+      persistent: true,
+      ignoreInitial: true
+    });
+
+    this.eventsWatchers.push(watcher);
+
+    watcher.on('change', (path) => {
+      this.handleEventsConfigChange(path, 'change');
+    });
+
+    watcher.on('error', (error) => {
+      console.error('❌ Events 配置监听器错误:', error);
+    });
+  }
+
+  /**
+   * 处理 Events 配置变化
+   */
+  handleEventsConfigChange(path, eventType) {
+    const eventMessages = {
+      change: 'Events 配置文件发生变化'
+    };
+
+    console.log(`🔍 ${eventMessages[eventType]}: ${path}`);
+
+    if (this.eventsGenerationTimeout) {
+      clearTimeout(this.eventsGenerationTimeout);
+    }
+
+    this.eventsGenerationTimeout = setTimeout(() => {
+      console.log('🔄 重新生成 Events 代码...');
+
+      this.sendToWebSocketClients({
+        type: 'events_generating',
+        message: `检测到 Events 配置${eventType}，正在重新生成代码...`
+      });
+
+      this.generateEvents();
+    }, this.config.debounce.eventsGeneration);
+  }
+
   // ==================== Electron 管理 ====================
 
   /**
@@ -918,6 +1030,9 @@ class DevServerManager {
 
       // 设置 IPC modules 监听器
       this.setupIpcModulesWatcher();
+
+      // 设置 Events 配置监听器
+      this.setupEventsConfigWatcher();
 
       console.log('🔧 编译主进程...');
 
@@ -1065,6 +1180,14 @@ class DevServerManager {
     });
     this.ipcTypesWatchers = [];
 
+    // 关闭所有 Events watcher
+    this.eventsWatchers.forEach(watcher => {
+      if (watcher) {
+        watcher.close();
+      }
+    });
+    this.eventsWatchers = [];
+
     // 关闭所有进程
     this.processes.forEach((childProcess, index) => {
       if (childProcess && !childProcess.killed) {
@@ -1106,6 +1229,11 @@ class DevServerManager {
     if (this.ipcTypesGenerationTimeout) {
       clearTimeout(this.ipcTypesGenerationTimeout);
       this.ipcTypesGenerationTimeout = null;
+    }
+
+    if (this.eventsGenerationTimeout) {
+      clearTimeout(this.eventsGenerationTimeout);
+      this.eventsGenerationTimeout = null;
     }
   }
 }

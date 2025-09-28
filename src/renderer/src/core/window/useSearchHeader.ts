@@ -7,8 +7,8 @@ import { ref, onMounted, onUnmounted, computed } from 'vue'
 import type { Ref } from 'vue'
 import { SearchHeaderManager, createSearchHeaderManager } from './SearchHeaderManager'
 import type { SearchHeaderConfig, SearchHeaderState, SearchHeaderEvents } from './SearchHeaderManager'
-import type { AttachedFile } from '@/composables/useFileHandler'
-import type { PluginItem } from '@/typings/plugin-types'
+import type { AttachedFile } from '@/typings/composableTypes'
+import type { PluginItem } from '@/typings/pluginTypes'
 
 /**
  * useSearchHeader 组合式函数的返回类型

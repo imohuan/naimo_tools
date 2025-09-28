@@ -1,4 +1,4 @@
-import { ipcRouter } from "@shared/utils/ipc-router-client";
+import { ipcRouter } from "@shared/utils/ipcRouterClient";
 import { contextBridge } from "electron";
 
 const naimo = {

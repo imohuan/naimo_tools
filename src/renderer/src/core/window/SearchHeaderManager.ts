@@ -5,8 +5,8 @@
  */
 
 import { ref, reactive, computed, type Ref } from 'vue'
-import type { AttachedFile } from '@/composables/useFileHandler'
-import type { PluginItem } from '@/typings/plugin-types'
+import type { AttachedFile } from '@/typings/composableTypes'
+import type { PluginItem } from '@/typings/pluginTypes'
 import { BaseSingleton } from '../BaseSingleton'
 
 /**

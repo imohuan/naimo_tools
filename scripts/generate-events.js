@@ -13,7 +13,7 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
 // 读取事件配置
-const configPath = path.join(__dirname, '../src/shared/config/events.config.ts')
+const configPath = path.join(__dirname, '../src/shared/config/eventsConfig.ts')
 const configContent = fs.readFileSync(configPath, 'utf-8')
 
 // 简单的解析器来提取事件名（更复杂的项目可以使用 TypeScript 编译器 API）
@@ -73,12 +73,12 @@ function toPascalCase(str) {
 function generateMainEvents(events) {
   const imports = `/**
  * 主进程事件发送方法（自动生成）
- * 基于 events.config.ts 自动生成，请勿手动修改
+ * 基于 eventsConfig.ts 自动生成，请勿手动修改
  */
 
 import { WebContents } from 'electron'
 import log from 'electron-log'
-import type { EventsConfig, EventType, EventData } from '@shared/config/events.config'
+import type { EventsConfig, EventType, EventData } from '@shared/config/eventsConfig'
 `
 
   const functions = events.map(eventName => {
@@ -137,7 +137,7 @@ function generateEventInterface(events) {
  * 请勿手动修改此文件
  */
 
-import type { EventsConfig, EventData } from '@shared/config/events.config'
+import type { EventsConfig, EventData } from '@shared/config/eventsConfig'
 `
 
   // 生成事件接口
@@ -212,13 +212,13 @@ function main() {
 
   // 生成主进程文件
   const mainContent = generateMainEvents(events)
-  fs.writeFileSync(path.join(mainOutputDir, 'main-events.ts'), mainContent)
-  console.log('✅ 主进程事件文件已生成: src/main/ipc-router/main-events.ts')
+  fs.writeFileSync(path.join(mainOutputDir, 'mainEvents.ts'), mainContent)
+  console.log('✅ 主进程事件文件已生成: src/main/ipc-router/mainEvents.ts')
 
-  // 生成事件接口定义文件（类似 ipc-routes.ts）
+  // 生成事件接口定义文件（类似 ipcRoutes.ts）
   const eventInterfaceContent = generateEventInterface(events)
-  fs.writeFileSync(path.join(typingsOutputDir, 'event-routes.ts'), eventInterfaceContent)
-  console.log('✅ 事件接口文件已生成: src/shared/typings/event-routes.ts')
+  fs.writeFileSync(path.join(typingsOutputDir, 'eventRoutes.ts'), eventInterfaceContent)
+  console.log('✅ 事件接口文件已生成: src/shared/typings/eventRoutes.ts')
 
   console.log('🎉 事件代码生成完成！')
 }

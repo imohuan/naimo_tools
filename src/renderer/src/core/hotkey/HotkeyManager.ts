@@ -1,5 +1,5 @@
-import { HotkeyType, type HotkeyConfig, type HotkeyEventType, type HotkeyEventListener, type HotkeySettingsConfig } from '@/typings/hotkey-types'
-import type { CoreAPI } from '@/typings/core-types'
+import { HotkeyType, type HotkeyConfig, type HotkeyEventType, type HotkeyEventListener, type HotkeySettingsConfig } from '@/typings/hotkeyTypes'
+import type { CoreAPI } from '@/typings/coreTypes'
 import { electronHotkeyBridge } from './ElectronHotkeyBridge'
 import { appHotkeyBridge } from './AppHotkeyBridge'
 import { BaseSingleton } from '../BaseSingleton'

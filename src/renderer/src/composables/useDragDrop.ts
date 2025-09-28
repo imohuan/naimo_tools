@@ -1,5 +1,5 @@
 import { ref } from "vue";
-import type { AttachedFile } from "./useFileHandler";
+import type { AttachedFile } from "@/typings/composableTypes";
 
 export function useDragDrop(
   addFiles?: (files: FileList | File[]) => Promise<AttachedFile[]>

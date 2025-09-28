@@ -4,8 +4,8 @@
  */
 
 import { ipcRenderer } from 'electron';
-import { EVENT_INFO } from '../typings/event-routes';
-import type { AllEventRouter, EventKey, EventHandlerType } from '../typings/event-routes';
+import { EVENT_INFO } from '../typings/eventRoutes';
+import type { AllEventRouter, EventKey, EventHandlerType } from '../typings/eventRoutes';
 
 /**
  * 事件路由客户端类
@@ -146,4 +146,4 @@ function kebabToCamel(str: string): string {
 export const eventRouter = createEventRouter();
 
 // 导出类型
-export type { AllEventRouter, EventKey, EventHandlerType } from '../typings/event-routes';
+export type { AllEventRouter, EventKey, EventHandlerType } from '../typings/eventRoutes';

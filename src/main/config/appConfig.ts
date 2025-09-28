@@ -1,7 +1,7 @@
 import { app } from 'electron';
 import Store from 'electron-store';
 import log from 'electron-log';
-import { AppConfig } from '@shared/types';
+import { AppConfig } from '@shared/typings/appTypes';
 import { isProduction } from '@shared/utils';
 
 /**

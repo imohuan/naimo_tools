@@ -1,9 +1,9 @@
-import type { PluginConfig, PluginHook, PluginItem, CommandConfig } from '@/typings/plugin-types'
-import type { CoreAPI } from '@/typings/core-types'
+import type { PluginConfig, PluginHook, PluginItem, CommandConfig } from '@/typings/pluginTypes'
+import type { CoreAPI } from '@/typings/coreTypes'
 import { BaseSingleton } from '../BaseSingleton'
 import { ElectronStoreBridge } from '../store/ElectronStoreBridge'
-import type { AppConfig } from '@shared/types'
-import { getDeafultPlugins, getDeafultPluginById } from '@/modules/plugins/config/default-plugins'
+import type { AppConfig } from '@shared/typings'
+import { getDeafultPlugins, getDeafultPluginById } from '@/modules/plugins/config/defaultPlugins'
 import { PluginGithub } from './PluginGithub'
 import { isFunction } from '@shared/utils'
 // 移除窗口管理相关的导入，这些功能已转移到 PluginWindowManager

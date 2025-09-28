@@ -20,7 +20,7 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
 import { useHotkeyListener } from "../hooks/useHotkeyListener";
-import { HotkeyType } from "@/typings/hotkey-types";
+import { HotkeyType } from "@/typings/hotkeyTypes";
 
 // 组件属性
 interface Props {

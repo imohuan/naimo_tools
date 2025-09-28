@@ -368,8 +368,8 @@ export function getUIConstants(event: Electron.IpcMainInvokeEvent): {
 // 以下是基于 NewWindowManager 的新窗口管理 API
 
 import { ViewManager } from '@main/window/ViewManager'
-import { ViewType, LifecycleType } from '@renderer/src/typings/window-types'
-import type { PluginItem } from '@renderer/src/typings/plugin-types'
+import { ViewType, LifecycleType } from '@renderer/src/typings/windowTypes'
+import type { PluginItem } from '@renderer/src/typings/pluginTypes'
 
 
 /**

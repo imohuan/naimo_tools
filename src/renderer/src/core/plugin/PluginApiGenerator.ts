@@ -1,8 +1,8 @@
-import type { PluginItem } from '@/typings/plugin-types'
+import type { PluginItem } from '@/typings/pluginTypes'
 import type { PluginApi } from '@shared/typings/global'
 import { pluginManager } from './PluginManager'
 import { ElectronStoreBridge } from '../store/ElectronStoreBridge'
-import { LifecycleType } from '@/typings/window-types'
+import { LifecycleType } from '@/typings/windowTypes'
 
 /**
  * 插件 API 生成器

@@ -48,9 +48,9 @@
 <script setup lang="ts">
 import { nextTick } from "vue";
 import SearchCategories from "@/modules/search/components/SearchCategories.vue";
-import type { AppItem } from "@shared/types";
+import type { AppItem } from "@shared/typings";
 import type { SearchCategory } from "@/modules/search";
-import { DEFAULT_WINDOW_LAYOUT } from "@shared/config/window-layout.config";
+import { DEFAULT_WINDOW_LAYOUT } from "@shared/config/windowLayoutConfig";
 
 interface Props {
   contentAreaVisible: boolean;

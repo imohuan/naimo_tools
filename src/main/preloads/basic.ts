@@ -1,13 +1,13 @@
 import log from "electron-log/renderer";
 import { contextBridge, ipcRenderer, webUtils as electronWebUtils } from "electron";
 import { RendererErrorHandler } from "@libs/unhandled/renderer";
-import { ipcRouter } from "@shared/utils/ipc-router-client";
+import { ipcRouter } from "@shared/utils/ipcRouterClient";
 import { isDevelopment } from "@shared/utils";
 import { resolve, dirname } from "path";
 
 import { autoPuppeteerRenderer } from "@libs/auto-puppeteer/renderer";
 import { downloadManagerRenderer } from "@libs/download-manager/renderer";
-import { eventRouter } from "@shared/utils/event-router-client";
+import { eventRouter } from "@shared/utils/eventRouterClient";
 
 /**
  * 启用热重载

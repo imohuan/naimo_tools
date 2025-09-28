@@ -11,8 +11,8 @@ import type {
   DetachedWindowConfig,
   WindowOperationResult,
   HiddenWindowPosition
-} from './window-types'
-import type { AppConfig } from '@shared/types'
+} from '../typings/windowTypes'
+import type { AppConfig } from '@shared/typings/appTypes'
 import { isProduction } from '@shared/utils'
 
 /**

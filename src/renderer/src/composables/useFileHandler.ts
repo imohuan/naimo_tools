@@ -1,19 +1,6 @@
 import { ref, computed } from 'vue'
-import type { AppItem } from '@shared/types'
-
-/** 附件文件 */
-export interface AttachedFile {
-  /** 文件名 */
-  name: string
-  /** 文件路径 */
-  path: string
-  /** 文件图标（可选） */
-  icon?: string
-  /** 文件类型 */
-  type: string
-  /** 文件大小 */
-  size: number
-}
+import type { AppItem } from '@shared/typings'
+import type { AttachedFile } from '@/typings/composableTypes'
 
 export function useFileHandler() {
   // 附件文件列表

@@ -140,29 +140,30 @@ import IconMdiCog from "~icons/mdi/cog";
 // Composables 导入
 import { useDragDrop } from "@/composables/useDragDrop";
 import { useFileHandler } from "@/composables/useFileHandler";
-import { useUIStatus, InterfaceType as UIInterfaceType } from "@/composables/useUIStatus";
+import { useUIStatus } from "@/composables/useUIStatus";
+import { InterfaceType as UIInterfaceType } from "@/typings/composableTypes";
 import { useWindowManager } from "@/composables/useWindowManager";
 import { useEventSystem } from "@/composables/useEventSystem";
 
 // 模块导入
 import { useHotkeyManager } from "@/modules/hotkeys/hooks/useHotkeyManager";
-import type { HotkeyEventListener, HotkeyTriggeredEventDetail } from "@/typings/hotkey-types";
+import type { HotkeyEventListener, HotkeyTriggeredEventDetail } from "@/typings/hotkeyTypes";
 import { useKeyboardNavigation } from "@/modules/search";
 import { useSearch } from "@/modules/search";
 import { usePluginStore } from "@/store";
 
 // 类型导入
-import type { AppItem } from "@shared/types";
-import type { PluginItem } from "./typings/plugin-types";
+import type { AppItem } from "@shared/typings";
+import type { PluginItem } from "./typings/pluginTypes";
 import { pluginManager } from "./core/plugin/PluginManager";
 import { pluginApiGenerator } from "./core/plugin/PluginApiGenerator";
 
-import { DEFAULT_WINDOW_LAYOUT } from "@shared/config/window-layout.config"
+import { DEFAULT_WINDOW_LAYOUT } from "@shared/config/windowLayoutConfig"
 
 
 //测试打包
 import type { PluginApi } from "@shared/typings/global";
-import { LifecycleType } from "@/typings/window-types";
+import { LifecycleType } from "@/typings/windowTypes";
 // ==================== 新窗口管理系统初始化 ====================
 /**
  * 搜索头部管理器 - 使用新的窗口管理系统

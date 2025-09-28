@@ -6,8 +6,9 @@
 
 import { BaseWindow, WebContentsView, screen, globalShortcut } from 'electron'
 import { resolve } from 'path'
+import { EventEmitter } from 'events'
 import log from 'electron-log'
-import { sendDetachedWindowInit } from '@main/ipc-router/main-events'
+import { sendDetachedWindowInit } from '@main/ipc-router/mainEvents'
 import type {
   BaseWindowConfig,
   WebContentsViewInfo,
@@ -16,17 +17,17 @@ import type {
   WindowOperationResult,
   ViewOperationResult,
   WindowManagerEventData
-} from './window-types'
+} from '../typings/windowTypes'
 import type {
   DetachedWindowConfig,
   Rectangle,
   ViewType,
   DetachedWindowControlEvent
-} from '@renderer/src/typings/window-types'
+} from '@renderer/src/typings/windowTypes'
 import {
   DetachedWindowAction
-} from '@renderer/src/typings/window-types'
-import type { PluginItem } from '@renderer/src/typings/plugin-types'
+} from '@renderer/src/typings/windowTypes'
+import type { PluginItem } from '@renderer/src/typings/pluginTypes'
 import { BaseWindowController } from './BaseWindowController'
 import { getDirname } from '@main/utils'
 import { mainProcessEventManager } from './MainProcessEventManager'
@@ -98,7 +99,7 @@ export interface DetachManagerConfig {
  * DetachManager 类
  * 管理视图分离和独立窗口
  */
-export class DetachManager {
+export class DetachManager extends EventEmitter {
   private static instance: DetachManager
   private config: DetachManagerConfig
   private detachedWindows: Map<number, DetachedWindowInfo> = new Map()
@@ -107,6 +108,7 @@ export class DetachManager {
   private viewManager?: any // 避免循环依赖，延迟设置
 
   private constructor(config?: Partial<DetachManagerConfig>) {
+    super()
     this.config = {
       defaultWindowSize: { width: 800, height: 600 },
       windowOffset: { x: 50, y: 50 },
@@ -288,12 +290,14 @@ export class DetachManager {
       detachedWindow.show()
 
       // 触发分离事件
-      mainProcessEventManager.emit('view:detached', {
+      const detachData = {
         viewId: sourceView.id,
         windowId: parentWindowId,
         detachedWindowId: detachedWindow.id,
         timestamp: Date.now()
-      })
+      }
+      mainProcessEventManager.emit('view:detached', detachData)
+      this.emit('view:detached', detachData)
 
       log.info(`视图分离成功: ${sourceView.id} -> 窗口 ${detachedWindow.id}`)
 
@@ -423,11 +427,13 @@ export class DetachManager {
       }
 
       // 触发关闭事件
-      mainProcessEventManager.emit('view:detached-window-closed', {
+      const closeData = {
         viewId: detachedWindowInfo.sourceViewId,
         detachedWindowId: windowId,
         timestamp: Date.now()
-      })
+      }
+      mainProcessEventManager.emit('view:detached-window-closed', closeData)
+      this.emit('view:detached-window-closed', closeData)
 
       log.info(`分离窗口关闭完成: ${windowId}`)
 
@@ -821,12 +827,14 @@ export class DetachManager {
       this.sourceViewMapping.delete(detachedWindowInfo.sourceViewId)
       this.detachedWindows.delete(windowId)
 
-      // 触发关闭事件
-      mainProcessEventManager.emit('view:detached-window-closed', {
+      // 触发关闭事件  
+      const closeData2 = {
         viewId: detachedWindowInfo.sourceViewId,
         detachedWindowId: windowId,
         timestamp: Date.now()
-      })
+      }
+      mainProcessEventManager.emit('view:detached-window-closed', closeData2)
+      this.emit('view:detached-window-closed', closeData2)
     }
   }
 

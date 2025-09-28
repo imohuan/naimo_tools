@@ -114,7 +114,7 @@
 import { ref, onMounted, toRaw } from 'vue'
 import { pluginManager } from '@/core/plugin/PluginManager'
 import { ElectronStoreBridge } from '@/core/store/ElectronStoreBridge'
-import type { SettingConfig } from '@/typings/plugin-types'
+import type { SettingConfig } from '@/typings/pluginTypes'
 import SettingItem from './SettingItem.vue'
 import IconDisplay from '@/components/IconDisplay.vue'
 

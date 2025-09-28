@@ -16,7 +16,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: resolve(__dirname, 'src/main/main.ts'),
-        iconWorker: resolve(__dirname, 'src/main/workers/icon-worker.ts'),
+        iconWorker: resolve(__dirname, 'src/main/workers/iconWorker.ts'),
       },
       external: [
         'electron',

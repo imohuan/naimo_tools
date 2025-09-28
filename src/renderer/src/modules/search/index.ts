@@ -1,8 +1,8 @@
 import { ref, computed, type Ref } from 'vue'
 import { searchEngine } from '@/core/search/SearchEngine'
 import { useAppActions } from './hooks/useAppActions'
-import type { SearchCategory, SearchState } from '@/typings/search-types'
-import type { AttachedFile } from '@/composables/useFileHandler'
+import type { SearchCategory, SearchState } from '@/typings/searchTypes'
+import type { AttachedFile } from '@/typings/composableTypes'
 
 export function useSearch(attachedFiles: Ref<AttachedFile[]>) {
   const selectedIndex = ref(0)
@@ -148,4 +148,4 @@ export function useSearch(attachedFiles: Ref<AttachedFile[]>) {
 export { useKeyboardNavigation } from './hooks/useKeyboardNavigation'
 
 // 导出类型
-export type { SearchCategory, SearchState } from '@/typings/search-types'
+export type { SearchCategory, SearchState } from '@/typings/searchTypes'

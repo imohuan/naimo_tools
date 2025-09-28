@@ -1,5 +1,5 @@
 import { nextTick } from "vue";
-import type { AppItem } from "@shared/types";
+import type { AppItem } from "@shared/typings";
 
 export function useKeyboardNavigation(
   flatItems: any,

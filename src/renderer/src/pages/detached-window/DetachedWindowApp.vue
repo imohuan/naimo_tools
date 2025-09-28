@@ -71,7 +71,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import WindowControlBar from './WindowControlBar.vue'
-import { DetachedWindowAction } from '@/typings/window-types'
+import { DetachedWindowAction } from '@/typings/windowTypes'
 
 // 响应式状态
 const isLoading = ref(true)

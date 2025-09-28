@@ -1,10 +1,10 @@
 import { app, BrowserWindow, screen, BaseWindow } from "electron";
 import log from "electron-log";
 import { updateElectronApp, UpdateSourceType } from "@libs/update";
-import { AppConfigManager } from "@main/config/app.config";
-import { LogConfigManager } from "@main/config/log.config";
+import { AppConfigManager } from "@main/config/appConfig";
+import { LogConfigManager } from "@main/config/logConfig";
 import { NewWindowManager } from "@main/window/NewWindowManager";
-import { sendWindowAllBlur } from "@main/ipc-router/main-events";
+import { sendWindowAllBlur } from "@main/ipc-router/mainEvents";
 import { isProduction } from "@shared/utils";
 import { MainErrorHandler } from "@libs/unhandled/main";
 import { cleanupIpcRouter, initializeIpcRouter } from "@main/ipc-router";
@@ -16,7 +16,7 @@ import { existsSync, rmSync } from "fs";
 import { getDirname } from "@main/utils";
 
 import { DownloadManagerMain, StorageProvider } from "@libs/download-manager/main"
-import { LifecycleType, WindowManagerConfig } from "@renderer/src/typings/window-types";
+import { LifecycleType, WindowManagerConfig } from "@renderer/src/typings/windowTypes";
 
 /**
  * 主应用服务类
@@ -141,11 +141,11 @@ export class AppService {
     //   log.debug('主窗口获得焦点:', data);
     // });
 
-    this.windowManager.on('window:main-blurred', (data: any) => {
-      log.debug('主窗口失去焦点:', data);
-      // 向当前活跃的WebContentsView发送blur事件
-      this.sendBlurEventToActiveView();
-    });
+    // this.windowManager.on('window:main-blurred', (data: any) => {
+    //   log.debug('主窗口失去焦点:', data);
+    //   // 向当前活跃的WebContentsView发送blur事件
+    //   this.sendBlurEventToActiveView();
+    // });
 
     // // 监听视图激活事件
     // this.windowManager.on('view:activated', (data: any) => {

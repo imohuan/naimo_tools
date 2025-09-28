@@ -1,10 +1,10 @@
 /**
  * 自动生成的事件类型定义
- * 生成时间: 2025-09-28T10:03:33.961Z
+ * 生成时间: 2025-09-28T10:50:03.054Z
  * 请勿手动修改此文件
  */
 
-import type { EventsConfig, EventData } from '@shared/config/events.config'
+import type { EventsConfig, EventData } from '@shared/config/eventsConfig'
 
 // 事件接口定义
 interface EventInterface {

@@ -98,7 +98,7 @@ import IconMdiDelete from "~icons/mdi/delete";
 import IconMdiKeyboard from "~icons/mdi/keyboard";
 /** @ts-ignore */
 import IconMdiInformation from "~icons/mdi/information";
-import { HotkeyType, type HotkeyConfig } from "@/typings/hotkey-types";
+import { HotkeyType, type HotkeyConfig } from "@/typings/hotkeyTypes";
 import { hotkeyManager } from "@/core/hotkey/HotkeyManager";
 import { useHotkeyListener } from "../hooks/useHotkeyListener";
 
@@ -209,34 +209,34 @@ const toggleHotkey = async (hotkey: HotkeyConfig) => {
 // 格式化按键显示
 const formatKeyDisplay = (key: string) => {
   switch (key) {
-    case "ctrl":
-      return "Ctrl";
-    case "shift":
-      return "Shift";
-    case "alt":
-      return "Alt";
-    case "meta":
-      return "Meta";
-    case "space":
-      return "Space";
-    case "esc":
-      return "Escape";
-    case "enter":
-      return "Enter";
-    case "tab":
-      return "Tab";
-    case "backspace":
-      return "Backspace";
-    case "delete":
-      return "Delete";
-    case "up":
-      return "↑";
-    case "down":
-      return "↓";
-    case "left":
-      return "←";
-    case "right":
-      return "→";
+    case 'ctrl':
+      return 'Ctrl';
+    case 'shift':
+      return 'Shift';
+    case 'alt':
+      return 'Alt';
+    case 'meta':
+      return 'Meta';
+    case 'space':
+      return 'Space';
+    case 'esc':
+      return 'Escape';
+    case 'enter':
+      return 'Enter';
+    case 'tab':
+      return 'Tab';
+    case 'backspace':
+      return 'Backspace';
+    case 'delete':
+      return 'Delete';
+    case 'up':
+      return '↑';
+    case 'down':
+      return '↓';
+    case 'left':
+      return '←';
+    case 'right':
+      return '→';
     default:
       return key.toUpperCase();
   }
@@ -249,7 +249,7 @@ const loadCustomHotkeys = async () => {
     const allHotkeys = hotkeyManager.getAll();
     customHotkeys.value = allHotkeys.filter(hotkey => hotkey.id.startsWith(hotkeyManager.customHotKeyPrefix));
   } catch (error) {
-    console.error("加载自定义快捷键失败:", error);
+    console.error('加载自定义快捷键失败:', error);
   }
 };
 

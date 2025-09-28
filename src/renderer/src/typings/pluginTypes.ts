@@ -1,6 +1,6 @@
-import type { AttachedFile } from '@/composables/useFileHandler'
-import type { AppItem } from '@shared/types'
-import type { SearchMode } from './search-types'
+import type { AttachedFile } from '@/typings/composableTypes'
+import type { AppItem } from '@shared/typings'
+import type { SearchMode } from './searchTypes'
 import type { PluginApi } from '@shared/typings/global'
 /** 插件钩子 */
 export type PluginHook = (...args: any[]) => void | Promise<void>
@@ -165,7 +165,7 @@ export interface PluginItem extends AppItem {
   /** 排序权重 */
   weight?: number
   /** 生命周期类型 */
-  lifecycleType?: import('./window-types').LifecycleType
+  lifecycleType?: import('./windowTypes').LifecycleType
   /** 搜索回调（附件搜索模式使用） */
   onSearch?: (text: string, files: AttachedFile[]) => boolean
   /** 插件搜索回调（插件搜索模式使用） */

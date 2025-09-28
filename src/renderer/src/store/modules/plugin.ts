@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed, readonly } from 'vue'
 import { pluginManager } from '@/core/plugin/PluginManager'
-import type { PluginConfig, PluginItem } from '@/typings/plugin-types'
+import type { PluginConfig, PluginItem } from '@/typings/pluginTypes'
 import { searchEngine } from '@/core/search/SearchEngine'
 
 /**

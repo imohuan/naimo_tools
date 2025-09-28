@@ -1,7 +1,7 @@
-import type { AppItem } from "@shared/types";
+import type { AppItem } from "@shared/typings";
 import { pluginManager } from "@/core/plugin/PluginManager";
-import type { PluginItem } from "@/typings/plugin-types";
-import { eventSystem } from "@/utils/event-system";
+import type { PluginItem } from "@/typings/pluginTypes";
+import { eventSystem } from "@/utils/eventSystem";
 import { ElectronStoreBridge } from "@/core/store/ElectronStoreBridge";
 
 export function useAppActions(

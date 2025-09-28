@@ -4,11 +4,11 @@
  */
 
 import { BaseSingleton } from '../BaseSingleton'
-import type { ViewState, DetachedWindowConfig } from '@/typings/window-types'
+import type { ViewState, DetachedWindowConfig } from '@/typings/windowTypes'
 import { appHotkeyBridge } from '../hotkey/AppHotkeyBridge'
-import type { HotkeyConfig } from '@/typings/hotkey-types'
-import { HotkeyType } from '@/typings/hotkey-types'
-import { eventSystem } from '@/utils/event-system'
+import type { HotkeyConfig } from '@/typings/hotkeyTypes'
+import { HotkeyType } from '@/typings/hotkeyTypes'
+import { eventSystem } from '@/utils/eventSystem'
 
 /** 分离事件接口 */
 export interface DetachEvent {

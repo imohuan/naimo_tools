@@ -123,8 +123,8 @@
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
 import { usePluginStore } from "@/store/modules/plugin";
-import type { PluginConfig } from "@/typings/plugin-types";
-import { PluginCategoryType, PLUGIN_CATEGORY_CONFIG } from "@/typings/plugin-types";
+import type { PluginConfig } from "@/typings/pluginTypes";
+import { PluginCategoryType, PLUGIN_CATEGORY_CONFIG } from "@/typings/pluginTypes";
 import PluginCard from "./PluginCard.vue";
 import PluginDetail from "./PluginDetail.vue";
 

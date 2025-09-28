@@ -1,17 +1,6 @@
 import { ref, computed, watch } from 'vue'
-import type { PluginItem } from '@/typings/plugin-types'
-
-/**
- * 界面类型枚举
- */
-export enum InterfaceType {
-  /** 搜索界面：当搜索框有内容时显示 */
-  SEARCH = 'search',
-  /** 设置界面：搜索框无内容，点击设置按钮显示 */
-  SETTINGS = 'settings',
-  /** 窗口界面：搜索框无内容，点击插件执行相应方法显示 */
-  WINDOW = 'window'
-}
+import type { PluginItem } from '@/typings/pluginTypes'
+import { InterfaceType } from '@/typings/composableTypes'
 
 /**
  * 界面状态管理

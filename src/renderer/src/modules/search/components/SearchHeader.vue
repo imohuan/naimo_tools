@@ -95,8 +95,8 @@
 import { watch, ref, computed } from "vue";
 import SearchInput from "./SearchInput.vue";
 import IconDisplay from "@/components/IconDisplay.vue";
-import type { AttachedFile } from "@/composables/useFileHandler";
-import type { PluginItem } from "@/typings/plugin-types";
+import type { AttachedFile } from "@/typings/composableTypes";
+import type { PluginItem } from "@/typings/pluginTypes";
 /** @ts-ignore */
 import IconMdiPuzzle from "~icons/mdi/puzzle";
 /** @ts-ignore */

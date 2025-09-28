@@ -5,8 +5,8 @@
 
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { detachHandler, type DetachResult } from './DetachHandler'
-import type { DetachedWindowConfig } from '@/typings/window-types'
-import { eventSystem } from '@/utils/event-system'
+import type { DetachedWindowConfig } from '@/typings/windowTypes'
+import { eventSystem } from '@/utils/eventSystem'
 
 /** 分离处理器选项 */
 export interface UseDetachHandlerOptions {

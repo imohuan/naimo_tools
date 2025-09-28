@@ -65,7 +65,7 @@
 
 <script setup lang="ts">
 import IconDisplay from "@/components/IconDisplay.vue";
-import type { PluginConfig } from "@/typings/plugin-types";
+import type { PluginConfig } from "@/typings/pluginTypes";
 
 interface Props {
   plugin: PluginConfig;

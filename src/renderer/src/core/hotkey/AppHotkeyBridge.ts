@@ -1,4 +1,4 @@
-import type { HotkeyConfig, HotkeyTriggeredEventDetail } from '@/typings/hotkey-types'
+import type { HotkeyConfig, HotkeyTriggeredEventDetail } from '@/typings/hotkeyTypes'
 import { BaseSingleton } from '../BaseSingleton'
 import hotkeys from 'hotkeys-js'
 

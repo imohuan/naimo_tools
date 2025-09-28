@@ -1,4 +1,4 @@
-import { PinyinSearch } from './pinyin-search'
+import { PinyinSearch } from './pinyinSearch'
 
 /**
  * 拼音搜索测试函数

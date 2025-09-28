@@ -124,7 +124,7 @@
 import { ref, computed, onMounted } from "vue";
 /** @ts-ignore */
 import IconMdiInformation from "~icons/mdi/information";
-import { HotkeyType, type HotkeyConfig, type HotkeySettingsConfig } from "@/typings/hotkey-types";
+import { HotkeyType, type HotkeyConfig, type HotkeySettingsConfig } from "@/typings/hotkeyTypes";
 import { hotkeyManager } from "@/core/hotkey/HotkeyManager";
 import HotkeyInterceptor from "./HotkeyInterceptor.vue";
 
@@ -197,46 +197,46 @@ const formatHotkeyDisplay = (keys: string[]) => {
   return keys
     .map((key) => {
       switch (key) {
-        case "ctrl":
-          return "Ctrl";
-        case "shift":
-          return "Shift";
-        case "alt":
-          return "Alt";
-        case "meta":
-          return "Meta";
-        case "space":
-          return "Space";
-        case "esc":
-          return "Escape";
-        case "enter":
-          return "Enter";
-        case "tab":
-          return "Tab";
-        case "backspace":
-          return "Backspace";
-        case "delete":
-          return "Delete";
-        case "up":
-          return "↑";
-        case "down":
-          return "↓";
-        case "left":
-          return "←";
-        case "right":
-          return "→";
+        case 'ctrl':
+          return 'Ctrl';
+        case 'shift':
+          return 'Shift';
+        case 'alt':
+          return 'Alt';
+        case 'meta':
+          return 'Meta';
+        case 'space':
+          return 'Space';
+        case 'esc':
+          return 'Escape';
+        case 'enter':
+          return 'Enter';
+        case 'tab':
+          return 'Tab';
+        case 'backspace':
+          return 'Backspace';
+        case 'delete':
+          return 'Delete';
+        case 'up':
+          return '↑';
+        case 'down':
+          return '↓';
+        case 'left':
+          return '←';
+        case 'right':
+          return '→';
         default:
           return key.toUpperCase();
       }
     })
-    .join(" + ");
+    .join(' + ');
 };
 
 // 确认编辑
 const confirmEditing = async () => {
   if (currentEditingKeys.value.length === 0) return;
 
-  const newKeys = currentEditingKeys.value.join("+");
+  const newKeys = currentEditingKeys.value.join('+');
   const success = await updateHotkeyConfig(editingHotkeyId.value, newKeys);
   if (success) {
     console.log(`✅ 快捷键更新成功: ${editingHotkeyId.value} -> ${newKeys}`);
@@ -253,7 +253,7 @@ const confirmEditing = async () => {
 // 取消编辑
 const cancelEditing = () => {
   isEditingHotkey.value = false;
-  editingHotkeyId.value = "";
+  editingHotkeyId.value = '';
   currentEditingKeys.value = [];
 };
 

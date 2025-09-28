@@ -1,5 +1,5 @@
 import { onUnmounted } from 'vue'
-import { eventSystem, type AppEvents, type AppEventType, type AppEventHandler } from '@/utils/event-system'
+import { eventSystem, type AppEvents, type AppEventType, type AppEventHandler } from '@/utils/eventSystem'
 
 /**
  * 使用全局事件系统的组合式函数

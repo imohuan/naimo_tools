@@ -1,13 +1,13 @@
 /**
  * 自动生成的 IPC 类型定义
- * 生成时间: 2025-09-28T10:20:17.670Z
+ * 生成时间: 2025-09-28T11:41:30.565Z
  * 请勿手动修改此文件
  */
 
 import { AppPath } from '@libs/app-search';
-import { AppConfig } from '@shared/types';
-import { ViewType, LifecycleType } from '@renderer/src/typings/window-types';
-import { PluginItem } from '@renderer/src/typings/plugin-types';
+import { AppConfig } from '@shared/typings/appTypes';
+import { ViewType, LifecycleType } from '@renderer/src/typings/windowTypes';
+import { PluginItem } from '@renderer/src/typings/pluginTypes';
 
 // 各个模块的接口定义
 interface appInterface {

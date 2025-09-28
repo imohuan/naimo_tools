@@ -1,11 +1,11 @@
 /**
  * 主进程事件发送方法（自动生成）
- * 基于 events.config.ts 自动生成，请勿手动修改
+ * 基于 eventsConfig.ts 自动生成，请勿手动修改
  */
 
 import { WebContents } from 'electron'
 import log from 'electron-log'
-import type { EventsConfig, EventType, EventData } from '@shared/config/events.config'
+import type { EventsConfig, EventType, EventData } from '@shared/config/eventsConfig'
 
 /**
  * 发送 view-detached 事件

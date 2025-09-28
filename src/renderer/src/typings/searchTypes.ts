@@ -1,4 +1,4 @@
-import type { AppItem } from "@shared/types";
+import type { AppItem } from "@shared/typings";
 
 /** 搜索模式枚举 */
 export enum SearchMode {

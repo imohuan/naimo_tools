@@ -65,7 +65,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
-import { DetachedWindowAction, type DetachedWindowControlEvent } from '@/typings/window-types'
+import { DetachedWindowAction, type DetachedWindowControlEvent } from '@/typings/windowTypes'
 
 /** 组件属性 */
 interface Props {

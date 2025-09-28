@@ -6,7 +6,7 @@
 import { getIpcRouter } from './core';
 import { RouteInfoQuery } from './utils';
 import log from 'electron-log';
-import { initializeCustomOn } from "./custom-on";
+import { initializeCustomOn } from "./customOn";
 
 /**
  * 初始化 IPC 路由系统

@@ -1,5 +1,5 @@
-import { HotkeyType } from "@/typings/hotkey-types";
-import type { HotkeySettingsConfig } from "@/typings/hotkey-types";
+import { HotkeyType } from "@/typings/hotkeyTypes";
+import type { HotkeySettingsConfig } from "@/typings/hotkeyTypes";
 
 // 快捷键配置
 export const hotkeyConfig: HotkeySettingsConfig = {

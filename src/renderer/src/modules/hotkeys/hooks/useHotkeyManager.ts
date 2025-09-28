@@ -1,6 +1,6 @@
 import { HotkeyManager } from "@/core/hotkey/HotkeyManager"
 import { hotkeyConfig } from "../config/hotkey"
-import type { HotkeyEventListener, HotkeyEventType } from "@/typings/hotkey-types"
+import type { HotkeyEventListener, HotkeyEventType } from "@/typings/hotkeyTypes"
 
 export function useHotkeyManager() {
   const hotkeyManager = HotkeyManager.getInstance()

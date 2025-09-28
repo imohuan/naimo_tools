@@ -1,5 +1,5 @@
 import { BaseSingleton } from '../BaseSingleton'
-import type { AppItem } from '@shared/types'
+import type { AppItem } from '@shared/typings'
 
 /**
  * Electron搜索桥接层

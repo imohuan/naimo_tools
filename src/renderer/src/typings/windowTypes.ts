@@ -3,7 +3,7 @@
  * 为新的 BaseWindow 和 WebContentsView 架构提供类型安全
  */
 
-import type { PluginItem } from './plugin-types'
+import type { PluginItem } from './pluginTypes'
 
 /** 扩展 CSS 样式属性以支持 webkit 样式 */
 declare module 'vue' {

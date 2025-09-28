@@ -1,4 +1,4 @@
-import type { SearchCategory } from "@/typings/search-types"
+import type { SearchCategory } from "@/typings/searchTypes"
 
 export const categoryConfig: Record<string, Omit<SearchCategory, 'items'>> = {
   recent: {

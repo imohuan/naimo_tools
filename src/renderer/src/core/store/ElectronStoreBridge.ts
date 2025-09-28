@@ -1,4 +1,4 @@
-import type { AppConfig } from '@shared/types'
+import type { AppConfig } from '@shared/typings'
 
 /**
  * 通用存储桥接器

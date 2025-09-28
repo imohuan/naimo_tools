@@ -113,7 +113,8 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import type { SettingConfig } from '@/typings/plugin-types'
+import type { SettingConfig } from '@/typings/pluginTypes'
+import type { SelectOption } from '@/typings/composableTypes'
 
 // 组件属性
 interface Props {
@@ -163,12 +164,6 @@ const getInputType = (type: string): string => {
     'datetime': 'datetime-local'
   }
   return typeMap[type] || 'text'
-}
-
-// 选择框选项接口
-interface SelectOption {
-  value: string
-  label: string
 }
 
 // 获取选择框选项

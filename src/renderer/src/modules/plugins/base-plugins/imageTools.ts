@@ -1,6 +1,6 @@
-import type { PluginConfig } from '@/typings/plugin-types'
-import { PluginExecuteType, PluginCategoryType } from '@/typings/plugin-types'
-import { SearchMode } from '@/typings/search-types'
+import type { PluginConfig } from '@/typings/pluginTypes'
+import { PluginExecuteType, PluginCategoryType } from '@/typings/pluginTypes'
+import { SearchMode } from '@/typings/searchTypes'
 
 /**
  * 图片工具插件

@@ -11,7 +11,7 @@ import type {
   WindowPerformanceMetrics,
   CleanupStrategyConfig,
   WindowManagerEventData
-} from './window-types'
+} from '../typings/windowTypes'
 import type {
   ViewState,
   LifecycleStrategy,
@@ -19,9 +19,9 @@ import type {
   PerformanceMetrics,
   WindowManagerError,
   WindowManagerErrorType
-} from '@renderer/src/typings/window-types'
-import { LifecycleType } from '@renderer/src/typings/window-types'
-import type { PluginItem } from '@renderer/src/typings/plugin-types'
+} from '@renderer/src/typings/windowTypes'
+import { LifecycleType } from '@renderer/src/typings/windowTypes'
+import type { PluginItem } from '@renderer/src/typings/pluginTypes'
 
 /**
  * 生命周期管理器配置

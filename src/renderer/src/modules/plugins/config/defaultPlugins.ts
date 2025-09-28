@@ -1,4 +1,4 @@
-import type { PluginConfig } from "@/typings/plugin-types";
+import type { PluginConfig } from "@/typings/pluginTypes";
 
 /**
  * 使用 import.meta.glob 动态导入 base-plugins 目录下的所有插件
