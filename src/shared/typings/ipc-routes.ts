@@ -1,6 +1,6 @@
 /**
  * 自动生成的 IPC 类型定义
- * 生成时间: 2025-09-28T04:49:06.212Z
+ * 生成时间: 2025-09-28T06:54:42.610Z
  * 请勿手动修改此文件
  */
 
@@ -716,16 +716,6 @@ interface windowInterface {
   padding: number;
 }>;
 
-  /** 初始化新窗口管理器 */
-  "window-initialize-new-window-manager": () => Promise<{ success: boolean; error?: string }>;
-  /** 初始化新窗口管理器 */
-  "windowInitializeNewWindowManager": () => Promise<{ success: boolean; error?: string }>;
-
-  /** 创建主窗口（新架构） */
-  "window-create-new-main-window": () => Promise<{ success: boolean; windowId?: number; error?: string }>;
-  /** 创建主窗口（新架构） */
-  "windowCreateNewMainWindow": () => Promise<{ success: boolean; windowId?: number; error?: string }>;
-
   /** 显示视图（新架构） */
   "window-show-new-view": (params: {
   type: ViewType
@@ -796,9 +786,9 @@ interface windowInterface {
   "windowGetNewWindowManagerMetrics": () => Promise<{ success: boolean; metrics?: any; error?: string }>;
 
   /** 清理后台视图（新架构） */
-  "window-cleanup-new-background-views": () => Promise<{ success: boolean; report?: any; error?: string }>;
+  "window-cleanup-new-background-views": () => Promise<{ success: boolean; error?: string }>;
   /** 清理后台视图（新架构） */
-  "windowCleanupNewBackgroundViews": () => Promise<{ success: boolean; report?: any; error?: string }>;
+  "windowCleanupNewBackgroundViews": () => Promise<{ success: boolean; error?: string }>;
 
   /** 更新窗口管理器配置（新架构） */
   "window-update-new-window-manager-config": (config: {
@@ -818,10 +808,7 @@ interface windowInterface {
   /** 销毁窗口管理器（新架构） */
   "windowDestroyNewWindowManager": () => Promise<{ success: boolean; error?: string }>;
 
-  /**
- * 创建插件视图（新架构专用）
-这是一个为插件系统优化的便利函数
- */
+  /** 创建插件视图（新架构专用） */
   "window-create-plugin-view": (params: {
   path: string
   pluginId?: string
@@ -832,10 +819,7 @@ interface windowInterface {
   executeParams?: any
   preload?: string
 }) => Promise<{ success: boolean; viewId?: string; error?: string }>;
-  /**
- * 创建插件视图（新架构专用）
-这是一个为插件系统优化的便利函数
- */
+  /** 创建插件视图（新架构专用） */
   "windowCreatePluginView": (params: {
   path: string
   pluginId?: string
@@ -1292,18 +1276,6 @@ export const ROUTE_INFO: RouteInfo[] = [
     function: "getUIConstants"
   },
   {
-    route: "window-initialize-new-window-manager",
-    comment: "初始化新窗口管理器",
-    module: "window",
-    function: "initializeNewWindowManager"
-  },
-  {
-    route: "window-create-new-main-window",
-    comment: "创建主窗口（新架构）",
-    module: "window",
-    function: "createNewMainWindow"
-  },
-  {
     route: "window-show-new-view",
     comment: "显示视图（新架构）",
     module: "window",
@@ -1377,7 +1349,7 @@ export const ROUTE_INFO: RouteInfo[] = [
   },
   {
     route: "window-create-plugin-view",
-    comment: "创建插件视图（新架构专用）, 这是一个为插件系统优化的便利函数",
+    comment: "创建插件视图（新架构专用）",
     module: "window",
     function: "createPluginView"
   },

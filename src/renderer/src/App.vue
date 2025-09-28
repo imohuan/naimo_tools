@@ -128,10 +128,15 @@ import { useSearchHeader } from "@/core/window/useSearchHeader";
 import type { SearchHeaderConfig } from "@/core/window/SearchHeaderManager";
 
 // 图标导入
+// @ts-ignore 
 import IconMdiPuzzle from "~icons/mdi/puzzle";
+// @ts-ignore
 import IconMdiFile from "~icons/mdi/file";
+// @ts-ignore
 import IconMdiFileUpload from "~icons/mdi/file-upload";
+// @ts-ignore
 import IconMdiMagnify from "~icons/mdi/magnify";
+// @ts-ignore
 import IconMdiCog from "~icons/mdi/cog";
 
 // Composables 导入
@@ -152,17 +157,14 @@ import { usePluginStore } from "@/store";
 import type { AppItem } from "@shared/types";
 import type { PluginItem } from "./typings/plugin-types";
 import { pluginManager } from "./core/plugin/PluginManager";
+import { pluginApiGenerator } from "./core/plugin/PluginApiGenerator";
 
-import { ElectronStoreBridge } from "./core/store/ElectronStoreBridge"
 import { DEFAULT_WINDOW_LAYOUT } from "@shared/config/window-layout.config"
 
 
 //测试打包
 import type { PluginApi } from "@shared/typings/global";
 import Test from "./Test.vue";
-
-
-const storeBridge = ElectronStoreBridge.getInstance();
 // ==================== 新窗口管理系统初始化 ====================
 /**
  * 搜索头部管理器 - 使用新的窗口管理系统
@@ -228,6 +230,7 @@ const pluginStore = usePluginStore();
 const { setSize, isWindowVisible, show: handleWindowShow, hide } = useWindowManager();
 const show = () => {
   handleWindowShow()
+  console.log(123123123);
   contentAreaRef.value?.handleResize()
 }
 
@@ -603,24 +606,18 @@ const closeSettings = async () => {
  */
 const handleWindowFocus = () => {
   handleSearchFocus();
-  show()
+  isWindowVisible().then(isVisible => {
+    if (!isVisible) show()
+  })
 };
 
 /**
  * 处理窗口失去焦点事件
- * 窗口失去焦点时延迟隐藏窗口（当前已注释）
+ * 窗口失去焦点时延迟隐藏窗口
  */
-const handleWindowBlur = () => {
-  // 窗口失去焦点时，延迟一点时间后隐藏窗口
-  setTimeout(() => {
-    hide()
-    // console.log("窗口失去焦点", document.hasFocus(), isSettingsInterface.value);
-    // // 检查窗口是否仍然失去焦点且不在设置页面
-    // if (!document.hasFocus() && !isSettingsInterface.value) {
-    //   // 调用主进程隐藏窗口
-    //   hide()
-    // }
-  }, 100);
+const handleWindowBlur = (event?: any) => {
+  console.log("收到窗口blur事件:", event?.detail || "直接调用");
+  hide()
 };
 
 /**
@@ -745,47 +742,20 @@ watch(
   }
 );
 
-const generateApi = async (pluginItem: PluginItem): Promise<PluginApi> => {
-  const pluginApi = await pluginManager.getPluginApi(pluginItem.pluginId as string)
-
-  const addPathToFileList = async (name: string, path: string) => {
-    await storeBridge.addListItem("fileList", {
-      name: name,
-      path: path,
-      icon: null,
-      lastUsed: Date.now(),
-      usageCount: 1,
-    }, {
-      position: 'start', unique: true, uniqueField: 'path'
-    })
-  }
-
-  const openWebPageWindow = async (url: string, options: any = {}) => {
-    const currentViewInfo = await naimo.router.windowGetCurrentViewInfo()
-    if (!currentViewInfo) return;
-
-    await naimo.router.windowCreatePluginView({
-      path: options.path || url,
-      pluginId: pluginItem.pluginId,
-      name: pluginItem.name,
-      title: options.title || pluginItem.name,
-      url,
-      closeAction: options.closeAction || pluginItem.closeAction,
-      executeParams: options.executeParams,
-      preload: options.preload
-    })
-
-    await openPluginWindow(pluginItem)
-  }
-
-  return {
-    ...pluginApi, toggleInput, openPluginWindow: () => openPluginWindow(pluginItem), addPathToFileList, plugin: {
+const generateApi = async (pluginItem: PluginItem, hotkeyEmit = false): Promise<PluginApi> => {
+  return pluginApiGenerator.generateApi(pluginItem, {
+    toggleInput,
+    openPluginWindow: async (item: PluginItem) => {
+      await openPluginWindow(item)
+    },
+    pluginStore: {
       installZip: pluginStore.installZip,
       install: pluginStore.install,
       uninstall: pluginStore.uninstall,
       toggle: pluginStore.toggle,
-    }, openWebPageWindow
-  }
+    },
+    hotkeyEmit
+  })
 }
 
 // ==================== 事件处理器 ====================
@@ -797,11 +767,7 @@ const generateApi = async (pluginItem: PluginItem): Promise<PluginApi> => {
 const handlePluginExecuted = async (event: { pluginId: string, path: string, hotkeyEmit: boolean }) => {
   const { pluginId, path, hotkeyEmit } = event;
   const pluginItem = pluginManager.getInstalledPluginItem(pluginId, path)!
-  const genApi = await generateApi(pluginItem)
-  const oldOpenWebPageWindow = genApi.openWebPageWindow
-  genApi.openWebPageWindow = (url: string, options: any = {}) => {
-    return oldOpenWebPageWindow(url, { path: pluginItem.path, hotkeyEmit, ...options })
-  }
+  const genApi = await generateApi(pluginItem, hotkeyEmit)
 
   toggleInput(false)
   if (pluginItem.pluginId && pluginItem.onEnter) {
@@ -813,7 +779,7 @@ const handlePluginExecuted = async (event: { pluginId: string, path: string, hot
     });
     // 检查是否为打开新窗口类型的插件
     if (pluginItem.executeType === 3 && pluginItem.executeParams?.url) {
-      genApi.openWebPageWindow(pluginItem.executeParams.url, { path: pluginItem.path, })
+      await genApi.openWebPageWindow(pluginItem.executeParams.url)
     }
   }
 

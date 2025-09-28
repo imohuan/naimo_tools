@@ -1296,6 +1296,56 @@ export class ViewManager {
   }
 
   /**
+   * 获取当前WebContentsView的完整信息
+   * 通过webContents查找对应的WebContentsViewInfo，并返回序列化后的信息
+   * @param webContents WebContents 实例
+   * @returns 序列化后的视图信息，如果找不到则返回null
+   */
+  public getCurrentViewInfo(webContents: Electron.WebContents): {
+    id: string;
+    parentWindowId: number;
+    config: any;
+    state: {
+      isVisible: boolean;
+      isActive: boolean;
+      lastAccessTime: number;
+      memoryUsage?: number;
+    };
+    createdAt: string; // 序列化为ISO字符串
+  } | null {
+    try {
+      // 遍历所有视图
+      const allViews = this.getAllViews()
+
+      for (const viewInfo of allViews) {
+        if (viewInfo.view.webContents === webContents) {
+          // 找到匹配的WebContentsView，返回序列化后的信息
+          log.debug(`找到当前WebContentsView: ${viewInfo.id}, 父窗口ID: ${viewInfo.parentWindowId}`)
+
+          return {
+            id: viewInfo.id,
+            parentWindowId: viewInfo.parentWindowId,
+            config: viewInfo.config,
+            state: {
+              isVisible: viewInfo.state.isVisible,
+              isActive: viewInfo.state.isActive,
+              lastAccessTime: viewInfo.state.lastAccessTime,
+              memoryUsage: viewInfo.state.memoryUsage
+            },
+            createdAt: viewInfo.createdAt.toISOString()
+          }
+        }
+      }
+
+      log.warn('无法找到当前webContents对应的视图信息')
+      return null
+    } catch (error) {
+      log.error('获取当前视图信息时发生错误:', error)
+      return null
+    }
+  }
+
+  /**
    * 清理所有资源
    */
   public cleanup(): void {

@@ -34,7 +34,7 @@ import { BaseWindowController } from './BaseWindowController'
 import { ViewManager } from './ViewManager'
 import { LifecycleManager } from './LifecycleManager'
 import { DetachManager } from './DetachManager'
-import { getDirname } from '@main/utils'
+import { getDirname, createCombinedPreloadScript } from '@main/utils'
 
 /**
  * 窗口管理器操作选项
@@ -1060,6 +1060,7 @@ export class NewWindowManager {
     })
   }
 
+
   /**
    * 生成视图ID
    */
@@ -1084,10 +1085,12 @@ export class NewWindowManager {
       webPreferences: {
         nodeIntegration: true,
         contextIsolation: true,
-        webSecurity: true
+        webSecurity: true,
+        preload: params.config?.preload // 正确处理 preload
       },
       ...params.config
     }
+
 
     // 添加插件元数据
     if (params.pluginItem) {
@@ -1296,6 +1299,136 @@ export class NewWindowManager {
 
     // 清理事件处理器
     this.eventHandlers.clear()
+  }
+
+  /**
+   * 创建插件视图
+   * 这是一个为插件系统优化的便利函数
+   */
+  public async createPluginView(params: {
+    path: string
+    pluginId?: string
+    name?: string
+    title?: string
+    url?: string
+    closeAction?: 'hide' | 'close'
+    executeParams?: any
+    preload?: string
+  }): Promise<ViewOperationResult> {
+    try {
+      if (!this.mainWindow) {
+        throw new Error('主窗口未创建')
+      }
+
+      // 构建插件项目信息
+      const pluginItem: PluginItem = {
+        path: params.path,
+        name: params.name || params.title || 'Plugin',
+        icon: null, // 暂时设为null，后续可以根据需要设置
+        pluginId: params.pluginId || params.path,
+        executeType: params.url ? 'SHOW_WEBPAGE' as any : 'CUSTOM_CODE' as any,
+        executeParams: params.executeParams || (params.url ? { url: params.url } : {}),
+        closeAction: params.closeAction || 'close'
+      }
+
+      // 确定生命周期类型
+      const lifecycleType = params.closeAction === 'hide' ? 'BACKGROUND' as any : 'FOREGROUND' as any
+
+      // 处理 preload 脚本合并
+      const defaultPreloadPath = resolve(getDirname(import.meta.url), './preloads/basic.js')
+      let finalPreloadPath: string | undefined = defaultPreloadPath
+
+      if (params.preload) {
+        try {
+          // 获取默认的基础 preload 路径
+          // 创建合并的 preload 脚本
+          finalPreloadPath = await createCombinedPreloadScript(params.preload, defaultPreloadPath)
+          log.info(`插件 preload 脚本已合并: ${params.path} -> ${finalPreloadPath}`)
+        } catch (error) {
+          log.warn(`合并插件 preload 脚本失败，使用默认脚本: ${params.path}`, error)
+        }
+      }
+
+      const result = await this.showView({
+        type: ViewType.PLUGIN,
+        config: {
+          url: params.url,
+          path: params.path,
+          preload: finalPreloadPath
+        },
+        pluginItem,
+        forceNew: false,
+        lifecycleStrategy: {
+          type: lifecycleType,
+          persistOnClose: params.closeAction === 'hide',
+          maxIdleTime: 5 * 60 * 1000,
+          memoryThreshold: 100
+        }
+      })
+
+      if (result.success) {
+        log.info(`插件视图创建成功: ${result.viewId} (${params.name || params.path})`)
+
+        // 通知主渲染进程插件视图已打开
+        if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+          // 获取主视图的 webContents
+          const mainViewInfo = this.viewManager.getViewInfo('main-view')
+          if (mainViewInfo) {
+            mainViewInfo.view.webContents.send("plugin-view-opened", {
+              viewId: result.viewId,
+              path: params.path,
+              pluginId: params.pluginId,
+              name: params.name,
+              title: params.title,
+              url: params.url
+            })
+            log.debug(`已通知主渲染进程插件视图打开: ${result.viewId}`)
+          }
+        }
+      }
+
+      return result
+    } catch (error) {
+      log.error('创建插件视图失败:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : '未知错误'
+      }
+    }
+  }
+
+  /**
+   * 关闭插件视图
+   */
+  public async closePluginView(viewId: string): Promise<ViewOperationResult> {
+    try {
+      const result = await this.removeView(viewId)
+
+      if (result.success) {
+        log.info(`插件视图关闭成功: ${viewId}`)
+
+        // 通知主渲染进程插件视图已关闭
+        if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+          // 获取主视图的 webContents
+          const mainViewInfo = this.viewManager.getViewInfo('main-view')
+          if (mainViewInfo) {
+            mainViewInfo.view.webContents.send("plugin-view-closed", {
+              viewId
+            })
+          }
+          log.debug(`已通知主渲染进程插件视图关闭: ${viewId}`)
+        }
+      }
+
+      return result
+    } catch (error) {
+      log.error('关闭插件视图失败:', error)
+      return {
+        success: false,
+        viewId,
+        error: error instanceof Error ? error.message : '未知错误'
+      }
+    }
   }
 
   /**

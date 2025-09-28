@@ -101,10 +101,105 @@ export class AppService {
       this.windowManager = NewWindowManager.getInstance(windowManagerConfig);
       await this.windowManager.initialize();
 
+      // 设置窗口管理器事件监听
+      this.setupWindowManagerEventListeners();
+
       log.info('新窗口管理器初始化完成');
     } catch (error) {
       log.error('初始化窗口管理器失败:', error);
       throw error;
+    }
+  }
+
+  /**
+   * 设置窗口管理器事件监听
+   */
+  private setupWindowManagerEventListeners(): void {
+    if (!this.windowManager) {
+      log.warn('窗口管理器未初始化，无法设置事件监听');
+      return;
+    }
+
+    // // 监听窗口管理器初始化事件
+    // this.windowManager.on('manager:initialized', (data: any) => {
+    //   log.info('窗口管理器初始化完成:', data);
+    // });
+
+    // // 监听主窗口创建事件
+    // this.windowManager.on('window:main-created', (data: any) => {
+    //   log.info('主窗口创建成功:', data);
+    // });
+
+    // // 监听主窗口关闭事件
+    // this.windowManager.on('window:main-closed', (data: any) => {
+    //   log.info('主窗口已关闭:', data);
+    // });
+
+    // // 监听主窗口焦点事件
+    // this.windowManager.on('window:main-focused', (data: any) => {
+    //   log.debug('主窗口获得焦点:', data);
+    // });
+
+    this.windowManager.on('window:main-blurred', (data: any) => {
+      log.debug('主窗口失去焦点:', data);
+      // 向当前活跃的WebContentsView发送blur事件
+      this.sendBlurEventToActiveView();
+    });
+
+    // // 监听视图激活事件
+    // this.windowManager.on('view:activated', (data: any) => {
+    //   log.debug('视图已激活:', data);
+    // });
+
+    // // 监听视图切换事件
+    // this.windowManager.on('view:switched', (data: any) => {
+    //   log.debug('视图已切换:', data);
+    // });
+
+    // // 监听清理完成事件
+    // this.windowManager.on('cleanup:completed', (data: any) => {
+    //   log.info('清理操作完成:', data);
+    // });
+
+    // // 监听性能监控事件
+    // this.windowManager.on('performance:metrics', (data: any) => {
+    //   log.debug('性能监控数据:', data);
+    //   // 这里可以添加性能监控逻辑，如发送到监控服务
+    // });
+
+    // log.info('窗口管理器事件监听器设置完成');
+  }
+
+  /**
+   * 向当前活跃的WebContentsView发送blur事件
+   * 当主窗口失焦时，通知前端组件执行相应的blur处理逻辑
+   */
+  private sendBlurEventToActiveView(): void {
+    try {
+      if (!this.windowManager) {
+        log.warn('窗口管理器未初始化，无法发送blur事件');
+        return;
+      }
+
+      // 获取当前活跃的视图
+      const activeView = this.windowManager.getActiveView();
+      if (!activeView || activeView.view.webContents.isDestroyed()) {
+        log.debug('没有活跃的视图或视图已销毁，跳过blur事件发送');
+        return;
+      }
+
+      const mainWindow = this.windowManager.getMainWindow();
+
+      // 向WebContentsView发送blur事件
+      activeView.view.webContents.send('window-all-blur', {
+        timestamp: Date.now(),
+        windowId: mainWindow?.id,
+        viewId: activeView.id
+      });
+
+      log.debug(`已向视图 ${activeView.id} 发送blur事件`);
+    } catch (error) {
+      log.error('发送blur事件到视图失败:', error);
     }
   }
 

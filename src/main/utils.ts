@@ -1,5 +1,8 @@
-import { dirname } from "path";
+import { dirname, join } from "path";
 import { fileURLToPath } from "url";
+import { readFileSync, mkdirSync, writeFileSync } from "fs";
+import { tmpdir } from "os";
+import log from "electron-log";
 
 /**
  * 获取当前文件的目录
@@ -22,4 +25,44 @@ export function debounce<T extends (...args: any[]) => void>(func: T, wait: numb
     clearTimeout(timeout);
     timeout = setTimeout(() => func.apply(this, args), wait);
   };
+}
+
+/**
+ * 创建组合的 preload 脚本
+ * 将内置 preload 和用户自定义 preload 合并
+ */
+export async function createCombinedPreloadScript(customPreloadPath: string, defaultPreloadPath: string): Promise<string> {
+  try {
+    // 读取内置 preload 脚本
+    const builtinPreloadContent = readFileSync(defaultPreloadPath, 'utf-8');
+
+    // 读取用户自定义 preload 脚本
+    const customPreloadContent = readFileSync(customPreloadPath, 'utf-8');
+
+    // 创建组合脚本内容
+    const combinedContent = `
+// 内置 preload 脚本
+${builtinPreloadContent}
+
+(() => {
+  // 用户自定义 preload 脚本
+  ${customPreloadContent}
+})()
+`;
+
+    // 创建临时文件
+    const tempDir = join(tmpdir(), 'naimo-preloads');
+    mkdirSync(tempDir, { recursive: true });
+
+    const tempFilePath = join(tempDir, `combined-preload-${Date.now()}.js`);
+    writeFileSync(tempFilePath, combinedContent, 'utf-8');
+
+    log.debug(`创建组合 preload 脚本: ${tempFilePath}`);
+    return tempFilePath;
+
+  } catch (error) {
+    log.error('创建组合 preload 脚本失败:', error);
+    // 如果失败，回退到内置 preload
+    return defaultPreloadPath
+  }
 }

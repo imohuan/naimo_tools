@@ -75,7 +75,9 @@ export class BaseWindowController {
           height: config.windowSize.height
         },
         title: 'Naimo Tools',
-        ...this.defaultConfig
+        ...this.defaultConfig,
+        // 主窗口不可调整大小
+        resizable: false
       }
 
       // 如果有布局配置，使用布局配置的边界
@@ -130,6 +132,7 @@ export class BaseWindowController {
         bounds: config.bounds,
         title: config.title,
         frame: config.showControlBar,
+        // 分离窗口可调整大小
         resizable: true,
         alwaysOnTop: false,
         ...this.defaultConfig
@@ -265,22 +268,19 @@ export class BaseWindowController {
    */
   public showWindow(window: BaseWindow): void {
     try {
-      const [currentX] = window.getPosition()
+      window.show()
 
-      // 如果窗口当前是隐藏状态（x < 0），恢复到之前的可见位置
-      if (currentX < 0) {
-        const cachedPosition = this.hiddenWindowPositions.get(window.id)
-        if (cachedPosition) {
-          window.setPosition(cachedPosition.x, cachedPosition.y)
-          this.hiddenWindowPositions.delete(window.id) // 清除缓存
-          log.debug(`窗口已显示并恢复位置: ID=${window.id}, position=(${cachedPosition.x}, ${cachedPosition.y})`)
-        } else {
-          // 没有缓存位置，居中显示
-          this.centerWindow(window)
-          log.debug(`窗口已显示并居中: ID=${window.id}`)
-        }
+      // 检查是否有缓存位置
+      const cachedPosition = this.hiddenWindowPositions.get(window.id)
+      if (cachedPosition) {
+        // 恢复到缓存位置
+        window.setPosition(cachedPosition.x, cachedPosition.y)
+        this.hiddenWindowPositions.delete(window.id) // 清除缓存
+        log.debug(`窗口已显示并恢复位置: ID=${window.id}, position=(${cachedPosition.x}, ${cachedPosition.y})`)
       } else {
-        log.debug(`窗口已是显示状态: ID=${window.id}`)
+        // 没有缓存位置，居中显示
+        this.centerWindow(window)
+        log.debug(`窗口已显示并居中: ID=${window.id}`)
       }
     } catch (error) {
       log.error('显示窗口失败:', error)
@@ -294,17 +294,13 @@ export class BaseWindowController {
   public hideWindow(window: BaseWindow): void {
     try {
       const [x, y] = window.getPosition()
-
-      // 只有当窗口当前是可见状态时才缓存位置
-      if (x >= 0) {
+      if (this.isWindowVisible(window)) {
+        // 缓存当前位置
         this.hiddenWindowPositions.set(window.id, { x, y })
         log.debug(`缓存窗口显示位置: ID=${window.id}, position=(${x}, ${y})`)
       }
-
-      // 将窗口移到屏幕外隐藏
-      const hiddenX = x - 8000
-      window.setPosition(hiddenX, y)
-
+      // 将窗口移到屏幕外隐藏（使用 -10000 确保完全隐藏）
+      window.setPosition(-10000, y)
       log.debug(`窗口已隐藏: ID=${window.id}`)
     } catch (error) {
       log.error('隐藏窗口失败:', error)
@@ -312,14 +308,28 @@ export class BaseWindowController {
   }
 
   /**
-   * 检查窗口是否可见
+   * 检查窗口是否可见（完全在屏幕内）
    * @param window BaseWindow 实例
-   * @returns 是否可见
+   * @returns 是否完全在屏幕内
    */
   public isWindowVisible(window: BaseWindow): boolean {
     try {
-      const [x] = window.getPosition()
-      return x >= 0
+      const windowBounds = window.getBounds()
+      const { x, y, width, height } = windowBounds
+
+      // 获取主显示器的工作区域
+      const { width: screenWidth, height: screenHeight } = screen.getPrimaryDisplay().workAreaSize
+
+      // 检查窗口是否完全在屏幕内
+      const isCompletelyVisible =
+        x >= 0 &&                           // 左边界在屏幕内
+        y >= 0 &&                           // 上边界在屏幕内
+        x + width <= screenWidth &&         // 右边界在屏幕内
+        y + height <= screenHeight          // 下边界在屏幕内
+
+      log.debug(`窗口可见性检查: ID=${window.id}, bounds=(${x}, ${y}, ${width}, ${height}), screen=(${screenWidth}, ${screenHeight}), visible=${isCompletelyVisible}`)
+
+      return isCompletelyVisible
     } catch (error) {
       log.error('检查窗口可见性失败:', error)
       return false

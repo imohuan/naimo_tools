@@ -506,6 +506,31 @@ class DevServerManager {
   }
 
   /**
+   * 等待 main.js 文件生成
+   */
+  waitForMainJsFile(maxAttempts = 30, interval = 500) {
+    const mainJsPath = join(process.cwd(), 'dist/main/main.js');
+
+    return new Promise((resolve, reject) => {
+      let attemptCount = 0;
+      const check = () => {
+        attemptCount++;
+
+        if (existsSync(mainJsPath)) {
+          console.log(`✅ main.js 文件已生成: ${mainJsPath}`);
+          resolve(true);
+        } else if (attemptCount >= maxAttempts) {
+          reject(new Error(`main.js 文件在 ${maxAttempts} 次尝试后仍未生成: ${mainJsPath}`));
+        } else {
+          console.log(`⏳ 等待 main.js 文件生成... (${attemptCount}/${maxAttempts})`);
+          setTimeout(check, interval);
+        }
+      };
+      check();
+    });
+  }
+
+  /**
    * 获取渲染进程端口
    */
   getRendererPort() {
@@ -791,6 +816,14 @@ class DevServerManager {
     const electronArgs = this.buildElectronArguments();
     const debugModeText = (this.config.features.enableMainDebug || this.config.features.enableRendererDebug) ? ' (调试模式)' : '';
 
+    // 验证 main.js 文件是否存在
+    const mainJsPath = join(process.cwd(), 'dist/main/main.js');
+    if (!existsSync(mainJsPath)) {
+      console.error(`❌ main.js 文件不存在: ${mainJsPath}`);
+      console.error('❌ 请确保主进程构建已完成');
+      return;
+    }
+
     this.sendToWebSocketClients({
       type: 'electron_starting',
       message: `启动 Electron${debugModeText}`,
@@ -800,20 +833,18 @@ class DevServerManager {
     console.log(`⚡ 启动 Electron ${debugModeText}...`);
     console.log("参数:", electronArgs);
 
-    setTimeout(() => {
-      this.electronProcess = this.createProcess('npx', ['electron', ...electronArgs], {
-        prefix: 'Electron',
-        onClose: (code) => {
-          console.log(`\n⚡ Electron 进程退出，代码: ${code}`);
-          if (!this.isElectronRestarting) {
-            this.cleanup();
-          }
-        },
-        onError: (error) => {
-          console.error('❌ Electron 启动错误:', error);
+    this.electronProcess = this.createProcess('npx', ['electron', ...electronArgs], {
+      prefix: 'Electron',
+      onClose: (code) => {
+        console.log(`\n⚡ Electron 进程退出，代码: ${code}`);
+        if (!this.isElectronRestarting) {
+          this.cleanup();
         }
-      });
-    }, 5000);
+      },
+      onError: (error) => {
+        console.error('❌ Electron 启动错误:', error);
+      }
+    });
   }
 
   /**
@@ -888,66 +919,59 @@ class DevServerManager {
       // 设置 IPC modules 监听器
       this.setupIpcModulesWatcher();
 
-      // 启动主进程编译
-
-
       console.log('🔧 编译主进程...');
-      // 方式1 不太灵活
-      // const cmd1 = ["vite", 'build', '--config', 'vite.config.ts', '--watch']
-      // // const cmd2 = ["nodemon", 'src/main/main.ts', '--command', cmd1.slice(0, -1).join(' ')]
-      // const [cmdProcess, ...cmdArgs] = cmd1
-      // console.log('🔍 主进程编译命令:', cmdProcess, cmdArgs);
-      // this.viteMainProcess = this.createProcess(cmdProcess, cmdArgs, {
-      //   env: { ...process.env, NODE_ENV: 'development' },
-      //   prefix: 'Main Build',
-      //   onStdout: (data) => {
-      //     console.log('🔍 主进程编译输出:', data);
-      //     if (this.isBuildCompleted(data, 'main.js')) {
-      //       this.sendToWebSocketClients({
-      //         type: 'main_build_completed',
-      //         message: '主进程构建完成，准备重启 Electron'
-      //       });
-      //       // 这里很多程序文件都会触发这里的重启，所以需要判断是否是主进程的构建完成
-      //       this.restartElectron();
-      //     }
-      //   },
-      //   onError: (error) => {
-      //     console.error('❌ Vite 主进程错误:', error);
-      //   }
-      // });
 
-      // 方式2 监听单一文件变化
       // 监听 src/main/main.ts 文件变化
       this.mainProcessWatcher = chokidar.watch('src/main/main.ts', {
         persistent: true,
         ignoreInitial: true
       });
 
-
       const buildMainProcess = (isInit = false) => {
-        const cmd1 = ["vite", 'build', '--config', 'vite.config.ts']
-        const [cmdProcess, ...cmdArgs] = cmd1
-        console.log('🔍 主进程文件变化，重新构建...');
-        this.viteMainProcess = this.createProcess(cmdProcess, cmdArgs, {
-          env: { ...process.env, NODE_ENV: 'development' },
-          prefix: 'Main Build',
-          onStdout: (data) => {
-            if (this.isBuildCompleted(data, 'main.js')) {
-              this.sendToWebSocketClients({
-                type: 'main_build_completed',
-                message: '主进程构建完成，准备重启 Electron'
-              });
-              // 这里很多程序文件都会触发这里的重启，所以需要判断是否是主进程的构建完成
-              if (!isInit) {
-                this.restartElectron();
+        return new Promise((resolve, reject) => {
+          const cmd1 = ["vite", 'build', '--config', 'vite.config.ts']
+          const [cmdProcess, ...cmdArgs] = cmd1
+          console.log('🔍 主进程构建中...');
+
+          this.viteMainProcess = this.createProcess(cmdProcess, cmdArgs, {
+            env: { ...process.env, NODE_ENV: 'development' },
+            prefix: 'Main Build',
+            onStdout: (data) => {
+              if (this.isBuildCompleted(data, 'main.js')) {
+                // 验证文件是否真正存在
+                this.waitForMainJsFile().then(() => {
+                  console.log('✅ 主进程构建完成，main.js 文件已生成');
+                  this.sendToWebSocketClients({
+                    type: 'main_build_completed',
+                    message: '主进程构建完成，准备重启 Electron'
+                  });
+
+                  if (isInit) {
+                    resolve();
+                  } else {
+                    this.restartElectron();
+                  }
+                }).catch((error) => {
+                  console.error('❌ main.js 文件验证失败:', error);
+                  if (isInit) {
+                    reject(error);
+                  }
+                });
+              }
+            },
+            onError: (error) => {
+              console.error('❌ Vite 主进程错误:', error);
+              if (isInit) {
+                reject(error);
+              }
+            },
+            onClose: (code) => {
+              if (code !== 0 && isInit) {
+                reject(new Error(`主进程构建失败，退出代码: ${code}`));
               }
             }
-          },
-          onError: (error) => {
-            console.error('❌ Vite 主进程错误:', error);
-          }
+          });
         });
-
       }
 
       this.mainProcessWatcher.on('change', () => {
@@ -955,16 +979,16 @@ class DevServerManager {
           clearTimeout(this.mainProcessRebuildTimeout);
         }
         this.mainProcessRebuildTimeout = setTimeout(() => {
-          buildMainProcess()
+          buildMainProcess(false);
         }, this.config.debounce.mainProcessRebuild);
       });
 
-      buildMainProcess(true)
+      // 等待初始构建完成
+      await buildMainProcess(true);
 
-      // 等待编译完成后启动 Electron
-      setTimeout(() => {
-        this.startElectron();
-      }, this.config.wait.electronStartDelay);
+      // 构建完成后启动 Electron
+      console.log('🚀 主进程构建完成，启动 Electron...');
+      this.startElectron();
 
     } catch (error) {
       console.error('❌ 启动失败:', error);
