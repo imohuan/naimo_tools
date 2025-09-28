@@ -3,63 +3,75 @@
   包含控制栏和插件内容区域
 -->
 <template>
-  <div class="detached-window-app">
+  <div class="flex flex-col h-screen bg-white dark:bg-slate-900">
     <!-- 窗口控制栏 -->
     <WindowControlBar :window-title="windowTitle" :window-icon="windowIcon" :is-loading="isLoading"
       :window-id="windowId" :view-id="viewId" @reattach="handleReattach" @minimize="handleMinimize"
       @maximize="handleMaximize" @close="handleClose" @control-action="handleControlAction" />
 
     <!-- 插件内容区域 -->
-    <div class="content-area" ref="contentAreaRef">
+    <div class="flex-1 relative overflow-hidden bg-slate-50 dark:bg-slate-800" ref="contentAreaRef">
       <!-- 加载状态 -->
-      <div v-if="isLoading" class="loading-overlay">
-        <div class="loading-container">
-          <div class="loading-spinner-large"></div>
-          <div class="loading-message">{{ loadingMessage }}</div>
+      <div v-if="isLoading"
+        class="absolute inset-0 flex items-center justify-center bg-slate-50 dark:bg-slate-800 z-20">
+        <div class="text-center p-8 max-w-md">
+          <IconMdiLoading class="w-12 h-12 text-blue-500 animate-spin mx-auto mb-4" />
+          <div class="text-slate-600 dark:text-slate-400 font-medium">{{ loadingMessage }}</div>
         </div>
       </div>
 
       <!-- 错误状态 -->
-      <div v-else-if="hasError" class="error-overlay">
-        <div class="error-container">
-          <div class="error-icon">⚠️</div>
-          <div class="error-title">加载失败</div>
-          <div class="error-message">{{ errorMessage }}</div>
-          <button class="retry-button" @click="handleRetry">重试</button>
+      <div v-else-if="hasError"
+        class="absolute inset-0 flex items-center justify-center bg-slate-50 dark:bg-slate-800 z-20">
+        <div class="text-center p-8 max-w-md">
+          <IconMdiAlertCircleOutline class="w-16 h-16 text-red-500 dark:text-red-400 mx-auto mb-4 opacity-80" />
+          <div class="text-xl font-semibold text-red-600 dark:text-red-400 mb-2">加载失败</div>
+          <div class="text-slate-600 dark:text-slate-400 mb-6 leading-relaxed">{{ errorMessage }}</div>
+          <button
+            class="flex items-center gap-2 px-6 py-2 bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 text-white rounded-lg font-medium transition-colors duration-200 shadow-sm hover:shadow-md"
+            @click="handleRetry">
+            <IconMdiRefresh class="w-4 h-4" />
+            重试
+          </button>
         </div>
       </div>
 
-      <!-- 空状态 */
-      <div v-else-if="!pluginUrl && !hasContent" class="empty-overlay">
-        <div class="empty-container">
-          <div class="empty-icon">📦</div>
-          <div class="empty-title">没有内容</div>
-          <div class="empty-message">此窗口暂时没有可显示的内容</div>
+      <!-- 空状态 -->
+      <div v-else-if="!pluginUrl && !hasContent"
+        class="absolute inset-0 flex items-center justify-center bg-slate-50 dark:bg-slate-800 z-20">
+        <div class="text-center p-8 max-w-md">
+          <IconMdiPackageVariantClosed class="w-16 h-16 text-slate-400 dark:text-slate-500 mx-auto mb-4 opacity-60" />
+          <div class="text-xl font-semibold text-slate-700 dark:text-slate-300 mb-2">没有内容</div>
+          <div class="text-slate-500 dark:text-slate-400 leading-relaxed">此窗口暂时没有可显示的内容</div>
         </div>
       </div>
 
       <!-- 插件内容iframe -->
-      <iframe v-if="pluginUrl && !hasError" ref="pluginIframeRef" :src="pluginUrl" class="plugin-iframe" frameborder="0"
+      <iframe v-if="pluginUrl && !hasError" ref="pluginIframeRef" :src="pluginUrl"
+        class="w-full h-full border-0 bg-white dark:bg-slate-900 rounded-lg shadow-inner" frameborder="0"
         @load="handlePluginLoaded" @error="handlePluginError"></iframe>
     </div>
 
     <!-- 状态栏（可选） -->
-    <div v-if="showStatusBar" class="status-bar">
-      <div class="status-left">
-        <span v-if="pluginName" class="plugin-name">{{ pluginName }}</span>
-        <span v-if="pluginVersion" class="plugin-version">v{{ pluginVersion }}</span>
+    <div v-if="showStatusBar"
+      class="flex justify-between items-center h-6 px-3 bg-slate-100 dark:bg-slate-700 border-t border-slate-200 dark:border-slate-600 text-xs text-slate-600 dark:text-slate-400">
+      <div class="flex items-center gap-2">
+        <IconMdiPuzzleOutline v-if="pluginName" class="w-3 h-3 text-slate-500 dark:text-slate-400" />
+        <span v-if="pluginName" class="font-medium text-slate-700 dark:text-slate-300">{{ pluginName }}</span>
+        <span v-if="pluginVersion" class="text-slate-500 dark:text-slate-400">v{{ pluginVersion }}</span>
       </div>
-      <div class="status-right">
-        <span class="window-info">窗口ID: {{ windowId }}</span>
+      <div class="flex items-center gap-2">
+        <IconMdiWindowOpenVariant class="w-3 h-3 text-slate-500 dark:text-slate-400" />
+        <span class="font-mono text-slate-500 dark:text-slate-400">窗口ID: {{ windowId }}</span>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import WindowControlBar from './WindowControlBar.vue'
-import type { DetachedWindowAction } from '@/typings/window-types'
+import { DetachedWindowAction } from '@/typings/window-types'
 
 // 响应式状态
 const isLoading = ref(true)
@@ -209,14 +221,9 @@ const handleReattach = async (): Promise<void> => {
 
   try {
     if (windowId.value) {
-      const result = await naimo.router.windowReattachNewView(windowId.value)
-      if (result.success) {
-        console.log('✅ 重新附加成功，窗口即将关闭')
-        // 窗口会被主进程关闭，不需要额外操作
-      } else {
-        console.error('❌ 重新附加失败:', result.error)
-        showNotification('重新附加失败: ' + result.error, 'error')
-      }
+      await (naimo as any).reattach()
+      console.log('✅ 重新附加成功，窗口即将关闭')
+      // 窗口会被主进程关闭，不需要额外操作
     }
   } catch (error) {
     console.error('❌ 重新附加操作失败:', error)
@@ -260,16 +267,16 @@ const handleControlAction = (action: DetachedWindowAction): void => {
 
   // 可以在这里添加额外的逻辑
   switch (action) {
-    case 'reattach':
+    case DetachedWindowAction.REATTACH:
       // 重新附加的额外处理
       break
-    case 'minimize':
+    case DetachedWindowAction.MINIMIZE:
       // 最小化的额外处理
       break
-    case 'maximize':
+    case DetachedWindowAction.MAXIMIZE:
       // 最大化的额外处理
       break
-    case 'close':
+    case DetachedWindowAction.CLOSE:
       // 关闭的额外处理
       break
   }
@@ -278,9 +285,9 @@ const handleControlAction = (action: DetachedWindowAction): void => {
 /**
  * 显示通知
  */
-const showNotification = (message: string, type: 'success' | 'error' | 'warning' = 'info'): void => {
-  if (window.eventSystem) {
-    window.eventSystem.emit('notification:show', {
+const showNotification = (message: string, type: 'success' | 'error' | 'warning' = 'warning'): void => {
+  if ((window as any).eventSystem) {
+    (window as any).eventSystem.emit('notification:show', {
       message,
       type,
       duration: 3000,
@@ -309,13 +316,13 @@ const cleanup = (): void => {
  */
 const setupWindowListeners = (): void => {
   // 监听窗口关闭前事件
-  window.addEventListener('beforeunload', (event) => {
+  window.addEventListener('beforeunload', () => {
     cleanup()
   })
 
   // 监听来自主进程的消息
-  if (window.naimo?.ipcRenderer) {
-    window.naimo.ipcRenderer.on('window:update-info', (data: any) => {
+  if ((window as any).naimo?.ipcRenderer) {
+    (window as any).naimo.ipcRenderer.on('window:update-info', (data: any) => {
       console.log('📡 收到窗口信息更新:', data)
 
       if (data.windowId === windowId.value) {
@@ -349,228 +356,3 @@ onUnmounted(() => {
   cleanup()
 })
 </script>
-
-<style scoped>
-.detached-window-app {
-  display: flex;
-  flex-direction: column;
-  height: 100vh;
-  background-color: #ffffff;
-}
-
-/* 内容区域 */
-.content-area {
-  flex: 1;
-  position: relative;
-  overflow: hidden;
-  background-color: #f8f9fa;
-}
-
-.plugin-iframe {
-  width: 100%;
-  height: 100%;
-  border: none;
-  background-color: #ffffff;
-}
-
-/* 覆盖层样式 */
-.loading-overlay,
-.error-overlay,
-.empty-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: #f8f9fa;
-  z-index: 100;
-}
-
-.loading-container,
-.error-container,
-.empty-container {
-  text-align: center;
-  padding: 32px;
-  max-width: 400px;
-}
-
-/* 加载状态 */
-.loading-spinner-large {
-  width: 32px;
-  height: 32px;
-  border: 3px solid #e9ecef;
-  border-top: 3px solid #007bff;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin: 0 auto 16px;
-}
-
-.loading-message {
-  color: #6c757d;
-  font-size: 14px;
-}
-
-/* 错误状态 */
-.error-icon {
-  font-size: 48px;
-  margin-bottom: 16px;
-}
-
-.error-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: #dc3545;
-  margin-bottom: 8px;
-}
-
-.error-message {
-  color: #6c757d;
-  font-size: 14px;
-  margin-bottom: 16px;
-  line-height: 1.5;
-}
-
-.retry-button {
-  padding: 8px 16px;
-  background-color: #007bff;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 14px;
-  transition: background-color 0.15s ease;
-}
-
-.retry-button:hover {
-  background-color: #0056b3;
-}
-
-/* 空状态 */
-.empty-icon {
-  font-size: 48px;
-  margin-bottom: 16px;
-  opacity: 0.5;
-}
-
-.empty-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: #495057;
-  margin-bottom: 8px;
-}
-
-.empty-message {
-  color: #6c757d;
-  font-size: 14px;
-  line-height: 1.5;
-}
-
-/* 状态栏 */
-.status-bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  height: 24px;
-  padding: 0 12px;
-  background-color: #e9ecef;
-  border-top: 1px solid #dee2e6;
-  font-size: 11px;
-  color: #6c757d;
-}
-
-.status-left {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.plugin-name {
-  font-weight: 500;
-  color: #495057;
-}
-
-.plugin-version {
-  color: #6c757d;
-}
-
-.status-right {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.window-info {
-  font-family: 'Courier New', monospace;
-}
-
-/* 动画 */
-@keyframes spin {
-  0% {
-    transform: rotate(0deg);
-  }
-
-  100% {
-    transform: rotate(360deg);
-  }
-}
-
-/* 深色模式支持 */
-@media (prefers-color-scheme: dark) {
-  .detached-window-app {
-    background-color: #212529;
-  }
-
-  .content-area {
-    background-color: #343a40;
-  }
-
-  .loading-overlay,
-  .error-overlay,
-  .empty-overlay {
-    background-color: #343a40;
-  }
-
-  .loading-message,
-  .error-message,
-  .empty-message {
-    color: #adb5bd;
-  }
-
-  .empty-title {
-    color: #f8f9fa;
-  }
-
-  .plugin-iframe {
-    background-color: #212529;
-  }
-
-  .status-bar {
-    background-color: #495057;
-    border-top-color: #6c757d;
-    color: #adb5bd;
-  }
-
-  .plugin-name {
-    color: #f8f9fa;
-  }
-
-  .loading-spinner-large {
-    border-color: #495057;
-    border-top-color: #007bff;
-  }
-}
-
-/* 无障碍支持 */
-@media (prefers-reduced-motion: reduce) {
-  .loading-spinner-large {
-    animation: none;
-  }
-
-  .retry-button {
-    transition: none;
-  }
-}
-</style>

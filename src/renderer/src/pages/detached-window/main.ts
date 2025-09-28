@@ -4,6 +4,7 @@
  */
 
 import { createApp } from 'vue'
+import "@/style.css"
 import DetachedWindowApp from './DetachedWindowApp.vue'
 
 // 创建Vue应用实例

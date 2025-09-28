@@ -7,7 +7,7 @@
 import { BaseWindow, } from 'electron'
 import { resolve } from 'path'
 import log from 'electron-log'
-import { DEFAULT_WINDOW_LAYOUT, calculateSettingsViewBounds, calculateMainViewBounds, calculateWindowHeight } from '../../shared/config/window-layout.config'
+import { DEFAULT_WINDOW_LAYOUT, calculateSettingsViewBounds, calculateMainViewBounds, calculateWindowHeight } from '@shared/config/window-layout.config'
 import type { AppConfig } from '@shared/types'
 import type {
   WebContentsViewConfig,
@@ -520,8 +520,7 @@ export class NewWindowManager {
         return
       }
 
-      // 导入窗口布局配置
-      const { DEFAULT_WINDOW_LAYOUT } = await import('../../shared/config/window-layout.config')
+      // 使用窗口布局配置
 
       const currentBounds = this.mainWindow.getBounds()
 
@@ -552,7 +551,7 @@ export class NewWindowManager {
             })
           } else if (viewInfo.id === 'settings-view') {
             // 设置视图使用配置文件中的布局计算
-            const { calculateSettingsViewBounds } = await import('../../shared/config/window-layout.config')
+            // 使用已导入的 calculateSettingsViewBounds
             const settingsBounds = calculateSettingsViewBounds(newBounds)
             viewInfo.view.setBounds(settingsBounds)
           }
@@ -827,6 +826,51 @@ export class NewWindowManager {
    */
   public getMainWindow(): BaseWindow | null {
     return this.mainWindow
+  }
+
+  /**
+   * 销毁主窗口及相关资源
+   */
+  public async destroyMainWindow(): Promise<WindowOperationResult> {
+    try {
+      if (!this.mainWindow) {
+        return { success: true }
+      }
+
+      const windowId = this.mainWindow.id
+
+      // 移除所有视图并处理生命周期
+      const views = this.viewManager.getWindowViews(windowId)
+      for (const viewInfo of views) {
+        const lifecycleResult = await this.lifecycleManager.handleViewClose(viewInfo.id)
+        if (!lifecycleResult.success) {
+          log.warn(`视图生命周期结束失败: ${viewInfo.id} -> ${lifecycleResult.error}`)
+        }
+
+        const removeResult = this.viewManager.removeView(viewInfo.id)
+        if (!removeResult.success) {
+          log.warn(`移除视图失败: ${viewInfo.id} -> ${removeResult.error}`)
+        }
+      }
+
+      // 销毁 BaseWindow
+      const result = this.baseWindowController.destroyWindow(windowId)
+      if (!result.success) {
+        return result
+      }
+
+      // 完全销毁窗口管理器及资源
+      this.destroy()
+
+      log.info('主窗口及关联视图已销毁')
+      return { success: true, windowId }
+    } catch (error) {
+      log.error('销毁主窗口失败:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : '未知错误'
+      }
+    }
   }
 
   /**

@@ -208,41 +208,4 @@ export function createSearchHeaderEventHandlers(manager: SearchHeaderManager) {
   }
 }
 
-/**
- * 用于原生拖拽的指令工厂函数
- */
-export function createNativeDragDirective() {
-  return {
-    mounted(el: HTMLElement, binding: any) {
-      if (binding.value === false) return
-
-      // 设置原生拖拽样式
-      el.style.webkitAppRegion = 'drag'
-      el.style.userSelect = 'none'
-
-      // 添加CSS类
-      el.classList.add('native-drag-area')
-    },
-
-    updated(el: HTMLElement, binding: any) {
-      if (binding.value === false) {
-        el.style.webkitAppRegion = 'no-drag'
-        el.classList.remove('native-drag-area')
-      } else {
-        el.style.webkitAppRegion = 'drag'
-        el.style.userSelect = 'none'
-        el.classList.add('native-drag-area')
-      }
-    },
-
-    unmounted(el: HTMLElement) {
-      el.style.webkitAppRegion = ''
-      el.style.userSelect = ''
-      el.classList.remove('native-drag-area')
-    }
-  }
-}
-
-// 导出默认的原生拖拽指令
-export const vNativeDrag = createNativeDragDirective()
 

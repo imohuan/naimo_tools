@@ -10,7 +10,7 @@ import {
   DEFAULT_WINDOW_LAYOUT,
   calculateSettingsViewBounds,
   calculateMainViewBounds
-} from '../../shared/config/window-layout.config'
+} from '@shared/config/window-layout.config'
 import type {
   WebContentsViewConfig,
   WebContentsViewInfo,
@@ -18,7 +18,7 @@ import type {
   WindowPerformanceMetrics,
   WindowManagerEventData
 } from './window-types'
-import type { ViewType, ViewState, Rectangle } from '../../renderer/src/typings/window-types'
+import type { ViewType, ViewState, Rectangle } from '@renderer/src/typings/window-types'
 import { isProduction } from '@shared/utils'
 import { getDirname } from '@main/utils'
 import { getRendererUrl } from './window.config'
@@ -928,14 +928,17 @@ export class ViewManager {
    */
   private notifyMainViewToRestore(windowId: number, reason: string): void {
     try {
-      // 获取主视图
       const mainViewInfo = this.views.get('main-view')
       if (!mainViewInfo) {
         log.warn('主视图不存在，无法发送恢复通知')
         return
       }
 
-      // 发送恢复状态事件到主视图
+      if (!mainViewInfo.view.webContents || mainViewInfo.view.webContents.isDestroyed()) {
+        log.warn('主视图 WebContents 已销毁，无法发送恢复通知')
+        return
+      }
+
       mainViewInfo.view.webContents.send('view-restore-requested', {
         reason,
         windowId,
@@ -1104,7 +1107,6 @@ export class ViewManager {
    */
   private notifyMainViewOfDetachment(windowId: number, detachedViewId: string): void {
     try {
-      // 分离出去的视图不需要通知主视图显示空状态
       if (this.detachManager.isViewDetached(detachedViewId)) {
         log.info(`跳过通知主视图分离事件，因为视图已分离窗口管理: ${detachedViewId}`)
         return
@@ -1116,7 +1118,11 @@ export class ViewManager {
         return
       }
 
-      // 发送分离通知到搜索栏WebContentsView
+      if (!mainViewInfo.view.webContents || mainViewInfo.view.webContents.isDestroyed()) {
+        log.warn('主视图 WebContents 已销毁，无法发送分离通知')
+        return
+      }
+
       mainViewInfo.view.webContents.send('view:detached', {
         detachedViewId,
         windowId,

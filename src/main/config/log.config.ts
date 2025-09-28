@@ -1,7 +1,7 @@
 import log from 'electron-log';
 import { shell } from 'electron';
 import { dirname } from 'path';
-import { isProduction } from '../../shared/utils';
+import { isProduction } from '@shared/utils';
 
 /**
  * 日志配置管理类

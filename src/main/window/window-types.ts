@@ -4,8 +4,8 @@
  */
 
 import { BaseWindow, WebContentsView } from 'electron'
-import type { ViewType, LifecycleStrategy, Rectangle } from '../../renderer/src/typings/window-types'
-export type { DetachedWindowConfig } from '../../renderer/src/typings/window-types'
+import type { ViewType, LifecycleStrategy, Rectangle } from '@renderer/src/typings/window-types'
+export type { DetachedWindowConfig } from '@renderer/src/typings/window-types'
 
 /** 窗口类型 */
 export enum WindowType {

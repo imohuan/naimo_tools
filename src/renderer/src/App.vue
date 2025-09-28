@@ -385,7 +385,7 @@ const handleWindowResize = async (height: number) => {
   } catch (error) {
     console.error('调整窗口高度失败:', error);
     // 回退到传统方法
-    naimo.router.windowSetSize(height);
+    naimo.router.windowSetSize(-1, height);
   }
 };
 
@@ -396,6 +396,31 @@ const handleWindowResize = async (height: number) => {
 const handleClosePluginWindow = (action?: 'hide' | 'close') => {
   closePluginWindow()
   manageFollowingWindows(currentPluginItem.value, action)
+};
+
+/**
+ * 恢复搜索栏为默认搜索状态
+ * @param clearPlugin 是否需要额外清空当前插件状态
+ */
+const recoverSearchState = (clearPlugin = false) => {
+  console.log("恢复搜索状态", { clearPlugin, searchText: searchText.value });
+
+  if (clearPlugin) {
+    searchHeaderActions.clearCurrentPlugin();
+    currentPluginItem.value = null;
+  }
+
+  switchToSearch();
+  searchHeaderActions.setSearchBoxVisibility(true);
+
+  const currentText = searchText.value ?? "";
+  searchHeaderActions.updateSearchText(currentText);
+  handleSearch(currentText);
+
+  nextTick(() => {
+    contentAreaRef.value?.handleResize();
+    handleSearchFocus();
+  });
 };
 
 /**
@@ -740,7 +765,18 @@ const generateApi = async (pluginItem: PluginItem): Promise<PluginApi> => {
   const openWebPageWindow = async (url: string, options: any = {}) => {
     const currentViewInfo = await naimo.router.windowGetCurrentViewInfo()
     if (!currentViewInfo) return;
-    await naimo.router.windowCreateWebPageWindow(url, options)
+
+    await naimo.router.windowCreatePluginView({
+      path: options.path || url,
+      pluginId: pluginItem.pluginId,
+      name: pluginItem.name,
+      title: options.title || pluginItem.name,
+      url,
+      closeAction: options.closeAction || pluginItem.closeAction,
+      executeParams: options.executeParams,
+      preload: options.preload
+    })
+
     await openPluginWindow(pluginItem)
   }
 
@@ -801,8 +837,7 @@ const handlePluginWindowClosed = async (event: { windowId: number, title: string
   if (isPluginWindowOpen.value) {
     console.log("关闭插件窗口状态");
     await handleClosePluginWindow();
-    attachedFiles.value = [];
-    currentPluginItem.value = null;
+    recoverSearchState(true);
   }
 };
 
@@ -942,6 +977,12 @@ onMounted(async () => {
     show(null)
   });
 
+  // 分离视图或分离窗口关闭时，恢复到搜索状态
+  useEventListener(window, "view:detached", (event: any) => {
+    console.log("收到视图分离事件，恢复搜索状态:", event.detail)
+    recoverSearchState()
+  })
+
   // 监听视图恢复请求事件（来自主进程的WebContentsView关闭通知）
   useEventListener(window, "view-restore-requested", (event: any) => {
     console.log("收到视图恢复请求:", event.detail);
@@ -950,18 +991,11 @@ onMounted(async () => {
     if (reason === 'settings-closed') {
       // 设置视图关闭，恢复到搜索状态
       console.log("设置视图已关闭，恢复到搜索状态");
-      switchToSearch();
-      // 确保窗口高度调整到合适大小
-      nextTick(() => {
-        contentAreaRef.value?.handleResize();
-      });
+      recoverSearchState();
     } else if (reason === 'plugin-closed') {
       // 插件视图关闭，恢复到搜索状态
       console.log("插件视图已关闭，恢复到搜索状态");
-      closePluginWindow();
-      nextTick(() => {
-        contentAreaRef.value?.handleResize();
-      });
+      recoverSearchState(true);
     }
   });
 

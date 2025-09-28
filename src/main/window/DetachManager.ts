@@ -21,11 +21,11 @@ import type {
   Rectangle,
   ViewType,
   DetachedWindowControlEvent
-} from '../../renderer/src/typings/window-types'
+} from '@renderer/src/typings/window-types'
 import {
   DetachedWindowAction
-} from '../../renderer/src/typings/window-types'
-import type { PluginItem } from '../../renderer/src/typings/plugin-types'
+} from '@renderer/src/typings/window-types'
+import type { PluginItem } from '@renderer/src/typings/plugin-types'
 import { BaseWindowController } from './BaseWindowController'
 import { getDirname } from '@main/utils'
 
@@ -192,7 +192,10 @@ export class DetachManager {
 
       // --- Core Operation: Reparenting ---
       try {
-        const sourceContentView = sourceWindow.contentView
+        const sourceContentView = sourceWindow?.contentView
+        if (!sourceContentView) {
+          throw new Error('源窗口的内容视图无效')
+        }
 
         // Remove from source window first
         sourceContentView.removeChildView(originalView)
@@ -212,7 +215,7 @@ export class DetachManager {
         // Attempt to recover by re-attaching the view to its original window
         if (!this.isInvalid(sourceWindow) && !this.isInvalid(originalView)) {
           try {
-            sourceWindow.contentView.addChildView(originalView)
+            sourceWindow?.contentView?.addChildView(originalView)
           } catch (reattachError) {
             log.error('恢复原始视图到源窗口失败:', reattachError)
           }
@@ -320,7 +323,14 @@ export class DetachManager {
       targetWindow.contentView.addChildView(originalView)
 
       // 重新计算视图边界（根据目标窗口的布局）
-      this.baseWindowController.updateMultiViewLayout(targetWindow.id, 'main-view', originalView.id)
+      // 通过 ViewManager 更新布局
+      try {
+        // 触发窗口布局更新
+        const bounds = targetWindow.getBounds();
+        targetWindow.setBounds(bounds);
+      } catch (error) {
+        log.warn('更新视图布局失败:', error);
+      }
       log.info(`已将视图 ${detachedWindowInfo.sourceViewId} 重新附加到窗口 ${targetWindowId}`)
 
       // 触发重新附加事件，通知 ViewManager 更新状态

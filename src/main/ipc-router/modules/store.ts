@@ -4,7 +4,7 @@
  */
 
 import log from 'electron-log';
-import { AppConfigManager } from '../../config/app.config';
+import { AppConfigManager } from '@main/config/app.config';
 import { AppConfig } from '@shared/types';
 
 // 全局配置管理器实例

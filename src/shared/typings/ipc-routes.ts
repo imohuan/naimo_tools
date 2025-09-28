@@ -1,13 +1,13 @@
 /**
  * 自动生成的 IPC 类型定义
- * 生成时间: 2025-09-27T17:45:01.311Z
+ * 生成时间: 2025-09-28T03:31:46.930Z
  * 请勿手动修改此文件
  */
 
 import { AppPath } from '@libs/app-search';
 import { AppConfig } from '@shared/types';
-import { ViewType, LifecycleType } from '../../renderer/src/typings/window-types';
-import { PluginItem } from '../../renderer/src/typings/plugin-types';
+import { ViewType, LifecycleType } from '@renderer/src/typings/window-types';
+import { PluginItem } from '@renderer/src/typings/plugin-types';
 
 // 各个模块的接口定义
 interface appInterface {
@@ -611,30 +611,30 @@ interface storeInterface {
 
 interface windowInterface {
   /** 最小化窗口 */
-  "window-minimize": () => Promise<void>;
+  "window-minimize": () => Promise<boolean>;
   /** 最小化窗口 */
-  "windowMinimize": () => Promise<void>;
+  "windowMinimize": () => Promise<boolean>;
 
   /** 最大化/还原窗口 */
-  "window-maximize": () => Promise<void>;
+  "window-maximize": () => Promise<boolean>;
   /** 最大化/还原窗口 */
-  "windowMaximize": () => Promise<void>;
+  "windowMaximize": () => Promise<boolean>;
 
   /** 关闭窗口 */
-  "window-close": () => Promise<void>;
+  "window-close": () => Promise<boolean>;
   /** 关闭窗口 */
-  "windowClose": () => Promise<void>;
+  "windowClose": () => Promise<boolean>;
 
   /**
  * 切换窗口显示状态
  * @param 可选参数，指定是否显示窗口。不传则进行toggle
  */
-  "window-toggle-show": (id: number, show?: boolean) => Promise<void>;
+  "window-toggle-show": (_id?: number, show?: boolean) => Promise<boolean>;
   /**
  * 切换窗口显示状态
  * @param 可选参数，指定是否显示窗口。不传则进行toggle
  */
-  "windowToggleShow": (id: number, show?: boolean) => Promise<void>;
+  "windowToggleShow": (_id?: number, show?: boolean) => Promise<boolean>;
 
   /**
  * 检查窗口是否最大化
@@ -652,50 +652,50 @@ interface windowInterface {
  * @param 窗口ID
  * @returns 窗口是否显示
  */
-  "window-is-window-visible": (id: number) => Promise<boolean>;
+  "window-is-window-visible": () => Promise<boolean>;
   /**
  * 检查窗口是否显示
  * @param 窗口ID
  * @returns 窗口是否显示
  */
-  "windowIsWindowVisible": (id: number) => Promise<boolean>;
+  "windowIsWindowVisible": () => Promise<boolean>;
 
   /**
  * 设置窗口大小
  * @param 窗口宽度
  * @param 窗口高度
  */
-  "window-set-size": (width: number, height: number) => Promise<void>;
+  "window-set-size": (width: number, height: number) => Promise<boolean>;
   /**
  * 设置窗口大小
  * @param 窗口宽度
  * @param 窗口高度
  */
-  "windowSetSize": (width: number, height: number) => Promise<void>;
+  "windowSetSize": (width: number, height: number) => Promise<boolean>;
 
   /**
  * 动态调整窗口高度
 使用前端传递的高度直接设置窗口大小
  * @param 前端计算的目标高度
  */
-  "window-adjust-height": (height: number) => Promise<void>;
+  "window-adjust-height": (height: number) => Promise<boolean>;
   /**
  * 动态调整窗口高度
 使用前端传递的高度直接设置窗口大小
  * @param 前端计算的目标高度
  */
-  "windowAdjustHeight": (height: number) => Promise<void>;
+  "windowAdjustHeight": (height: number) => Promise<boolean>;
 
   /**
  * 设置窗口是否可调整大小
  * @param 是否可调整大小
  */
-  "window-set-resizable": (resizable: boolean, windowId: number) => Promise<void>;
+  "window-set-resizable": (resizable: boolean) => Promise<boolean>;
   /**
  * 设置窗口是否可调整大小
  * @param 是否可调整大小
  */
-  "windowSetResizable": (resizable: boolean, windowId: number) => Promise<void>;
+  "windowSetResizable": (resizable: boolean) => Promise<boolean>;
 
   /** 打开日志查看器窗口 */
   "window-open-log-viewer": () => Promise<void>;
@@ -751,89 +751,6 @@ interface windowInterface {
   maxHeight: number;
   padding: number;
 }>;
-
-  /**
- * 计算跟随窗口的最终边界
- * @param 主窗口X坐标
- * @param 主窗口Y坐标
- * @param 主窗口宽度
- * @param 主窗口高度
- * @returns 跟随窗口的最终边界配置
- */
-  "window-calculate-following-window-bounds": (mainX: number, mainY: number, mainWidth: number, mainHeight: number, addPadding: number) => Promise<{
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}>;
-  /**
- * 计算跟随窗口的最终边界
- * @param 主窗口X坐标
- * @param 主窗口Y坐标
- * @param 主窗口宽度
- * @param 主窗口高度
- * @returns 跟随窗口的最终边界配置
- */
-  "windowCalculateFollowingWindowBounds": (mainX: number, mainY: number, mainWidth: number, mainHeight: number, addPadding: number) => Promise<{
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}>;
-
-  /** 显示所有following类型的窗口 */
-  "window-show-all-following-windows": () => Promise<void>;
-  /** 显示所有following类型的窗口 */
-  "windowShowAllFollowingWindows": () => Promise<void>;
-
-  /** 隐藏所有following类型的窗口 */
-  "window-hide-all-following-windows": () => Promise<void>;
-  /** 隐藏所有following类型的窗口 */
-  "windowHideAllFollowingWindows": () => Promise<void>;
-
-  /** 关闭所有following类型的窗口 */
-  "window-close-all-following-windows": () => Promise<void>;
-  /** 关闭所有following类型的窗口 */
-  "windowCloseAllFollowingWindows": () => Promise<void>;
-
-  /**
- * 根据配置隐藏或关闭所有following窗口
- * @param 操作类型：'hide' 隐藏，'close' 关闭
- */
-  "window-manage-following-windows": (action: 'hide' | 'close') => Promise<void>;
-  /**
- * 根据配置隐藏或关闭所有following窗口
- * @param 操作类型：'hide' 隐藏，'close' 关闭
- */
-  "windowManageFollowingWindows": (action: 'hide' | 'close') => Promise<void>;
-
-  /**
- * 根据插件信息显示特定的following窗口
- * @param 插件项目信息，包含pluginId和名称
- */
-  "window-show-specific-following-window": (pathId: string) => Promise<void>;
-  /**
- * 根据插件信息显示特定的following窗口
- * @param 插件项目信息，包含pluginId和名称
- */
-  "windowShowSpecificFollowingWindow": (pathId: string) => Promise<void>;
-
-  /**
- * 创建网页显示窗口 (重构版本 - 使用 WebContentsView)
- * @param 主窗口ID
- * @param 要显示的网页URL
- * @param 元数据，包含title、preload等额外信息
- * @deprecated 此函数正在被新的 showNewView 函数替代
- */
-  "window-create-web-page-window": (windowId: number, url: string, metadata?: Record<string, any>) => Promise<void>;
-  /**
- * 创建网页显示窗口 (重构版本 - 使用 WebContentsView)
- * @param 主窗口ID
- * @param 要显示的网页URL
- * @param 元数据，包含title、preload等额外信息
- * @deprecated 此函数正在被新的 showNewView 函数替代
- */
-  "windowCreateWebPageWindow": (windowId: number, url: string, metadata?: Record<string, any>) => Promise<void>;
 
   /** 初始化新窗口管理器 */
   "window-initialize-new-window-manager": () => Promise<{ success: boolean; error?: string }>;
@@ -1017,32 +934,6 @@ interface windowInterface {
   };
   createdAt: string; // 序列化为ISO字符串
 } | null>;
-
-  /**
- * 获取当前窗口ID（兼容性函数）
- * @param IPC事件对象
- * @returns 窗口ID，如果找不到则返回null
- */
-  "window-get-current-window-id": () => Promise<number | null>;
-  /**
- * 获取当前窗口ID（兼容性函数）
- * @param IPC事件对象
- * @returns 窗口ID，如果找不到则返回null
- */
-  "windowGetCurrentWindowId": () => Promise<number | null>;
-
-  /**
- * 获取当前WebContentsView ID（兼容性函数）
- * @param IPC事件对象
- * @returns 视图ID，如果找不到则返回null
- */
-  "window-get-current-view-id": () => Promise<string | null>;
-  /**
- * 获取当前WebContentsView ID（兼容性函数）
- * @param IPC事件对象
- * @returns 视图ID，如果找不到则返回null
- */
-  "windowGetCurrentViewId": () => Promise<string | null>;
 }
 
 // 合并所有 IPC 路由类型
@@ -1449,48 +1340,6 @@ export const ROUTE_INFO: RouteInfo[] = [
     function: "getUIConstants"
   },
   {
-    route: "window-calculate-following-window-bounds",
-    comment: "计算跟随窗口的最终边界",
-    module: "window",
-    function: "calculateFollowingWindowBounds"
-  },
-  {
-    route: "window-show-all-following-windows",
-    comment: "显示所有following类型的窗口",
-    module: "window",
-    function: "showAllFollowingWindows"
-  },
-  {
-    route: "window-hide-all-following-windows",
-    comment: "隐藏所有following类型的窗口",
-    module: "window",
-    function: "hideAllFollowingWindows"
-  },
-  {
-    route: "window-close-all-following-windows",
-    comment: "关闭所有following类型的窗口",
-    module: "window",
-    function: "closeAllFollowingWindows"
-  },
-  {
-    route: "window-manage-following-windows",
-    comment: "根据配置隐藏或关闭所有following窗口",
-    module: "window",
-    function: "manageFollowingWindows"
-  },
-  {
-    route: "window-show-specific-following-window",
-    comment: "根据插件信息显示特定的following窗口",
-    module: "window",
-    function: "showSpecificFollowingWindow"
-  },
-  {
-    route: "window-create-web-page-window",
-    comment: "创建网页显示窗口 (重构版本 - 使用 WebContentsView)",
-    module: "window",
-    function: "createWebPageWindow"
-  },
-  {
     route: "window-initialize-new-window-manager",
     comment: "初始化新窗口管理器",
     module: "window",
@@ -1603,18 +1452,6 @@ export const ROUTE_INFO: RouteInfo[] = [
     comment: "获取当前WebContentsView的完整信息, 通过webContents查找对应的WebContentsViewInfo，并返回序列化后的信息",
     module: "window",
     function: "getCurrentViewInfo"
-  },
-  {
-    route: "window-get-current-window-id",
-    comment: "获取当前窗口ID（兼容性函数）",
-    module: "window",
-    function: "getCurrentWindowId"
-  },
-  {
-    route: "window-get-current-view-id",
-    comment: "获取当前WebContentsView ID（兼容性函数）",
-    module: "window",
-    function: "getCurrentViewId"
   }
 ];
 

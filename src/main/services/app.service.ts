@@ -1,12 +1,12 @@
 import { app, BrowserWindow, screen, BaseWindow } from "electron";
 import log from "electron-log";
 import { updateElectronApp, UpdateSourceType } from "@libs/update";
-import { AppConfigManager } from "../config/app.config";
-import { LogConfigManager } from "../config/log.config";
-import { NewWindowManager } from "../window/NewWindowManager";
+import { AppConfigManager } from "@main/config/app.config";
+import { LogConfigManager } from "@main/config/log.config";
+import { NewWindowManager } from "@main/window/NewWindowManager";
 import { isProduction } from "@shared/utils";
 import { MainErrorHandler } from "@libs/unhandled/main";
-import { cleanupIpcRouter, initializeIpcRouter } from "../ipc-router";
+import { cleanupIpcRouter, initializeIpcRouter } from "@main/ipc-router";
 import { createIconWorker, getApps, } from "@libs/app-search";
 import { resolve } from "path";
 
