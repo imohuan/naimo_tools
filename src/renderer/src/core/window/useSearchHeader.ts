@@ -47,11 +47,6 @@ export interface UseSearchHeaderReturn {
     handleClick: () => void
     /** 打开设置 */
     openSettings: () => void
-    /** 拖拽事件处理 */
-    handleDragOver: (event: DragEvent) => void
-    handleDragEnter: (event: DragEvent) => void
-    handleDragLeave: (event: DragEvent) => void
-    handleDrop: (event: DragEvent) => void
     /** 处理粘贴 */
     handlePaste: (event: ClipboardEvent) => void
     /** 添加文件 */
@@ -130,10 +125,6 @@ export function useSearchHeader(options: UseSearchHeaderOptions = {}): UseSearch
     handleInput: (text: string) => manager.handleInput(text),
     handleClick: () => manager.handleClick(),
     openSettings: () => manager.openSettings(),
-    handleDragOver: (event: DragEvent) => manager.handleDragOver(event),
-    handleDragEnter: (event: DragEvent) => manager.handleDragEnter(event),
-    handleDragLeave: (event: DragEvent) => manager.handleDragLeave(event),
-    handleDrop: (event: DragEvent) => manager.handleDrop(event),
     handlePaste: (event: ClipboardEvent) => manager.handlePaste(event),
     addAttachedFiles: (files: AttachedFile[]) => manager.addAttachedFiles(files),
     clearAttachedFiles: () => manager.clearAttachedFiles(),

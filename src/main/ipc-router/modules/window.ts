@@ -695,13 +695,10 @@ export function destroyNewWindowManager(event: Electron.IpcMainInvokeEvent): { s
  */
 export async function createPluginView(event: Electron.IpcMainInvokeEvent, params: {
   path: string
-  pluginId?: string
-  name?: string
-  title?: string
-  url?: string
-  closeAction?: 'hide' | 'close'
-  executeParams?: any
-  preload?: string
+  title: string
+  url: string
+  lifecycleType: LifecycleType
+  preload: string
 }): Promise<{ success: boolean; viewId?: string; error?: string }> {
   try {
     const manager = NewWindowManager.getInstance()
@@ -723,16 +720,68 @@ export async function createPluginView(event: Electron.IpcMainInvokeEvent, param
 
 /**
  * 关闭插件视图（新架构专用）
+ * 关闭所有不支持后台运行的插件视图
  */
-export async function closePluginView(event: Electron.IpcMainInvokeEvent, viewId: string): Promise<{ success: boolean; error?: string }> {
+export async function closePluginView(event: Electron.IpcMainInvokeEvent): Promise<{ success: boolean; error?: string; closedCount?: number }> {
   try {
     const manager = NewWindowManager.getInstance()
-    const result = await manager.closePluginView(viewId)
+    const lifecycleManager = manager.getLifecycleManager()
 
-    if (result.success) {
-      return { success: true }
-    } else {
-      return { success: false, error: result.error }
+    // 获取所有视图
+    const allViews = manager.getAllViews()
+
+    // 筛选出不支持后台运行的插件视图
+    const nonBackgroundPluginViews = allViews.filter(viewInfo => {
+      // 检查是否为插件视图
+      if (!viewInfo.id.startsWith('plugin:')) {
+        return false
+      }
+
+      // 获取视图的生命周期状态
+      const lifecycleState = lifecycleManager.getViewState(viewInfo.id)
+      if (!lifecycleState) {
+        // 如果没有生命周期状态，默认关闭
+        return true
+      }
+
+      // 检查是否为前台模式（不支持后台运行）
+      return lifecycleState.strategy.type === LifecycleType.FOREGROUND || !lifecycleState.strategy.persistOnClose
+    })
+
+    let successCount = 0
+    let errors: string[] = []
+
+    // 关闭所有不支持后台运行的插件视图
+    for (const viewInfo of nonBackgroundPluginViews) {
+      try {
+        const result = await manager.closePluginView(viewInfo.id)
+        if (result.success) {
+          successCount++
+          log.info(`已关闭不支持后台运行的插件视图: ${viewInfo.id}`)
+        } else {
+          errors.push(`关闭视图 ${viewInfo.id} 失败: ${result.error}`)
+        }
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : '未知错误'
+        errors.push(`关闭视图 ${viewInfo.id} 异常: ${errorMsg}`)
+        log.error(`关闭插件视图异常: ${viewInfo.id}`, error)
+      }
+    }
+
+    log.info(`插件视图关闭完成，成功关闭 ${successCount} 个不支持后台运行的插件视图`)
+
+    if (errors.length > 0) {
+      log.warn('部分插件视图关闭失败:', errors)
+      return {
+        success: true, // 部分成功仍然返回成功
+        closedCount: successCount,
+        error: `部分视图关闭失败: ${errors.join('; ')}`
+      }
+    }
+
+    return {
+      success: true,
+      closedCount: successCount
     }
   } catch (error) {
     log.error('关闭插件视图失败:', error)

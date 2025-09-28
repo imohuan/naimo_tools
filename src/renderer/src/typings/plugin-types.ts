@@ -162,21 +162,10 @@ export interface PluginItem extends AppItem {
   description?: string
   /** 开机启动 */
   autoStart?: boolean
-  /** 执行类型 */
-  executeType?: PluginExecuteType
-  /** 执行参数 */
-  executeParams?: {
-    /** 网页URL（当executeType为SHOW_WEBPAGE时） */
-    url?: string
-    /** 自定义代码（当executeType为CUSTOM_CODE时） */
-    code?: string
-    /** 其他参数 */
-    [key: string]: any
-  }
   /** 排序权重 */
   weight?: number
-  /** 关闭插件窗口时的行为：'hide' 隐藏，'close' 关闭 */
-  closeAction?: 'hide' | 'close'
+  /** 生命周期类型 */
+  lifecycleType?: import('./window-types').LifecycleType
   /** 搜索回调（附件搜索模式使用） */
   onSearch?: (text: string, files: AttachedFile[]) => boolean
   /** 插件搜索回调（插件搜索模式使用） */

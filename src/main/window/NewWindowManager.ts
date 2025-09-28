@@ -7,7 +7,9 @@
 import { BaseWindow, } from 'electron'
 import { resolve } from 'path'
 import log from 'electron-log'
-import { DEFAULT_WINDOW_LAYOUT, calculateSettingsViewBounds, calculateMainViewBounds, calculateWindowHeight } from '@shared/config/window-layout.config'
+import { sendPluginViewOpened, sendPluginViewClosed } from '@main/ipc-router/main-events'
+import { mainProcessEventManager } from './MainProcessEventManager'
+import { DEFAULT_WINDOW_LAYOUT, calculateSettingsViewBounds, } from '@shared/config/window-layout.config'
 import type { AppConfig } from '@shared/types'
 import type {
   WebContentsViewConfig,
@@ -16,13 +18,14 @@ import type {
   ViewOperationResult,
   MainWindowLayoutConfig,
 } from './window-types'
-import type {
+import {
   ViewConfig,
   DetachedWindowConfig,
   LifecycleStrategy,
   Rectangle,
   WindowManagerConfig,
-  PerformanceMetrics
+  PerformanceMetrics,
+  LifecycleType
 } from '@renderer/src/typings/window-types'
 import {
   ViewType
@@ -92,7 +95,6 @@ export class NewWindowManager {
   // 内部状态
   private mainWindow: BaseWindow | null = null
   private activeViewId: string | null = null
-  private eventHandlers: Map<string, Function[]> = new Map()
   private performanceTimer?: NodeJS.Timeout
   private isInitialized = false
 
@@ -147,7 +149,7 @@ export class NewWindowManager {
       await this.initializeMainWindow()
 
       this.isInitialized = true
-      this.emit('manager:initialized', { timestamp: Date.now() })
+      mainProcessEventManager.emit('manager:initialized', { timestamp: Date.now() })
 
       log.info('NewWindowManager 初始化完成')
     } catch (error) {
@@ -201,7 +203,7 @@ export class NewWindowManager {
       await this.createMainView()
 
       // 触发主窗口创建事件
-      this.emit('window:main-created', {
+      mainProcessEventManager.emit('window:main-created', {
         windowId: this.mainWindow.id,
         timestamp: Date.now()
       })
@@ -257,7 +259,7 @@ export class NewWindowManager {
         type: ViewType.MAIN,
         bounds,
         lifecycle: {
-          type: 'FOREGROUND' as any,
+          type: LifecycleType.FOREGROUND,
           persistOnClose: true
         },
         webPreferences: {
@@ -844,6 +846,13 @@ export class NewWindowManager {
   }
 
   /**
+   * 获取生命周期管理器
+   */
+  public getLifecycleManager(): LifecycleManager {
+    return this.lifecycleManager
+  }
+
+  /**
    * 销毁主窗口及相关资源
    */
   public async destroyMainWindow(): Promise<WindowOperationResult> {
@@ -973,7 +982,7 @@ export class NewWindowManager {
 
       const report = await this.lifecycleManager.cleanupBackgroundViews()
 
-      this.emit('cleanup:completed', {
+      mainProcessEventManager.emit('cleanup:completed', {
         report,
         timestamp: Date.now()
       })
@@ -1014,18 +1023,18 @@ export class NewWindowManager {
    */
   private setupEventHandlers(): void {
     // 设置分离管理器事件
-    this.detachManager.on('view:reattach-requested', async (data: any) => {
+    mainProcessEventManager.on('view:reattach-requested', async (data) => {
       // 处理重新附加请求
       await this.handleReattachRequest(data)
     })
 
     // 设置生命周期管理器事件
-    this.lifecycleManager.on('lifecycle:cleanup-completed', (report: any) => {
-      this.emit('cleanup:completed', { report, timestamp: Date.now() })
+    mainProcessEventManager.on('lifecycle:cleanup-completed', (data) => {
+      mainProcessEventManager.emit('cleanup:completed', { report: data.report, timestamp: Date.now() })
     })
 
     // 设置视图管理器事件
-    this.viewManager.on('view:switched', (data: any) => {
+    mainProcessEventManager.on('view:switched', (data) => {
       this.handleViewSwitched(data)
     })
   }
@@ -1051,12 +1060,12 @@ export class NewWindowManager {
 
     // 窗口失焦事件
     this.mainWindow.on('blur', () => {
-      this.emit('window:main-blurred', { timestamp: Date.now() })
+      mainProcessEventManager.emit('window:main-blurred', { timestamp: Date.now() })
     })
 
     // 窗口聚焦事件
     this.mainWindow.on('focus', () => {
-      this.emit('window:main-focused', { timestamp: Date.now() })
+      mainProcessEventManager.emit('window:main-focused', { timestamp: Date.now() })
     })
   }
 
@@ -1086,7 +1095,7 @@ export class NewWindowManager {
         nodeIntegration: true,
         contextIsolation: true,
         webSecurity: true,
-        preload: params.config?.preload // 正确处理 preload
+        ...(params.config?.preload && { preload: params.config.preload })
       },
       ...params.config
     }
@@ -1095,7 +1104,6 @@ export class NewWindowManager {
     // 添加插件元数据
     if (params.pluginItem) {
       config.pluginMetadata = {
-        pluginId: params.pluginItem.pluginId,
         path: params.pluginItem.path,
         name: params.pluginItem.name
       }
@@ -1164,8 +1172,9 @@ export class NewWindowManager {
     // 更新生命周期管理器的访问时间
     this.lifecycleManager.updateViewAccess(viewId)
 
-    this.emit('view:activated', {
+    mainProcessEventManager.emit('view:activated', {
       viewId,
+      windowId: this.mainWindow?.id || 0,
       timestamp: Date.now()
     })
   }
@@ -1175,7 +1184,7 @@ export class NewWindowManager {
    */
   private handleViewSwitched(data: any): void {
     this.activeViewId = data.toViewId
-    this.emit('view:switched', data)
+    mainProcessEventManager.emit('view:switched', data)
   }
 
   /**
@@ -1188,9 +1197,10 @@ export class NewWindowManager {
       log.info(`处理重新附加请求: ${data.sourceViewId}`)
 
       // 触发重新附加完成事件
-      this.emit('view:reattached', {
-        sourceViewId: data.sourceViewId,
-        targetWindowId: data.targetWindowId,
+      mainProcessEventManager.emit('view:reattached', {
+        viewId: data.viewId,
+        fromWindowId: data.detachedWindowId || 0,
+        toWindowId: data.targetWindowId,
         timestamp: Date.now()
       })
     } catch (error) {
@@ -1207,7 +1217,10 @@ export class NewWindowManager {
     this.mainWindow = null
     this.activeViewId = null
 
-    this.emit('window:main-closed', { timestamp: Date.now() })
+    mainProcessEventManager.emit('window:main-closed', {
+      windowId: this.mainWindow?.id || 0,
+      timestamp: Date.now()
+    })
 
     // 清理所有资源
     this.cleanup()
@@ -1240,50 +1253,13 @@ export class NewWindowManager {
     }
 
     // 触发性能监控事件
-    this.emit('performance:metrics', {
+    mainProcessEventManager.emit('performance:metrics', {
+      windowId: this.mainWindow?.id || 0,
       metrics,
       timestamp: Date.now()
     })
   }
 
-  /**
-   * 添加事件监听器
-   */
-  public on(event: string, handler: Function): void {
-    if (!this.eventHandlers.has(event)) {
-      this.eventHandlers.set(event, [])
-    }
-    this.eventHandlers.get(event)!.push(handler)
-  }
-
-  /**
-   * 移除事件监听器
-   */
-  public off(event: string, handler: Function): void {
-    const handlers = this.eventHandlers.get(event)
-    if (handlers) {
-      const index = handlers.indexOf(handler)
-      if (index !== -1) {
-        handlers.splice(index, 1)
-      }
-    }
-  }
-
-  /**
-   * 触发事件
-   */
-  private emit(event: string, data: any): void {
-    const handlers = this.eventHandlers.get(event)
-    if (handlers) {
-      handlers.forEach(handler => {
-        try {
-          handler(data)
-        } catch (error) {
-          log.error(`事件处理器执行失败: ${event}`, error)
-        }
-      })
-    }
-  }
 
   /**
    * 清理资源
@@ -1297,8 +1273,6 @@ export class NewWindowManager {
       this.performanceTimer = undefined
     }
 
-    // 清理事件处理器
-    this.eventHandlers.clear()
   }
 
   /**
@@ -1307,45 +1281,36 @@ export class NewWindowManager {
    */
   public async createPluginView(params: {
     path: string
-    pluginId?: string
-    name?: string
-    title?: string
-    url?: string
-    closeAction?: 'hide' | 'close'
-    executeParams?: any
+    title: string
+    url: string
+    lifecycleType: LifecycleType
     preload?: string
   }): Promise<ViewOperationResult> {
     try {
-      if (!this.mainWindow) {
-        throw new Error('主窗口未创建')
-      }
+      if (!this.mainWindow) throw new Error('主窗口未创建')
 
       // 构建插件项目信息
       const pluginItem: PluginItem = {
         path: params.path,
-        name: params.name || params.title || 'Plugin',
-        icon: null, // 暂时设为null，后续可以根据需要设置
-        pluginId: params.pluginId || params.path,
-        executeType: params.url ? 'SHOW_WEBPAGE' as any : 'CUSTOM_CODE' as any,
-        executeParams: params.executeParams || (params.url ? { url: params.url } : {}),
-        closeAction: params.closeAction || 'close'
+        name: params.title,
+        icon: null,
+        lifecycleType: params.lifecycleType
       }
 
       // 确定生命周期类型
-      const lifecycleType = params.closeAction === 'hide' ? 'BACKGROUND' as any : 'FOREGROUND' as any
+      const lifecycleType = params.lifecycleType
 
       // 处理 preload 脚本合并
       const defaultPreloadPath = resolve(getDirname(import.meta.url), './preloads/basic.js')
-      let finalPreloadPath: string | undefined = defaultPreloadPath
-
+      let finalPreloadPath: string = defaultPreloadPath
       if (params.preload) {
         try {
-          // 获取默认的基础 preload 路径
           // 创建合并的 preload 脚本
           finalPreloadPath = await createCombinedPreloadScript(params.preload, defaultPreloadPath)
           log.info(`插件 preload 脚本已合并: ${params.path} -> ${finalPreloadPath}`)
         } catch (error) {
           log.warn(`合并插件 preload 脚本失败，使用默认脚本: ${params.path}`, error)
+          finalPreloadPath = defaultPreloadPath
         }
       }
 
@@ -1360,27 +1325,25 @@ export class NewWindowManager {
         forceNew: false,
         lifecycleStrategy: {
           type: lifecycleType,
-          persistOnClose: params.closeAction === 'hide',
+          persistOnClose: params.lifecycleType === LifecycleType.BACKGROUND,
           maxIdleTime: 5 * 60 * 1000,
           memoryThreshold: 100
         }
       })
 
       if (result.success) {
-        log.info(`插件视图创建成功: ${result.viewId} (${params.name || params.path})`)
+        log.info(`插件视图创建成功: ${result.viewId} (${params.title})`)
 
         // 通知主渲染进程插件视图已打开
         if (this.mainWindow && !this.mainWindow.isDestroyed()) {
           // 获取主视图的 webContents
           const mainViewInfo = this.viewManager.getViewInfo('main-view')
           if (mainViewInfo) {
-            mainViewInfo.view.webContents.send("plugin-view-opened", {
-              viewId: result.viewId,
-              path: params.path,
-              pluginId: params.pluginId,
-              name: params.name,
-              title: params.title,
-              url: params.url
+            sendPluginViewOpened(mainViewInfo.view.webContents, {
+              pluginId: params.path,
+              viewId: result.viewId!,
+              windowId: this.mainWindow!.id,
+              timestamp: Date.now()
             })
             log.debug(`已通知主渲染进程插件视图打开: ${result.viewId}`)
           }
@@ -1412,8 +1375,11 @@ export class NewWindowManager {
           // 获取主视图的 webContents
           const mainViewInfo = this.viewManager.getViewInfo('main-view')
           if (mainViewInfo) {
-            mainViewInfo.view.webContents.send("plugin-view-closed", {
-              viewId
+            sendPluginViewClosed(mainViewInfo.view.webContents, {
+              pluginId: '', // 需要从视图信息中获取
+              viewId,
+              windowId: this.mainWindow!.id,
+              timestamp: Date.now()
             })
           }
           log.debug(`已通知主渲染进程插件视图关闭: ${viewId}`)

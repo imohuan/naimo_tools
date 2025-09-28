@@ -2,6 +2,7 @@ import type { PluginItem } from '@/typings/plugin-types'
 import type { PluginApi } from '@shared/typings/global'
 import { pluginManager } from './PluginManager'
 import { ElectronStoreBridge } from '../store/ElectronStoreBridge'
+import { LifecycleType } from '@/typings/window-types'
 
 /**
  * 插件 API 生成器
@@ -76,8 +77,7 @@ export class PluginApiGenerator {
         name: pluginItem.name,
         title: windowOptions.title || pluginItem.name,
         url,
-        closeAction: windowOptions.closeAction || pluginItem.closeAction,
-        executeParams: windowOptions.executeParams,
+        lifecycleType: windowOptions.lifecycleType || pluginItem.lifecycleType,
         preload: windowOptions.preload,
         hotkeyEmit: options.hotkeyEmit || false,
         ...windowOptions
@@ -86,13 +86,10 @@ export class PluginApiGenerator {
       // 直接创建插件视图
       const result = await naimo.router.windowCreatePluginView({
         path: finalOptions.path,
-        pluginId: finalOptions.pluginId,
-        name: finalOptions.name,
-        title: finalOptions.title,
-        url,
-        closeAction: finalOptions.closeAction,
-        executeParams: finalOptions.executeParams,
-        preload: finalOptions.preload
+        title: finalOptions.name || '插件',
+        url: url || '',
+        lifecycleType: finalOptions.lifecycleType === LifecycleType.BACKGROUND ? 'background' : 'foreground',
+        preload: finalOptions.preload || ''
       })
 
       if (result.success && options.openPluginWindow) {
@@ -101,6 +98,7 @@ export class PluginApiGenerator {
         console.log(`✅ 插件视图创建成功: ${result.viewId} (${pluginItem.name})`)
       }
 
+      // await options.openPluginWindow!(pluginItem)
       return result
     }
 

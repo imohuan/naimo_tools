@@ -1,6 +1,6 @@
 /**
  * 自动生成的 IPC 类型定义
- * 生成时间: 2025-09-28T06:54:42.610Z
+ * 生成时间: 2025-09-28T10:20:17.670Z
  * 请勿手动修改此文件
  */
 
@@ -811,30 +811,30 @@ interface windowInterface {
   /** 创建插件视图（新架构专用） */
   "window-create-plugin-view": (params: {
   path: string
-  pluginId?: string
-  name?: string
-  title?: string
-  url?: string
-  closeAction?: 'hide' | 'close'
-  executeParams?: any
-  preload?: string
+  title: string
+  url: string
+  lifecycleType: LifecycleType
+  preload: string
 }) => Promise<{ success: boolean; viewId?: string; error?: string }>;
   /** 创建插件视图（新架构专用） */
   "windowCreatePluginView": (params: {
   path: string
-  pluginId?: string
-  name?: string
-  title?: string
-  url?: string
-  closeAction?: 'hide' | 'close'
-  executeParams?: any
-  preload?: string
+  title: string
+  url: string
+  lifecycleType: LifecycleType
+  preload: string
 }) => Promise<{ success: boolean; viewId?: string; error?: string }>;
 
-  /** 关闭插件视图（新架构专用） */
-  "window-close-plugin-view": (viewId: string) => Promise<{ success: boolean; error?: string }>;
-  /** 关闭插件视图（新架构专用） */
-  "windowClosePluginView": (viewId: string) => Promise<{ success: boolean; error?: string }>;
+  /**
+ * 关闭插件视图（新架构专用）
+关闭所有不支持后台运行的插件视图
+ */
+  "window-close-plugin-view": () => Promise<{ success: boolean; error?: string; closedCount?: number }>;
+  /**
+ * 关闭插件视图（新架构专用）
+关闭所有不支持后台运行的插件视图
+ */
+  "windowClosePluginView": () => Promise<{ success: boolean; error?: string; closedCount?: number }>;
 
   /** 创建设置页面 WebContentsView */
   "window-create-settings-view": () => Promise<{ success: boolean; viewId?: string; error?: string }>;
@@ -1355,7 +1355,7 @@ export const ROUTE_INFO: RouteInfo[] = [
   },
   {
     route: "window-close-plugin-view",
-    comment: "关闭插件视图（新架构专用）",
+    comment: "关闭插件视图（新架构专用）, 关闭所有不支持后台运行的插件视图",
     module: "window",
     function: "closePluginView"
   },

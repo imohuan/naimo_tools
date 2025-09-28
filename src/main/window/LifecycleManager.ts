@@ -4,6 +4,7 @@
  */
 
 import log from 'electron-log'
+import { mainProcessEventManager } from './MainProcessEventManager'
 import type {
   WebContentsViewInfo,
   ViewOperationResult,
@@ -86,7 +87,6 @@ export class LifecycleManager {
   private viewStates: Map<string, ViewLifecycleState> = new Map()
   private cleanupTimer?: NodeJS.Timeout
   private performanceMetrics: PerformanceMetrics
-  private eventHandlers: Map<string, Function[]> = new Map()
 
   private constructor(config?: Partial<LifecycleManagerConfig>) {
     this.config = {
@@ -151,9 +151,9 @@ export class LifecycleManager {
     this.updatePerformanceMetrics()
 
     // 触发事件
-    this.emit('lifecycle:strategy-set', {
-      viewId,
-      strategy,
+    mainProcessEventManager.emit('lifecycle:strategy-set', {
+      windowId: 0, // TODO: 需要从 viewInfo 中获取 windowId
+      strategy: strategy.type,
       timestamp: Date.now()
     })
   }
@@ -235,9 +235,10 @@ export class LifecycleManager {
       lifecycleState.pausedAt = Date.now()
 
       // 触发暂停事件
-      this.emit('lifecycle:view-paused', {
+      mainProcessEventManager.emit('lifecycle:view-paused', {
         viewId,
-        pausedAt: lifecycleState.pausedAt
+        windowId: 0, // TODO: 需要从 viewInfo 中获取 windowId
+        timestamp: lifecycleState.pausedAt || Date.now()
       })
 
       log.info(`视图已暂停: ${viewId}`)
@@ -283,9 +284,10 @@ export class LifecycleManager {
       delete lifecycleState.pausedAt
 
       // 触发恢复事件
-      this.emit('lifecycle:view-resumed', {
+      mainProcessEventManager.emit('lifecycle:view-resumed', {
         viewId,
-        resumedAt: lifecycleState.lastAccessTime
+        windowId: 0, // TODO: 需要从 viewInfo 中获取 windowId
+        timestamp: lifecycleState.lastAccessTime
       })
 
       log.info(`视图已恢复: ${viewId}`)
@@ -326,10 +328,10 @@ export class LifecycleManager {
       this.viewStates.delete(viewId)
 
       // 触发销毁事件
-      this.emit('lifecycle:view-destroyed', {
+      mainProcessEventManager.emit('lifecycle:view-destroyed', {
         viewId,
-        destroyedAt: Date.now(),
-        strategy: lifecycleState.strategy
+        windowId: 0, // TODO: 需要从 viewInfo 中获取 windowId
+        timestamp: Date.now()
       })
 
       this.updatePerformanceMetrics()
@@ -431,7 +433,10 @@ export class LifecycleManager {
       }
 
       // 触发清理完成事件
-      this.emit('lifecycle:cleanup-completed', report)
+      mainProcessEventManager.emit('lifecycle:cleanup-completed', {
+        report,
+        timestamp: Date.now()
+      })
 
       log.info(`后台视图清理完成: 清理了 ${cleanedViews.length} 个视图，释放 ${report.freedMemory.toFixed(1)}MB 内存`)
 

@@ -4,8 +4,8 @@
  */
 
 import { ipcRenderer } from 'electron';
-import { ROUTE_INFO } from './typings/ipc-routes';
-import type { AllIpcRouter, IpcRouteKey, IpcRouteParams, IpcRouteReturn } from './typings/ipc-routes';
+import { ROUTE_INFO } from '../typings/ipc-routes';
+import type { AllIpcRouter, IpcRouteKey, IpcRouteParams, IpcRouteReturn } from '../typings/ipc-routes';
 
 /**
  * IPC 路由客户端类
@@ -96,4 +96,4 @@ function kebabToCamel(str: string): string {
 export const ipcRouter = createIpcRouter();
 
 // 导出类型
-export type { AllIpcRouter, IpcRouteKey, IpcRouteParams, IpcRouteReturn } from './typings/ipc-routes';
+export type { AllIpcRouter, IpcRouteKey, IpcRouteParams, IpcRouteReturn } from '../typings/ipc-routes';

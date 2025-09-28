@@ -7,6 +7,7 @@
 import { BaseWindow, WebContentsView, screen, globalShortcut } from 'electron'
 import { resolve } from 'path'
 import log from 'electron-log'
+import { sendDetachedWindowInit } from '@main/ipc-router/main-events'
 import type {
   BaseWindowConfig,
   WebContentsViewInfo,
@@ -28,6 +29,7 @@ import {
 import type { PluginItem } from '@renderer/src/typings/plugin-types'
 import { BaseWindowController } from './BaseWindowController'
 import { getDirname } from '@main/utils'
+import { mainProcessEventManager } from './MainProcessEventManager'
 
 /**
  * 分离窗口信息
@@ -102,7 +104,6 @@ export class DetachManager {
   private detachedWindows: Map<number, DetachedWindowInfo> = new Map()
   private sourceViewMapping: Map<string, number> = new Map() // 源视图ID -> 分离窗口ID
   private baseWindowController: BaseWindowController
-  private eventHandlers: Map<string, Function[]> = new Map()
   private viewManager?: any // 避免循环依赖，延迟设置
 
   private constructor(config?: Partial<DetachManagerConfig>) {
@@ -287,9 +288,9 @@ export class DetachManager {
       detachedWindow.show()
 
       // 触发分离事件
-      this.emit('view:detached', {
-        sourceViewId: sourceView.id,
-        sourceWindowId: parentWindowId,
+      mainProcessEventManager.emit('view:detached', {
+        viewId: sourceView.id,
+        windowId: parentWindowId,
         detachedWindowId: detachedWindow.id,
         timestamp: Date.now()
       })
@@ -367,11 +368,9 @@ export class DetachManager {
       }
 
       // 触发重新附加事件，通知 ViewManager 更新状态
-      this.emit('view:reattach-requested', {
-        sourceViewId: detachedWindowInfo.sourceViewId,
-        detachedWindowId,
+      mainProcessEventManager.emit('view:reattach-requested', {
+        viewId: detachedWindowInfo.sourceViewId,
         targetWindowId,
-        originalView,
         timestamp: Date.now()
       })
 
@@ -424,9 +423,9 @@ export class DetachManager {
       }
 
       // 触发关闭事件
-      this.emit('view:detached-window-closed', {
-        windowId,
-        sourceViewId: detachedWindowInfo.sourceViewId,
+      mainProcessEventManager.emit('view:detached-window-closed', {
+        viewId: detachedWindowInfo.sourceViewId,
+        detachedWindowId: windowId,
         timestamp: Date.now()
       })
 
@@ -484,10 +483,9 @@ export class DetachManager {
 
         case DetachedWindowAction.REATTACH:
           // 需要获取目标窗口ID，这里触发事件让外部处理
-          this.emit('view:reattach-requested', {
-            sourceViewId: detachedWindowInfo.sourceViewId,
-            detachedWindowId: windowId,
-            action,
+          mainProcessEventManager.emit('view:reattach-requested', {
+            viewId: detachedWindowInfo.sourceViewId,
+            targetWindowId: 0, // 需要外部处理决定目标窗口
             timestamp: Date.now()
           })
           break
@@ -504,7 +502,11 @@ export class DetachManager {
         timestamp: Date.now()
       }
 
-      this.emit('control-bar:action', controlEvent)
+      mainProcessEventManager.emit('control-bar:action', {
+        action: controlEvent.action,
+        data: controlEvent,
+        timestamp: Date.now()
+      })
 
       return {
         success: true,
@@ -702,11 +704,14 @@ export class DetachManager {
             title: this.extractPluginInfo(sourceView)?.name || sourceView.config.type || '分离窗口'
           })
 
-          controlBarView.webContents.send('detached-window:init', {
-            windowId: detachedWindowId,
-            viewId: sourceView.id,
-            sourceUrl,
-            windowTitle: this.extractPluginInfo(sourceView)?.name || sourceView.config.type || '分离窗口',
+          sendDetachedWindowInit(controlBarView.webContents, {
+            sourceViewId: sourceView.id,
+            sourceWindowId: sourceView.parentWindowId,
+            detachedWindowId,
+            config: {
+              sourceUrl,
+              windowTitle: this.extractPluginInfo(sourceView)?.name || sourceView.config.type || '分离窗口'
+            },
             timestamp: Date.now()
           })
         } catch (error) {
@@ -778,18 +783,16 @@ export class DetachManager {
 
     // 窗口聚焦事件
     window.on('focus', () => {
-      this.emit('detached-window:focused', {
+      mainProcessEventManager.emit('detached-window:focused', {
         windowId,
-        sourceViewId: detachedWindowInfo.sourceViewId,
         timestamp: Date.now()
       })
     })
 
     // 窗口失焦事件
     window.on('blur', () => {
-      this.emit('detached-window:blurred', {
+      mainProcessEventManager.emit('detached-window:blurred', {
         windowId,
-        sourceViewId: detachedWindowInfo.sourceViewId,
         timestamp: Date.now()
       })
     })
@@ -819,9 +822,9 @@ export class DetachManager {
       this.detachedWindows.delete(windowId)
 
       // 触发关闭事件
-      this.emit('view:detached-window-closed', {
-        windowId,
-        sourceViewId: detachedWindowInfo.sourceViewId,
+      mainProcessEventManager.emit('view:detached-window-closed', {
+        viewId: detachedWindowInfo.sourceViewId,
+        detachedWindowId: windowId,
         timestamp: Date.now()
       })
     }
@@ -847,10 +850,9 @@ export class DetachManager {
 
     // Alt+R 重新附加
     if (input.key === 'r' && input.alt && input.type === 'keyDown') {
-      this.emit('view:reattach-requested', {
-        sourceViewId: detachedWindowInfo.sourceViewId,
-        detachedWindowId: detachedWindowInfo.windowId,
-        action: DetachedWindowAction.REATTACH,
+      mainProcessEventManager.emit('view:reattach-requested', {
+        viewId: detachedWindowInfo.sourceViewId,
+        targetWindowId: 0, // 需要外部处理决定目标窗口
         timestamp: Date.now()
       })
       event.preventDefault()
@@ -916,12 +918,6 @@ export class DetachManager {
    * @param event 事件名
    * @param handler 事件处理器
    */
-  public on(event: string, handler: Function): void {
-    if (!this.eventHandlers.has(event)) {
-      this.eventHandlers.set(event, [])
-    }
-    this.eventHandlers.get(event)!.push(handler)
-  }
 
   /**
    * 移除事件监听器

@@ -1,12 +1,13 @@
 import log from "electron-log/renderer";
 import { contextBridge, ipcRenderer, webUtils as electronWebUtils } from "electron";
 import { RendererErrorHandler } from "@libs/unhandled/renderer";
-import { ipcRouter } from "@shared/ipc-router-client";
+import { ipcRouter } from "@shared/utils/ipc-router-client";
 import { isDevelopment } from "@shared/utils";
 import { resolve, dirname } from "path";
 
 import { autoPuppeteerRenderer } from "@libs/auto-puppeteer/renderer";
 import { downloadManagerRenderer } from "@libs/download-manager/renderer";
+import { eventRouter } from "@shared/utils/event-router-client";
 
 /**
  * 启用热重载
@@ -121,6 +122,20 @@ const electronAPI = {
 
   webUtils: webUtils,
 
+  // 直接暴露事件监听方法，提供简洁的 API
+  on: (channel: string, listener: (event: any, data: any) => void) => {
+    return ipcRenderer.on(channel, listener);
+  },
+  off: (channel: string, listener: (event: any, data: any) => void) => {
+    return ipcRenderer.off(channel, listener);
+  },
+  once: (channel: string, listener: (event: any, data: any) => void) => {
+    return ipcRenderer.once(channel, listener);
+  },
+
+  // 类型安全的事件对象
+  event: eventRouter,
+
   // 窗口相关API
   window: {
     /**
@@ -228,28 +243,6 @@ const naimo = electronAPI
 contextBridge.exposeInMainWorld("electronAPI", electronAPI);
 contextBridge.exposeInMainWorld("naimo", naimo);
 
-const triggerEventKeys = [
-  'global-hotkey-trigger',  // 全局快捷键事件 
-  'window-all-blur',        // 窗口全部模糊事件 
-  'window-main-hide',       // 主窗口隐藏事件
-  'window-main-show',       // 主窗口显示事件
-  'plugin-window-closed',   // 插件窗口关闭事件
-  'view-restore-requested', // 视图恢复请求事件
-]
-
-triggerEventKeys.forEach(key => {
-  ipcRenderer.on(key, (event, data) => {
-    console.log(`Preload收到${key}事件:`, data);
-    const customEvent = new CustomEvent(key, { detail: data });
-    window.dispatchEvent(customEvent);
-  });
-});
-
-ipcRenderer.on("window-detach", (event, data) => {
-  // 分离窗口
-  console.log("收到 window-detach 事件:", data);
-  const customEvent = new CustomEvent('window-detach', { detail: data });
-  window.dispatchEvent(customEvent);
-});
+// 不再需要事件转发代码，渲染进程可以直接使用 naimo.ipcRenderer.on() 监听事件
 
 console.log("✅ Preload脚本执行完成，耗时:", Date.now() - preloadStartTime, "ms");

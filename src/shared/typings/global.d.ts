@@ -2,6 +2,7 @@
 // 类型声明
 import type { AllIpcRouter } from './ipc-routes';
 import type { DomParserConfig, AutomationConfig, HtmlFetchResult } from '../../libs/auto-puppeteer/typings';
+import type { AllEventRouter } from './event-routes';
 
 interface WebUtils {
   /**
@@ -31,6 +32,15 @@ interface ElectronAPI {
   };
   router: AllIpcRouter;
   webUtils: WebUtils;
+
+  // 基础 IPC 方法
+  on: (eventType: string, handler: (event: any, data: any) => void) => void;
+  off: (eventType: string, handler: (event: any, data: any) => void) => void;
+  once: (eventType: string, handler: (event: any, data: any) => void) => void;
+
+  // 类型安全的事件路由
+  event: AllEventRouter;
+  
   window: {
     /**
      * 获取当前WebContentsView的完整信息

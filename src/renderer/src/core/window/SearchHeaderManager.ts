@@ -15,8 +15,6 @@ import { BaseSingleton } from '../BaseSingleton'
 export interface SearchHeaderState {
   /** 搜索文本 */
   searchText: string
-  /** 是否正在拖拽 */
-  isDragOver: boolean
   /** 头部高度 */
   headerHeight: number
   /** 附加的文件 */
@@ -61,11 +59,6 @@ export interface SearchHeaderEvents {
   'click': () => void
   /** 打开设置 */
   'open-settings': () => void
-  /** 文件拖拽事件 */
-  'drag-over': (event: DragEvent) => void
-  'drag-enter': (event: DragEvent) => void
-  'drag-leave': (event: DragEvent) => void
-  'drop': (event: DragEvent) => void
   /** 粘贴事件 */
   'paste': (event: ClipboardEvent) => void
   /** 清除文件 */
@@ -115,7 +108,6 @@ export class SearchHeaderManager extends BaseSingleton {
 
     this.state = reactive({
       searchText: '',
-      isDragOver: false,
       headerHeight: this.config.defaultHeight,
       attachedFiles: [],
       currentPluginItem: null,
@@ -157,13 +149,6 @@ export class SearchHeaderManager extends BaseSingleton {
     this.debouncedSearch(text)
   }
 
-  /**
-   * 设置拖拽状态
-   */
-  public setDragOver(isDragOver: boolean): void {
-    this.state.isDragOver = isDragOver
-    this.emitStateChanged()
-  }
 
   /**
    * 设置头部高度
@@ -265,54 +250,6 @@ export class SearchHeaderManager extends BaseSingleton {
     this.emit('open-settings')
   }
 
-  /**
-   * 处理拖拽事件
-   */
-  public handleDragOver(event: DragEvent): void {
-    if (!this.config.enableFileDrop || this.state.currentPluginItem) {
-      event.preventDefault()
-      event.dataTransfer!.dropEffect = 'none'
-      return
-    }
-
-    event.preventDefault()
-    event.dataTransfer!.dropEffect = 'copy'
-    this.setDragOver(true)
-    this.emit('drag-over', event)
-  }
-
-  public handleDragEnter(event: DragEvent): void {
-    if (!this.config.enableFileDrop || this.state.currentPluginItem) {
-      event.preventDefault()
-      return
-    }
-
-    event.preventDefault()
-    this.setDragOver(true)
-    this.emit('drag-enter', event)
-  }
-
-  public handleDragLeave(event: DragEvent): void {
-    if (!this.config.enableFileDrop || this.state.currentPluginItem) {
-      event.preventDefault()
-      return
-    }
-
-    event.preventDefault()
-    this.setDragOver(false)
-    this.emit('drag-leave', event)
-  }
-
-  public handleDrop(event: DragEvent): void {
-    if (!this.config.enableFileDrop || this.state.currentPluginItem) {
-      event.preventDefault()
-      return
-    }
-
-    event.preventDefault()
-    this.setDragOver(false)
-    this.emit('drop', event)
-  }
 
   /**
    * 处理粘贴事件
@@ -389,10 +326,6 @@ export class SearchHeaderManager extends BaseSingleton {
    * 获取占位符文本
    */
   public getPlaceholderText(): string {
-    if (this.state.isDragOver && !this.state.currentPluginItem) {
-      return '释放文件以搜索...'
-    }
-
     if (this.state.currentPluginItem) {
       return ''
     }
@@ -409,7 +342,6 @@ export class SearchHeaderManager extends BaseSingleton {
    */
   public reset(): void {
     this.state.searchText = ''
-    this.state.isDragOver = false
     this.state.attachedFiles = []
     this.state.currentPluginItem = null
     this.state.searchResultsVisible = false

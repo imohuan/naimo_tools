@@ -4,6 +4,7 @@ import { updateElectronApp, UpdateSourceType } from "@libs/update";
 import { AppConfigManager } from "@main/config/app.config";
 import { LogConfigManager } from "@main/config/log.config";
 import { NewWindowManager } from "@main/window/NewWindowManager";
+import { sendWindowAllBlur } from "@main/ipc-router/main-events";
 import { isProduction } from "@shared/utils";
 import { MainErrorHandler } from "@libs/unhandled/main";
 import { cleanupIpcRouter, initializeIpcRouter } from "@main/ipc-router";
@@ -191,10 +192,9 @@ export class AppService {
       const mainWindow = this.windowManager.getMainWindow();
 
       // 向WebContentsView发送blur事件
-      activeView.view.webContents.send('window-all-blur', {
+      sendWindowAllBlur(activeView.view.webContents, {
         timestamp: Date.now(),
-        windowId: mainWindow?.id,
-        viewId: activeView.id
+        windowIds: mainWindow ? [mainWindow.id] : []
       });
 
       log.debug(`已向视图 ${activeView.id} 发送blur事件`);

@@ -1,18 +1,18 @@
 <template>
   <div class="w-full h-full p-2 bg-transparent" @keydown="handleKeyNavigation" @click="handleContainerClick">
-    <Test />
+    <!-- <Test /> -->
     <!-- 主应用容器 - 透明背景，恢复阴影和圆角效果 -->
-    <div class="w-full bg-transparent relative overflow-hidden h-full rounded-xl shadow-2xl"
+    <div class="w-full bg-transparent relative overflow-hidden h-full rounded-xl shadow-2xl transition-all duration-200"
+      :class="{ 'ring-2 ring-indigo-400 ring-opacity-50': isDragOver }"
       style="box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15), 0 2px 6px rgba(0, 0, 0, 0.1);">
 
       <!-- 搜索头部区域 - 固定区域，支持自定义窗口拖拽 -->
       <DraggableArea class="w-full flex items-center justify-center"
-        :style="{ height: searchHeaderState.headerHeight + 'px' }" @click="searchHeaderActions.handleClick"
-        @dragover="searchHeaderActions.handleDragOver" @dragenter="searchHeaderActions.handleDragEnter"
-        @dragleave="searchHeaderActions.handleDragLeave" @drop="searchHeaderActions.handleDrop">
+        :style="{ height: searchHeaderState.headerHeight + 'px' }" @click="searchHeaderActions.handleClick">
 
         <div class="w-full h-full relative flex items-center bg-white rounded-t-xl transition-all duration-200"
-          :class="{ 'bg-indigo-50': searchHeaderState.isDragOver }">
+          :class="{ 'bg-indigo-50': isDragOver }" @dragover="handleDragOver" @dragenter="handleDragEnter"
+          @dragleave="handleDragLeave" @drop="originalHandleDrop">
 
           <!-- 插件信息显示区域 -->
           <div v-if="searchHeaderComputed.shouldShowPluginInfo.value" class="h-full flex items-center p-2">
@@ -73,11 +73,10 @@
           <div v-else
             class="h-full aspect-square flex items-center justify-center text-gray-400 transition-colors duration-200"
             :class="{
-              'text-indigo-500': searchHeaderState.isDragOver && !searchHeaderState.currentPluginItem,
+              'text-indigo-500': isDragOver && !searchHeaderState.currentPluginItem,
               'text-gray-300': searchHeaderState.currentPluginItem
             }">
-            <IconMdiFileUpload v-if="searchHeaderState.isDragOver && !searchHeaderState.currentPluginItem"
-              class="w-5 h-5" />
+            <IconMdiFileUpload v-if="isDragOver && !searchHeaderState.currentPluginItem" class="w-5 h-5" />
             <IconMdiMagnify v-else class="w-5 h-5" />
           </div>
 
@@ -103,8 +102,7 @@
 
       <!-- 内容呈现区域 - 动态区域 -->
       <ContentArea ref="contentAreaRef" :content-area-visible="contentAreaVisible" :search-categories="searchCategories"
-        :selected-index="selectedIndex" :flat-items="flatItems"
-        :show-plugin-window="isPluginWindowOpen && searchText.trim() === ''"
+        :selected-index="selectedIndex" :flat-items="flatItems" :show-plugin-window="isWindowInterface"
         :show-settings-background="isSettingsInterface" @app-click="customExecuteItem"
         @category-toggle="handleCategoryToggle" @category-drag-end="handleCategoryDragEnd" @app-delete="handleAppDelete"
         @app-pin="handleAppPin" @window-resize="handleWindowResize" />
@@ -164,7 +162,7 @@ import { DEFAULT_WINDOW_LAYOUT } from "@shared/config/window-layout.config"
 
 //测试打包
 import type { PluginApi } from "@shared/typings/global";
-import Test from "./Test.vue";
+import { LifecycleType } from "@/typings/window-types";
 // ==================== 新窗口管理系统初始化 ====================
 /**
  * 搜索头部管理器 - 使用新的窗口管理系统
@@ -241,11 +239,12 @@ const show = () => {
 const {
   searchText: uiSearchText,
   isSettingsInterface,
+  isWindowInterface,
   isPluginWindowOpen,
   contentAreaVisible,
   currentPluginItem,
-  openPluginWindow,
-  closePluginWindow,
+  openPluginWindow: openPluginWindowUI,
+  closePluginWindow: closePluginWindowUI,
   updateSearchResults,
   currentInterface: uiCurrentInterface,
   toggleInput,
@@ -308,8 +307,12 @@ const searchText = computed({
  * 现在通过搜索头部管理器处理
  */
 const {
+  isDragOver,
+  handleDragOver,
+  handleDragEnter,
+  handleDragLeave,
   handleDrop: originalHandleDrop,
-} = useDragDrop();
+} = useDragDrop(addFiles);
 
 // ==================== 全局快捷键初始化 ====================
 /**
@@ -393,15 +396,6 @@ const handleWindowResize = async (height: number) => {
 };
 
 /**
- * 关闭插件窗口
- * @param _action 关闭动作类型：'hide' 隐藏 | 'close' 关闭（在新架构中不再使用）
- */
-const handleClosePluginWindow = (_action?: 'hide' | 'close') => {
-  closePluginWindow()
-  // 在新架构中，插件窗口的生命周期由BaseWindow统一管理，不需要单独处理
-};
-
-/**
  * 恢复搜索栏为默认搜索状态
  * @param clearPlugin 是否需要额外清空当前插件状态
  */
@@ -432,7 +426,7 @@ const recoverSearchState = (clearPlugin = false) => {
  */
 const handleResetToDefault = () => {
   // 如果有插件窗口打开，先关闭它们
-  if (isPluginWindowOpen.value) handleClosePluginWindow("close")
+  if (isPluginWindowOpen.value) closePluginWindow()
   resetToDefault()
 };
 
@@ -539,7 +533,7 @@ const handleClearFilesOrPlugin = async () => {
   if (searchHeaderState.currentPluginItem) {
     // 清除插件
     searchHeaderActions.clearCurrentPlugin();
-    await handleClosePluginWindow();
+    await closePluginWindow();
   } else {
     // 清除文件
     searchHeaderActions.clearAttachedFiles();
@@ -547,7 +541,56 @@ const handleClearFilesOrPlugin = async () => {
   }
 };
 
+// ==================== 插件窗口管理 ====================
+const openPluginWindow = async (pluginItem: PluginItem, options: {
+  url: string
+  preload: string
+}) => {
+  try {
+    openPluginWindowUI(pluginItem)
 
+    // 确保窗口高度调整到最大高度
+    contentAreaRef.value?.handleResize();
+    await nextTick();
+
+    // // 获取当前视图信息
+    // const currentViewInfo = await naimo.router.windowGetCurrentViewInfo()
+    // if (!currentViewInfo) {
+    //   console.warn('⚠️ 无法获取当前视图信息，跳过插件窗口创建')
+    //   return
+    // }
+
+    // 直接创建插件视图
+    const result = await naimo.router.windowCreatePluginView({
+      path: pluginItem.path,
+      title: pluginItem.name || '插件',
+      url: options.url || '',
+      lifecycleType: pluginItem.lifecycleType || LifecycleType.FOREGROUND,
+      preload: options.preload || ''
+    })
+
+    if (result.success) {
+      console.log(`✅ 插件视图创建成功: ${result.viewId} (${pluginItem.name})`)
+    } else {
+      console.error('插件窗口创建失败:', result.error);
+    }
+  } catch (error) {
+    console.error('打开插件窗口失败:', error);
+  }
+}
+
+const closePluginWindow = async () => {
+  try {
+    // 关闭插件view
+    await naimo.router.windowClosePluginView()
+    // 关闭插件窗口UI 切换搜索界面
+    closePluginWindowUI();
+    // 聚焦到搜索输入框
+    handleSearchFocus();
+  } catch (error) {
+    console.error('关闭插件窗口失败:', error);
+  }
+}
 // ==================== 设置页面管理 ====================
 /**
  * 打开设置页面
@@ -617,7 +660,7 @@ const handleWindowFocus = () => {
  */
 const handleWindowBlur = (event?: any) => {
   console.log("收到窗口blur事件:", event?.detail || "直接调用");
-  hide()
+  // hide()
 };
 
 /**
@@ -743,11 +786,19 @@ watch(
 );
 
 const generateApi = async (pluginItem: PluginItem, hotkeyEmit = false): Promise<PluginApi> => {
+  // 创建适配器函数，将双参数函数转换为单参数函数
+  const openPluginWindowAdapter = async (item: PluginItem) => {
+    // 使用默认的选项调用原函数 
+    // 由于删除了executeParams，使用空字符串作为默认URL
+    await openPluginWindow(item, {
+      url: '',
+      preload: ''
+    })
+  }
+
   return pluginApiGenerator.generateApi(pluginItem, {
     toggleInput,
-    openPluginWindow: async (item: PluginItem) => {
-      await openPluginWindow(item)
-    },
+    openPluginWindow: openPluginWindowAdapter,
     pluginStore: {
       installZip: pluginStore.installZip,
       install: pluginStore.install,
@@ -775,12 +826,10 @@ const handlePluginExecuted = async (event: { pluginId: string, path: string, hot
   } else {
     console.log('🔍 收到插件执行完成事件，插件项目信息:', {
       name: pluginItem.name,
-      executeParams: pluginItem.executeParams
+      lifecycleType: pluginItem.lifecycleType
     });
-    // 检查是否为打开新窗口类型的插件
-    if (pluginItem.executeType === 3 && pluginItem.executeParams?.url) {
-      await genApi.openWebPageWindow(pluginItem.executeParams.url)
-    }
+    // 由于删除了executeType和executeParams，这里暂时不处理窗口打开
+    // 如果需要，可以根据插件的其他属性来判断是否需要打开窗口
   }
 
   await updateStoreCategory()
@@ -800,7 +849,7 @@ const handlePluginWindowClosed = async (event: { windowId: number, title: string
   // 如果当前是插件窗口模式，关闭插件窗口状态
   if (isPluginWindowOpen.value) {
     console.log("关闭插件窗口状态");
-    await handleClosePluginWindow();
+    await closePluginWindow()
     recoverSearchState(true);
   }
 };
@@ -821,7 +870,7 @@ const handleCloseWindowRequested = async () => {
   // 如果当前是插件窗口，关闭插件窗口
   if (isPluginWindowOpen.value) {
     console.log("关闭插件窗口");
-    handleClosePluginWindow();
+    closePluginWindow()
     attachedFiles.value = []
     currentPluginItem.value = null
     return;
@@ -927,30 +976,32 @@ onMounted(async () => {
   useEventListener(window, "window-all-blur", handleWindowBlur);
   useEventListener(document, "visibilitychange", handleVisibilityChange);
 
-  // 监听主进程发送的插件窗口关闭消息
-  useEventListener(window, "plugin-window-closed", (event: any) => {
-    console.log("收到主进程插件窗口关闭消息:", event.detail);
-    handlePluginWindowClosed(event.detail);
+  // 使用类型安全的事件监听（支持两种写法）
+  naimo.event.onPluginWindowClosed((event, data) => {
+    console.log("收到主进程插件窗口关闭消息:", data);
+    handlePluginWindowClosed(data);
   });
 
-  useEventListener(window, "window-main-hide", () => {
-    hide()
+  naimo.event.onWindowMainHide((event, data) => {
+    console.log("收到窗口隐藏事件:", data);
+    hide();
   });
 
-  useEventListener(window, "window-main-show", () => {
-    show()
+  naimo.event.onWindowMainShow((event, data) => {
+    console.log("收到窗口显示事件:", data);
+    show();
   });
 
   // 分离视图或分离窗口关闭时，恢复到搜索状态
-  useEventListener(window, "view:detached", (event: any) => {
-    console.log("收到视图分离事件，恢复搜索状态:", event.detail)
-    recoverSearchState()
-  })
+  naimo.event.onViewDetached((event, data) => {
+    console.log("收到视图分离事件，恢复搜索状态:", data);
+    recoverSearchState();
+  });
 
   // 监听视图恢复请求事件（来自主进程的WebContentsView关闭通知）
-  useEventListener(window, "view-restore-requested", (event: any) => {
-    console.log("收到视图恢复请求:", event.detail);
-    const { reason } = event.detail;
+  naimo.event.onViewRestoreRequested((event, data) => {
+    console.log("收到视图恢复请求:", data);
+    const { reason } = data;
 
     if (reason === 'settings-closed') {
       // 设置视图关闭，恢复到搜索状态
@@ -1013,14 +1064,6 @@ onMounted(async () => {
     openSettings();
   });
 
-  searchHeaderEvents.on('drop', async (event: DragEvent) => {
-    // 处理文件拖拽
-    await originalHandleDrop(event);
-    const files = event.dataTransfer?.files;
-    if (files && files.length > 0) {
-      await addFiles(files);
-    }
-  });
 
   // 9. 聚焦到搜索框
   handleSearchFocus();

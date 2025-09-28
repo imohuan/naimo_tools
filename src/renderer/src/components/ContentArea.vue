@@ -3,8 +3,8 @@
     v-show="contentAreaVisible">
     <!-- 统一的内容容器 - 所有内容都在这个容器内 -->
     <div ref="contentScrollContainerRef" class="w-full rounded-b-xl"
-      :class="showSettingsBackground ? 'bg-gray-50/30 backdrop-blur-sm' : 'overflow-y-auto'"
-      :style="showSettingsBackground ? { height: `${DEFAULT_WINDOW_LAYOUT.contentMaxHeight}px` } : { maxHeight: `${DEFAULT_WINDOW_LAYOUT.contentMaxHeight}px` }">
+      :class="showSettingsBackground || showPluginWindow ? 'bg-gray-50/30 backdrop-blur-sm' : 'overflow-y-auto'"
+      :style="showSettingsBackground || showPluginWindow ? { height: `${DEFAULT_WINDOW_LAYOUT.contentMaxHeight}px` } : { maxHeight: `${DEFAULT_WINDOW_LAYOUT.contentMaxHeight}px` }">
 
       <!-- 设置背景模式 - 当显示设置界面时作为背景容器 -->
       <div v-if="showSettingsBackground" class="w-full h-full bg-transparent rounded-lg"
@@ -13,7 +13,7 @@
       </div>
 
       <!-- 插件窗口界面 -->
-      <div v-else-if="showPluginWindow" class="w-full min-h-64 flex items-center justify-center text-gray-500 py-10">
+      <div v-else-if="showPluginWindow" class="w-full h-full flex items-center justify-center text-gray-500 py-10">
         <div class="text-center flex flex-col items-center justify-center w-full h-full py-10">
           <svg class="animate-spin h-12 w-12 text-blue-500 mx-auto mb-4" xmlns="http://www.w3.org/2000/svg" fill="none"
             viewBox="0 0 24 24">
