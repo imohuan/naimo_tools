@@ -4,7 +4,7 @@ import { fileURLToPath } from "url";
 import { existsSync, mkdirSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import { isDevelopment } from "@shared/utils";
-import { getRendererUrl } from "@main/window/windowConfig";
+import { getRendererUrl } from "@main/utils/windowConfig";
 import { NewWindowManager } from "@main/window/NewWindowManager";
 
 

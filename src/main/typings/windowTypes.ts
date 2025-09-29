@@ -183,7 +183,13 @@ export interface DetachedWindowMetadata {
   originalConfig: WebContentsViewConfig
 }
 
-/** 窗口管理器事件数据 */
+/** 
+ * 主进程内部事件数据
+ * 用于窗口管理器内部 EventEmitter 通信
+ * 注意：这些事件与 IPC 事件（EventsConfig）是不同的系统
+ * - 内部事件：主进程内部组件通信，使用 colon 命名（view:detached）
+ * - IPC 事件：主进程与渲染进程通信，使用 kebab-case 命名（view-detached）
+ */
 export interface WindowManagerEventData {
   /** 窗口创建事件 */
   'window:created': {
@@ -211,19 +217,6 @@ export interface WindowManagerEventData {
     parentWindowId: number
     fromViewId?: string
     toViewId: string
-  }
-  /** 视图分离事件 */
-  'view:detached': {
-    viewId: string
-    sourceWindowId: number
-    detachedWindowId: number
-  }
-  /** 视图分离成功事件 */
-  'view:detach-success': {
-    viewId: string
-    parentWindowId: number
-    detachedWindowId?: number
-    timestamp: number
   }
   /** 视图分离失败事件 */
   'view:detach-failed': {

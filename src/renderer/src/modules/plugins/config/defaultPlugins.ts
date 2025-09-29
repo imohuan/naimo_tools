@@ -9,7 +9,7 @@ const pluginModules = import.meta.glob('../base-plugins/*.ts', { eager: true });
  * 获取默认插件列表
  * 动态从 base-plugins 目录加载所有插件
  */
-export function getDeafultPlugins(): PluginConfig[] {
+export function getDefaultPlugins(): PluginConfig[] {
   const plugins: PluginConfig[] = [];
 
   // 遍历所有导入的模块
@@ -39,7 +39,7 @@ export function getDeafultPlugins(): PluginConfig[] {
 /**
  * 根据ID获取默认插件
  */
-export function getDeafultPluginById(pluginId: string): PluginConfig | null {
-  const plugins = getDeafultPlugins();
+export function getDefaultPluginById(pluginId: string): PluginConfig | null {
+  const plugins = getDefaultPlugins();
   return plugins.find(plugin => plugin.id === pluginId) || null;
 }

@@ -1,5 +1,5 @@
 /**
- * 主进程事件管理器
+ * 事件管理器
  * 提供统一的事件发布/订阅机制，替代各个类的独立 EventEmitter
  */
 
@@ -7,10 +7,10 @@ import { EventEmitter } from 'events'
 import log from 'electron-log'
 
 /**
- * 主进程事件类型定义
- * 集中定义所有主进程内部事件
+ * 事件类型定义
+ * 集中定义所有内部事件
  */
-export interface MainProcessEvents {
+export interface EmitEvents {
   // 窗口相关事件
   'window:main-created': { windowId: number; timestamp: number }
   'window:main-closed': { windowId: number; timestamp: number }
@@ -24,13 +24,13 @@ export interface MainProcessEvents {
   'view:activated': { viewId: string; windowId: number; timestamp: number }
   'view:detached': { viewId: string; windowId: number; detachedWindowId: number; timestamp: number }
   'view:reattached': { viewId: string; fromWindowId: number; toWindowId: number; timestamp: number }
-  'view:detach-success': { viewId: string; sourceWindowId: number; detachedWindowId: number; timestamp: number }
   'view:detach-failed': { viewId: string; windowId: number; error: string; timestamp: number }
   'view:detach-error': { viewId: string; windowId: number; error: Error; timestamp: number }
   'view:closed': { viewId: string; windowId: number; reason: string; timestamp: number }
   'view:parent-window-updated': { viewId: string; oldWindowId: number; newWindowId: number; timestamp: number }
   'view:reattach-requested': { viewId: string; targetWindowId: number; timestamp: number }
   'view:detached-window-closed': { viewId: string; detachedWindowId: number; timestamp: number }
+  'view:restore-requested': { viewId: string; windowId: number; reason: 'settings-closed' | 'plugin-closed' | 'user-requested' | 'system'; timestamp: number }
 
   // 分离窗口事件
   'detached-window:focused': { windowId: number; timestamp: number }
@@ -57,13 +57,13 @@ export interface MainProcessEvents {
 /**
  * 事件处理器类型
  */
-export type EventHandler<T extends keyof MainProcessEvents> = (data: MainProcessEvents[T]) => void
+export type EventHandler<T extends keyof EmitEvents> = (data: EmitEvents[T]) => void
 
 /**
- * 主进程事件管理器单例类
+ * 事件管理器单例类
  */
-export class MainProcessEventManager {
-  private static instance: MainProcessEventManager
+export class EmitEvent {
+  private static instance: EmitEvent
   private emitter: EventEmitter
   private eventStats: Map<string, { count: number; lastEmitted: number }> = new Map()
 
@@ -76,11 +76,11 @@ export class MainProcessEventManager {
   /**
    * 获取单例实例
    */
-  public static getInstance(): MainProcessEventManager {
-    if (!MainProcessEventManager.instance) {
-      MainProcessEventManager.instance = new MainProcessEventManager()
+  public static getInstance(): EmitEvent {
+    if (!EmitEvent.instance) {
+      EmitEvent.instance = new EmitEvent()
     }
-    return MainProcessEventManager.instance
+    return EmitEvent.instance
   }
 
   /**
@@ -88,9 +88,9 @@ export class MainProcessEventManager {
    * @param eventName 事件名
    * @param data 事件数据
    */
-  public emit<T extends keyof MainProcessEvents>(
+  public emit<T extends keyof EmitEvents>(
     eventName: T,
-    data: MainProcessEvents[T]
+    data: EmitEvents[T]
   ): void {
     try {
       // 更新统计信息
@@ -99,7 +99,7 @@ export class MainProcessEventManager {
       // 发布事件
       this.emitter.emit(eventName as string, data)
 
-      log.debug(`主进程事件已发布: ${eventName as string}`, { data, timestamp: Date.now() })
+      log.debug(`事件已发布: ${eventName as string}`, { data, timestamp: Date.now() })
     } catch (error) {
       log.error(`发布事件失败: ${eventName as string}`, error)
     }
@@ -110,7 +110,7 @@ export class MainProcessEventManager {
    * @param eventName 事件名
    * @param handler 事件处理器
    */
-  public on<T extends keyof MainProcessEvents>(
+  public on<T extends keyof EmitEvents>(
     eventName: T,
     handler: EventHandler<T>
   ): void {
@@ -123,7 +123,7 @@ export class MainProcessEventManager {
    * @param eventName 事件名
    * @param handler 事件处理器
    */
-  public once<T extends keyof MainProcessEvents>(
+  public once<T extends keyof EmitEvents>(
     eventName: T,
     handler: EventHandler<T>
   ): void {
@@ -136,7 +136,7 @@ export class MainProcessEventManager {
    * @param eventName 事件名
    * @param handler 事件处理器
    */
-  public off<T extends keyof MainProcessEvents>(
+  public off<T extends keyof EmitEvents>(
     eventName: T,
     handler: EventHandler<T>
   ): void {
@@ -148,7 +148,7 @@ export class MainProcessEventManager {
    * 移除所有监听器
    * @param eventName 事件名（可选）
    */
-  public removeAllListeners(eventName?: keyof MainProcessEvents): void {
+  public removeAllListeners(eventName?: keyof EmitEvents): void {
     if (eventName) {
       this.emitter.removeAllListeners(eventName as string)
       log.debug(`已移除所有监听器: ${eventName as string}`)
@@ -162,7 +162,7 @@ export class MainProcessEventManager {
    * 获取事件监听器数量
    * @param eventName 事件名
    */
-  public listenerCount(eventName: keyof MainProcessEvents): number {
+  public listenerCount(eventName: keyof EmitEvents): number {
     return this.emitter.listenerCount(eventName as string)
   }
 
@@ -218,16 +218,21 @@ export class MainProcessEventManager {
   public destroy(): void {
     this.emitter.removeAllListeners()
     this.eventStats.clear()
-    log.debug('主进程事件管理器已销毁')
+    log.debug('事件管理器已销毁')
   }
 }
 
 /**
  * 导出单例实例
  */
-export const mainProcessEventManager = MainProcessEventManager.getInstance()
+export const emitEvent = EmitEvent.getInstance()
 
 /**
  * 便捷方法导出
  */
-export const { emit, on, once, off, removeAllListeners } = mainProcessEventManager
+export const { emit, on, once, off, removeAllListeners } = emitEvent
+
+/**
+ * 为了保持向后兼容，保留原有的导出名称
+ */
+export const mainProcessEventManager = emitEvent

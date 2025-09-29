@@ -1,6 +1,10 @@
 /**
- * 事件配置文件
- * 定义所有 IPC 事件的类型和数据结构
+ * IPC 事件配置文件
+ * 定义主进程与渲染进程之间的 IPC 通信事件类型和数据结构
+ * 
+ * 注意：此文件与 WindowManagerEventData 的区别：
+ * - EventsConfig：用于 IPC 通信，主进程 ↔ 渲染进程，使用 kebab-case 命名
+ * - WindowManagerEventData：用于主进程内部通信，使用 colon 命名
  * 
  * 此文件用于代码生成，不要手动修改生成的文件
  */
@@ -10,7 +14,8 @@ export interface EventsConfig {
   // 视图相关事件
   'view-detached': {
     detachedViewId: string
-    windowId: number
+    sourceWindowId: number
+    detachedWindowId: number
     timestamp: number
     remainingViews: string[]
   }
@@ -60,12 +65,6 @@ export interface EventsConfig {
     windowId: number
   }
 
-  'window-detach': {
-    sourceViewId: string
-    sourceWindowId: number
-    detachedWindowId: number
-    timestamp: number
-  }
 
   // 全局快捷键事件
   'global-hotkey-trigger': {
@@ -83,6 +82,12 @@ export interface EventsConfig {
       windowTitle?: string
       [key: string]: any
     }
+    timestamp: number
+  }
+
+  'detached-window-closed': {
+    viewId: string
+    detachedWindowId: number
     timestamp: number
   }
 

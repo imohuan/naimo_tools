@@ -8,7 +8,8 @@ import { BaseWindow, } from 'electron'
 import { resolve } from 'path'
 import log from 'electron-log'
 import { sendPluginViewOpened, sendPluginViewClosed } from '@main/ipc-router/mainEvents'
-import { mainProcessEventManager } from './MainProcessEventManager'
+import { emitEvent } from '@main/core/ProcessEvent'
+import { processEventCoordinator } from '@main/core/ProcessEventCoordinator'
 import { DEFAULT_WINDOW_LAYOUT } from '@shared/constants'
 import { calculateSettingsViewBounds } from '@shared/config/windowLayoutConfig'
 import type { AppConfig } from '@shared/typings/appTypes'
@@ -150,7 +151,7 @@ export class NewWindowManager {
       await this.initializeMainWindow()
 
       this.isInitialized = true
-      mainProcessEventManager.emit('manager:initialized', { timestamp: Date.now() })
+      emitEvent.emit('manager:initialized', { timestamp: Date.now() })
 
       log.info('NewWindowManager 初始化完成')
     } catch (error) {
@@ -204,7 +205,7 @@ export class NewWindowManager {
       await this.createMainView()
 
       // 触发主窗口创建事件
-      mainProcessEventManager.emit('window:main-created', {
+      emitEvent.emit('window:main-created', {
         windowId: this.mainWindow.id,
         timestamp: Date.now()
       })
@@ -225,6 +226,11 @@ export class NewWindowManager {
     }
   }
 
+
+  public getMainViewId(): string {
+    return 'main-view'
+  }
+
   /**
    * 创建主视图
    */
@@ -236,7 +242,7 @@ export class NewWindowManager {
 
       log.info('创建主视图')
 
-      const viewId = 'main-view'
+      const viewId = this.getMainViewId()
 
       // 检查是否已经存在主视图
       const existingView = this.viewManager.getViewInfo(viewId)
@@ -296,6 +302,14 @@ export class NewWindowManager {
       const switchResult = this.viewManager.switchToView(this.mainWindow.id, viewId)
       if (switchResult.success) {
         await this.handleViewActivated(viewId)
+      }
+
+      // 设置主视图的 webContents 和管理器引用
+      const mainViewInfo = this.viewManager.getViewInfo(viewId)
+      if (mainViewInfo?.view.webContents) {
+        processEventCoordinator.setMainWebContents(mainViewInfo.view.webContents)
+        processEventCoordinator.setNewWindowManager(this)
+        log.info('主视图已设置为事件协调器目标')
       }
 
       log.info('主视图创建完成')
@@ -840,6 +854,13 @@ export class NewWindowManager {
   }
 
   /**
+   * 获取视图管理器
+   */
+  public getViewManager(): ViewManager {
+    return this.viewManager
+  }
+
+  /**
    * 获取主窗口
    */
   public getMainWindow(): BaseWindow | null {
@@ -983,7 +1004,7 @@ export class NewWindowManager {
 
       const report = await this.lifecycleManager.cleanupBackgroundViews()
 
-      mainProcessEventManager.emit('cleanup:completed', {
+      emitEvent.emit('cleanup:completed', {
         report,
         timestamp: Date.now()
       })
@@ -1024,18 +1045,18 @@ export class NewWindowManager {
    */
   private setupEventHandlers(): void {
     // 设置分离管理器事件
-    mainProcessEventManager.on('view:reattach-requested', async (data) => {
+    emitEvent.on('view:reattach-requested', async (data) => {
       // 处理重新附加请求
       await this.handleReattachRequest(data)
     })
 
     // 设置生命周期管理器事件
-    mainProcessEventManager.on('lifecycle:cleanup-completed', (data) => {
-      mainProcessEventManager.emit('cleanup:completed', { report: data.report, timestamp: Date.now() })
+    emitEvent.on('lifecycle:cleanup-completed', (data) => {
+      emitEvent.emit('cleanup:completed', { report: data.report, timestamp: Date.now() })
     })
 
     // 设置视图管理器事件
-    mainProcessEventManager.on('view:switched', (data) => {
+    emitEvent.on('view:switched', (data) => {
       this.handleViewSwitched(data)
     })
   }
@@ -1061,12 +1082,12 @@ export class NewWindowManager {
 
     // 窗口失焦事件
     this.mainWindow.on('blur', () => {
-      mainProcessEventManager.emit('window:main-blurred', { timestamp: Date.now() })
+      emitEvent.emit('window:main-blurred', { windowId: this.mainWindow!.id, timestamp: Date.now() })
     })
 
     // 窗口聚焦事件
     this.mainWindow.on('focus', () => {
-      mainProcessEventManager.emit('window:main-focused', { timestamp: Date.now() })
+      emitEvent.emit('window:main-focused', { windowId: this.mainWindow!.id, timestamp: Date.now() })
     })
   }
 
@@ -1173,7 +1194,7 @@ export class NewWindowManager {
     // 更新生命周期管理器的访问时间
     this.lifecycleManager.updateViewAccess(viewId)
 
-    mainProcessEventManager.emit('view:activated', {
+    emitEvent.emit('view:activated', {
       viewId,
       windowId: this.mainWindow?.id || 0,
       timestamp: Date.now()
@@ -1200,7 +1221,7 @@ export class NewWindowManager {
       log.info(`处理重新附加请求: ${data.sourceViewId}`)
 
       // 触发重新附加完成事件
-      mainProcessEventManager.emit('view:reattached', {
+      emitEvent.emit('view:reattached', {
         viewId: data.viewId,
         fromWindowId: data.detachedWindowId || 0,
         toWindowId: data.targetWindowId,
@@ -1217,13 +1238,14 @@ export class NewWindowManager {
   private handleMainWindowClosed(): void {
     log.info('主窗口已关闭')
 
-    this.mainWindow = null
-    this.activeViewId = null
 
-    mainProcessEventManager.emit('window:main-closed', {
-      windowId: this.mainWindow?.id || 0,
+    emitEvent.emit('window:main-closed', {
+      windowId: this.mainWindow!.id,
       timestamp: Date.now()
     })
+
+    this.mainWindow = null
+    this.activeViewId = null
 
     // 清理所有资源
     this.cleanup()
@@ -1256,7 +1278,7 @@ export class NewWindowManager {
     }
 
     // 触发性能监控事件
-    mainProcessEventManager.emit('performance:metrics', {
+    emitEvent.emit('performance:metrics', {
       windowId: this.mainWindow?.id || 0,
       metrics,
       timestamp: Date.now()

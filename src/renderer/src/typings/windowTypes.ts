@@ -161,8 +161,6 @@ export interface ViewManagerEvents {
   'view:removed': { viewId: string }
   /** 视图切换 */
   'view:switched': { fromViewId?: string; toViewId: string }
-  /** 视图分离 */
-  'view:detached': { viewId: string; windowId: number }
   /** 内存回收 */
   'memory:recycled': { recycledViews: string[] }
 }

@@ -4,7 +4,7 @@
  */
 
 import log from 'electron-log'
-import { mainProcessEventManager } from './MainProcessEventManager'
+import { emitEvent } from '@main/core/ProcessEvent'
 import type {
   WebContentsViewInfo,
   ViewOperationResult,
@@ -151,7 +151,7 @@ export class LifecycleManager {
     this.updatePerformanceMetrics()
 
     // 触发事件
-    mainProcessEventManager.emit('lifecycle:strategy-set', {
+    emitEvent.emit('lifecycle:strategy-set', {
       windowId: 0, // TODO: 需要从 viewInfo 中获取 windowId
       strategy: strategy.type,
       timestamp: Date.now()
@@ -164,11 +164,12 @@ export class LifecycleManager {
    * @returns 生命周期策略
    */
   public inferLifecycleFromPlugin(pluginItem: PluginItem): LifecycleStrategy {
-    // 根据插件的 closeAction 属性确定生命周期策略
-    const isBackgroundMode = pluginItem.closeAction === 'hide'
+    // 根据插件的 lifecycleType 属性确定生命周期策略
+    const lifecycleType = pluginItem.lifecycleType || LifecycleType.FOREGROUND
+    const isBackgroundMode = lifecycleType === LifecycleType.BACKGROUND
 
     return {
-      type: isBackgroundMode ? LifecycleType.BACKGROUND : LifecycleType.FOREGROUND,
+      type: lifecycleType,
       persistOnClose: isBackgroundMode,
       maxIdleTime: isBackgroundMode ? this.config.maxIdleTime : undefined,
       memoryThreshold: this.config.defaultLifecycle.memoryThreshold
@@ -235,7 +236,7 @@ export class LifecycleManager {
       lifecycleState.pausedAt = Date.now()
 
       // 触发暂停事件
-      mainProcessEventManager.emit('lifecycle:view-paused', {
+      emitEvent.emit('lifecycle:view-paused', {
         viewId,
         windowId: 0, // TODO: 需要从 viewInfo 中获取 windowId
         timestamp: lifecycleState.pausedAt || Date.now()
@@ -284,7 +285,7 @@ export class LifecycleManager {
       delete lifecycleState.pausedAt
 
       // 触发恢复事件
-      mainProcessEventManager.emit('lifecycle:view-resumed', {
+      emitEvent.emit('lifecycle:view-resumed', {
         viewId,
         windowId: 0, // TODO: 需要从 viewInfo 中获取 windowId
         timestamp: lifecycleState.lastAccessTime
@@ -328,7 +329,7 @@ export class LifecycleManager {
       this.viewStates.delete(viewId)
 
       // 触发销毁事件
-      mainProcessEventManager.emit('lifecycle:view-destroyed', {
+      emitEvent.emit('lifecycle:view-destroyed', {
         viewId,
         windowId: 0, // TODO: 需要从 viewInfo 中获取 windowId
         timestamp: Date.now()
@@ -433,7 +434,7 @@ export class LifecycleManager {
       }
 
       // 触发清理完成事件
-      mainProcessEventManager.emit('lifecycle:cleanup-completed', {
+      emitEvent.emit('lifecycle:cleanup-completed', {
         report,
         timestamp: Date.now()
       })
@@ -465,37 +466,76 @@ export class LifecycleManager {
     const viewsToCleanup: string[] = []
 
     // 按优先级排序需要清理的视图
-    const sortedViews = Array.from(this.viewStates.entries())
+    const pausedViews = Array.from(this.viewStates.entries())
       .filter(([_, state]) => state.isPaused) // 只清理暂停的视图
-      .sort(([_, a], [__, b]) => {
-        // 优先清理内存使用多且空闲时间长的视图
-        const aScore = a.memoryUsage + (now - a.lastAccessTime) / 1000
-        const bScore = b.memoryUsage + (now - b.lastAccessTime) / 1000
-        return bScore - aScore
-      })
 
-    // 检查内存阈值
-    const totalMemory = this.getTotalMemoryUsage()
-    if (totalMemory > this.config.memoryRecycleThreshold) {
-      log.info(`内存使用超过阈值 (${totalMemory}MB > ${this.config.memoryRecycleThreshold}MB)，开始清理`)
-
-      // 清理一半的暂停视图
-      const cleanupCount = Math.ceil(sortedViews.length / 2)
-      viewsToCleanup.push(...sortedViews.slice(0, cleanupCount).map(([viewId]) => viewId))
+    if (pausedViews.length === 0) {
+      log.debug('没有暂停的视图需要清理')
+      return viewsToCleanup
     }
 
-    // 检查空闲时间
-    for (const [viewId, state] of sortedViews) {
+    // 智能评分算法：综合考虑内存使用、空闲时间和插件重要性
+    const scoredViews = pausedViews.map(([viewId, state]) => {
       const idleTime = now - state.lastAccessTime
       const maxIdleTime = state.strategy.maxIdleTime || this.config.maxIdleTime
 
-      if (idleTime > maxIdleTime) {
-        log.info(`视图超过最大空闲时间: ${viewId} (${Math.round(idleTime / 1000)}s > ${Math.round(maxIdleTime / 1000)}s)`)
+      // 基础分数：内存使用量 + 空闲时间权重
+      let score = state.memoryUsage * 0.6 + (idleTime / 1000) * 0.4
 
-        if (!viewsToCleanup.includes(viewId)) {
-          viewsToCleanup.push(viewId)
-        }
+      // 如果超过最大空闲时间，大幅提升清理优先级
+      if (idleTime > maxIdleTime) {
+        score += 1000
       }
+
+      // 如果是后台模式的插件，降低清理优先级（保护重要后台任务）
+      if (state.strategy.type === LifecycleType.BACKGROUND && state.strategy.persistOnClose) {
+        score *= 0.7
+      }
+
+      return { viewId, state, score, idleTime, maxIdleTime }
+    })
+
+    // 按分数降序排列
+    const sortedViews = scoredViews.sort((a, b) => b.score - a.score)
+
+    // 检查内存阈值
+    const totalMemory = this.getTotalMemoryUsage()
+    const memoryPressure = totalMemory / this.config.memoryRecycleThreshold
+
+    if (memoryPressure > 1.0) {
+      log.info(`内存压力: ${(memoryPressure * 100).toFixed(1)}% (${totalMemory}MB > ${this.config.memoryRecycleThreshold}MB)`)
+
+      // 根据内存压力动态决定清理数量
+      let cleanupCount: number
+      if (memoryPressure > 1.5) {
+        // 高内存压力：清理大部分视图
+        cleanupCount = Math.ceil(sortedViews.length * 0.8)
+      } else if (memoryPressure > 1.2) {
+        // 中等内存压力：清理一半视图
+        cleanupCount = Math.ceil(sortedViews.length * 0.5)
+      } else {
+        // 轻微内存压力：清理最高分的几个视图
+        cleanupCount = Math.min(3, Math.ceil(sortedViews.length * 0.3))
+      }
+
+      viewsToCleanup.push(...sortedViews.slice(0, cleanupCount).map(item => item.viewId))
+      log.info(`内存压力清理: 计划清理 ${cleanupCount} 个视图`)
+    }
+
+    // 检查空闲时间超限的视图
+    for (const item of sortedViews) {
+      if (item.idleTime > item.maxIdleTime && !viewsToCleanup.includes(item.viewId)) {
+        viewsToCleanup.push(item.viewId)
+        log.info(`空闲时间清理: ${item.viewId} (${Math.round(item.idleTime / 1000)}s > ${Math.round(item.maxIdleTime / 1000)}s)`)
+      }
+    }
+
+    // 限制单次清理数量，避免一次性清理太多影响用户体验
+    const maxCleanupPerCycle = Math.max(1, Math.ceil(pausedViews.length * 0.6))
+    if (viewsToCleanup.length > maxCleanupPerCycle) {
+      const originalCount = viewsToCleanup.length
+      viewsToCleanup.splice(maxCleanupPerCycle)
+      log.info(`限制单次清理数量: ${originalCount} -> ${viewsToCleanup.length}`)
     }
 
     return viewsToCleanup
@@ -535,12 +575,30 @@ export class LifecycleManager {
    * 更新性能指标
    */
   private updatePerformanceMetrics(): void {
-    this.performanceMetrics = {
-      switchTime: 0, // 由外部调用者更新
-      memoryUsage: this.getTotalMemoryUsage(),
-      activeViewCount: this.getActiveViews().length,
-      cpuUsage: this.performanceMetrics.cpuUsage, // 由外部调用者更新
-      lastUpdated: Date.now()
+    const startTime = performance.now()
+
+    try {
+      const memoryUsage = this.getTotalMemoryUsage()
+      const activeViewCount = this.getActiveViews().length
+      const totalViewCount = this.viewStates.size
+
+      this.performanceMetrics = {
+        switchTime: this.performanceMetrics.switchTime, // 保持之前的值
+        memoryUsage,
+        activeViewCount,
+        cpuUsage: this.performanceMetrics.cpuUsage, // 保持之前的值
+        lastUpdated: Date.now()
+      }
+
+      const updateTime = performance.now() - startTime
+      if (updateTime > 10) { // 如果更新时间超过10ms，记录警告
+        log.warn(`性能指标更新耗时较长: ${updateTime.toFixed(2)}ms, 视图数量: ${totalViewCount}`)
+      }
+
+      // 触发性能指标更新事件 - 移除自定义事件，统一使用 ProcessEvent
+      // 性能指标更新通过其他方式处理
+    } catch (error) {
+      log.error('更新性能指标失败:', error)
     }
   }
 
@@ -604,50 +662,6 @@ export class LifecycleManager {
     return { ...this.config }
   }
 
-  /**
-   * 添加事件监听器
-   * @param event 事件名
-   * @param handler 事件处理器
-   */
-  public on(event: string, handler: Function): void {
-    if (!this.eventHandlers.has(event)) {
-      this.eventHandlers.set(event, [])
-    }
-    this.eventHandlers.get(event)!.push(handler)
-  }
-
-  /**
-   * 移除事件监听器
-   * @param event 事件名
-   * @param handler 事件处理器
-   */
-  public off(event: string, handler: Function): void {
-    const handlers = this.eventHandlers.get(event)
-    if (handlers) {
-      const index = handlers.indexOf(handler)
-      if (index !== -1) {
-        handlers.splice(index, 1)
-      }
-    }
-  }
-
-  /**
-   * 触发事件
-   * @param event 事件名
-   * @param data 事件数据
-   */
-  private emit(event: string, data: any): void {
-    const handlers = this.eventHandlers.get(event)
-    if (handlers) {
-      handlers.forEach(handler => {
-        try {
-          handler(data)
-        } catch (error) {
-          log.error(`事件处理器执行失败: ${event}`, error)
-        }
-      })
-    }
-  }
 
   /**
    * 销毁生命周期管理器
@@ -657,7 +671,6 @@ export class LifecycleManager {
 
     this.stopAutoCleanup()
     this.viewStates.clear()
-    this.eventHandlers.clear()
 
     // 重置单例
     LifecycleManager.instance = null as any

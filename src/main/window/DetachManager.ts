@@ -6,31 +6,24 @@
 
 import { BaseWindow, WebContentsView, screen, globalShortcut } from 'electron'
 import { resolve } from 'path'
-import { EventEmitter } from 'events'
 import log from 'electron-log'
 import { sendDetachedWindowInit } from '@main/ipc-router/mainEvents'
 import type {
-  BaseWindowConfig,
   WebContentsViewInfo,
-  WebContentsViewConfig,
-  DetachedWindowMetadata,
   WindowOperationResult,
   ViewOperationResult,
-  WindowManagerEventData
 } from '../typings/windowTypes'
 import type {
   DetachedWindowConfig,
   Rectangle,
-  ViewType,
   DetachedWindowControlEvent
 } from '@renderer/src/typings/windowTypes'
 import {
   DetachedWindowAction
 } from '@renderer/src/typings/windowTypes'
-import type { PluginItem } from '@renderer/src/typings/pluginTypes'
 import { BaseWindowController } from './BaseWindowController'
 import { getDirname } from '@main/utils'
-import { mainProcessEventManager } from './MainProcessEventManager'
+import { emitEvent } from '@main/core/ProcessEvent'
 
 /**
  * 分离窗口信息
@@ -99,7 +92,7 @@ export interface DetachManagerConfig {
  * DetachManager 类
  * 管理视图分离和独立窗口
  */
-export class DetachManager extends EventEmitter {
+export class DetachManager {
   private static instance: DetachManager
   private config: DetachManagerConfig
   private detachedWindows: Map<number, DetachedWindowInfo> = new Map()
@@ -108,7 +101,6 @@ export class DetachManager extends EventEmitter {
   private viewManager?: any // 避免循环依赖，延迟设置
 
   private constructor(config?: Partial<DetachManagerConfig>) {
-    super()
     this.config = {
       defaultWindowSize: { width: 800, height: 600 },
       windowOffset: { x: 50, y: 50 },
@@ -153,21 +145,39 @@ export class DetachManager extends EventEmitter {
     parentWindowId: number,
     config?: Partial<DetachedWindowConfig>
   ): Promise<DetachResult> {
+    const startTime = performance.now()
+
     try {
       log.info(`开始分离视图: ${sourceView.id} 从窗口 ${parentWindowId}`)
+
+      // 参数验证
+      if (!sourceView?.id || !sourceView.view) {
+        throw new Error('无效的源视图信息')
+      }
+
+      if (parentWindowId <= 0) {
+        throw new Error('无效的父窗口ID')
+      }
 
       // 检查视图是否已经分离
       if (this.sourceViewMapping.has(sourceView.id)) {
         const existingWindowId = this.sourceViewMapping.get(sourceView.id)!
         const existingWindow = this.detachedWindows.get(existingWindowId)
 
-        if (existingWindow) {
-          log.warn(`视图已分离: ${sourceView.id}`)
+        if (existingWindow && !existingWindow.window.isDestroyed()) {
+          log.warn(`视图已分离: ${sourceView.id}，聚焦到现有窗口`)
           existingWindow.window.focus()
           return {
             success: true,
             sourceViewId: sourceView.id,
             detachedWindow: existingWindow
+          }
+        } else {
+          // 清理无效的映射
+          log.warn(`清理无效的分离窗口映射: ${sourceView.id}`)
+          this.sourceViewMapping.delete(sourceView.id)
+          if (existingWindow) {
+            this.detachedWindows.delete(existingWindowId)
           }
         }
       }
@@ -296,10 +306,13 @@ export class DetachManager extends EventEmitter {
         detachedWindowId: detachedWindow.id,
         timestamp: Date.now()
       }
-      mainProcessEventManager.emit('view:detached', detachData)
-      this.emit('view:detached', detachData)
+      emitEvent.emit('view:detached', detachData)
 
-      log.info(`视图分离成功: ${sourceView.id} -> 窗口 ${detachedWindow.id}`)
+      const detachTime = performance.now() - startTime
+      log.info(`视图分离成功: ${sourceView.id} -> 窗口 ${detachedWindow.id}, 耗时: ${detachTime.toFixed(2)}ms`)
+
+      // 触发性能事件 - 移除重复的性能事件，统一使用 ProcessEvent
+      // 性能监控通过其他方式处理
 
       return {
         success: true,
@@ -307,7 +320,12 @@ export class DetachManager extends EventEmitter {
         detachedWindow: detachedWindowInfo
       }
     } catch (error) {
-      log.error(`分离视图失败: ${sourceView.id}`, error)
+      const detachTime = performance.now() - startTime
+      log.error(`分离视图失败: ${sourceView.id}, 耗时: ${detachTime.toFixed(2)}ms`, error)
+
+      // 触发错误事件 - 移除重复的性能事件，统一使用 ProcessEvent
+      // 错误已通过日志记录
+
       return {
         success: false,
         sourceViewId: sourceView.id,
@@ -326,27 +344,50 @@ export class DetachManager extends EventEmitter {
     detachedWindowId: number,
     targetWindowId: number
   ): Promise<ViewOperationResult> {
+    const startTime = performance.now()
+
     try {
-      const detachedWindowInfo = this.detachedWindows.get(detachedWindowId)
-      if (!detachedWindowInfo) {
-        throw new Error('分离窗口不存在')
+      // 参数验证
+      if (detachedWindowId <= 0 || targetWindowId <= 0) {
+        throw new Error('无效的窗口ID参数')
       }
 
-      log.info(`重新附加视图: ${detachedWindowInfo.sourceViewId} 到窗口 ${targetWindowId}`)
+      const detachedWindowInfo = this.detachedWindows.get(detachedWindowId)
+      if (!detachedWindowInfo) {
+        throw new Error(`分离窗口不存在: ${detachedWindowId}`)
+      }
+
+      log.info(`重新附加视图: ${detachedWindowInfo.sourceViewId} 从窗口 ${detachedWindowId} 到窗口 ${targetWindowId}`)
+
+      // 检查分离窗口状态
+      if (detachedWindowInfo.window.isDestroyed()) {
+        log.warn(`分离窗口已销毁: ${detachedWindowId}，清理映射关系`)
+        this.sourceViewMapping.delete(detachedWindowInfo.sourceViewId)
+        this.detachedWindows.delete(detachedWindowId)
+        throw new Error('分离窗口已销毁')
+      }
 
       // 获取目标窗口
       const targetWindow = this.getSourceWindow(targetWindowId)
-      if (!targetWindow) {
-        throw new Error('目标窗口不存在')
+      if (!targetWindow || targetWindow.isDestroyed()) {
+        throw new Error(`目标窗口不存在或已销毁: ${targetWindowId}`)
       }
 
-      // 从分离窗口移除原始视图并将其添加回目标窗口
+      // 检查原始视图状态
       const originalView = detachedWindowInfo.view
-      if (originalView.webContents.isDestroyed()) {
+      if (!originalView || originalView.webContents.isDestroyed()) {
         throw new Error('无法重新附加已销毁的视图')
       }
-      // This implicitly removes it from its previous parent (the detached window)
-      targetWindow.contentView.addChildView(originalView)
+
+      // 安全地重新附加视图
+      try {
+        // This implicitly removes it from its previous parent (the detached window)
+        targetWindow.contentView.addChildView(originalView)
+        log.info(`视图已重新附加: ${detachedWindowInfo.sourceViewId}`)
+      } catch (attachError) {
+        log.error('重新附加视图到目标窗口失败:', attachError)
+        throw new Error(`重新附加失败: ${attachError instanceof Error ? attachError.message : '未知错误'}`)
+      }
 
       // 重新计算视图边界（根据目标窗口的布局）
       // 通过 ViewManager 更新布局
@@ -372,7 +413,7 @@ export class DetachManager extends EventEmitter {
       }
 
       // 触发重新附加事件，通知 ViewManager 更新状态
-      mainProcessEventManager.emit('view:reattach-requested', {
+      emitEvent.emit('view:reattach-requested', {
         viewId: detachedWindowInfo.sourceViewId,
         targetWindowId,
         timestamp: Date.now()
@@ -381,7 +422,11 @@ export class DetachManager extends EventEmitter {
       // 关闭分离窗口
       await this.closeDetachedWindow(detachedWindowId)
 
-      log.info(`视图重新附加完成: ${detachedWindowInfo.sourceViewId}`)
+      const reattachTime = performance.now() - startTime
+      log.info(`视图重新附加完成: ${detachedWindowInfo.sourceViewId}, 耗时: ${reattachTime.toFixed(2)}ms`)
+
+      // 触发性能事件 - 移除重复的性能事件，统一使用 ProcessEvent
+      // 性能监控通过其他方式处理
 
       return {
         success: true,
@@ -389,7 +434,12 @@ export class DetachManager extends EventEmitter {
         data: { reattachedTo: targetWindowId, view: originalView }
       }
     } catch (error) {
-      log.error(`重新附加视图失败: 窗口ID ${detachedWindowId}`, error)
+      const reattachTime = performance.now() - startTime
+      log.error(`重新附加视图失败: 窗口ID ${detachedWindowId}, 耗时: ${reattachTime.toFixed(2)}ms`, error)
+
+      // 触发错误事件 - 移除重复的性能事件，统一使用 ProcessEvent
+      // 错误已通过日志记录
+
       return {
         success: false,
         error: error instanceof Error ? error.message : '未知错误'
@@ -415,25 +465,24 @@ export class DetachManager extends EventEmitter {
 
       log.info(`关闭分离窗口: ${windowId}`)
 
-      // 清理映射关系
-      this.sourceViewMapping.delete(detachedWindowInfo.sourceViewId)
-      this.detachedWindows.delete(windowId)
-
-      // 关闭窗口
+      // 关闭窗口（会触发 window.on('closed') 事件，由 handleWindowClosed 处理清理和事件触发）
       const windowToClose = detachedWindowInfo.window
       if (windowToClose && !windowToClose.isDestroyed()) {
-        windowToClose.removeAllListeners()
+        // 不移除监听器，让 'closed' 事件正常触发 handleWindowClosed
         windowToClose.close()
-      }
+      } else {
+        // 如果窗口已销毁，直接清理映射关系并触发事件
+        this.sourceViewMapping.delete(detachedWindowInfo.sourceViewId)
+        this.detachedWindows.delete(windowId)
 
-      // 触发关闭事件
-      const closeData = {
-        viewId: detachedWindowInfo.sourceViewId,
-        detachedWindowId: windowId,
-        timestamp: Date.now()
+        // 触发关闭事件
+        const closeData = {
+          viewId: detachedWindowInfo.sourceViewId,
+          detachedWindowId: windowId,
+          timestamp: Date.now()
+        }
+        emitEvent.emit('view:detached-window-closed', closeData)
       }
-      mainProcessEventManager.emit('view:detached-window-closed', closeData)
-      this.emit('view:detached-window-closed', closeData)
 
       log.info(`分离窗口关闭完成: ${windowId}`)
 
@@ -489,7 +538,7 @@ export class DetachManager extends EventEmitter {
 
         case DetachedWindowAction.REATTACH:
           // 需要获取目标窗口ID，这里触发事件让外部处理
-          mainProcessEventManager.emit('view:reattach-requested', {
+          emitEvent.emit('view:reattach-requested', {
             viewId: detachedWindowInfo.sourceViewId,
             targetWindowId: 0, // 需要外部处理决定目标窗口
             timestamp: Date.now()
@@ -508,7 +557,7 @@ export class DetachManager extends EventEmitter {
         timestamp: Date.now()
       }
 
-      mainProcessEventManager.emit('control-bar:action', {
+      emitEvent.emit('control-bar:action', {
         action: controlEvent.action,
         data: controlEvent,
         timestamp: Date.now()
@@ -675,23 +724,39 @@ export class DetachManager extends EventEmitter {
     sourceView: WebContentsViewInfo,
     detachedWindowId: number
   ): Promise<boolean> {
+    const initStartTime = performance.now()
+
     try {
       // 检查控制栏视图状态
       if (!controlBarView || controlBarView.webContents.isDestroyed()) {
         throw new Error('控制栏视图已被销毁')
       }
 
+      // 设置加载超时
+      const loadTimeout = 10000 // 10秒超时
+      let loadPromise: Promise<void>
+
       // 加载控制栏页面
       if (process.env.NODE_ENV === 'development') {
         const controlBarURL = 'http://localhost:5173/src/pages/detached-window/index.html'
-        await controlBarView.webContents.loadURL(controlBarURL)
+        log.debug(`加载开发环境控制栏页面: ${controlBarURL}`)
+        loadPromise = controlBarView.webContents.loadURL(controlBarURL)
       } else {
         const controlBarPath = resolve(
           getDirname(import.meta.url),
           '../renderer/pages/detached-window/index.html'
         )
-        await controlBarView.webContents.loadFile(controlBarPath)
+        log.debug(`加载生产环境控制栏页面: ${controlBarPath}`)
+        loadPromise = controlBarView.webContents.loadFile(controlBarPath)
       }
+
+      // 添加超时处理
+      await Promise.race([
+        loadPromise,
+        new Promise<never>((_, reject) => {
+          setTimeout(() => reject(new Error('控制栏页面加载超时')), loadTimeout)
+        })
+      ])
 
       // 等待页面加载完成后发送初始化数据
       const initializeData = () => {
@@ -732,10 +797,20 @@ export class DetachManager extends EventEmitter {
         controlBarView.webContents.once('did-finish-load', initializeData)
       }
 
-      log.info('控制栏初始化完成')
+      const initTime = performance.now() - initStartTime
+      log.info(`控制栏初始化完成, 耗时: ${initTime.toFixed(2)}ms`)
+
+      // 触发初始化完成事件 - 移除重复的性能事件，统一使用 ProcessEvent
+      // 控制栏初始化通过其他方式记录
+
       return true
     } catch (error) {
-      log.error('初始化控制栏失败:', error)
+      const initTime = performance.now() - initStartTime
+      log.error(`初始化控制栏失败, 耗时: ${initTime.toFixed(2)}ms:`, error)
+
+      // 触发初始化失败事件 - 移除重复的性能事件，统一使用 ProcessEvent
+      // 错误已通过日志记录
+
       return false
     }
   }
@@ -789,7 +864,7 @@ export class DetachManager extends EventEmitter {
 
     // 窗口聚焦事件
     window.on('focus', () => {
-      mainProcessEventManager.emit('detached-window:focused', {
+      emitEvent.emit('detached-window:focused', {
         windowId,
         timestamp: Date.now()
       })
@@ -797,7 +872,7 @@ export class DetachManager extends EventEmitter {
 
     // 窗口失焦事件
     window.on('blur', () => {
-      mainProcessEventManager.emit('detached-window:blurred', {
+      emitEvent.emit('detached-window:blurred', {
         windowId,
         timestamp: Date.now()
       })
@@ -833,8 +908,7 @@ export class DetachManager extends EventEmitter {
         detachedWindowId: windowId,
         timestamp: Date.now()
       }
-      mainProcessEventManager.emit('view:detached-window-closed', closeData2)
-      this.emit('view:detached-window-closed', closeData2)
+      emitEvent.emit('view:detached-window-closed', closeData2)
     }
   }
 
@@ -858,7 +932,7 @@ export class DetachManager extends EventEmitter {
 
     // Alt+R 重新附加
     if (input.key === 'r' && input.alt && input.type === 'keyDown') {
-      mainProcessEventManager.emit('view:reattach-requested', {
+      emitEvent.emit('view:reattach-requested', {
         viewId: detachedWindowInfo.sourceViewId,
         targetWindowId: 0, // 需要外部处理决定目标窗口
         timestamp: Date.now()
@@ -921,44 +995,6 @@ export class DetachManager extends EventEmitter {
     }
   }
 
-  /**
-   * 添加事件监听器
-   * @param event 事件名
-   * @param handler 事件处理器
-   */
-
-  /**
-   * 移除事件监听器
-   * @param event 事件名
-   * @param handler 事件处理器
-   */
-  public off(event: string, handler: Function): void {
-    const handlers = this.eventHandlers.get(event)
-    if (handlers) {
-      const index = handlers.indexOf(handler)
-      if (index !== -1) {
-        handlers.splice(index, 1)
-      }
-    }
-  }
-
-  /**
-   * 触发事件
-   * @param event 事件名
-   * @param data 事件数据
-   */
-  private emit(event: string, data: any): void {
-    const handlers = this.eventHandlers.get(event)
-    if (handlers) {
-      handlers.forEach(handler => {
-        try {
-          handler(data)
-        } catch (error) {
-          log.error(`事件处理器执行失败: ${event}`, error)
-        }
-      })
-    }
-  }
 
   /**
    * 销毁管理器
@@ -978,7 +1014,6 @@ export class DetachManager extends EventEmitter {
     // 清理数据
     this.detachedWindows.clear()
     this.sourceViewMapping.clear()
-    this.eventHandlers.clear()
 
     // 重置单例
     DetachManager.instance = null as any

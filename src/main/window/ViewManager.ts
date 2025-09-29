@@ -20,11 +20,10 @@ import type {
 } from '../typings/windowTypes'
 import { isProduction } from '@shared/utils'
 import { getDirname } from '@main/utils'
-import { getRendererUrl } from './windowConfig'
+import { getRendererUrl } from '@main/utils/windowConfig'
 import { BaseWindowController } from './BaseWindowController'
 import { DetachManager } from './DetachManager'
-import { sendViewRestoreRequested, sendViewDetached } from '@main/ipc-router/mainEvents'
-import { mainProcessEventManager } from './MainProcessEventManager'
+import { emitEvent } from '@main/core/ProcessEvent'
 
 /**
  * ViewManager 类
@@ -46,7 +45,8 @@ export class ViewManager {
     // 设置 DetachManager 的 ViewManager 引用（避免循环依赖）
     this.detachManager.setViewManager(this)
 
-    this.setupDetachManagerEvents()
+    // 事件协调器引用由 NewWindowManager 统一设置
+
   }
 
   /**
@@ -125,7 +125,7 @@ export class ViewManager {
       this.addViewToWindow(window.id, config.id)
 
       // 触发事件
-      mainProcessEventManager.emit('view:created', {
+      emitEvent.emit('view:created', {
         viewId: config.id,
         windowId: window.id,
         config,
@@ -242,7 +242,7 @@ export class ViewManager {
       viewInfo.state.isActive = true
 
       // 触发事件
-      mainProcessEventManager.emit('view:switched', {
+      emitEvent.emit('view:switched', {
         fromViewId: currentActiveViewId,
         toViewId: viewId,
         windowId: windowId,
@@ -443,7 +443,7 @@ export class ViewManager {
       }
 
       // 触发事件
-      mainProcessEventManager.emit('view:removed', {
+      emitEvent.emit('view:removed', {
         viewId,
         windowId,
         timestamp: Date.now()
@@ -604,7 +604,7 @@ export class ViewManager {
    * 显示视图
    * @param viewInfo 视图信息
    */
-  private showView(viewInfo: WebContentsViewInfo): void {
+  public showView(viewInfo: WebContentsViewInfo): void {
     try {
       // 恢复视图的正常边界
       viewInfo.view.setBounds(viewInfo.config.bounds)
@@ -832,13 +832,7 @@ export class ViewManager {
       if (detachResult.success) {
         log.info(`视图分离成功: ${id}`)
 
-        // 触发分离成功事件
-        mainProcessEventManager.emit('view:detach-success', {
-          viewId: id,
-          sourceWindowId: parentWindowId,
-          detachedWindowId: detachResult.detachedWindow?.windowId || 0,
-          timestamp: Date.now()
-        })
+        // 注意：分离成功事件由 DetachManager 统一触发 view:detached 事件
 
         // 视图已被DetachManager移动到分离窗口，但不从ViewManager完全移除
         // 保持视图信息，只更新状态
@@ -861,15 +855,15 @@ export class ViewManager {
           }
         }
 
-        // 通知搜索栏WebContentsView显示空状态
-        this.notifyMainViewOfDetachment(parentWindowId, id)
+        // 注意：view:detached 事件由 DetachManager 统一触发，这里不需要重复触发
+        // DetachManager.detachView() 方法会在分离成功后触发正确的 view:detached 事件
 
         log.info(`视图 ${id} 已分离到独立窗口，完成分离操作`)
       } else {
         log.error(`视图分离失败: ${id}, 错误: ${detachResult.error}`)
 
         // 触发分离失败事件
-        mainProcessEventManager.emit('view:detach-failed', {
+        emitEvent.emit('view:detach-failed', {
           viewId: id,
           windowId: parentWindowId,
           error: detachResult.error || '未知错误',
@@ -880,7 +874,7 @@ export class ViewManager {
       log.error(`处理视图分离失败: ${viewInfo.id}`, error)
 
       // 触发分离错误事件
-      mainProcessEventManager.emit('view:detach-error', {
+      emitEvent.emit('view:detach-error', {
         viewId: viewInfo.id,
         windowId: viewInfo.parentWindowId,
         error: error instanceof Error ? error : new Error('未知错误'),
@@ -905,14 +899,24 @@ export class ViewManager {
 
       // 如果是设置视图关闭，通知主视图恢复状态
       if (id === 'settings-view') {
-        this.notifyMainViewToRestore(parentWindowId, 'settings-closed')
+        emitEvent.emit('view:restore-requested', {
+          viewId: 'main-view',
+          windowId: parentWindowId,
+          reason: 'settings-closed',
+          timestamp: Date.now()
+        })
       } else if (id.startsWith('plugin-')) {
         // 如果是插件视图关闭，通知主视图恢复状态
-        this.notifyMainViewToRestore(parentWindowId, 'plugin-closed')
+        emitEvent.emit('view:restore-requested', {
+          viewId: 'main-view',
+          windowId: parentWindowId,
+          reason: 'plugin-closed',
+          timestamp: Date.now()
+        })
       }
 
       // 触发视图关闭事件
-      mainProcessEventManager.emit('view:closed', {
+      emitEvent.emit('view:closed', {
         viewId: id,
         windowId: parentWindowId,
         reason: '用户关闭',
@@ -925,43 +929,13 @@ export class ViewManager {
     }
   }
 
-  /**
-   * 通知主视图恢复状态
-   * @param windowId 窗口ID
-   * @param reason 恢复原因
-   */
-  private notifyMainViewToRestore(windowId: number, reason: string): void {
-    try {
-      const mainViewInfo = this.views.get('main-view')
-      if (!mainViewInfo) {
-        log.warn('主视图不存在，无法发送恢复通知')
-        return
-      }
-
-      if (!mainViewInfo.view.webContents || mainViewInfo.view.webContents.isDestroyed()) {
-        log.warn('主视图 WebContents 已销毁，无法发送恢复通知')
-        return
-      }
-
-      sendViewRestoreRequested(mainViewInfo.view.webContents, {
-        viewId: sourceViewId || '',
-        windowId,
-        reason,
-        timestamp: Date.now()
-      })
-
-      log.info(`已通知主视图恢复状态: ${reason}`)
-    } catch (error) {
-      log.error('通知主视图恢复状态失败:', error)
-    }
-  }
 
   /**
    * 添加视图到窗口映射
    * @param windowId 窗口ID
    * @param viewId 视图ID
    */
-  private addViewToWindow(windowId: number, viewId: string): void {
+  public addViewToWindow(windowId: number, viewId: string): void {
     if (!this.windowViews.has(windowId)) {
       this.windowViews.set(windowId, new Set())
     }
@@ -973,7 +947,7 @@ export class ViewManager {
    * @param windowId 窗口ID
    * @param viewId 视图ID
    */
-  private removeViewFromWindow(windowId: number, viewId: string): void {
+  public removeViewFromWindow(windowId: number, viewId: string): void {
     const viewSet = this.windowViews.get(windowId)
     if (viewSet) {
       viewSet.delete(viewId)
@@ -988,7 +962,7 @@ export class ViewManager {
    * @param windowId 窗口ID
    * @returns BaseWindow 实例或 undefined
    */
-  private getWindowById(windowId: number): BaseWindow | undefined {
+  public getWindowById(windowId: number): BaseWindow | undefined {
     // 通过 BaseWindowController 获取窗口实例
     return this.baseWindowController.getWindow(windowId)
   }
@@ -997,7 +971,7 @@ export class ViewManager {
    * 更新性能指标
    * @param windowId 窗口ID
    */
-  private updatePerformanceMetrics(windowId: number): void {
+  public updatePerformanceMetrics(windowId: number): void {
     try {
       const viewInfos = this.getWindowViews(windowId)
       const activeViewCount = viewInfos.filter((info) => info.state.isActive).length
@@ -1026,135 +1000,10 @@ export class ViewManager {
   }
 
 
-  /**
-   * 设置DetachManager事件监听
-   */
-  private setupDetachManagerEvents(): void {
-    // 监听视图分离事件，通知主视图
-    this.detachManager.on('view:detached', (data: any) => {
-      this.handleViewDetached(data)
-    })
 
-    // 监听分离窗口关闭事件，恢复原视图显示
-    this.detachManager.on('view:detached-window-closed', (data: any) => {
-      this.handleDetachedWindowClosed(data)
-    })
 
-    // 监听重新附加请求事件
-    this.detachManager.on('view:reattach-requested', (data: any) => {
-      this.handleReattachRequested(data)
-    })
 
-    log.info('DetachManager 事件监听器已设置')
-  }
 
-  /**
-   * 处理视图分离事件
-   * @param data 分离事件数据
-   */
-  private handleViewDetached(data: {
-    sourceViewId: string;
-    sourceWindowId: number;
-    detachedWindowId: number;
-    timestamp: number;
-  }): void {
-    log.info(`处理视图分离事件: ${data.sourceViewId} 从窗口 ${data.sourceWindowId} 分离到窗口 ${data.detachedWindowId}`)
-
-    // 通知主视图分离事件
-    this.notifyMainViewOfDetachment(data.sourceWindowId, data.sourceViewId)
-  }
-
-  /**
-   * 处理分离窗口关闭事件
-   * @param data 事件数据
-   */
-  private handleDetachedWindowClosed(data: { windowId: number; sourceViewId: string; timestamp: number }): void {
-    try {
-      const { sourceViewId } = data
-      const viewInfo = this.views.get(sourceViewId)
-
-      if (viewInfo) {
-        log.info(`分离窗口已关闭，恢复视图显示: ${sourceViewId}`)
-
-        // 恢复视图显示
-        this.showView(viewInfo)
-
-        // 切换到该视图
-        const switchResult = this.switchToView(viewInfo.parentWindowId, sourceViewId)
-        if (switchResult.success) {
-          log.info(`已切换到恢复的视图: ${sourceViewId}`)
-        }
-      } else {
-        log.warn(`无法找到要恢复的视图: ${sourceViewId}`)
-      }
-    } catch (error) {
-      log.error('处理分离窗口关闭事件失败:', error)
-    }
-  }
-
-  /**
-   * 处理重新附加请求事件
-   * @param data 事件数据
-   */
-  private handleReattachRequested(data: any): void {
-    try {
-      const { sourceViewId, targetWindowId } = data
-      const viewInfo = this.views.get(sourceViewId)
-
-      if (viewInfo) {
-        log.info(`处理重新附加请求: ${sourceViewId} 到窗口 ${targetWindowId}`)
-
-        // 重新将视图添加到窗口映射
-        this.addViewToWindow(targetWindowId, sourceViewId)
-
-        // 切换到该视图
-        const switchResult = this.switchToView(targetWindowId, sourceViewId)
-        if (switchResult.success) {
-          log.info(`重新附加成功: ${sourceViewId}`)
-        }
-      } else {
-        log.warn(`无法找到要重新附加的视图: ${sourceViewId}`)
-      }
-    } catch (error) {
-      log.error('处理重新附加请求失败:', error)
-    }
-  }
-
-  /**
-   * 通知主视图有视图被分离
-   * @param windowId 窗口ID
-   * @param detachedViewId 被分离的视图ID
-   */
-  private notifyMainViewOfDetachment(windowId: number, detachedViewId: string): void {
-    try {
-      if (this.detachManager.isViewDetached(detachedViewId)) {
-        log.info(`跳过通知主视图分离事件，因为视图已分离窗口管理: ${detachedViewId}`)
-        return
-      }
-
-      const mainViewInfo = this.views.get('main-view')
-      if (!mainViewInfo) {
-        log.warn('主视图不存在，无法发送分离通知')
-        return
-      }
-
-      if (!mainViewInfo.view.webContents || mainViewInfo.view.webContents.isDestroyed()) {
-        log.warn('主视图 WebContents 已销毁，无法发送分离通知')
-        return
-      }
-
-      sendViewDetached(mainViewInfo.view.webContents, {
-        detachedViewId,
-        windowId,
-        timestamp: Date.now(),
-        remainingViews: this.getWindowViews(windowId).map((view) => view.id)
-      })
-
-      log.info(`已通知搜索栏WebContentsView，视图 ${detachedViewId} 已分离`)
-    } catch (error) {
-      log.error('通知主视图分离事件失败:', error)
-    }
-  }
 
 
   /**
@@ -1243,7 +1092,7 @@ export class ViewManager {
       log.info(`视图父窗口ID已更新: ${viewId}, ${oldParentWindowId} -> ${newParentWindowId}`)
 
       // 触发事件
-      mainProcessEventManager.emit('view:parent-window-updated', {
+      emitEvent.emit('view:parent-window-updated', {
         viewId,
         oldWindowId: oldParentWindowId,
         newWindowId: newParentWindowId,
@@ -1332,7 +1181,6 @@ export class ViewManager {
     this.windowViews.clear()
     this.activeViews.clear()
     this.performanceMetrics.clear()
-    this.eventHandlers.clear()
 
     log.info('ViewManager 资源清理完成')
   }

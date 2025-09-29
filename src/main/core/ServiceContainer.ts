@@ -6,14 +6,20 @@
 import log from 'electron-log'
 
 export interface ServiceDefinition {
+  /** 服务名称 */
   name: string
+  /** 工厂函数，接收 ServiceContainer 返回服务实例 */
   factory: (container: ServiceContainer) => any
+  /** 是否为单例服务 */
   singleton?: boolean
+  /** 依赖的服务名称数组 */
   dependencies?: string[]
 }
 
 export interface Service {
+  /** 初始化服务（可选） */
   initialize?(): Promise<void>
+  /** 清理服务（可选） */
   cleanup?(): void
 }
 
@@ -21,8 +27,11 @@ export interface Service {
  * 简单的依赖注入容器
  */
 export class ServiceContainer {
+  /** 已创建的服务实例（单例缓存） */
   private services = new Map<string, any>()
+  /** 服务定义（工厂、依赖等） */
   private definitions = new Map<string, ServiceDefinition>()
+  /** 正在初始化的服务名称集合（用于检测循环依赖） */
   private initializing = new Set<string>()
 
   /**

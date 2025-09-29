@@ -11,13 +11,21 @@ import { resolve } from 'path'
 import { tmpdir } from 'os'
 import { existsSync, rmSync } from 'fs'
 import { getDirname } from '../utils'
+import { processEventCoordinator } from './ProcessEventCoordinator'
 import type { Service, ServiceContainer } from './ServiceContainer'
 
 /**
  * 核心服务配置
  */
+/**
+ * 核心服务配置接口
+ * @property enableIconWorker 是否启用图标工作进程
+ * @property tempDirCleanup 是否清理临时目录
+ */
 export interface CoreServiceConfig {
+  /** 是否启用图标工作进程 */
   enableIconWorker?: boolean
+  /** 是否清理临时目录 */
   tempDirCleanup?: boolean
 }
 
@@ -69,6 +77,9 @@ export class CoreService implements Service {
 
       // 初始化 IPC 处理器
       this.initializeIpcHandlers()
+
+      // 初始化事件转发管理器
+      this.initializeEventForwarding()
 
       this.isInitialized = true
       log.info('核心服务初始化完成')
@@ -136,6 +147,20 @@ export class CoreService implements Service {
       log.info('✅ IPC 路由系统初始化完成')
     } catch (error) {
       log.error('❌ IPC 路由系统初始化失败:', error)
+      throw error
+    }
+  }
+
+  /**
+   * 初始化进程事件协调器
+   */
+  private initializeEventForwarding(): void {
+    try {
+      log.info('🔄 初始化进程事件协调器...')
+      processEventCoordinator.initialize()
+      log.info('✅ 进程事件协调器初始化完成')
+    } catch (error) {
+      log.error('❌ 进程事件协调器初始化失败:', error)
       throw error
     }
   }

@@ -4,7 +4,7 @@
  */
 
 import { BaseSingleton } from '../BaseSingleton'
-import type { ViewState, DetachedWindowConfig } from '@/typings/windowTypes'
+import type { DetachedWindowConfig } from '@/typings/windowTypes'
 import { appHotkeyBridge } from '../hotkey/AppHotkeyBridge'
 import type { HotkeyConfig } from '@/typings/hotkeyTypes'
 import { HotkeyType } from '@/typings/hotkeyTypes'
@@ -87,7 +87,7 @@ export class DetachHandler extends BaseSingleton {
    */
   private async registerDetachHotkey(): Promise<void> {
     try {
-      const success = await appHotkeyBridge.registerHotkey(this.detachHotkeyConfig)
+      const success = await appHotkeyBridge.registerAppHotkey(this.detachHotkeyConfig)
       if (success) {
         console.log('✅ Alt+D 分离快捷键注册成功')
       } else {
@@ -104,12 +104,12 @@ export class DetachHandler extends BaseSingleton {
    */
   private setupEventListeners(): void {
     // 监听应用内快捷键触发事件
-    window.addEventListener('app-hotkey-triggered', (event: CustomEvent) => {
+    window.addEventListener('app-hotkey-triggered', ((event: CustomEvent) => {
       const { id } = event.detail
       if (id === this.detachHotkeyConfig.id) {
         this.handleDetachHotkey()
       }
-    })
+    }) as EventListener)
 
     // 监听插件视图更新事件
     eventSystem.on('plugin:view:active', (data) => {
@@ -123,14 +123,14 @@ export class DetachHandler extends BaseSingleton {
       }
     })
 
-    // 监听来自主进程的窗口分离事件
-    naimo.ipcRenderer.on('window-detach', (data: any) => {
+    // 监听来自主进程的视图分离事件
+    naimo.event.onViewDetached((_event, data) => {
       console.log('📡 收到主进程分离事件:', data)
       this.handleDetachFromMainProcess(data)
     })
 
     // 监听分离窗口关闭事件
-    naimo.ipcRenderer.on('detached-window-closed', (data: any) => {
+    naimo.event.onDetachedWindowClosed((_event, data) => {
       console.log('🪟 分离窗口已关闭:', data)
       this.handleDetachedWindowClosed(data)
     })
@@ -213,7 +213,13 @@ export class DetachHandler extends BaseSingleton {
   /**
    * 处理来自主进程的分离事件
    */
-  private handleDetachFromMainProcess(data: { windowId: number; timestamp: number }): void {
+  private handleDetachFromMainProcess(data: {
+    detachedViewId: string;
+    sourceWindowId: number;
+    detachedWindowId: number;
+    timestamp: number;
+    remainingViews: string[]
+  }): void {
     // 这里可以处理主进程主动发起的分离事件
     // 例如，通过其他方式触发的分离操作
     console.log('📡 处理主进程分离事件:', data)
@@ -222,14 +228,14 @@ export class DetachHandler extends BaseSingleton {
   /**
    * 处理分离窗口关闭事件
    */
-  private handleDetachedWindowClosed(data: { windowId: number; viewId?: string }): void {
+  private handleDetachedWindowClosed(data: { viewId: string; detachedWindowId: number; timestamp: number }): void {
     console.log('🪟 分离窗口关闭处理:', data)
 
     // 触发事件通知其他组件
     eventSystem.emit('window:detached:closed', {
-      windowId: data.windowId,
+      windowId: data.detachedWindowId,
       viewId: data.viewId,
-      timestamp: Date.now()
+      timestamp: data.timestamp
     })
   }
 
@@ -325,15 +331,23 @@ export class DetachHandler extends BaseSingleton {
     pluginName?: string
   } | null> {
     try {
-      // 从插件管理器获取视图状态
-      const { pluginManager } = await import('../plugin/PluginManager')
-      const viewStates = pluginManager.getPluginViewStates()
-      const viewState = viewStates.get(viewId)
+      // TODO: 从插件管理器获取视图状态
+      // const { pluginManager } = await import('../plugin/PluginManager')
+      // const viewStates = pluginManager.getPluginViewStates()
+      // const viewState = viewStates.get(viewId)
 
-      if (viewState?.pluginItem) {
+      // if (viewState?.pluginItem) {
+      //   return {
+      //     pluginPath: viewState.pluginItem.path,
+      //     pluginName: viewState.pluginItem.name
+      //   }
+      // }
+
+      // 临时返回当前插件视图信息
+      if (this.currentPluginView.viewId === viewId) {
         return {
-          pluginPath: viewState.pluginItem.path,
-          pluginName: viewState.pluginItem.name
+          pluginPath: this.currentPluginView.pluginPath,
+          pluginName: this.currentPluginView.pluginName
         }
       }
 
@@ -388,7 +402,7 @@ export class DetachHandler extends BaseSingleton {
    */
   async unregisterDetachHotkey(): Promise<void> {
     try {
-      await appHotkeyBridge.unregisterHotkey(this.detachHotkeyConfig.id)
+      await appHotkeyBridge.unregisterAppHotkey(this.detachHotkeyConfig.id)
       console.log('✅ Alt+D 分离快捷键已注销')
     } catch (error) {
       console.error('❌ 注销分离快捷键失败:', error)

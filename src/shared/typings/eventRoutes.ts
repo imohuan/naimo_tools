@@ -1,6 +1,6 @@
 /**
  * 自动生成的事件类型定义
- * 生成时间: 2025-09-28T10:50:03.054Z
+ * 生成时间: 2025-09-29T04:38:00.723Z
  * 请勿手动修改此文件
  */
 
@@ -48,10 +48,6 @@ interface EventInterface {
   /** 监听 window-main-show 事件 */
   "onWindowMainShow": (handler: (event: any, data: EventData<'window-main-show'>) => void) => void;
 
-  /** 监听 window-detach 事件 */
-  "window-detach": (handler: (event: any, data: EventData<'window-detach'>) => void) => void;
-  /** 监听 window-detach 事件 */
-  "onWindowDetach": (handler: (event: any, data: EventData<'window-detach'>) => void) => void;
 
   /** 监听 global-hotkey-trigger 事件 */
   "global-hotkey-trigger": (handler: (event: any, data: EventData<'global-hotkey-trigger'>) => void) => void;
@@ -62,6 +58,11 @@ interface EventInterface {
   "detached-window-init": (handler: (event: any, data: EventData<'detached-window-init'>) => void) => void;
   /** 监听 detached-window-init 事件 */
   "onDetachedWindowInit": (handler: (event: any, data: EventData<'detached-window-init'>) => void) => void;
+
+  /** 监听 detached-window-closed 事件 */
+  "detached-window-closed": (handler: (event: any, data: EventData<'detached-window-closed'>) => void) => void;
+  /** 监听 detached-window-closed 事件 */
+  "onDetachedWindowClosed": (handler: (event: any, data: EventData<'detached-window-closed'>) => void) => void;
 
   /** 监听 screen-info 事件 */
   "screen-info": (handler: (event: any, data: EventData<'screen-info'>) => void) => void;
@@ -131,11 +132,6 @@ export const EVENT_INFO = [
     method: "onWindowMainShow"
   },
   {
-    name: "window-detach",
-    comment: "监听 window-detach 事件",
-    method: "onWindowDetach"
-  },
-  {
     name: "global-hotkey-trigger",
     comment: "监听 global-hotkey-trigger 事件",
     method: "onGlobalHotkeyTrigger"
@@ -144,6 +140,11 @@ export const EVENT_INFO = [
     name: "detached-window-init",
     comment: "监听 detached-window-init 事件",
     method: "onDetachedWindowInit"
+  },
+  {
+    name: "detached-window-closed",
+    comment: "监听 detached-window-closed 事件",
+    method: "onDetachedWindowClosed"
   },
   {
     name: "screen-info",
@@ -172,7 +173,7 @@ export const EVENT_INFO = [
   }
 ];
 // 合并所有事件接口类型
-export interface AllEventRouter extends EventInterface {}
+export interface AllEventRouter extends EventInterface { }
 
 // 事件信息类型
 export interface EventInfo {

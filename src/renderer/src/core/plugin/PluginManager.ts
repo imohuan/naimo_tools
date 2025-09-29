@@ -3,7 +3,7 @@ import type { CoreAPI } from '@/typings/coreTypes'
 import { BaseSingleton } from '../BaseSingleton'
 import { ElectronStoreBridge } from '../store/ElectronStoreBridge'
 import type { AppConfig } from '@shared/typings'
-import { getDeafultPlugins, getDeafultPluginById } from '@/modules/plugins/config/defaultPlugins'
+import { getDefaultPlugins, getDefaultPluginById } from '@/modules/plugins/config/defaultPlugins'
 import { PluginGithub } from './PluginGithub'
 import { isFunction } from '@shared/utils'
 // 移除窗口管理相关的导入，这些功能已转移到 PluginWindowManager
@@ -78,7 +78,7 @@ export class PluginManager extends BaseSingleton implements CoreAPI {
 
   /** 获取插件列表 */
   async getPluginList(): Promise<Map<string, PluginConfig>> {
-    const defaultPlugins = getDeafultPlugins()
+    const defaultPlugins = getDefaultPlugins()
     const thirdPartyPlugins = await naimo.router.pluginGetAllInstalledPlugins()
     const thirdPartyPluginsConfig: PluginConfig[] = await Promise.all(thirdPartyPlugins.map(plugin => naimo.webUtils.loadPluginConfig(plugin.configPath)))
     thirdPartyPluginsConfig.forEach(plugin => {
@@ -319,7 +319,7 @@ export class PluginManager extends BaseSingleton implements CoreAPI {
     try {
       console.log(`🗑️ 开始卸载插件: ${pluginId}`);
       // 检查是否是默认插件
-      const isDefaultPlugin = getDeafultPluginById(pluginId) !== null;
+      const isDefaultPlugin = getDefaultPluginById(pluginId) !== null;
       const plugin = this.installedPlugins.get(pluginId);
 
       if (!plugin) {

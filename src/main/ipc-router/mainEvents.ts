@@ -143,22 +143,6 @@ export function sendWindowMainShow(
   }
 }
 
-/**
- * 发送 window-detach 事件
- * @param webContents 目标 WebContents
- * @param data 事件数据
- */
-export function sendWindowDetach(
-  webContents: WebContents,
-  data: EventData<'window-detach'>
-): void {
-  if (webContents && !webContents.isDestroyed()) {
-    webContents.send('window-detach', data)
-    log.debug(`事件已发送: window-detach`, { data })
-  } else {
-    log.warn(`无法发送事件: WebContents已销毁 - window-detach`)
-  }
-}
 
 /**
  * 发送 global-hotkey-trigger 事件
@@ -191,6 +175,23 @@ export function sendDetachedWindowInit(
     log.debug(`事件已发送: detached-window-init`, { data })
   } else {
     log.warn(`无法发送事件: WebContents已销毁 - detached-window-init`)
+  }
+}
+
+/**
+ * 发送 detached-window-closed 事件
+ * @param webContents 目标 WebContents
+ * @param data 事件数据
+ */
+export function sendDetachedWindowClosed(
+  webContents: WebContents,
+  data: EventData<'detached-window-closed'>
+): void {
+  if (webContents && !webContents.isDestroyed()) {
+    webContents.send('detached-window-closed', data)
+    log.debug(`事件已发送: detached-window-closed`, { data })
+  } else {
+    log.warn(`无法发送事件: WebContents已销毁 - detached-window-closed`)
   }
 }
 
@@ -289,9 +290,9 @@ export const mainEvents = {
   windowAllBlur: sendWindowAllBlur,
   windowMainHide: sendWindowMainHide,
   windowMainShow: sendWindowMainShow,
-  windowDetach: sendWindowDetach,
   globalHotkeyTrigger: sendGlobalHotkeyTrigger,
   detachedWindowInit: sendDetachedWindowInit,
+  detachedWindowClosed: sendDetachedWindowClosed,
   screenInfo: sendScreenInfo,
   appBlur: sendAppBlur,
   appFocus: sendAppFocus,

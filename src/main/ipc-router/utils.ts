@@ -1,54 +1,42 @@
 /**
  * IPC 路由工具函数
- * 提供类型转换和路由管理功能
+ * 提供 IPC 路由特定的工具功能
  */
 
 import { getIpcRouter } from './core';
+import { StringConverter, StringValidator } from '../utils';
 
-/**
- * 工具类型：将字符串的首字母大写
- */
-export type CapitalizeFirstLetter<S extends string> = S extends `${infer F}${infer R}`
-  ? `${Uppercase<F>}${R}`
-  : S;
-
-/**
- * 工具类型：将短横线分隔的字符串转换为驼峰式
- */
-export type KebabToCamelCase<S extends string> = S extends `${infer First}-${infer Rest}`
-  ? `${First}${KebabToCamelCase<CapitalizeFirstLetter<Rest>>}`
-  : S;
-
-/**
- * 工具类型：将对象的所有键从短横线格式转换为驼峰式
- */
-export type KebabKeysToCamelCase<T> = {
-  [K in keyof T as K extends string ? KebabToCamelCase<K> : never]: T[K];
-};
+// 重新导出通用字符串类型，保持向后兼容
+export type {
+  CapitalizeFirstLetter,
+  KebabToCamelCase,
+  KebabKeysToCamelCase
+} from '../utils/stringUtils';
 
 /**
  * 路由键转换工具
+ * 基于通用字符串转换工具，提供 IPC 路由特定的功能
  */
 export class RouteKeyConverter {
   /**
    * 将短横线格式转换为驼峰式
    */
   static toCamelCase(kebabCase: string): string {
-    return kebabCase.replace(/-([a-z])/g, (match, letter) => letter.toUpperCase());
+    return StringConverter.toCamelCase(kebabCase);
   }
 
   /**
    * 将驼峰式转换为短横线格式
    */
   static toKebabCase(camelCase: string): string {
-    return camelCase.replace(/([A-Z])/g, '-$1').toLowerCase();
+    return StringConverter.toKebabCase(camelCase);
   }
 
   /**
    * 检查是否为有效的路由键格式
    */
   static isValidRouteKey(key: string): boolean {
-    return /^[a-z]+(-[a-z]+)*$/.test(key);
+    return StringValidator.isKebabCase(key) && key.includes('-');
   }
 
   /**

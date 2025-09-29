@@ -10,8 +10,10 @@ declare module 'vue' {
   export interface GlobalComponents {
     About: typeof import('./../src/components/About.vue')['default']
     ContentArea: typeof import('./../src/components/ContentArea.vue')['default']
+    ContentAreaOptimized: typeof import('./../src/components/ContentAreaOptimized.vue')['default']
     ContextMenu: typeof import('./../src/components/ContextMenu.vue')['default']
     DraggableArea: typeof import('./../src/components/DraggableArea.vue')['default']
+    EmptyState: typeof import('./../src/components/ContentArea/EmptyState.vue')['default']
     GithubToken: typeof import('./../src/components/GithubToken.vue')['default']
     IconDisplay: typeof import('./../src/components/IconDisplay.vue')['default']
     IconMdiAlertCircleOutline: typeof import('~icons/mdi/alert-circle-outline')['default']
@@ -32,8 +34,12 @@ declare module 'vue' {
     IconMdiWindowMinimize: typeof import('~icons/mdi/window-minimize')['default']
     IconMdiWindowOpenVariant: typeof import('~icons/mdi/window-open-variant')['default']
     IconMdiWindowRestore: typeof import('~icons/mdi/window-restore')['default']
+    LoadingSpinner: typeof import('./../src/components/common/LoadingSpinner.vue')['default']
+    PluginWindowPlaceholder: typeof import('./../src/components/ContentArea/PluginWindowPlaceholder.vue')['default']
+    ProgressBar: typeof import('./../src/components/common/ProgressBar.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     Settings: typeof import('./../src/components/Settings.vue')['default']
+    SettingsBackground: typeof import('./../src/components/ContentArea/SettingsBackground.vue')['default']
   }
 }
