@@ -4,7 +4,7 @@
  * 提供搜索头部的统一管理，支持新的 BaseWindow + WebContentsView 架构
  */
 
-import { ref, reactive, computed, type Ref } from 'vue'
+import { reactive } from 'vue'
 import type { AttachedFile } from '@/typings/composableTypes'
 import type { PluginItem } from '@/typings/pluginTypes'
 import { BaseSingleton } from '../BaseSingleton'
@@ -21,6 +21,8 @@ export interface SearchHeaderState {
   attachedFiles: AttachedFile[]
   /** 当前插件项目 */
   currentPluginItem: PluginItem | null
+  /** 是否在设置界面 */
+  isSettingsInterface: boolean
   /** 是否显示搜索框 */
   shouldShowSearchBox: boolean
   /** 是否启用原生拖拽 */
@@ -67,6 +69,8 @@ export interface SearchHeaderEvents {
   'clear-plugin': () => void
   /** 状态变化 */
   'state-changed': (state: SearchHeaderState) => void
+  /** 请求聚焦 */
+  'focus-requested': () => void
 }
 
 /**
@@ -111,6 +115,7 @@ export class SearchHeaderManager extends BaseSingleton {
       headerHeight: this.config.defaultHeight,
       attachedFiles: [],
       currentPluginItem: null,
+      isSettingsInterface: false,
       shouldShowSearchBox: true,
       enableNativeDrag: this.config.enableNativeDrag,
       searchResultsVisible: false
@@ -196,6 +201,14 @@ export class SearchHeaderManager extends BaseSingleton {
   }
 
   /**
+   * 设置设置界面状态
+   */
+  public setSettingsInterface(isSettings: boolean): void {
+    this.state.isSettingsInterface = isSettings
+    this.emitStateChanged()
+  }
+
+  /**
    * 设置搜索框显示状态
    */
   public setSearchBoxVisibility(visible: boolean): void {
@@ -258,6 +271,7 @@ export class SearchHeaderManager extends BaseSingleton {
     this.emit('paste', event)
   }
 
+
   /**
    * 获取原生拖拽区域的CSS类名
    */
@@ -305,14 +319,21 @@ export class SearchHeaderManager extends BaseSingleton {
    * 检查是否应该显示第一个文件信息
    */
   public shouldShowFileInfo(): boolean {
-    return this.state.attachedFiles.length > 0 && !this.state.currentPluginItem
+    return this.state.attachedFiles.length > 0 && !this.state.currentPluginItem && !this.state.isSettingsInterface
   }
 
   /**
    * 检查是否应该显示插件信息
    */
   public shouldShowPluginInfo(): boolean {
-    return this.state.currentPluginItem !== null
+    return this.state.currentPluginItem !== null && !this.state.isSettingsInterface
+  }
+
+  /**
+   * 检查是否应该显示设置信息
+   */
+  public shouldShowSettingsInfo(): boolean {
+    return this.state.isSettingsInterface
   }
 
   /**
@@ -344,6 +365,7 @@ export class SearchHeaderManager extends BaseSingleton {
     this.state.searchText = ''
     this.state.attachedFiles = []
     this.state.currentPluginItem = null
+    this.state.isSettingsInterface = false
     this.state.searchResultsVisible = false
     this.clearSearchTimer()
     this.emitStateChanged()

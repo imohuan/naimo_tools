@@ -183,8 +183,10 @@ export class ElectronHotkeyBridge extends BaseSingleton {
   private initializeListener(): void {
     // 检查是否已经注册过监听器
     if (!window.hasOwnProperty('_globalHotkeyListenerInitialized')) {
-      // 监听全局快捷键触发事件
-      window.addEventListener('global-hotkey-trigger', this.handleGlobalHotkeyTrigger as EventListener)
+      // 使用 naimo.event API 监听全局快捷键触发事件
+      naimo.event.onGlobalHotkeyTrigger((event, data) => {
+        this.handleGlobalHotkeyTrigger(data)
+      })
         ; (window as any)._globalHotkeyListenerInitialized = true
       console.log('✅ 全局快捷键监听器已初始化')
     } else {
@@ -195,9 +197,9 @@ export class ElectronHotkeyBridge extends BaseSingleton {
   /**
    * 处理全局快捷键触发事件
    */
-  private handleGlobalHotkeyTrigger = (event: CustomEvent) => {
-    console.log(`🎉 收到全局快捷键触发事件:`, event.detail)
-    const { hotkeyId } = event.detail
+  private handleGlobalHotkeyTrigger = (data: any) => {
+    console.log(`🎉 收到全局快捷键触发事件:`, data)
+    const { hotkeyId } = data
     console.log(`🔍 查找快捷键ID: ${hotkeyId}`)
     console.log(`📋 当前注册的全局快捷键:`, Array.from(this.registeredHotkeys.values()).map(h => ({ id: h.id, keys: h.keys })))
 
@@ -260,8 +262,8 @@ export class ElectronHotkeyBridge extends BaseSingleton {
    * 销毁实例
    */
   destroy(): void {
-    window.removeEventListener('global-hotkey-trigger', this.handleGlobalHotkeyTrigger as EventListener)
-      ; (window as any)._globalHotkeyListenerInitialized = false
+    // naimo.event 监听器会自动清理，无需手动移除
+    ; (window as any)._globalHotkeyListenerInitialized = false
     this.registeredHotkeys.clear()
     console.log('✅ ElectronHotkeyBridge 实例已销毁')
   }

@@ -58,8 +58,16 @@ export function useAppLifecycle() {
     onWindowBlur: (event?: any) => void
     onVisibilityChange: () => void
   }) => {
-    useEventListener(window, "focus", handlers.onWindowFocus)
-    useEventListener(window, "window-all-blur", handlers.onWindowBlur)
+    // 使用 naimo.event API 监听应用焦点事件
+    naimo.event.onAppFocus((event, data) => {
+      handlers.onWindowFocus()
+    })
+
+    naimo.event.onAppBlur((event, data) => {
+      handlers.onWindowBlur(data)
+    })
+
+    // 页面可见性变化仍使用 DOM 事件，因为这是浏览器标准 API
     useEventListener(document, "visibilitychange", handlers.onVisibilityChange)
   }
 

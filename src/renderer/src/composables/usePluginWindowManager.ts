@@ -9,7 +9,7 @@ import { pluginApiGenerator } from '@/core/plugin/PluginApiGenerator'
 import { LifecycleType } from '@/typings/windowTypes'
 import type { PluginItem } from '@/typings/pluginTypes'
 import type { AttachedFile } from '@/typings/composableTypes'
-import type { PluginApi } from '@shared/typings/global'
+import type { PluginApi } from '@shared/typings'
 
 /**
  * 插件窗口管理器
@@ -109,6 +109,7 @@ export function usePluginWindowManager() {
     event: { pluginId: string; path: string; hotkeyEmit: boolean },
     dependencies: {
       toggleInput: (value?: boolean) => void
+      openPluginWindowUI: (pluginItem?: PluginItem | null) => void
       attachedFiles: AttachedFile[]
       searchText: string
       updateStoreCategory: () => Promise<void>
@@ -131,8 +132,8 @@ export function usePluginWindowManager() {
       openPluginWindow: async (item: PluginItem) => {
         // 这里需要提供默认的选项
         await openPluginWindow(item, { url: '', preload: '' }, {
-          openPluginWindowUI: () => { }, // 这里需要从外部提供
-          handleResize: () => { } // 这里需要从外部提供
+          openPluginWindowUI: dependencies.openPluginWindowUI,
+          handleResize: () => { }
         })
       },
       pluginStore: dependencies.pluginStore

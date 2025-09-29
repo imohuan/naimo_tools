@@ -3,7 +3,7 @@
  * 为 Vue 组件提供 SearchHeaderManager 的便捷使用方式
  */
 
-import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { onMounted, onUnmounted, computed } from 'vue'
 import type { Ref } from 'vue'
 import { SearchHeaderManager, createSearchHeaderManager } from './SearchHeaderManager'
 import type { SearchHeaderConfig, SearchHeaderState, SearchHeaderEvents } from './SearchHeaderManager'
@@ -24,6 +24,8 @@ export interface UseSearchHeaderReturn {
     shouldShowFileInfo: Ref<boolean>
     /** 是否应该显示插件信息 */
     shouldShowPluginInfo: Ref<boolean>
+    /** 是否应该显示设置信息 */
+    shouldShowSettingsInfo: Ref<boolean>
     /** 第一个文件 */
     firstFile: Ref<AttachedFile | null>
     /** 占位符文本 */
@@ -57,6 +59,8 @@ export interface UseSearchHeaderReturn {
     setCurrentPluginItem: (plugin: PluginItem | null) => void
     /** 清除插件 */
     clearCurrentPlugin: () => void
+    /** 设置设置界面状态 */
+    setSettingsInterface: (isSettings: boolean) => void
     /** 聚焦搜索框 */
     focus: () => void
     /** 重置状态 */
@@ -112,6 +116,7 @@ export function useSearchHeader(options: UseSearchHeaderOptions = {}): UseSearch
   // 计算属性
   const shouldShowFileInfo = computed(() => manager.shouldShowFileInfo())
   const shouldShowPluginInfo = computed(() => manager.shouldShowPluginInfo())
+  const shouldShowSettingsInfo = computed(() => manager.shouldShowSettingsInfo())
   const firstFile = computed(() => manager.getFirstFile())
   const placeholderText = computed(() => manager.getPlaceholderText())
   const dragAreaClasses = computed(() => manager.getDragAreaClasses())
@@ -130,6 +135,7 @@ export function useSearchHeader(options: UseSearchHeaderOptions = {}): UseSearch
     clearAttachedFiles: () => manager.clearAttachedFiles(),
     setCurrentPluginItem: (plugin: PluginItem | null) => manager.setCurrentPluginItem(plugin),
     clearCurrentPlugin: () => manager.clearCurrentPlugin(),
+    setSettingsInterface: (isSettings: boolean) => manager.setSettingsInterface(isSettings),
     focus: () => manager.focus(),
     reset: () => manager.reset(),
     setSearchBoxVisibility: (visible: boolean) => manager.setSearchBoxVisibility(visible),
@@ -163,6 +169,7 @@ export function useSearchHeader(options: UseSearchHeaderOptions = {}): UseSearch
     computed: {
       shouldShowFileInfo,
       shouldShowPluginInfo,
+      shouldShowSettingsInfo,
       firstFile,
       placeholderText,
       dragAreaClasses,
@@ -176,6 +183,7 @@ export function useSearchHeader(options: UseSearchHeaderOptions = {}): UseSearch
 
 /**
  * 创建搜索头部事件处理器的辅助函数
+ * 注意：拖拽事件处理已移动到 useDragDrop 组合式函数中
  */
 export function createSearchHeaderEventHandlers(manager: SearchHeaderManager) {
   return {
@@ -185,12 +193,6 @@ export function createSearchHeaderEventHandlers(manager: SearchHeaderManager) {
     onInput: (text: string) => manager.handleInput(text),
     onClick: () => manager.handleClick(),
     onOpenSettings: () => manager.openSettings(),
-
-    // 拖拽事件处理器
-    onDragOver: (event: DragEvent) => manager.handleDragOver(event),
-    onDragEnter: (event: DragEvent) => manager.handleDragEnter(event),
-    onDragLeave: (event: DragEvent) => manager.handleDragLeave(event),
-    onDrop: (event: DragEvent) => manager.handleDrop(event),
 
     // 其他事件处理器
     onPaste: (event: ClipboardEvent) => manager.handlePaste(event),

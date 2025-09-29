@@ -13,12 +13,13 @@ import { processEventCoordinator } from '@main/core/ProcessEventCoordinator'
 import { DEFAULT_WINDOW_LAYOUT } from '@shared/constants'
 import { calculateSettingsViewBounds } from '@shared/config/windowLayoutConfig'
 import type { AppConfig } from '@shared/typings/appTypes'
-import type {
-  WebContentsViewConfig,
-  WebContentsViewInfo,
-  WindowOperationResult,
-  ViewOperationResult,
-  MainWindowLayoutConfig,
+import {
+  type WebContentsViewConfig,
+  type WebContentsViewInfo,
+  type WindowOperationResult,
+  type ViewOperationResult,
+  type MainWindowLayoutConfig,
+  ViewCategory,
 } from '../typings/windowTypes'
 import {
   ViewConfig,
@@ -70,6 +71,8 @@ export interface ViewOperationParams {
   type: ViewType
   /** 视图配置 */
   config?: Partial<ViewConfig>
+  /** 视图类别 */
+  category?: ViewCategory
   /** 插件信息（用于插件视图） */
   pluginItem?: PluginItem
   /** 是否强制创建新视图 */
@@ -264,6 +267,7 @@ export class NewWindowManager {
       const mainViewConfig: WebContentsViewConfig = {
         id: viewId,
         type: ViewType.MAIN,
+        category: ViewCategory.MAIN_WINDOW,
         bounds,
         lifecycle: {
           type: LifecycleType.FOREGROUND,
@@ -419,6 +423,7 @@ export class NewWindowManager {
       const settingsConfig: WebContentsViewConfig = {
         id: viewId,
         type: ViewType.SETTINGS,
+        category: ViewCategory.DETACHED_WINDOW,
         bounds: settingsBounds,
         lifecycle: {
           type: 'FOREGROUND' as any,
@@ -751,8 +756,9 @@ export class NewWindowManager {
         throw new Error(detachResult.error || '视图分离失败')
       }
 
-      // 从主窗口移除视图
-      await this.removeView(viewId)
+      // 注意：不要调用 removeView，这会清理视图内容
+      // 视图已经被 DetachManager 移动到分离窗口，只需要更新状态
+      // await this.removeView(viewId) // 移除这行，避免清理视图内容
 
       log.info(`视图分离成功: ${viewId}`)
 
@@ -1111,6 +1117,7 @@ export class NewWindowManager {
     const config: WebContentsViewConfig = {
       id: viewId,
       type: params.type,
+      category: params.category || ViewCategory.MAIN_WINDOW,
       bounds,
       lifecycle: params.lifecycleStrategy || this.config.defaultLifecycle,
       webPreferences: {
@@ -1348,6 +1355,7 @@ export class NewWindowManager {
         },
         pluginItem,
         forceNew: false,
+        category: ViewCategory.MAIN_WINDOW,
         lifecycleStrategy: {
           type: lifecycleType,
           persistOnClose: params.lifecycleType === LifecycleType.BACKGROUND,

@@ -66,6 +66,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
 import { DetachedWindowAction, type DetachedWindowControlEvent } from '@/typings/windowTypes'
+import type { WindowControlAPI } from './types/winControl'
 
 /** 组件属性 */
 interface Props {
@@ -94,6 +95,7 @@ interface Emits {
   /** 控制操作事件 */
   (e: 'control-action', action: DetachedWindowAction): void
 }
+const winControl = (window as any).naimo as Partial<WindowControlAPI>
 
 const props = withDefaults(defineProps<Props>(), {
   windowTitle: '分离窗口',
@@ -127,9 +129,12 @@ const handleReattach = async (): Promise<void> => {
     emit('reattach')
 
     // 通过IPC调用主进程的重新附加功能
-    if (props.windowId) {
+    if (!winControl?.reattach) {
+      console.warn('⚠️ 未找到重新附加API (naimo.reattach)')
+      showNotification('未找到重新附加能力', 'warning')
+    } else {
       try {
-        await (naimo as any).reattach()
+        await winControl.reattach()
         console.log('✅ 重新附加成功')
       } catch (error) {
         console.error('❌ 重新附加失败:', error)
@@ -162,9 +167,20 @@ const handleMinimize = async (): Promise<void> => {
     // 触发组件事件
     emit('minimize')
 
-    // 通过IPC调用主进程的最小化功能
-    await (naimo as any).minimize()
-    console.log('✅ 最小化成功')
+    // 通过IPC调用主进程的最小化功能 - 使用分离窗口专用的控制方法
+
+    if (!winControl?.minimize) {
+      console.warn('⚠️ 未找到最小化API (naimo.minimize)')
+      showNotification('未找到最小化能力', 'warning')
+    } else {
+      try {
+        await winControl.minimize()
+        console.log('✅ 最小化成功')
+      } catch (error) {
+        console.error('❌ 最小化操作失败:', error)
+        showNotification('最小化失败', 'error')
+      }
+    }
   } catch (error) {
     console.error('❌ 最小化操作失败:', error)
   } finally {
@@ -190,12 +206,20 @@ const handleMaximize = async (): Promise<void> => {
     // 触发组件事件
     emit('maximize')
 
-    // 通过IPC调用主进程的最大化功能
-    await (naimo as any).maximize()
-    console.log('✅ 最大化/还原成功')
-
-    // 切换最大化状态
-    isMaximized.value = !isMaximized.value
+    // 通过IPC调用主进程的最大化功能 - 使用分离窗口专用的控制方法
+    if (!winControl?.maximize) {
+      console.warn('⚠️ 未找到最大化API (naimo.maximize)')
+      showNotification('未找到最大化能力', 'warning')
+    } else {
+      try {
+        await winControl.maximize()
+        console.log('✅ 最大化/还原指令已发送')
+        isMaximized.value = !isMaximized.value
+      } catch (error) {
+        console.error('❌ 最大化操作失败:', error)
+        showNotification('最大化失败', 'error')
+      }
+    }
   } catch (error) {
     console.error('❌ 最大化操作失败:', error)
   } finally {
@@ -221,9 +245,20 @@ const handleClose = async (): Promise<void> => {
     // 触发组件事件
     emit('close')
 
-    // 通过IPC调用主进程的关闭功能
-    await (naimo as any).close()
-    console.log('✅ 关闭成功')
+    // 通过IPC调用主进程的关闭功能 - 使用分离窗口专用的控制方法
+    const winControl = (window as any).naimo as Partial<WindowControlAPI>
+    if (!winControl?.close) {
+      console.warn('⚠️ 未找到关闭API (naimo.close)')
+      showNotification('未找到关闭能力', 'warning')
+    } else {
+      try {
+        await winControl.close()
+        console.log('✅ 关闭指令已发送')
+      } catch (error) {
+        console.error('❌ 关闭操作失败:', error)
+        showNotification('关闭失败', 'error')
+      }
+    }
   } catch (error) {
     console.error('❌ 关闭操作失败:', error)
   } finally {
@@ -244,25 +279,13 @@ const emitControlEvent = (action: DetachedWindowAction): void => {
 
   // 触发组件事件
   emit('control-action', action)
-
-  // 发送到全局事件系统（如果需要）
-  if ((window as any).eventSystem) {
-    (window as any).eventSystem.emit('window:control:action', event)
-  }
 }
 
 /**
  * 显示通知
  */
 const showNotification = (message: string, type: 'success' | 'error' | 'warning' = 'warning'): void => {
-  if ((window as any).eventSystem) {
-    (window as any).eventSystem.emit('notification:show', {
-      message,
-      type,
-      duration: 3000,
-      source: 'window-control-bar'
-    })
-  }
+  console.log(`通知[${type}]: ${message}`)
 }
 
 /**

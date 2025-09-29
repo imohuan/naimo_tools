@@ -1,25 +1,64 @@
-import { ipcRouter } from "@shared/utils/ipcRouterClient";
-import { contextBridge } from "electron";
+import { contextBridge, ipcRenderer } from "electron";
+import log from "electron-log/renderer";
 
-const naimo = {
-  close: () => ipcRouter.windowClose(),
-  maximize: () => ipcRouter.windowMaximize(),
-  minimize: () => ipcRouter.windowMinimize(),
-  reattach: async () => {
-    // 获取当前窗口ID并调用重新附加
-    try {
-      const viewInfo = await ipcRouter.windowGetCurrentViewInfo()
-      if (viewInfo && viewInfo.parentWindowId) {
-        return await ipcRouter.windowReattachNewView(viewInfo.parentWindowId)
-      }
-      throw new Error('无法获取当前窗口ID')
-    } catch (error) {
-      console.error('重新附加失败:', error)
-      throw error
-    }
-  },
+interface WindowControlAPI {
+  minimize: () => Promise<boolean>
+  maximize: () => Promise<boolean>
+  close: () => Promise<boolean>
+  reattach: () => Promise<boolean>
+  getCurrentViewInfo: () => Promise<{
+    viewId: string | null
+    windowId: number | null
+    isDetached: boolean
+  } | null>
 }
 
-contextBridge.exposeInMainWorld("naimo", naimo);
+async function invokeWindowRoute<T = any>(route: string, ...args: any[]): Promise<T> {
+  try {
+    const result = await ipcRenderer.invoke(`window-${route}`, ...args)
+    return result as T
+  } catch (error) {
+    log.error(`[winControl] 调用 window-${route} 失败`, error)
+    throw error
+  }
+}
+
+const windowControl: WindowControlAPI = {
+  minimize: () => invokeWindowRoute<boolean>("minimize"),
+  maximize: () => invokeWindowRoute<boolean>("maximize"),
+  close: () => invokeWindowRoute<boolean>("close"),
+  reattach: async () => {
+    const viewInfo = await windowControl.getCurrentViewInfo()
+    if (!viewInfo?.windowId) {
+      throw new Error("无法获取当前分离窗口ID")
+    }
+    return invokeWindowRoute<boolean>("reattach-new-view", viewInfo.windowId)
+  },
+  getCurrentViewInfo: async () => {
+    try {
+      const result = await invokeWindowRoute<any>("get-current-view-info")
+      if (!result) return null
+
+      return {
+        viewId: result.id ?? null,
+        windowId: result.parentWindowId ?? null,
+        isDetached: result.config?.type === "detached"
+      }
+    } catch (error) {
+      log.warn("[winControl] 获取视图信息失败", error)
+      return null
+    }
+  }
+}
+
+contextBridge.exposeInMainWorld("naimo", {
+  minimize: windowControl.minimize,
+  maximize: windowControl.maximize,
+  close: windowControl.close,
+  reattach: windowControl.reattach,
+  getCurrentViewInfo: windowControl.getCurrentViewInfo
+})
+
+export type { WindowControlAPI }
 
 

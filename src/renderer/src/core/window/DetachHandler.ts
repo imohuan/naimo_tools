@@ -5,8 +5,8 @@
 
 import { BaseSingleton } from '../BaseSingleton'
 import type { DetachedWindowConfig } from '@/typings/windowTypes'
-import { appHotkeyBridge } from '../hotkey/AppHotkeyBridge'
-import type { HotkeyConfig } from '@/typings/hotkeyTypes'
+import { HotkeyManager } from '../hotkey/HotkeyManager'
+import type { HotkeyConfig, HotkeyEventListener } from '@/typings/hotkeyTypes'
 import { HotkeyType } from '@/typings/hotkeyTypes'
 import { eventSystem } from '@/utils/eventSystem'
 
@@ -40,6 +40,9 @@ export class DetachHandler extends BaseSingleton {
   /** 是否已初始化 */
   private isInitialized = false
 
+  /** 热键管理器实例 */
+  private hotkeyManager = HotkeyManager.getInstance()
+
   /** Alt+D 快捷键配置 */
   private detachHotkeyConfig: HotkeyConfig = {
     id: 'view-detach',
@@ -48,6 +51,13 @@ export class DetachHandler extends BaseSingleton {
     description: '分离当前视图到独立窗口',
     scope: 'all',
     enabled: true
+  }
+
+  /** 热键事件监听器 */
+  private hotkeyEventListener: HotkeyEventListener = (event) => {
+    if (event.detail.id === this.detachHotkeyConfig.id) {
+      this.handleDetachHotkey()
+    }
   }
 
   /** 当前活跃的插件视图信息 */
@@ -87,9 +97,13 @@ export class DetachHandler extends BaseSingleton {
    */
   private async registerDetachHotkey(): Promise<void> {
     try {
-      const success = await appHotkeyBridge.registerAppHotkey(this.detachHotkeyConfig)
+      // 使用热键管理器注册快捷键
+      const success = await this.hotkeyManager.register(this.detachHotkeyConfig)
       if (success) {
         console.log('✅ Alt+D 分离快捷键注册成功')
+
+        // 添加热键事件监听器
+        this.hotkeyManager.addListener('app-hotkey-triggered', this.hotkeyEventListener)
       } else {
         console.warn('⚠️ Alt+D 分离快捷键注册失败')
       }
@@ -103,14 +117,6 @@ export class DetachHandler extends BaseSingleton {
    * 设置事件监听器
    */
   private setupEventListeners(): void {
-    // 监听应用内快捷键触发事件
-    window.addEventListener('app-hotkey-triggered', ((event: CustomEvent) => {
-      const { id } = event.detail
-      if (id === this.detachHotkeyConfig.id) {
-        this.handleDetachHotkey()
-      }
-    }) as EventListener)
-
     // 监听插件视图更新事件
     eventSystem.on('plugin:view:active', (data) => {
       this.updateCurrentPluginView(data.viewId, data.pluginPath, data.pluginName)
@@ -402,7 +408,11 @@ export class DetachHandler extends BaseSingleton {
    */
   async unregisterDetachHotkey(): Promise<void> {
     try {
-      await appHotkeyBridge.unregisterAppHotkey(this.detachHotkeyConfig.id)
+      // 移除热键事件监听器
+      this.hotkeyManager.removeListener('app-hotkey-triggered', this.hotkeyEventListener)
+
+      // 注销快捷键
+      await this.hotkeyManager.unregister(this.detachHotkeyConfig.id)
       console.log('✅ Alt+D 分离快捷键已注销')
     } catch (error) {
       console.error('❌ 注销分离快捷键失败:', error)

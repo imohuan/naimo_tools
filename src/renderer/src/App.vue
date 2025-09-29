@@ -2,26 +2,28 @@
   <div class="w-full h-full p-2 bg-transparent" @keydown="handleKeyNavigation" @click="handleContainerClick">
     <!-- <Test /> -->
     <!-- 主应用容器 - 透明背景，恢复阴影和圆角效果 -->
-    <div class="w-full bg-transparent relative overflow-hidden h-full rounded-xl shadow-2xl transition-all duration-200"
+    <div class="w-full bg-transparent relative overflow-hidden h-full rounded-xl transition-all duration-200"
       :class="{ 'ring-2 ring-indigo-400 ring-opacity-50': isDragOver }"
-      style="box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15), 0 2px 6px rgba(0, 0, 0, 0.1);">
+      style="box-shadow: 0 1px 3px 0 rgba(60, 72, 120, 0.48);">
 
       <!-- 搜索头部区域 - 固定区域，支持自定义窗口拖拽 -->
-      <DraggableArea class="w-full flex items-center justify-center"
-        :style="{ height: searchHeaderState.headerHeight + 'px' }" @click="searchHeaderActions.handleClick">
+      <DraggableArea class="w-full flex items-center justify-center" :style="{ height: `${headerHeight}px` }"
+        @click="searchHeaderActions.handleClick">
 
         <div class="w-full h-full relative flex items-center bg-white rounded-t-xl transition-all duration-200"
           :class="{ 'bg-indigo-50': isDragOver }" @dragover="handleDragOver" @dragenter="handleDragEnter"
           @dragleave="handleDragLeave" @drop="originalHandleDrop">
 
           <!-- 插件信息显示区域 -->
-          <div v-if="searchHeaderComputed.shouldShowPluginInfo.value" class="h-full flex items-center p-2">
+          <div v-if="displayedPluginItem && !searchHeaderState.isSettingsInterface"
+            class="h-full flex items-center p-2">
+            <!-- 调试信息 -->
+            <!-- {{ console.log('🔍 Debug插件信息:', { shouldShow: searchHeaderComputed.shouldShowPluginInfo.value, currentPluginItem: searchHeaderState.currentPluginItem, isSettings: searchHeaderState.isSettingsInterface }) }} -->
             <!-- 插件图标容器 -->
             <div class="h-full p-2 flex items-center space-x-1 border border-indigo-200 bg-indigo-50 rounded-md">
               <div class="p-1 flex items-center justify-center">
-                <IconDisplay :src="searchHeaderState.currentPluginItem?.icon"
-                  :alt="searchHeaderState.currentPluginItem?.name" icon-class="w-4 h-4 object-cover"
-                  fallback-class="w-5 h-5 flex items-center justify-center">
+                <IconDisplay :src="displayedPluginItem?.icon" :alt="displayedPluginItem?.name"
+                  icon-class="w-4 h-4 object-cover" fallback-class="w-5 h-5 flex items-center justify-center">
                   <template #fallback>
                     <IconMdiPuzzle class="w-4 h-4 text-indigo-500" />
                   </template>
@@ -30,9 +32,8 @@
 
               <!-- 插件名称和类型 -->
               <div class="flex items-center justify-center gap-2">
-                <span class="text-sm font-medium text-indigo-700 truncate max-w-24"
-                  :title="searchHeaderState.currentPluginItem?.name">
-                  {{ searchHeaderState.currentPluginItem?.name }}
+                <span class="text-sm font-medium text-indigo-700 truncate max-w-24" :title="displayedPluginItem?.name">
+                  {{ displayedPluginItem?.name }}
                 </span>
                 <span class="font-mono bg-indigo-400 rounded-md text-white px-2 text-xs">
                   插件
@@ -42,7 +43,8 @@
           </div>
 
           <!-- 文件信息显示区域 -->
-          <div v-else-if="searchHeaderComputed.shouldShowFileInfo.value" class="h-full flex items-center p-2">
+          <div v-else-if="searchHeaderState.attachedFiles.length > 0 && !displayedPluginItem"
+            class="h-full flex items-center p-2">
             <!-- 文件图标容器 -->
             <div class="h-full p-2 flex items-center space-x-1 border border-gray-200 bg-gray-50 rounded-md">
               <div class="p-1">
@@ -103,16 +105,16 @@
       <!-- 内容呈现区域 - 动态区域 -->
       <ContentArea ref="contentAreaRef" :content-area-visible="contentAreaVisible" :search-categories="searchCategories"
         :selected-index="selectedIndex" :flat-items="flatItems" :show-plugin-window="isWindowInterface"
-        :show-settings-background="isSettingsInterface" @app-click="customExecuteItem"
-        @category-toggle="handleCategoryToggle" @category-drag-end="handleCategoryDragEnd" @app-delete="handleAppDelete"
-        @app-pin="handleAppPin" @window-resize="handleWindowResize" />
+        :show-settings-background="isSettingsInterface" @app-click="executeItem" @category-toggle="handleCategoryToggle"
+        @category-drag-end="handleCategoryDragEnd" @app-delete="handleAppDelete" @app-pin="handleAppPin"
+        @window-resize="handleWindowResize" />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 // ==================== 导入依赖 ====================
-import { ref, onMounted, nextTick, watch, computed } from "vue";
+import { ref, reactive, onMounted, nextTick, watch, computed } from "vue";
 import { useDebounceFn, watchDebounced } from "@vueuse/core";
 
 // 组件导入
@@ -141,7 +143,7 @@ import IconMdiCog from "~icons/mdi/cog";
 import { useDragDrop } from "@/composables/useDragDrop";
 import { useFileHandler } from "@/composables/useFileHandler";
 import { useUIStatus } from "@/composables/useUIStatus";
-import { InterfaceType as UIInterfaceType } from "@/typings/composableTypes";
+// import { InterfaceType as UIInterfaceType } from "@/typings/composableTypes";
 import { useWindowManager } from "@/composables/useWindowManager";
 import { useEventSystem } from "@/composables/useEventSystem";
 import { useAppLifecycle } from "@/composables/useAppLifecycle";
@@ -156,18 +158,17 @@ import { usePluginStore } from "@/store";
 
 // 类型导入
 import type { AppItem } from "@shared/typings";
-import type { PluginItem } from "./typings/pluginTypes";
 // ==================== 核心管理器初始化 ====================
 /**
  * 搜索头部管理器配置
  */
-const searchHeaderConfig: Partial<SearchHeaderConfig> = {
+const searchHeaderConfig = reactive<Partial<SearchHeaderConfig>>({
   defaultHeight: 50,
   enableFileDrop: true,
   enableNativeDrag: false,
   searchDelay: 300,
   maxAttachedFiles: 10
-};
+});
 
 // 初始化所有管理器
 const {
@@ -255,7 +256,7 @@ const searchText = computed({
 });
 
 // 计算属性：UI常量
-const headerHeight = computed(() => searchHeaderState.headerHeight);
+const headerHeight = computed(() => searchHeaderState?.headerHeight ?? searchHeaderConfig.defaultHeight ?? 50);
 const padding = computed(() => uiConstants.value.padding);
 
 // 搜索处理函数
@@ -272,6 +273,13 @@ const debouncedHandleSearch = useDebounceFn(
   100
 );
 
+// ESC键处理函数 - 使用事件处理器中的逻辑
+const handleEscAction =
+  async () => {
+    console.log("收到ESC键处理函数", isPluginWindowOpen.value)
+    await windowStateHandlers.handleCloseWindowRequested();
+  }
+
 // 键盘导航
 const { handleKeyNavigation } = useKeyboardNavigation(
   flatItems,
@@ -281,7 +289,8 @@ const { handleKeyNavigation } = useKeyboardNavigation(
     executeItem(app);
     handleSearch("");
   },
-  handleSearch
+  handleSearch,
+  handleEscAction
 );
 
 // ==================== 窗口和状态管理 ====================
@@ -315,6 +324,9 @@ const handleSearchFocus = () => {
     }
   });
 };
+
+// 调试状态函数
+const displayedPluginItem = computed(() => searchHeaderState.currentPluginItem ?? currentPluginItem.value ?? null);
 
 // 处理容器点击
 const handleContainerClick = eventHandlers.handleContainerClick;
@@ -361,26 +373,24 @@ const handleFilePaste = async (event: ClipboardEvent) => {
 // 清除文件或插件
 const handleClearFilesOrPlugin = async () => {
   if (searchHeaderState.currentPluginItem) {
+    currentPluginItem.value = null;
     searchHeaderActions.clearCurrentPlugin();
     await closePluginWindow();
-  } else {
+  } else if (attachedFiles.value.length > 0) {
     searchHeaderActions.clearAttachedFiles();
     clearAttachedFiles();
   }
 };
 
 // ==================== 插件和设置管理 ====================
-// 插件窗口管理
-const openPluginWindow = async (pluginItem: PluginItem, options: { url: string; preload: string }) => {
-  await pluginWindowManager.openPluginWindow(pluginItem, options, {
-    openPluginWindowUI,
-    handleResize: () => contentAreaRef.value?.handleResize()
-  });
-};
 
 const closePluginWindow = async () => {
   await pluginWindowManager.closePluginWindow({
-    closePluginWindowUI,
+    closePluginWindowUI: () => {
+      closePluginWindowUI();
+      // 清除搜索头部管理器中的插件状态
+      searchHeaderActions.clearCurrentPlugin();
+    },
     handleSearchFocus
   });
 };
@@ -388,14 +398,23 @@ const closePluginWindow = async () => {
 // 设置页面管理
 const openSettings = async () => {
   await settingsManager.openSettings({
-    switchToSettings,
+    switchToSettings: () => {
+      switchToSettings();
+      // 同步设置状态到搜索头部管理器
+      searchHeaderActions.setSettingsInterface(true);
+      searchHeaderActions.clearCurrentPlugin();
+    },
     handleResize: () => contentAreaRef.value?.handleResize()
   });
 };
 
 const closeSettings = async () => {
   await settingsManager.closeSettings({
-    switchToSearch,
+    switchToSearch: () => {
+      switchToSearch();
+      // 清除设置状态
+      searchHeaderActions.setSettingsInterface(false);
+    },
     handleSearchFocus
   });
 };
@@ -411,28 +430,28 @@ const windowFocusHandlers = eventHandlers.createWindowFocusHandlers({
 });
 
 const searchHandlers = eventHandlers.createSearchHandlers({
-  searchText: searchText.value,
+  searchText: searchText,
   setSearchText: (text: string) => { searchText.value = text; },
   handleSearch,
   executeItem,
-  searchCategories: searchCategories.value,
-  attachedFiles: attachedFiles.value,
-  setAttachedFiles: (files) => { attachedFiles.value = files; },
-  currentPluginItem: currentPluginItem.value,
+  searchCategories: searchCategories,
+  attachedFiles: attachedFiles,
+  setAttachedFiles: (files) => { attachedFiles.value = [...files]; },
+  currentPluginItem: currentPluginItem,
   setCurrentPluginItem: (item) => { currentPluginItem.value = item; },
   show,
   handleSearchFocus
 });
 
 const windowStateHandlers = eventHandlers.createWindowStateHandlers({
-  isPluginWindowOpen: isPluginWindowOpen.value,
-  isSettingsInterface: isSettingsInterface.value,
-  searchText: searchText.value,
+  isPluginWindowOpen: isPluginWindowOpen,
+  isSettingsInterface: isSettingsInterface,
+  searchText: searchText,
   setSearchText: (text: string) => { searchText.value = text; },
   handleSearch,
-  attachedFiles: attachedFiles.value,
-  setAttachedFiles: (files) => { attachedFiles.value = files; },
-  currentPluginItem: currentPluginItem.value,
+  attachedFiles: attachedFiles,
+  setAttachedFiles: (files) => { attachedFiles.value = [...files]; },
+  currentPluginItem: currentPluginItem,
   setCurrentPluginItem: (item) => { currentPluginItem.value = item; },
   closePluginWindow,
   closeSettings,
@@ -445,10 +464,11 @@ const searchStateHandler = eventHandlers.createSearchStateHandler({
   searchHeaderActions,
   setCurrentPluginItem: (item) => { currentPluginItem.value = item; },
   switchToSearch,
-  searchText: searchText.value,
+  searchText: searchText,
   handleSearch,
   handleResize: () => contentAreaRef.value?.handleResize(),
-  handleSearchFocus
+  handleSearchFocus,
+  hide
 });
 
 // 创建快捷键处理器
@@ -505,11 +525,25 @@ watch(
   }
 );
 
-// 监听插件状态变化
+// 监听插件状态变化 - 确保UI状态和搜索头部状态同步
 watch(
   () => currentPluginItem.value,
   (newPluginItem) => {
-    searchHeaderActions.setCurrentPluginItem(newPluginItem);
+    // 同步到搜索头部管理器
+    if (searchHeaderState.currentPluginItem !== newPluginItem) {
+      searchHeaderActions.setCurrentPluginItem(newPluginItem);
+    }
+  },
+  { immediate: true }
+);
+
+// 监听搜索头部插件状态变化，同步到UI状态
+watch(
+  () => searchHeaderState.currentPluginItem,
+  (newPluginItem) => {
+    if (currentPluginItem.value !== newPluginItem) {
+      currentPluginItem.value = newPluginItem;
+    }
   },
   { immediate: true }
 );
@@ -517,18 +551,19 @@ watch(
 // ==================== 插件事件处理 ====================
 const handlePluginExecuted = async (event: { pluginId: string, path: string, hotkeyEmit: boolean }) => {
   await pluginWindowManager.handlePluginExecuted(event, {
+    openPluginWindowUI,
     toggleInput,
     attachedFiles: attachedFiles.value,
     searchText: searchText.value,
     updateStoreCategory,
     handleSearch,
     pluginStore: {
-      installZip: pluginStore.installZip,
-      install: pluginStore.install,
-      uninstall: pluginStore.uninstall,
-      toggle: pluginStore.toggle,
+      installZip: async (zipPath: string) => { await pluginStore.install(zipPath); },
+      install: async (path: string) => { await pluginStore.install(path); },
+      uninstall: async (id: string) => { await pluginStore.uninstall(id); },
+      toggle: async (id: string) => { await pluginStore.toggle(id); },
     },
-    setAttachedFiles: (files) => { attachedFiles.value = files; },
+    setAttachedFiles: (files) => { attachedFiles.value = [...files]; },
     setSearchText: (text) => { searchText.value = text; }
   });
 };
@@ -557,7 +592,7 @@ onMounted(async () => {
     onPluginWindowClosed: handlePluginWindowClosed,
     onWindowMainHide: () => hide(),
     onWindowMainShow: () => show(),
-    onViewDetached: () => searchStateHandler.recoverSearchState(),
+    onViewDetached: () => searchStateHandler.recoverSearchState(true),
     onViewRestoreRequested: (data) => {
       const { reason } = data;
       if (reason === 'settings-closed') {

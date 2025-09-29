@@ -6,28 +6,49 @@
 import { app, BrowserWindow } from "electron";
 import { resolve } from "path";
 import log from "electron-log";
-import { AppConfigManager } from "@main/config/app.config";
 import { NewWindowManager } from "@main/window/NewWindowManager";
 import { BaseWindowController } from "@main/window/BaseWindowController";
 
 /**
- * 最小化窗口
+ * 最小化窗口 - 基于视图类别的智能控制
  */
 export async function minimize(event: Electron.IpcMainInvokeEvent): Promise<boolean> {
   try {
     const manager = NewWindowManager.getInstance();
-    const mainWindow = manager.getMainWindow();
-    if (!mainWindow || mainWindow.isDestroyed()) {
-      log.warn('最小化失败：主窗口不存在或已销毁');
+    const viewManager = manager.getViewManager();
+
+    // 获取当前视图信息
+    const currentViewInfo = viewManager.getCurrentViewInfo(event.sender);
+
+    if (!currentViewInfo) {
+      log.warn('最小化失败：无法获取当前视图信息');
       return false;
     }
-    if (mainWindow.isMinimized?.()) {
-      log.debug('主窗口已是最小化状态');
-      return true;
+
+    // 根据视图类别决定控制行为
+    if (currentViewInfo.config.category === ViewCategory.MAIN_WINDOW) {
+      log.debug('最小化操作被禁止：主窗口视图不支持窗口控制');
+      return false;
     }
-    mainWindow.minimize();
-    log.debug('主窗口已最小化');
-    return true;
+
+    if (currentViewInfo.config.category === ViewCategory.DETACHED_WINDOW) {
+      // 分离窗口视图允许最小化
+      const controller = BaseWindowController.getInstance();
+      const callingWindow = controller.getWindow(currentViewInfo.parentWindowId);
+
+      if (callingWindow && !callingWindow.isDestroyed()) {
+        if (callingWindow.isMinimized?.()) {
+          log.debug('窗口已是最小化状态');
+          return true;
+        }
+        callingWindow.minimize();
+        log.debug(`分离窗口已最小化，ID: ${callingWindow.id}`);
+        return true;
+      }
+    }
+
+    log.warn('最小化失败：无法找到调用窗口或不支持的视图类别');
+    return false;
   } catch (error) {
     log.error('最小化窗口失败:', error);
     return false;
@@ -35,25 +56,46 @@ export async function minimize(event: Electron.IpcMainInvokeEvent): Promise<bool
 }
 
 /**
- * 最大化/还原窗口
+ * 最大化/还原窗口 - 基于视图类别的智能控制
  */
 export async function maximize(event: Electron.IpcMainInvokeEvent): Promise<boolean> {
   try {
     const manager = NewWindowManager.getInstance();
-    const mainWindow = manager.getMainWindow();
-    if (!mainWindow || mainWindow.isDestroyed()) {
-      log.warn('最大化失败：主窗口不存在或已销毁');
+    const viewManager = manager.getViewManager();
+
+    // 获取当前视图信息
+    const currentViewInfo = viewManager.getCurrentViewInfo(event.sender);
+
+    if (!currentViewInfo) {
+      log.warn('最大化失败：无法获取当前视图信息');
       return false;
     }
 
-    if (mainWindow.isMaximized()) {
-      mainWindow.unmaximize();
-      log.debug('主窗口已还原');
-    } else {
-      mainWindow.maximize();
-      log.debug('主窗口已最大化');
+    // 根据视图类别决定控制行为
+    if (currentViewInfo.config.category === ViewCategory.MAIN_WINDOW) {
+      log.debug('最大化操作被禁止：主窗口视图不支持窗口控制');
+      return false;
     }
-    return true;
+
+    if (currentViewInfo.config.category === ViewCategory.DETACHED_WINDOW) {
+      // 分离窗口视图允许最大化/还原
+      const controller = BaseWindowController.getInstance();
+      const callingWindow = controller.getWindow(currentViewInfo.parentWindowId);
+
+      if (callingWindow && !callingWindow.isDestroyed()) {
+        if (callingWindow.isMaximized()) {
+          callingWindow.unmaximize();
+          log.debug(`分离窗口已还原，ID: ${callingWindow.id}`);
+        } else {
+          callingWindow.maximize();
+          log.debug(`分离窗口已最大化，ID: ${callingWindow.id}`);
+        }
+        return true;
+      }
+    }
+
+    log.warn('最大化失败：无法找到调用窗口或不支持的视图类别');
+    return false;
   } catch (error) {
     log.error('最大化窗口失败:', error);
     return false;
@@ -61,26 +103,42 @@ export async function maximize(event: Electron.IpcMainInvokeEvent): Promise<bool
 }
 
 /**
- * 关闭窗口
+ * 关闭窗口 - 基于视图类别的智能控制
  */
 export async function close(event: Electron.IpcMainInvokeEvent): Promise<boolean> {
   try {
     const manager = NewWindowManager.getInstance();
-    const mainWindow = manager.getMainWindow();
-    if (!mainWindow || mainWindow.isDestroyed()) {
-      log.warn('关闭失败：主窗口不存在或已销毁');
+    const viewManager = manager.getViewManager();
+    const currentViewInfo = viewManager.getCurrentViewInfo(event.sender);
+
+    if (!currentViewInfo) {
+      log.warn('关闭失败：无法获取当前视图信息');
       return false;
     }
 
-    // 由窗口管理器负责关闭逻辑，确保视图先行清理
-    const result = await manager.destroyMainWindow();
-    if (!result.success) {
-      log.warn(`关闭主窗口失败: ${result.error}`);
+    // 根据视图类别决定控制行为
+    if (currentViewInfo.config.category === ViewCategory.MAIN_WINDOW) {
+      log.debug('关闭操作被禁止：主窗口视图不支持窗口控制');
       return false;
     }
 
-    log.debug('主窗口已关闭');
-    return true;
+    if (currentViewInfo.config.category === ViewCategory.DETACHED_WINDOW) {
+      // 分离窗口视图允许关闭
+      const baseWindowController = BaseWindowController.getInstance();
+      const callingWindow = baseWindowController.getWindow(currentViewInfo.parentWindowId);
+
+      if (!callingWindow || callingWindow.isDestroyed()) {
+        log.warn(`关闭失败：窗口不存在或已销毁 (${currentViewInfo.parentWindowId})`);
+        return false;
+      }
+
+      callingWindow.close();
+      log.debug(`已关闭分离窗口: ${callingWindow.id}`);
+      return true;
+    }
+
+    log.warn('关闭失败：不支持的视图类别');
+    return false;
   } catch (error) {
     log.error('关闭窗口失败:', error);
     return false;
@@ -94,24 +152,32 @@ export async function close(event: Electron.IpcMainInvokeEvent): Promise<boolean
 export async function toggleShow(event: Electron.IpcMainInvokeEvent, _id?: number, show?: boolean): Promise<boolean> {
   try {
     const manager = NewWindowManager.getInstance();
-    const mainWindow = manager.getMainWindow();
-    if (!mainWindow || mainWindow.isDestroyed()) {
-      log.warn('切换窗口显示失败：主窗口不存在或已销毁');
+    const viewManager = manager.getViewManager();
+    const currentViewInfo = viewManager.getCurrentViewInfo(event.sender);
+
+    if (!currentViewInfo) {
+      log.warn('切换窗口显示失败：无法获取当前视图信息');
       return false;
     }
 
     const baseWindowController = BaseWindowController.getInstance();
+    const callingWindow = baseWindowController.getWindow(currentViewInfo.parentWindowId);
 
-    const isVisible = baseWindowController.isWindowVisible(mainWindow);
+    if (!callingWindow || callingWindow.isDestroyed()) {
+      log.warn(`切换窗口显示失败：窗口不存在或已销毁 (${currentViewInfo.parentWindowId})`);
+      return false;
+    }
+
+    const isVisible = baseWindowController.isWindowVisible(callingWindow);
     const shouldShow = show ?? !isVisible;
 
     if (shouldShow && !isVisible) {
-      baseWindowController.showWindow(mainWindow);
-      mainWindow.focus();
-      log.debug('主窗口已显示');
+      baseWindowController.showWindow(callingWindow);
+      callingWindow.focus();
+      log.debug(`窗口已显示: ${callingWindow.id}`);
     } else if (!shouldShow && isVisible) {
-      baseWindowController.hideWindow(mainWindow);
-      log.debug('主窗口已隐藏');
+      baseWindowController.hideWindow(callingWindow);
+      log.debug(`窗口已隐藏: ${callingWindow.id}`);
     }
 
     return true;
@@ -129,10 +195,29 @@ export async function isMaximized(event: Electron.IpcMainInvokeEvent): Promise<b
   try {
     const manager = NewWindowManager.getInstance();
     const mainWindow = manager.getMainWindow();
-    if (!mainWindow || mainWindow.isDestroyed()) {
+    const viewManager = manager.getViewManager();
+
+    // 获取当前视图信息来判断是主窗口还是分离窗口
+    const currentViewInfo = viewManager.getCurrentViewInfo(event.sender);
+
+    if (!currentViewInfo) {
       return false;
     }
-    return mainWindow.isMaximized();
+
+    // 如果是主窗口的视图调用，始终返回false（主窗口不支持最大化）
+    if (mainWindow && currentViewInfo.parentWindowId === mainWindow.id) {
+      return false;
+    }
+
+    // 如果是分离窗口调用，检查实际状态
+    const controller = BaseWindowController.getInstance();
+    const callingWindow = controller.getWindow(currentViewInfo.parentWindowId);
+
+    if (callingWindow && !callingWindow.isDestroyed()) {
+      return callingWindow.isMaximized();
+    }
+
+    return false;
   } catch (error) {
     log.error('检查窗口是否最大化失败:', error);
     return false;
@@ -369,6 +454,7 @@ export function getUIConstants(event: Electron.IpcMainInvokeEvent): {
 
 import { ViewManager } from '@main/window/ViewManager'
 import { ViewType, LifecycleType } from '@renderer/src/typings/windowTypes'
+import { ViewCategory } from '@main/typings/windowTypes'
 import type { PluginItem } from '@renderer/src/typings/pluginTypes'
 
 

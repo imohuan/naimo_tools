@@ -271,8 +271,8 @@ export function useFileHandler(options: FileHandlerOptions = {}) {
 
   return {
     // 只读状态
-    attachedFiles: readonly(attachedFiles),
-    state: readonly(state),
+    attachedFiles: attachedFiles,
+    state: state,
 
     // 计算属性
     firstFile,

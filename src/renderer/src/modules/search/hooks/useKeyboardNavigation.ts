@@ -6,7 +6,8 @@ export function useKeyboardNavigation(
   searchCategories: any,
   selectedIndex: any,
   executeItem: (app: AppItem) => void,
-  handleSearch: (value: string, attachedFiles?: any[]) => Promise<void>
+  handleSearch: (value: string) => Promise<void>,
+  handleEscAction: () => Promise<void>
 ) {
   // 滚动到选中的项目
   const scrollToSelectedItem = () => {
@@ -155,7 +156,7 @@ export function useKeyboardNavigation(
 
       case "Escape":
         event.preventDefault();
-        handleSearch("");
+        handleEscAction();
         break;
     }
   };

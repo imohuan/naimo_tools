@@ -22,13 +22,13 @@ export const hotkeyConfig: HotkeySettingsConfig = {
       description: "快速将焦点移动到搜索输入框",
       enabled: true,
     },
-    {
-      id: "app_close_window",
-      keys: "escape",
-      type: HotkeyType.APPLICATION,
-      name: "关闭窗口",
-      description: "快速关闭应用程序窗口",
-      enabled: true,
-    },
+    // {
+    //   id: "app_close_window",
+    //   keys: "escape",
+    //   type: HotkeyType.APPLICATION,
+    //   name: "关闭窗口",
+    //   description: "快速关闭应用程序窗口",
+    //   enabled: true,
+    // },
   ],
 };

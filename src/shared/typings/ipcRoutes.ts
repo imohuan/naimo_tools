@@ -1,6 +1,6 @@
 /**
  * 自动生成的 IPC 类型定义
- * 生成时间: 2025-09-29T05:55:47.865Z
+ * 生成时间: 2025-09-29T17:12:39.922Z
  * 请勿手动修改此文件
  */
 
@@ -583,19 +583,19 @@ interface storeInterface {
 }
 
 interface windowInterface {
-  /** 最小化窗口 */
+  /** 最小化窗口 - 基于视图类别的智能控制 */
   "window-minimize": () => Promise<boolean>;
-  /** 最小化窗口 */
+  /** 最小化窗口 - 基于视图类别的智能控制 */
   "windowMinimize": () => Promise<boolean>;
 
-  /** 最大化/还原窗口 */
+  /** 最大化/还原窗口 - 基于视图类别的智能控制 */
   "window-maximize": () => Promise<boolean>;
-  /** 最大化/还原窗口 */
+  /** 最大化/还原窗口 - 基于视图类别的智能控制 */
   "windowMaximize": () => Promise<boolean>;
 
-  /** 关闭窗口 */
+  /** 关闭窗口 - 基于视图类别的智能控制 */
   "window-close": () => Promise<boolean>;
-  /** 关闭窗口 */
+  /** 关闭窗口 - 基于视图类别的智能控制 */
   "windowClose": () => Promise<boolean>;
 
   /**
@@ -1199,19 +1199,19 @@ export const ROUTE_INFO: RouteInfo[] = [
   },
   {
     route: "window-minimize",
-    comment: "最小化窗口",
+    comment: "最小化窗口 - 基于视图类别的智能控制",
     module: "window",
     function: "minimize"
   },
   {
     route: "window-maximize",
-    comment: "最大化/还原窗口",
+    comment: "最大化/还原窗口 - 基于视图类别的智能控制",
     module: "window",
     function: "maximize"
   },
   {
     route: "window-close",
-    comment: "关闭窗口",
+    comment: "关闭窗口 - 基于视图类别的智能控制",
     module: "window",
     function: "close"
   },

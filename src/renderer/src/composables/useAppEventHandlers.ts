@@ -3,7 +3,7 @@
  * 集中管理所有应用级别的事件处理逻辑
  */
 
-import { nextTick } from 'vue'
+import { nextTick, type Ref } from 'vue'
 import type { HotkeyEventListener, HotkeyTriggeredEventDetail } from '@/typings/hotkeyTypes'
 import type { AttachedFile } from '@/typings/composableTypes'
 import type { PluginItem } from '@/typings/pluginTypes'
@@ -56,14 +56,14 @@ export function useAppEventHandlers() {
    * 创建搜索和导航事件处理器
    */
   const createSearchHandlers = (dependencies: {
-    searchText: string
+    searchText: Ref<string>
     setSearchText: (text: string) => void
     handleSearch: (text: string) => Promise<void>
     executeItem: (app: AppItem, hotkeyEmit?: boolean) => void
-    searchCategories: any[]
-    attachedFiles: AttachedFile[]
+    searchCategories: Ref<any[]>
+    attachedFiles: Ref<AttachedFile[]>
     setAttachedFiles: (files: AttachedFile[]) => void
-    currentPluginItem: PluginItem | null
+    currentPluginItem: Ref<PluginItem | null>
     setCurrentPluginItem: (item: PluginItem | null) => void
     show: () => void
     handleSearchFocus: () => void
@@ -99,14 +99,14 @@ export function useAppEventHandlers() {
       dependencies.show()
 
       // 获取搜索结果
-      const items = dependencies.searchCategories.find(category => category.id === 'best-match')?.items
+      const items = dependencies.searchCategories.value.find(category => category.id === 'best-match')?.items
       if (items && items.length > 0) {
         dependencies.executeItem(items[0], true)
       } else {
         console.log("没有搜索结果")
       }
 
-      console.log("搜索结果:", dependencies.searchCategories, { items })
+      console.log("搜索结果:", dependencies.searchCategories.value, { items })
       console.log("收到自定义全局快捷键触发事件:", name)
     }
   })
@@ -115,14 +115,14 @@ export function useAppEventHandlers() {
    * 创建窗口状态管理事件处理器
    */
   const createWindowStateHandlers = (dependencies: {
-    isPluginWindowOpen: boolean
-    isSettingsInterface: boolean
-    searchText: string
+    isPluginWindowOpen: Ref<boolean>
+    isSettingsInterface: Ref<boolean>
+    searchText: Ref<string>
     setSearchText: (text: string) => void
     handleSearch: (text: string) => Promise<void>
-    attachedFiles: AttachedFile[]
+    attachedFiles: Ref<AttachedFile[]>
     setAttachedFiles: (files: AttachedFile[]) => void
-    currentPluginItem: PluginItem | null
+    currentPluginItem: Ref<PluginItem | null>
     setCurrentPluginItem: (item: PluginItem | null) => void
     closePluginWindow: () => Promise<void>
     closeSettings: () => Promise<void>
@@ -135,14 +135,14 @@ export function useAppEventHandlers() {
      */
     handleCloseWindowRequested: async () => {
       console.log("收到关闭窗口请求，当前状态:", {
-        isPluginWindowOpen: dependencies.isPluginWindowOpen,
-        isSettingsInterface: dependencies.isSettingsInterface,
-        searchText: dependencies.searchText,
-        hasSearchText: dependencies.searchText.trim() !== ''
+        isPluginWindowOpen: dependencies.isPluginWindowOpen.value,
+        isSettingsInterface: dependencies.isSettingsInterface.value,
+        searchText: dependencies.searchText.value,
+        hasSearchText: dependencies.searchText.value.trim() !== ''
       })
 
       // 如果当前是插件窗口，关闭插件窗口
-      if (dependencies.isPluginWindowOpen) {
+      if (dependencies.isPluginWindowOpen.value) {
         console.log("关闭插件窗口")
         dependencies.closePluginWindow()
         dependencies.setAttachedFiles([])
@@ -151,13 +151,13 @@ export function useAppEventHandlers() {
       }
 
       // 如果当前是设置页面，关闭设置页面
-      if (dependencies.isSettingsInterface) {
+      if (dependencies.isSettingsInterface.value) {
         console.log("关闭设置页面")
         await dependencies.closeSettings()
         return
       }
 
-      if (dependencies.attachedFiles.length > 0 || dependencies.currentPluginItem) {
+      if (dependencies.attachedFiles.value.length > 0 || dependencies.currentPluginItem.value) {
         console.log("清空附加内容")
         dependencies.setAttachedFiles([])
         dependencies.setCurrentPluginItem(null)
@@ -165,7 +165,7 @@ export function useAppEventHandlers() {
       }
 
       // 如果当前是搜索页面
-      if (dependencies.searchText.trim() !== '') {
+      if (dependencies.searchText.value.trim() !== '') {
         console.log("清空搜索框")
         dependencies.setSearchText('')
         dependencies.handleSearch('')
@@ -233,16 +233,17 @@ export function useAppEventHandlers() {
     }
     setCurrentPluginItem: (item: PluginItem | null) => void
     switchToSearch: () => void
-    searchText: string
+    searchText: Ref<string>
     handleSearch: (text: string) => Promise<void>
     handleResize: () => void
     handleSearchFocus: () => void
+    hide: () => void
   }) => ({
     /**
      * 恢复搜索栏为默认搜索状态
      */
     recoverSearchState: (clearPlugin = false) => {
-      console.log("恢复搜索状态", { clearPlugin, searchText: dependencies.searchText })
+      console.log("恢复搜索状态", { clearPlugin, searchText: dependencies.searchText.value })
 
       if (clearPlugin) {
         dependencies.searchHeaderActions.clearCurrentPlugin()
@@ -252,13 +253,15 @@ export function useAppEventHandlers() {
       dependencies.switchToSearch()
       dependencies.searchHeaderActions.setSearchBoxVisibility(true)
 
-      const currentText = dependencies.searchText ?? ""
+      const currentText = dependencies.searchText.value ?? ""
       dependencies.searchHeaderActions.updateSearchText(currentText)
       dependencies.handleSearch(currentText)
 
       nextTick(() => {
         dependencies.handleResize()
         dependencies.handleSearchFocus()
+        // 隐藏窗口
+        dependencies.hide()
       })
     }
   })

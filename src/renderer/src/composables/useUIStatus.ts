@@ -72,8 +72,9 @@ export function useUIStatus() {
    * 切换到设置界面
    */
   const switchToSettings = () => {
-    // 清空搜索文本
+    // 清空搜索文本和插件状态
     searchText.value = ''
+    currentPluginItem.value = null
     currentInterface.value = InterfaceType.SETTINGS
   }
 
@@ -104,7 +105,7 @@ export function useUIStatus() {
   /**
    * 打开插件窗口
    */
-  const openPluginWindow = (pluginItem?: PluginItem) => {
+  const openPluginWindow = (pluginItem?: PluginItem | null) => {
     switchToWindow()
     currentPluginItem.value = pluginItem || null
   }

@@ -1115,6 +1115,78 @@ export class ViewManager {
   }
 
   /**
+   * 注册分离窗口的控制栏视图到 ViewManager
+   * @param detachedWindowId 分离窗口ID
+   * @param controlBarViewId 控制栏视图ID
+   * @param controlBarView 控制栏 WebContentsView 实例
+   * @param config 控制栏视图配置
+   * @returns 注册结果
+   */
+  public async registerDetachedControlBar(
+    detachedWindowId: number,
+    controlBarViewId: string,
+    controlBarView: WebContentsView,
+    config: WebContentsViewConfig
+  ): Promise<ViewOperationResult> {
+    try {
+      log.info(`注册分离窗口控制栏: ${controlBarViewId} -> 窗口 ${detachedWindowId}`)
+
+      // 检查视图是否已存在
+      if (this.views.has(controlBarViewId)) {
+        log.warn(`控制栏视图已存在: ${controlBarViewId}`)
+        return {
+          success: false,
+          viewId: controlBarViewId,
+          error: '控制栏视图已存在'
+        }
+      }
+
+      // 创建视图信息
+      const viewInfo: WebContentsViewInfo = {
+        id: controlBarViewId,
+        view: controlBarView,
+        config,
+        state: {
+          isVisible: true,
+          isActive: true,
+          lastAccessTime: Date.now(),
+          memoryUsage: 0
+        },
+        createdAt: new Date(),
+        parentWindowId: detachedWindowId
+      }
+
+      // 注册视图
+      this.views.set(controlBarViewId, viewInfo)
+
+      // 更新窗口视图映射
+      if (!this.windowViews.has(detachedWindowId)) {
+        this.windowViews.set(detachedWindowId, new Set())
+      }
+      this.windowViews.get(detachedWindowId)!.add(controlBarViewId)
+
+      // 设置为活跃视图
+      this.activeViews.set(detachedWindowId, controlBarViewId)
+
+      log.info(`分离窗口控制栏注册成功: ${controlBarViewId}`)
+
+      return {
+        success: true,
+        viewId: controlBarViewId,
+        windowId: detachedWindowId,
+        data: { registered: true }
+      }
+    } catch (error) {
+      log.error(`注册分离窗口控制栏失败: ${controlBarViewId}`, error)
+      return {
+        success: false,
+        viewId: controlBarViewId,
+        error: error instanceof Error ? error.message : '未知错误'
+      }
+    }
+  }
+
+  /**
    * 获取当前WebContentsView的完整信息
    * 通过webContents查找对应的WebContentsViewInfo，并返回序列化后的信息
    * @param webContents WebContents 实例

@@ -15,6 +15,14 @@ export enum WindowType {
   DETACHED = 'detached'
 }
 
+/** 视图类别 - 用于区分不同类型的视图和控制行为 */
+export enum ViewCategory {
+  /** 主窗口视图 - 禁止窗口控制操作 */
+  MAIN_WINDOW = 'main-window',
+  /** 分离窗口视图 - 允许窗口控制操作 */
+  DETACHED_WINDOW = 'detached-window'
+}
+
 /** BaseWindow 配置 */
 export interface BaseWindowConfig {
   /** 窗口边界 */
@@ -50,6 +58,8 @@ export interface WebContentsViewConfig {
   id: string
   /** 视图类型 */
   type: ViewType
+  /** 视图类别 - 用于控制行为判断 */
+  category: ViewCategory
   /** 要加载的 URL */
   url?: string
   /** 文件路径 */

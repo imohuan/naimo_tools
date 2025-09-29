@@ -2,11 +2,6 @@ import mitt from 'mitt'
 
 // 定义事件类型
 export interface AppEvents {
-  // 窗口焦点相关事件
-  'window:focus': void
-  'window:blur': void
-  'window:visibility-change': void
-
   // 搜索相关事件
   'search:focus-requested': void
   'search:clear': void
@@ -38,10 +33,6 @@ export interface AppEvents {
   }
   'file:clear': void
 
-  // 全局快捷键事件（来自主进程）
-  'global-hotkey-trigger': {
-    detail: any
-  }
 
   // 插件视图相关事件
   'plugin:view:active': {

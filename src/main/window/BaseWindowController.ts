@@ -394,11 +394,12 @@ export class BaseWindowController {
    * @param window BaseWindow 实例
    */
   private setupMainWindowEvents(window: BaseWindow): void {
+    const windowId = window.id
     // 窗口关闭处理
     window.on('closed', () => {
-      log.info(`BaseWindow 主窗口已关闭: ID=${window.id}`)
-      this.createdWindows.delete(window.id)
-      this.hiddenWindowPositions.delete(window.id)
+      log.info(`BaseWindow 主窗口已关闭: ID=${windowId}`)
+      this.createdWindows.delete(windowId)
+      this.hiddenWindowPositions.delete(windowId)
     })
 
     // 开发环境下的额外设置
@@ -415,11 +416,12 @@ export class BaseWindowController {
    * @param config 分离窗口配置
    */
   private setupDetachedWindowEvents(window: BaseWindow, config: DetachedWindowConfig): void {
+    const windowId = window.id
     // 窗口关闭处理
     window.on('closed', () => {
-      log.info(`分离窗口已关闭: ${config.title}, ID=${window.id}`)
-      this.createdWindows.delete(window.id)
-      this.hiddenWindowPositions.delete(window.id)
+      log.info(`分离窗口已关闭: ${config.title}, ID=${windowId}`)
+      this.createdWindows.delete(windowId)
+      this.hiddenWindowPositions.delete(windowId)
     })
 
     log.info(`分离窗口事件设置完成: ${config.title}`)
