@@ -31,13 +31,17 @@ export class EventRouterClient {
   on<T extends EventKey>(
     eventKey: T,
     handler: EventHandlerType<T>
-  ): void {
+  ): () => void {
     try {
       // 如果是方法名格式（onXxx），转换为事件名格式
       const eventName = this.getEventNameFromKey(eventKey as string);
       ipcRenderer.on(eventName, handler as any);
+      return () => {
+        this.off(eventKey, handler as any);
+      }
     } catch (error) {
       console.error('ipcRenderer.on 不可用:', error);
+      return () => { }
     }
   }
 

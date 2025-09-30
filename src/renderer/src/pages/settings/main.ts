@@ -6,6 +6,7 @@
 import { createApp } from 'vue'
 import SettingsApp from './SettingsApp.vue'
 import { pinia, usePluginStore } from '@/store'
+import { useHotkeyManager } from '@/modules/hotkeys/hooks/useHotkeyManager'
 import '@/style.css'
 
 // 创建设置页面应用
@@ -34,14 +35,21 @@ if (import.meta.env.DEV) {
   console.log('🔧 设置页面应用已启动')
 }
 
-// 初始化插件系统（设置页面需要访问插件数据）
+// 初始化核心系统（设置页面需要访问插件和快捷键数据）
 ; (async () => {
   try {
+    // 1. 初始化快捷键系统（优先执行，确保插件快捷键可以正确注册）
+    console.log('⌨️ 设置页面 - 开始初始化快捷键系统...')
+    const { initializeHotkeys } = useHotkeyManager()
+    await initializeHotkeys()
+    console.log('✅ 设置页面 - 快捷键系统初始化完成')
+
+    // 2. 初始化插件系统
     console.log('🔌 设置页面 - 开始初始化插件系统...')
     const pluginStore = usePluginStore()
     await pluginStore.initialize()
     console.log('✅ 设置页面 - 插件系统初始化完成')
   } catch (error) {
-    console.error('❌ 设置页面 - 插件系统初始化失败:', error)
+    console.error('❌ 设置页面 - 系统初始化失败:', error)
   }
 })()

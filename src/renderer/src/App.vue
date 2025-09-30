@@ -515,6 +515,32 @@ watch(
   { deep: true }
 );
 
+// 存储watch触发的关闭时间戳，用于区分是否应该隐藏窗口
+let watchCloseTimestamp: number | null = null;
+
+// 监听搜索框内容和界面状态，当搜索框有内容且在设置界面时自动关闭设置view
+watch(
+  [() => searchText.value, isSettingsInterface],
+  async ([newSearchText, isSettings]) => {
+    console.log('🔍 监听搜索框内容和界面状态，当前状态:', {
+      newSearchText,
+      isSettings
+    })
+
+    // 当搜索框有内容且当前在设置界面时，关闭设置view
+    if (newSearchText.trim() !== '' && isSettings) {
+      try {
+        // 记录watch触发的关闭时间戳
+        watchCloseTimestamp = Date.now();
+        await naimo.router.windowCloseSettingsView()
+        console.log('✅ 搜索框有内容，已自动关闭设置view')
+      } catch (error) {
+        console.error('❌ 关闭设置view失败:', error)
+      }
+    }
+  }
+);
+
 // 监听搜索文本变化
 watch(
   () => searchText.value,
@@ -596,10 +622,20 @@ onMounted(async () => {
     onWindowMainHide: () => hide(),
     onWindowMainShow: () => show(),
     onViewDetached: () => searchStateHandler.recoverSearchState(true),
-    onViewRestoreRequested: (data) => {
-      const { reason } = data;
+    onViewRestoreRequested: (data: { reason: 'settings-closed' | 'plugin-closed' | 'user-requested' | 'system', timestamp: number }) => {
+      const { reason, timestamp } = data;
       if (reason === 'settings-closed') {
-        searchStateHandler.recoverSearchState();
+        // 检查是否是watch触发的关闭（时间戳差在100ms内认为是同一次操作）
+        const isWatchTriggered = !!(watchCloseTimestamp && Math.abs(timestamp - watchCloseTimestamp) < 100);
+        console.log('🔍 设置视图关闭，检查是否为watch触发:', { timestamp, watchCloseTimestamp, isWatchTriggered });
+
+        // 如果是watch触发的关闭，跳过隐藏窗口
+        searchStateHandler.recoverSearchState(false, isWatchTriggered);
+
+        // 清理时间戳
+        if (isWatchTriggered) {
+          watchCloseTimestamp = null;
+        }
       } else if (reason === 'plugin-closed') {
         searchStateHandler.recoverSearchState(true);
       }

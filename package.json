@@ -5,7 +5,7 @@
   "main": "dist/main/main.js",
   "type": "module",
   "scripts": {
-    "dev": "node scripts/dev.js --enable-ipc-types",
+    "dev": "node scripts/dev.js --enable-ipc-types --enable-events",
     "dev:ui": "CHCP 65001 & node scripts/start-dev-ui.js",
     "build": "node scripts/build.js",
     "build:renderer": "vite build src/renderer --config src/renderer/vite.config.ts",

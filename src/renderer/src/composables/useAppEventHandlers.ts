@@ -230,6 +230,7 @@ export function useAppEventHandlers() {
       clearCurrentPlugin: () => void
       setSearchBoxVisibility: (visible: boolean) => void
       updateSearchText: (text: string) => void
+      setSettingsInterface: (isSettings: boolean) => void
     }
     setCurrentPluginItem: (item: PluginItem | null) => void
     switchToSearch: () => void
@@ -242,8 +243,8 @@ export function useAppEventHandlers() {
     /**
      * 恢复搜索栏为默认搜索状态
      */
-    recoverSearchState: (clearPlugin = false) => {
-      console.log("恢复搜索状态", { clearPlugin, searchText: dependencies.searchText.value })
+    recoverSearchState: (clearPlugin = false, skipHide = false) => {
+      console.log("恢复搜索状态", { clearPlugin, skipHide, searchText: dependencies.searchText.value })
 
       if (clearPlugin) {
         dependencies.searchHeaderActions.clearCurrentPlugin()
@@ -253,6 +254,9 @@ export function useAppEventHandlers() {
       dependencies.switchToSearch()
       dependencies.searchHeaderActions.setSearchBoxVisibility(true)
 
+      // 确保清除设置界面状态
+      dependencies.searchHeaderActions.setSettingsInterface(false)
+
       const currentText = dependencies.searchText.value ?? ""
       dependencies.searchHeaderActions.updateSearchText(currentText)
       dependencies.handleSearch(currentText)
@@ -260,8 +264,10 @@ export function useAppEventHandlers() {
       nextTick(() => {
         dependencies.handleResize()
         dependencies.handleSearchFocus()
-        // 隐藏窗口
-        dependencies.hide()
+        // 根据skipHide参数决定是否隐藏窗口
+        if (!skipHide) {
+          dependencies.hide()
+        }
       })
     }
   })

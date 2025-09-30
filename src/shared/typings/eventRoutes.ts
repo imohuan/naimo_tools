@@ -1,6 +1,6 @@
 /**
  * 自动生成的事件类型定义
- * 生成时间: 2025-09-30T04:12:57.740Z
+ * 生成时间: 2025-09-30T10:09:04.589Z
  * 请勿手动修改此文件
  */
 
@@ -9,84 +9,99 @@ import type { EventsConfig, EventData } from '@shared/config/eventsConfig'
 // 事件接口定义
 interface EventInterface {
   /** 监听 view-detached 事件 */
-  "view-detached": (handler: (event: any, data: EventData<'view-detached'>) => void) => void;
+  "view-detached": (handler: (event: any, data: EventData<'view-detached'>) => void) => () => void;
   /** 监听 view-detached 事件 */
-  "onViewDetached": (handler: (event: any, data: EventData<'view-detached'>) => void) => void;
+  "onViewDetached": (handler: (event: any, data: EventData<'view-detached'>) => void) => () => void;
 
   /** 监听 view-restore-requested 事件 */
-  "view-restore-requested": (handler: (event: any, data: EventData<'view-restore-requested'>) => void) => void;
+  "view-restore-requested": (handler: (event: any, data: EventData<'view-restore-requested'>) => void) => () => void;
   /** 监听 view-restore-requested 事件 */
-  "onViewRestoreRequested": (handler: (event: any, data: EventData<'view-restore-requested'>) => void) => void;
+  "onViewRestoreRequested": (handler: (event: any, data: EventData<'view-restore-requested'>) => void) => () => void;
 
   /** 监听 view-reattached 事件 */
-  "view-reattached": (handler: (event: any, data: EventData<'view-reattached'>) => void) => void;
+  "view-reattached": (handler: (event: any, data: EventData<'view-reattached'>) => void) => () => void;
   /** 监听 view-reattached 事件 */
-  "onViewReattached": (handler: (event: any, data: EventData<'view-reattached'>) => void) => void;
+  "onViewReattached": (handler: (event: any, data: EventData<'view-reattached'>) => void) => () => void;
 
   /** 监听 detached-window-closed 事件 */
-  "detached-window-closed": (handler: (event: any, data: EventData<'detached-window-closed'>) => void) => void;
+  "detached-window-closed": (handler: (event: any, data: EventData<'detached-window-closed'>) => void) => () => void;
   /** 监听 detached-window-closed 事件 */
-  "onDetachedWindowClosed": (handler: (event: any, data: EventData<'detached-window-closed'>) => void) => void;
+  "onDetachedWindowClosed": (handler: (event: any, data: EventData<'detached-window-closed'>) => void) => () => void;
 
   /** 监听 plugin-window-closed 事件 */
-  "plugin-window-closed": (handler: (event: any, data: EventData<'plugin-window-closed'>) => void) => void;
+  "plugin-window-closed": (handler: (event: any, data: EventData<'plugin-window-closed'>) => void) => () => void;
   /** 监听 plugin-window-closed 事件 */
-  "onPluginWindowClosed": (handler: (event: any, data: EventData<'plugin-window-closed'>) => void) => void;
+  "onPluginWindowClosed": (handler: (event: any, data: EventData<'plugin-window-closed'>) => void) => () => void;
 
   /** 监听 plugin-view-opened 事件 */
-  "plugin-view-opened": (handler: (event: any, data: EventData<'plugin-view-opened'>) => void) => void;
+  "plugin-view-opened": (handler: (event: any, data: EventData<'plugin-view-opened'>) => void) => () => void;
   /** 监听 plugin-view-opened 事件 */
-  "onPluginViewOpened": (handler: (event: any, data: EventData<'plugin-view-opened'>) => void) => void;
+  "onPluginViewOpened": (handler: (event: any, data: EventData<'plugin-view-opened'>) => void) => () => void;
 
   /** 监听 plugin-view-closed 事件 */
-  "plugin-view-closed": (handler: (event: any, data: EventData<'plugin-view-closed'>) => void) => void;
+  "plugin-view-closed": (handler: (event: any, data: EventData<'plugin-view-closed'>) => void) => () => void;
   /** 监听 plugin-view-closed 事件 */
-  "onPluginViewClosed": (handler: (event: any, data: EventData<'plugin-view-closed'>) => void) => void;
+  "onPluginViewClosed": (handler: (event: any, data: EventData<'plugin-view-closed'>) => void) => () => void;
+
+  /** 监听 plugin-installed 事件 */
+  "plugin-installed": (handler: (event: any, data: EventData<'plugin-installed'>) => void) => () => void;
+  /** 监听 plugin-installed 事件 */
+  "onPluginInstalled": (handler: (event: any, data: EventData<'plugin-installed'>) => void) => () => void;
+
+  /** 监听 plugin-uninstalled 事件 */
+  "plugin-uninstalled": (handler: (event: any, data: EventData<'plugin-uninstalled'>) => void) => () => void;
+  /** 监听 plugin-uninstalled 事件 */
+  "onPluginUninstalled": (handler: (event: any, data: EventData<'plugin-uninstalled'>) => void) => () => void;
+
+  /** 监听 hotkey-updated 事件 */
+  "hotkey-updated": (handler: (event: any, data: EventData<'hotkey-updated'>) => void) => () => void;
+  /** 监听 hotkey-updated 事件 */
+  "onHotkeyUpdated": (handler: (event: any, data: EventData<'hotkey-updated'>) => void) => () => void;
 
   /** 监听 window-all-blur 事件 */
-  "window-all-blur": (handler: (event: any, data: EventData<'window-all-blur'>) => void) => void;
+  "window-all-blur": (handler: (event: any, data: EventData<'window-all-blur'>) => void) => () => void;
   /** 监听 window-all-blur 事件 */
-  "onWindowAllBlur": (handler: (event: any, data: EventData<'window-all-blur'>) => void) => void;
+  "onWindowAllBlur": (handler: (event: any, data: EventData<'window-all-blur'>) => void) => () => void;
 
   /** 监听 window-main-hide 事件 */
-  "window-main-hide": (handler: (event: any, data: EventData<'window-main-hide'>) => void) => void;
+  "window-main-hide": (handler: (event: any, data: EventData<'window-main-hide'>) => void) => () => void;
   /** 监听 window-main-hide 事件 */
-  "onWindowMainHide": (handler: (event: any, data: EventData<'window-main-hide'>) => void) => void;
+  "onWindowMainHide": (handler: (event: any, data: EventData<'window-main-hide'>) => void) => () => void;
 
   /** 监听 window-main-show 事件 */
-  "window-main-show": (handler: (event: any, data: EventData<'window-main-show'>) => void) => void;
+  "window-main-show": (handler: (event: any, data: EventData<'window-main-show'>) => void) => () => void;
   /** 监听 window-main-show 事件 */
-  "onWindowMainShow": (handler: (event: any, data: EventData<'window-main-show'>) => void) => void;
+  "onWindowMainShow": (handler: (event: any, data: EventData<'window-main-show'>) => void) => () => void;
 
   /** 监听 global-hotkey-trigger 事件 */
-  "global-hotkey-trigger": (handler: (event: any, data: EventData<'global-hotkey-trigger'>) => void) => void;
+  "global-hotkey-trigger": (handler: (event: any, data: EventData<'global-hotkey-trigger'>) => void) => () => void;
   /** 监听 global-hotkey-trigger 事件 */
-  "onGlobalHotkeyTrigger": (handler: (event: any, data: EventData<'global-hotkey-trigger'>) => void) => void;
+  "onGlobalHotkeyTrigger": (handler: (event: any, data: EventData<'global-hotkey-trigger'>) => void) => () => void;
 
   /** 监听 screen-info 事件 */
-  "screen-info": (handler: (event: any, data: EventData<'screen-info'>) => void) => void;
+  "screen-info": (handler: (event: any, data: EventData<'screen-info'>) => void) => () => void;
   /** 监听 screen-info 事件 */
-  "onScreenInfo": (handler: (event: any, data: EventData<'screen-info'>) => void) => void;
+  "onScreenInfo": (handler: (event: any, data: EventData<'screen-info'>) => void) => () => void;
 
   /** 监听 app-blur 事件 */
-  "app-blur": (handler: (event: any, data: EventData<'app-blur'>) => void) => void;
+  "app-blur": (handler: (event: any, data: EventData<'app-blur'>) => void) => () => void;
   /** 监听 app-blur 事件 */
-  "onAppBlur": (handler: (event: any, data: EventData<'app-blur'>) => void) => void;
+  "onAppBlur": (handler: (event: any, data: EventData<'app-blur'>) => void) => () => void;
 
   /** 监听 app-focus 事件 */
-  "app-focus": (handler: (event: any, data: EventData<'app-focus'>) => void) => void;
+  "app-focus": (handler: (event: any, data: EventData<'app-focus'>) => void) => () => void;
   /** 监听 app-focus 事件 */
-  "onAppFocus": (handler: (event: any, data: EventData<'app-focus'>) => void) => void;
+  "onAppFocus": (handler: (event: any, data: EventData<'app-focus'>) => void) => () => void;
 
   /** 监听 system-theme-changed 事件 */
-  "system-theme-changed": (handler: (event: any, data: EventData<'system-theme-changed'>) => void) => void;
+  "system-theme-changed": (handler: (event: any, data: EventData<'system-theme-changed'>) => void) => () => void;
   /** 监听 system-theme-changed 事件 */
-  "onSystemThemeChanged": (handler: (event: any, data: EventData<'system-theme-changed'>) => void) => void;
+  "onSystemThemeChanged": (handler: (event: any, data: EventData<'system-theme-changed'>) => void) => () => void;
 
   /** 监听 dev-reload 事件 */
-  "dev-reload": (handler: (event: any, data: EventData<'dev-reload'>) => void) => void;
+  "dev-reload": (handler: (event: any, data: EventData<'dev-reload'>) => void) => () => void;
   /** 监听 dev-reload 事件 */
-  "onDevReload": (handler: (event: any, data: EventData<'dev-reload'>) => void) => void;
+  "onDevReload": (handler: (event: any, data: EventData<'dev-reload'>) => void) => () => void;
 }
 // 事件信息常量
 export const EVENT_INFO = [
@@ -124,6 +139,21 @@ export const EVENT_INFO = [
     name: "plugin-view-closed",
     comment: "监听 plugin-view-closed 事件",
     method: "onPluginViewClosed"
+  },
+  {
+    name: "plugin-installed",
+    comment: "监听 plugin-installed 事件",
+    method: "onPluginInstalled"
+  },
+  {
+    name: "plugin-uninstalled",
+    comment: "监听 plugin-uninstalled 事件",
+    method: "onPluginUninstalled"
+  },
+  {
+    name: "hotkey-updated",
+    comment: "监听 hotkey-updated 事件",
+    method: "onHotkeyUpdated"
   },
   {
     name: "window-all-blur",

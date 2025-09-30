@@ -21,10 +21,20 @@ export function useUIStatus() {
 
   /** 计算当前应该显示的界面 */
   const activeInterface = computed(() => {
-    // 如果有搜索内容，显示搜索界面
-    if (searchText.value.trim() !== '') return InterfaceType.SEARCH
-    // 如果没有搜索内容，根据当前界面状态决定
-    return currentInterface.value
+    const hasSearchText = searchText.value.trim() !== ''
+
+    // 如果当前界面是设置界面，优先显示设置界面（不被搜索文本覆盖）
+    if (currentInterface.value === InterfaceType.SETTINGS) {
+      return InterfaceType.SETTINGS
+    }
+
+    // 如果当前界面是窗口界面（插件界面），优先显示窗口界面
+    if (currentInterface.value === InterfaceType.WINDOW) {
+      return InterfaceType.WINDOW
+    }
+
+    // 对于搜索界面，如果有搜索内容或者明确设置为搜索界面，显示搜索界面
+    return hasSearchText ? InterfaceType.SEARCH : currentInterface.value
   })
 
   /** 界面状态计算属性 */
@@ -72,6 +82,7 @@ export function useUIStatus() {
    * 切换到设置界面
    */
   const switchToSettings = () => {
+    console.log('🔧 switchToSettings 被调用')
     // 清空搜索文本和插件状态
     searchText.value = ''
     currentPluginItem.value = null
@@ -145,16 +156,31 @@ export function useUIStatus() {
       // 如果搜索文本没有实际变化，不处理
       if (newText === oldText) return
 
-      // 如果有搜索内容，无论当前在什么界面，都应该切换到搜索界面
+      // 如果有搜索内容
       if (newText.trim() !== '') {
+        // 在设置界面或窗口界面输入搜索内容时，不在这里处理界面切换
+        // 界面切换由App.vue中的监听器处理（会关闭设置view或插件view）
+        if (currentInterface.value === InterfaceType.SETTINGS || currentInterface.value === InterfaceType.WINDOW) {
+          return
+        }
+
+        // 只有在搜索界面时，保持搜索界面
+        if (currentInterface.value === InterfaceType.SEARCH) {
+          return
+        }
+
+        // 默认情况切换到搜索界面
         switchToSearch()
         return
       }
 
-      // 如果有插件窗口打开，并且当前在搜索界面，则切换到窗口界面
-      if (currentInterface.value === InterfaceType.SEARCH && isPluginWindowOpen.value) {
-        switchToWindow()
-        return
+      // 如果清空了搜索内容
+      if (newText.trim() === '') {
+        // 如果有插件窗口打开，并且当前在搜索界面，则切换到窗口界面
+        if (currentInterface.value === InterfaceType.SEARCH && isPluginWindowOpen.value) {
+          switchToWindow()
+          return
+        }
       }
     }
   )

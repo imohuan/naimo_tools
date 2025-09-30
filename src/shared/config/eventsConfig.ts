@@ -69,6 +69,26 @@ export interface EventsConfig {
     timestamp: number
   }
 
+  'plugin-installed': {
+    pluginId: string
+    timestamp: number
+  }
+
+  'plugin-uninstalled': {
+    pluginId: string
+    timestamp: number
+  }
+
+  // 快捷键相关事件
+  'hotkey-updated': {
+    hotkeyId: string
+    name?: string
+    keys: string
+    enabled: boolean
+    type: 'global' | 'application'
+    timestamp: number
+  }
+
   // 窗口相关事件
   'window-all-blur': {
     timestamp: number

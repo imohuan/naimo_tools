@@ -1,6 +1,6 @@
 /**
  * 自动生成的 IPC 类型定义
- * 生成时间: 2025-09-30T06:31:54.405Z
+ * 生成时间: 2025-09-30T10:09:05.220Z
  * 请勿手动修改此文件
  */
 
@@ -111,6 +111,23 @@ interface appInterface {
  * @returns 图标的 Data URL 或 null
  */
   "appExtractFileIcon": (filePath: string) => Promise<string | null>;
+
+  /**
+ * 广播插件事件到所有视图
+ * @param IPC事件
+ * @param 消息通道
+ * @param 消息数据
+ * @returns 是否广播成功
+ */
+  "app-forward-message-to-main-view": (channel: string, data: any) => Promise<boolean>;
+  /**
+ * 广播插件事件到所有视图
+ * @param IPC事件
+ * @param 消息通道
+ * @param 消息数据
+ * @returns 是否广播成功
+ */
+  "appForwardMessageToMainView": (channel: string, data: any) => Promise<boolean>;
 }
 
 interface clipboardInterface {
@@ -985,6 +1002,12 @@ export const ROUTE_INFO: RouteInfo[] = [
     comment: "提取文件图标",
     module: "app",
     function: "extractFileIcon"
+  },
+  {
+    route: "app-forward-message-to-main-view",
+    comment: "广播插件事件到所有视图",
+    module: "app",
+    function: "forwardMessageToMainView"
   },
   {
     route: "clipboard-read-text",

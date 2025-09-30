@@ -7,6 +7,10 @@ import { app, shell } from "electron";
 import log from "electron-log";
 import { getApps, AppPath, getIconDataURLAsync } from "@libs/app-search";
 import { join } from "path";
+import { appBootstrap } from '@main/main';
+import { NewWindowManager } from '@main/window/NewWindowManager';
+import { ViewType } from '@renderer/src/typings';
+
 
 /**
  * 获取应用版本
@@ -156,5 +160,72 @@ export async function extractFileIcon(event: Electron.IpcMainInvokeEvent, filePa
   } catch (error) {
     log.error("❌ 提取文件图标失败:", error);
     return null;
+  }
+}
+
+
+/**
+ * 广播插件事件到所有视图
+ * @param event IPC事件
+ * @param channel 消息通道
+ * @param data 消息数据
+ * @returns 是否广播成功
+ */
+export async function forwardMessageToMainView(
+  event: Electron.IpcMainInvokeEvent,
+  channel: string,
+  data: any
+): Promise<boolean> {
+  try {
+    const windowService = appBootstrap.getService('windowService');
+
+    if (!windowService) {
+      log.warn('窗口服务未初始化，无法广播插件事件');
+      return false;
+    }
+
+    const windowManager: NewWindowManager = windowService.getWindowManager();
+    if (!windowManager) {
+      log.warn('窗口管理器未初始化，无法广播插件事件');
+      return false;
+    }
+
+    // 获取所有视图并广播事件
+    const allViews = windowManager.getViewManager().getAllViews();
+    let sentCount = 0;
+
+    allViews.forEach((viewInfo) => {
+      try {
+        // 跳过发送事件的view，避免自己给自己发消息
+        if (viewInfo.view.webContents.id === event.sender.id) {
+          return;
+        }
+
+        if (
+          viewInfo.view &&
+          viewInfo.view.webContents &&
+          !viewInfo.view.webContents.isDestroyed()
+        ) {
+          viewInfo.view.webContents.send(channel, {
+            ...data,
+            timestamp: Date.now()
+          });
+          sentCount++;
+        }
+      } catch (error) {
+        log.error(`向视图 ${viewInfo.id} 发送插件事件失败:`, error);
+      }
+    });
+
+    if (sentCount > 0) {
+      log.info(`已向 ${sentCount} 个视图广播插件事件: ${channel}`, data);
+      return true;
+    } else {
+      log.warn(`没有可用的视图接收插件事件: ${channel}`);
+      return false;
+    }
+  } catch (error) {
+    log.error(`广播插件事件失败: ${channel}`, error);
+    return false;
   }
 }

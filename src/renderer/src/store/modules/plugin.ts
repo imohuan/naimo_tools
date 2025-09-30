@@ -3,6 +3,8 @@ import { ref, computed, readonly } from 'vue'
 import { pluginManager } from '@/core/plugin/PluginManager'
 import type { PluginConfig } from '@/typings/pluginTypes'
 import { searchEngine } from '@/core/search/SearchEngine'
+import { hotkeyManager } from '@/core/hotkey/HotkeyManager'
+import { HotkeyType } from '@/typings/hotkeyTypes'
 
 /**
  * 插件状态管理 - 优化版
@@ -15,6 +17,9 @@ export const usePluginStore = defineStore('plugin', () => {
   const error = ref<string | null>(null)
   const installedPlugins = ref<PluginConfig[]>([])
   const allPlugins = ref<PluginConfig[]>([])
+
+  // 事件监听器清理函数
+  const eventCleanupFunctions: Array<() => void> = []
 
   // 计算属性
   const enabledPlugins = computed(() =>
@@ -49,14 +54,140 @@ export const usePluginStore = defineStore('plugin', () => {
   }
 
   /**
+   * 设置事件监听器
+   * 监听来自其他 view 的插件安装/卸载/快捷键更新事件
+   */
+  const setupEventListeners = () => {
+    // 监听插件安装事件
+    const unsubscribeInstalled = naimo.event.onPluginInstalled(async (_event, data) => {
+      console.log(`📥 [Store] 接收到插件安装事件: ${data.pluginId}`)
+
+      try {
+        // 1. 重新获取插件列表（包含新安装的插件）
+        await pluginManager.updatePluginList()
+
+        // 2. 找到新安装的插件配置
+        const plugin = pluginManager.allAvailablePlugins.get(data.pluginId)
+
+        if (plugin) {
+          // 3. 在当前view中静默安装这个插件（不广播事件，避免循环）
+          await pluginManager.preInstall(plugin, true, true)
+          console.log(`✅ [Store] 已在当前view中同步安装插件: ${data.pluginId}`)
+
+          // 4. 同步状态到 Vue 响应式系统并更新搜索引擎
+          syncPluginState()
+          console.log(`🔄 [Store] 已同步插件状态和搜索引擎`)
+        } else {
+          console.warn(`⚠️ [Store] 未找到插件配置: ${data.pluginId}`)
+        }
+      } catch (err) {
+        console.error(`❌ [Store] 同步安装插件失败: ${data.pluginId}`, err)
+        setError(err instanceof Error ? err.message : '同步安装插件失败')
+      }
+    })
+
+    // 监听插件卸载事件
+    const unsubscribeUninstalled = naimo.event.onPluginUninstalled(async (_event, data) => {
+      console.log(`📥 [Store] 接收到插件卸载事件: ${data.pluginId}`)
+
+      try {
+        // 调用 PluginManager 的内部卸载方法（不删除文件，不广播事件）
+        await pluginManager.uninstallInternal(data.pluginId)
+        console.log(`✅ [Store] 已在当前view中同步卸载插件: ${data.pluginId}`)
+
+        // 重新获取插件列表（此时已不包含被卸载的插件）
+        await pluginManager.updatePluginList()
+
+        // 同步状态到 Vue 响应式系统并更新搜索引擎
+        syncPluginState()
+        console.log(`🔄 [Store] 已同步插件状态和搜索引擎`)
+      } catch (err) {
+        console.error(`❌ [Store] 同步卸载插件失败: ${data.pluginId}`, err)
+        setError(err instanceof Error ? err.message : '同步卸载插件失败')
+      }
+    })
+
+    // 监听快捷键更新事件
+    const unsubscribeHotkeyUpdated = naimo.event.onHotkeyUpdated((_event, data) => {
+      console.log(`📥 [Store] 接收到快捷键更新事件: ${data.hotkeyId}`, data)
+
+        ; (async () => {
+          try {
+            const { hotkeyId, name, keys, enabled, type } = data
+
+            // 如果快捷键被删除（keys为空）
+            if (!keys) {
+              console.log(`⌨️ [Store] 快捷键已删除，注销: ${hotkeyId}`)
+              // autoSave=false, silent=true 避免循环
+              await hotkeyManager.unregister(hotkeyId, false, true)
+            } else {
+              // 更新快捷键配置
+              const hotkeyType = type === 'global' ? HotkeyType.GLOBAL : HotkeyType.APPLICATION
+
+              // 先尝试注销旧的快捷键（如果存在）
+              const existingHotkey = hotkeyManager.getAll().find(h => h.id === hotkeyId)
+              if (existingHotkey) {
+                // autoSave=false, silent=true 避免循环
+                await hotkeyManager.unregister(hotkeyId, false, true)
+              }
+
+              // 如果启用，则重新注册
+              if (enabled) {
+                const hotkeyConfig = {
+                  id: hotkeyId,
+                  keys,
+                  type: hotkeyType,
+                  enabled,
+                  // 优先使用事件中的 name，其次是已存在的 name，最后使用 hotkeyId
+                  name: name || existingHotkey?.name || hotkeyId,
+                  description: existingHotkey?.description || ''
+                }
+                // autoSave=false, silent=true 避免循环
+                await hotkeyManager.register(hotkeyConfig, false, true)
+                console.log(`✅ [Store] 已在当前view中同步更新快捷键: ${hotkeyId} (name: ${hotkeyConfig.name})`)
+              } else {
+                // silent=true 避免循环
+                await hotkeyManager.updateConfig(hotkeyId, { keys, enabled, name: name || existingHotkey?.name }, true)
+                console.log(`✅ [Store] 已在当前view中同步禁用快捷键: ${hotkeyId}`)
+              }
+            }
+          } catch (err) {
+            console.error(`❌ [Store] 同步快捷键更新失败: ${data.hotkeyId}`, err)
+          }
+        })()
+    })
+
+    // 保存清理函数
+    eventCleanupFunctions.push(unsubscribeInstalled, unsubscribeUninstalled, unsubscribeHotkeyUpdated)
+    console.log('🎧 [Store] 插件和快捷键事件监听器已设置')
+  }
+
+  /**
+   * 清理事件监听器
+   */
+  const cleanupEventListeners = () => {
+    eventCleanupFunctions.forEach(cleanup => cleanup())
+    eventCleanupFunctions.length = 0
+    console.log('🧹 [Store] 插件事件监听器已清理')
+  }
+
+  /**
    * 初始化插件系统
    */
   const initialize = async () => {
     try {
       setLoading(true)
       setError(null)
+
+      // 初始化 PluginManager
       await pluginManager.initialize()
+
+      // 同步状态到 Vue 响应式系统
       syncPluginState()
+
+      // 设置事件监听器（监听来自其他 view 的插件安装/卸载事件）
+      setupEventListeners()
+
       console.log('🔌 插件系统初始化完成')
       console.log('📊 已安装插件数量:', installedPlugins.value.length)
       console.log('📊 可用插件数量:', allPlugins.value.length)
@@ -286,11 +417,19 @@ export const usePluginStore = defineStore('plugin', () => {
    * 重置状态
    */
   const reset = () => {
+    // 清理事件监听器
+    cleanupEventListeners()
+
+    // 重置 PluginManager
     pluginManager.reset()
+
+    // 重置响应式状态
     installedPlugins.value = []
     allPlugins.value = []
     setError(null)
     setLoading(false)
+
+    console.log('🔄 插件系统已重置')
   }
 
   return {

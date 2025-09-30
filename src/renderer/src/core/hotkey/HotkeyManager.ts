@@ -63,6 +63,30 @@ export class HotkeyManager extends BaseSingleton implements CoreAPI {
     console.log('⌨️ HotkeyManager 已销毁')
   }
 
+  /**
+   * 广播快捷键更新事件到其他view
+   * @param hotkeyId 快捷键ID
+   * @param keys 快捷键组合
+   * @param enabled 是否启用
+   * @param type 快捷键类型
+   */
+  private async broadcastHotkeyUpdate(hotkeyId: string, name: string | undefined, keys: string, enabled: boolean, type: HotkeyType): Promise<void> {
+    try {
+      // 通过主进程转发事件到其他view（不包括当前view）
+      await window.naimo.router.appForwardMessageToMainView('hotkey-updated', {
+        hotkeyId,
+        name,
+        keys,
+        enabled,
+        type: type === HotkeyType.GLOBAL ? 'global' : 'application',
+        timestamp: Date.now()
+      })
+      console.log(`📡 [HotkeyManager] 转发快捷键更新事件到其他view: ${hotkeyId}`)
+    } catch (error) {
+      console.error(`❌ [HotkeyManager] 转发快捷键更新事件失败:`, error)
+    }
+  }
+
   /** 重置快捷键管理器 */
   reset(): void {
     this.hotkeys.clear()
@@ -95,7 +119,7 @@ export class HotkeyManager extends BaseSingleton implements CoreAPI {
     console.log(`⌨️ 添加自定义快捷键: ${config.id}`)
   }
 
-  async updateConfig(id: string, config: Partial<HotkeyConfig> = {}) {
+  async updateConfig(id: string, config: Partial<HotkeyConfig> = {}, silent: boolean = false) {
     const hotkeyConfig = this.hotkeys.get(id)
     if (!hotkeyConfig) {
       console.warn(`快捷键 ${id} 不存在`)
@@ -124,11 +148,23 @@ export class HotkeyManager extends BaseSingleton implements CoreAPI {
 
     await this.saveToStorage()
     console.log(`⌨️ 更新快捷键配置: ${id}`)
+
+    // 广播快捷键更新事件（silent=true 时不广播）
+    if (!silent) {
+      await this.broadcastHotkeyUpdate(
+        updatedConfig.id,
+        updatedConfig.name,
+        updatedConfig.keys,
+        updatedConfig.enabled ?? true,
+        updatedConfig.type
+      )
+    }
+
     return true
   }
 
   /** 注册快捷键 */
-  async register(registerConfig: HotkeyConfig, autoSave: boolean = true): Promise<boolean> {
+  async register(registerConfig: HotkeyConfig, autoSave: boolean = true, silent: boolean = false): Promise<boolean> {
     const config: HotkeyConfig = JSON.parse(JSON.stringify(registerConfig))
 
     try {
@@ -137,7 +173,7 @@ export class HotkeyManager extends BaseSingleton implements CoreAPI {
       // 检查是否已存在
       if (this.hotkeys.has(id)) {
         console.warn(`快捷键 ${id} 已存在，将被覆盖`)
-        await this.unregister(id)
+        await this.unregister(id, autoSave, silent)
       }
 
       // 根据类型处理快捷键
@@ -149,6 +185,10 @@ export class HotkeyManager extends BaseSingleton implements CoreAPI {
           console.log(`⌨️ 注册全局快捷键: ${id} -> ${keys}`)
           // 保存到存储
           if (autoSave) await this.saveToStorage()
+          // 广播快捷键更新事件（silent=true 时不广播）
+          if (!silent) {
+            await this.broadcastHotkeyUpdate(id, config.name, keys, config.enabled ?? true, type)
+          }
           return true
         }
         return false
@@ -160,6 +200,10 @@ export class HotkeyManager extends BaseSingleton implements CoreAPI {
           console.log(`⌨️ 注册应用内快捷键: ${id} -> ${keys}`)
           // 保存到存储
           if (autoSave) await this.saveToStorage()
+          // 广播快捷键更新事件（silent=true 时不广播）
+          if (!silent) {
+            await this.broadcastHotkeyUpdate(id, config.name, keys, config.enabled ?? true, type)
+          }
           return true
         }
         return false
@@ -171,7 +215,7 @@ export class HotkeyManager extends BaseSingleton implements CoreAPI {
   }
 
   /** 注销快捷键 */
-  async unregister(id: string, autoSave: boolean = true): Promise<boolean> {
+  async unregister(id: string, autoSave: boolean = true, silent: boolean = false): Promise<boolean> {
     try {
       const config = this.hotkeys.get(id)
       if (!config) {
@@ -194,6 +238,10 @@ export class HotkeyManager extends BaseSingleton implements CoreAPI {
       console.log(`⌨️ 注销快捷键: ${id}`)
       // 保存到存储
       if (autoSave) await this.saveToStorage()
+      // 广播快捷键更新事件（silent=true 时不广播）
+      if (!silent) {
+        await this.broadcastHotkeyUpdate(id, undefined, '', false, type)
+      }
       return true
     } catch (error) {
       console.error(`⌨️ 注销快捷键失败: ${id}`, error)

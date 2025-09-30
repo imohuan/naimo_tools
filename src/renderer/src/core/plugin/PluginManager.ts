@@ -30,6 +30,7 @@ export class PluginManager extends BaseSingleton implements CoreAPI {
   github: PluginGithub
   githubPlugins: PluginConfig[] = []
 
+  // 事件监听器清理函数已移至 store 层管理
 
   constructor() {
     super()
@@ -50,6 +51,7 @@ export class PluginManager extends BaseSingleton implements CoreAPI {
   async initialize(): Promise<any> {
     await this.updatePluginList()
     await this.loadInstalledPlugins()
+    // 事件监听器已移至 store 层，由 usePluginStore.initialize() 负责设置
   }
 
   // 移除生命周期管理相关方法，这些功能已转移到 PluginWindowManager
@@ -108,11 +110,11 @@ export class PluginManager extends BaseSingleton implements CoreAPI {
       // 1. 获取已安装的插件列表
       const installedPluginIds = await this.getInstalledPluginIds();
       console.log("📋 已安装的插件ID列表:", installedPluginIds);
-      // 2. 从缓存中加载已安装的插件
+      // 2. 从缓存中加载已安装的插件（静默模式，不广播事件）
       for (const pluginId of installedPluginIds) {
         const plugin = this.allAvailablePlugins.get(pluginId);
         if (plugin) {
-          await this.preInstall(plugin, true)
+          await this.preInstall(plugin, true, true) // silent=true，不广播事件
         } else {
           console.warn(`⚠️ 插件未在缓存中找到: ${pluginId}`);
         }
@@ -155,9 +157,9 @@ export class PluginManager extends BaseSingleton implements CoreAPI {
   }
 
   /** 安装插件 */
-  async install(pluginData: PluginConfig, focus = false): Promise<boolean> {
+  async install(pluginData: PluginConfig, focus = false, silent = false): Promise<boolean> {
     try {
-      console.log(`📦 开始安装插件: ${pluginData.id}`);
+      console.log(`📦 开始安装插件: ${pluginData.id}${silent ? ' (静默模式)' : ''}`);
 
       // 验证插件配置
       if (!this.validatePluginConfig(pluginData)) {
@@ -205,6 +207,13 @@ export class PluginManager extends BaseSingleton implements CoreAPI {
       this.installedPlugins.set(pluginData.id, plugin);
       this.allAvailablePlugins.set(pluginData.id, plugin);
       console.log(`✅ 插件安装成功: ${pluginData.id}`);
+
+      // 只在非静默模式下广播事件（初始化加载时不广播）
+      if (!silent) {
+        await naimo.router.appForwardMessageToMainView('plugin-installed', { pluginId: pluginData.id });
+        console.log(`📢 已广播插件安装事件: ${pluginData.id}`);
+      }
+
       return true;
     } catch (error) {
       console.error(`❌ 安装插件失败: ${pluginData.id}`, error);
@@ -212,7 +221,7 @@ export class PluginManager extends BaseSingleton implements CoreAPI {
     }
   }
 
-  async preInstall(pluginData: PluginConfig, focus = false): Promise<boolean> {
+  async preInstall(pluginData: PluginConfig, focus = false, silent = false): Promise<boolean> {
     const hasItems = pluginData?.items && pluginData.items?.length > 0
     const firstItemHasOnEnter = hasItems && pluginData.items?.[0]?.onEnter && typeof pluginData.items?.[0]?.onEnter === 'function'
     if (!firstItemHasOnEnter || !hasItems) {
@@ -244,7 +253,7 @@ export class PluginManager extends BaseSingleton implements CoreAPI {
 
       pluginData.items = items
     }
-    return this.install(pluginData, focus)
+    return this.install(pluginData, focus, silent)
   }
 
   async installUrl(url: string): Promise<boolean> {
@@ -360,10 +369,45 @@ export class PluginManager extends BaseSingleton implements CoreAPI {
 
     const result = await this.preInstall(config, true);
     await this.updatePluginList();
+
     return result;
   }
 
-  /** 卸载插件 */
+  /**
+   * 卸载插件（内部方法，不删除文件，不发送通知）
+   * @param pluginId 插件ID
+   * @private
+   */
+  async uninstallInternal(pluginId: string): Promise<boolean> {
+    try {
+      const plugin = this.installedPlugins.get(pluginId);
+      if (!plugin) {
+        console.warn(`⚠️ 插件未安装: ${pluginId}`);
+        return false;
+      }
+
+      // 从已安装插件列表中移除
+      const installedPluginIds = await this.getInstalledPluginIds();
+      installedPluginIds.delete(pluginId);
+      await this.setInstalledPluginIds(installedPluginIds);
+
+      // 清除钩子函数
+      const hookNames = Array.from(this.hooks.keys()).filter(f => f.split('__')[1] === pluginId);
+      for (const hookName of hookNames) {
+        this.hooks.delete(hookName);
+      }
+
+      // 从缓存中移除
+      this.installedPlugins.delete(pluginId);
+
+      return true;
+    } catch (error) {
+      console.error(`❌ 卸载插件失败: ${pluginId}`, error);
+      return false;
+    }
+  }
+
+  /** 卸载插件（删除文件并通知其他view） */
   async uninstall(pluginId: string): Promise<boolean> {
     try {
       console.log(`🗑️ 开始卸载插件: ${pluginId}`);
@@ -382,25 +426,19 @@ export class PluginManager extends BaseSingleton implements CoreAPI {
         if (!success) {
           console.error(`❌ 删除插件文件失败: ${pluginId}`);
           return false;
-        } else {
-          await this.updatePluginList();
         }
+        await this.updatePluginList();
       }
 
-      // 从已安装插件列表中移除
-      const installedPluginIds = await this.getInstalledPluginIds();
-      installedPluginIds.delete(pluginId);
-      await this.setInstalledPluginIds(installedPluginIds);
-
-      // 清楚他的钩子函数
-      const hookNames = Array.from(this.hooks.keys()).filter(f => f.split('__')[1] === pluginId)
-      for (const hookName of hookNames) {
-        this.hooks.delete(hookName);
-      }
-
-      // 从缓存中移除 
-      this.installedPlugins.delete(pluginId);
+      // 执行内部卸载逻辑
+      const result = await this.uninstallInternal(pluginId);
+      if (!result) return false;
       console.log(`✅ 插件卸载成功: ${pluginId}`);
+
+      // 卸载成功后，广播事件到其他视图
+      await naimo.router.appForwardMessageToMainView('plugin-uninstalled', { pluginId });
+      console.log(`📢 已广播插件卸载事件: ${pluginId}`);
+
       return true;
     } catch (error) {
       console.error(`❌ 卸载插件失败: ${pluginId}`, error);
@@ -592,6 +630,7 @@ export class PluginManager extends BaseSingleton implements CoreAPI {
 
   /** 销毁 */
   async destroy(): Promise<void> {
+    // 事件监听器清理已移至 store 层
     this.reset();
   }
 
@@ -602,6 +641,8 @@ export class PluginManager extends BaseSingleton implements CoreAPI {
     this.installedPlugins.clear();
     this.allAvailablePlugins.clear();
   }
+
+  // 事件监听器已移至 store 层（src/renderer/src/store/modules/plugin.ts）
 }
 
 // 导出单例实例

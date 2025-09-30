@@ -18,6 +18,7 @@ import type {
   WindowPerformanceMetrics,
   WindowManagerEventData
 } from '../typings/windowTypes'
+import { ViewType } from '@renderer/src/typings'
 import { isProduction } from '@shared/utils'
 import { getDirname } from '@main/utils'
 import { getRendererUrl } from '@main/utils/windowConfig'

@@ -12,6 +12,7 @@ import { createReadStream, createWriteStream, read } from 'fs';
 import unzipper from 'unzipper';
 import archiver from 'archiver';
 
+
 /**
  * 获取插件目录路径
  */
@@ -35,7 +36,7 @@ function getPluginConfigPath(pluginPath: string): string {
  */
 export async function getAllInstalledPlugins(event: Electron.IpcMainInvokeEvent): Promise<any[]> {
   try {
-    const pluginsDir = getPluginsDirectory();
+    const pluginsDir = getPluginsDirectory(event);
     const plugins: any[] = [];
 
     // 确保插件目录存在
@@ -204,7 +205,7 @@ async function copyDirectory(src: string, dest: string): Promise<void> {
  */
 export async function installPluginFromZip(event: Electron.IpcMainInvokeEvent, zipPath: string): Promise<{ path: string, configPath: string, isDefault: boolean } | null> {
   try {
-    const pluginsDir = getPluginsDirectory();
+    const pluginsDir = getPluginsDirectory(event);
 
     // 确保插件目录存在
     await mkdir(pluginsDir, { recursive: true });
@@ -244,7 +245,7 @@ export async function installPluginFromZip(event: Electron.IpcMainInvokeEvent, z
  */
 export async function uninstallPlugin(event: Electron.IpcMainInvokeEvent, pluginId: string): Promise<boolean> {
   try {
-    const pluginsDir = getPluginsDirectory();
+    const pluginsDir = getPluginsDirectory(event);
     const pluginPath = join(pluginsDir, pluginId);
     // 检查插件是否存在
     try {
@@ -256,12 +257,14 @@ export async function uninstallPlugin(event: Electron.IpcMainInvokeEvent, plugin
     // 删除插件目录
     await rmdir(pluginPath, { recursive: true });
     log.info(`插件卸载成功: ${pluginId}`);
+
     return true;
   } catch (error) {
     log.error(`插件卸载失败: ${pluginId}`, error);
     return false;
   }
 }
+
 
 /**
  * 将文件夹打包为zip文件

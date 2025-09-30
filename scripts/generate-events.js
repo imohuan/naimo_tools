@@ -148,9 +148,9 @@ ${events.map(eventName => {
     const methodName = `on${toPascalCase(eventName)}`
     const comment = `/** 监听 ${eventName} 事件 */`
     return `  ${comment}
-  "${eventName}": (handler: (event: any, data: EventData<'${eventName}'>) => void) => void;
+  "${eventName}": (handler: (event: any, data: EventData<'${eventName}'>) => void) => () => void;
   /** 监听 ${eventName} 事件 */
-  "${methodName}": (handler: (event: any, data: EventData<'${eventName}'>) => void) => void;`
+  "${methodName}": (handler: (event: any, data: EventData<'${eventName}'>) => void) => () => void;`
   }).join('\n\n')}
 }`
 

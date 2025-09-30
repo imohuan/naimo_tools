@@ -127,6 +127,57 @@ export function sendPluginViewClosed(
 }
 
 /**
+ * 发送 plugin-installed 事件
+ * @param webContents 目标 WebContents
+ * @param data 事件数据
+ */
+export function sendPluginInstalled(
+  webContents: WebContents,
+  data: EventData<'plugin-installed'>
+): void {
+  if (webContents && !webContents.isDestroyed()) {
+    webContents.send('plugin-installed', data)
+    log.debug(`事件已发送: plugin-installed`, { data })
+  } else {
+    log.warn(`无法发送事件: WebContents已销毁 - plugin-installed`)
+  }
+}
+
+/**
+ * 发送 plugin-uninstalled 事件
+ * @param webContents 目标 WebContents
+ * @param data 事件数据
+ */
+export function sendPluginUninstalled(
+  webContents: WebContents,
+  data: EventData<'plugin-uninstalled'>
+): void {
+  if (webContents && !webContents.isDestroyed()) {
+    webContents.send('plugin-uninstalled', data)
+    log.debug(`事件已发送: plugin-uninstalled`, { data })
+  } else {
+    log.warn(`无法发送事件: WebContents已销毁 - plugin-uninstalled`)
+  }
+}
+
+/**
+ * 发送 hotkey-updated 事件
+ * @param webContents 目标 WebContents
+ * @param data 事件数据
+ */
+export function sendHotkeyUpdated(
+  webContents: WebContents,
+  data: EventData<'hotkey-updated'>
+): void {
+  if (webContents && !webContents.isDestroyed()) {
+    webContents.send('hotkey-updated', data)
+    log.debug(`事件已发送: hotkey-updated`, { data })
+  } else {
+    log.warn(`无法发送事件: WebContents已销毁 - hotkey-updated`)
+  }
+}
+
+/**
  * 发送 window-all-blur 事件
  * @param webContents 目标 WebContents
  * @param data 事件数据
@@ -288,6 +339,9 @@ export const mainEvents = {
   pluginWindowClosed: sendPluginWindowClosed,
   pluginViewOpened: sendPluginViewOpened,
   pluginViewClosed: sendPluginViewClosed,
+  pluginInstalled: sendPluginInstalled,
+  pluginUninstalled: sendPluginUninstalled,
+  hotkeyUpdated: sendHotkeyUpdated,
   windowAllBlur: sendWindowAllBlur,
   windowMainHide: sendWindowMainHide,
   windowMainShow: sendWindowMainShow,
