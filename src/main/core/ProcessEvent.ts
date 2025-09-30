@@ -23,12 +23,34 @@ export interface EmitEvents {
   'view:switched': { fromViewId?: string; toViewId: string; windowId: number; timestamp: number }
   'view:activated': { viewId: string; windowId: number; timestamp: number }
   'view:detached': { viewId: string; windowId: number; detachedWindowId: number; timestamp: number }
-  'view:reattached': { viewId: string; fromWindowId: number; toWindowId: number; timestamp: number }
+  'view:reattached': {
+    viewId: string
+    fromWindowId: number
+    toWindowId: number
+    timestamp: number
+    pluginInfo?: {
+      pluginId?: string
+      name?: string
+      path?: string
+      version?: string
+    }
+  }
   'view:detach-failed': { viewId: string; windowId: number; error: string; timestamp: number }
   'view:detach-error': { viewId: string; windowId: number; error: Error; timestamp: number }
   'view:closed': { viewId: string; windowId: number; reason: string; timestamp: number }
   'view:parent-window-updated': { viewId: string; oldWindowId: number; newWindowId: number; timestamp: number }
-  'view:reattach-requested': { viewId: string; targetWindowId: number; timestamp: number }
+  'view:reattach-requested': {
+    viewId: string
+    targetWindowId: number
+    detachedWindowId?: number
+    timestamp: number
+    pluginInfo?: {
+      pluginId?: string
+      name?: string
+      path?: string
+      version?: string
+    }
+  }
   'view:detached-window-closed': { viewId: string; detachedWindowId: number; timestamp: number }
   'view:restore-requested': { viewId: string; windowId: number; reason: 'settings-closed' | 'plugin-closed' | 'user-requested' | 'system'; timestamp: number }
 
@@ -49,9 +71,6 @@ export interface EmitEvents {
 
   // 性能监控事件
   'performance:metrics': { windowId: number; metrics: any; timestamp: number }
-
-  // 控制栏事件
-  'control-bar:action': { action: string; data: any; timestamp: number }
 }
 
 /**
@@ -65,7 +84,6 @@ export type EventHandler<T extends keyof EmitEvents> = (data: EmitEvents[T]) => 
 export class EmitEvent {
   private static instance: EmitEvent
   private emitter: EventEmitter
-  private eventStats: Map<string, { count: number; lastEmitted: number }> = new Map()
 
   private constructor() {
     this.emitter = new EventEmitter()
@@ -93,9 +111,6 @@ export class EmitEvent {
     data: EmitEvents[T]
   ): void {
     try {
-      // 更新统计信息
-      this.updateEventStats(eventName as string)
-
       // 发布事件
       this.emitter.emit(eventName as string, data)
 
@@ -174,21 +189,6 @@ export class EmitEvent {
   }
 
   /**
-   * 获取事件统计信息
-   */
-  public getEventStats(): Map<string, { count: number; lastEmitted: number }> {
-    return new Map(this.eventStats)
-  }
-
-  /**
-   * 清除事件统计信息
-   */
-  public clearEventStats(): void {
-    this.eventStats.clear()
-    log.debug('事件统计信息已清除')
-  }
-
-  /**
    * 设置事件统计跟踪
    */
   private setupEventStatsTracking(): void {
@@ -203,21 +203,10 @@ export class EmitEvent {
   }
 
   /**
-   * 更新事件统计信息
-   */
-  private updateEventStats(eventName: string): void {
-    const stats = this.eventStats.get(eventName) || { count: 0, lastEmitted: 0 }
-    stats.count++
-    stats.lastEmitted = Date.now()
-    this.eventStats.set(eventName, stats)
-  }
-
-  /**
    * 销毁事件管理器（用于测试和清理）
    */
   public destroy(): void {
     this.emitter.removeAllListeners()
-    this.eventStats.clear()
     log.debug('事件管理器已销毁')
   }
 }

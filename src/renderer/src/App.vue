@@ -123,6 +123,9 @@ import SearchInput from "@/modules/search/components/SearchInput.vue";
 import IconDisplay from "@/components/IconDisplay.vue";
 import DraggableArea from "@/components/DraggableArea.vue";
 
+// 核心导入
+import { pluginManager } from "@/core/plugin/PluginManager";
+
 // 新窗口管理相关导入
 import { useSearchHeader } from "@/core/window/useSearchHeader";
 import type { SearchHeaderConfig } from "@/core/window/SearchHeaderManager";
@@ -599,6 +602,51 @@ onMounted(async () => {
         searchStateHandler.recoverSearchState();
       } else if (reason === 'plugin-closed') {
         searchStateHandler.recoverSearchState(true);
+      }
+    },
+    onViewReattached: async (data) => {
+      console.log("🔗 收到视图重新附加事件:", data)
+      const { config } = data
+
+      if (!config?.pluginInfo) {
+        console.warn("⚠️ 视图重新附加事件缺少插件信息")
+        return
+      }
+
+      try {
+        // 通过pluginInfo获取完整的插件配置
+        const pluginItem = pluginManager.getInstalledPluginItem(
+          config.pluginInfo.path.split(":")[0],
+          config.pluginInfo.path || config.path
+        )
+
+        if (!pluginItem) {
+          console.warn("⚠️ 未找到插件配置:", config.pluginInfo)
+          return
+        }
+
+        console.log("✅ 找到插件配置:", pluginItem)
+
+        // 切换到插件状态
+        openPluginWindowUI(pluginItem)
+
+        // 设置搜索头部的插件状态
+        searchHeaderActions.setCurrentPluginItem(pluginItem)
+
+        // 清除搜索文本和附件
+        searchText.value = ""
+        attachedFiles.value = []
+
+        // 更新搜索结果
+        await handleSearch("")
+
+        // 调整窗口大小
+        await nextTick()
+        contentAreaRef.value?.handleResize()
+
+        console.log("✅ 插件状态已恢复:", pluginItem.name)
+      } catch (error) {
+        console.error("❌ 处理视图重新附加失败:", error)
       }
     },
 

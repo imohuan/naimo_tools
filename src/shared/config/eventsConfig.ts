@@ -27,6 +27,26 @@ export interface EventsConfig {
     timestamp: number
   }
 
+  // 分离窗口控制栏事件
+  'view-reattached': {
+    sourceViewId: string
+    sourceWindowId: number
+    detachedWindowId: number
+    config: {
+      sourceUrl?: string
+      windowTitle?: string
+      [key: string]: any
+    }
+    timestamp: number
+  }
+
+  'detached-window-closed': {
+    viewId: string
+    detachedWindowId: number
+    timestamp: number
+  }
+
+
   // 插件相关事件
   'plugin-window-closed': {
     pluginId: string
@@ -72,24 +92,6 @@ export interface EventsConfig {
     timestamp: number
   }
 
-  // 分离窗口控制栏事件
-  'detached-window-init': {
-    sourceViewId: string
-    sourceWindowId: number
-    detachedWindowId: number
-    config: {
-      sourceUrl?: string
-      windowTitle?: string
-      [key: string]: any
-    }
-    timestamp: number
-  }
-
-  'detached-window-closed': {
-    viewId: string
-    detachedWindowId: number
-    timestamp: number
-  }
 
   // 屏幕截图相关事件
   'screen-info': {

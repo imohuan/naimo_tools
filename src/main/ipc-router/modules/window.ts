@@ -225,6 +225,51 @@ export async function isMaximized(event: Electron.IpcMainInvokeEvent): Promise<b
 }
 
 /**
+ * 检查窗口是否全屏或最大化
+ * @returns 窗口是否处于全屏或最大化状态
+ */
+export async function isFullscreen(event: Electron.IpcMainInvokeEvent): Promise<boolean> {
+  try {
+    const manager = NewWindowManager.getInstance();
+    const mainWindow = manager.getMainWindow();
+    const viewManager = manager.getViewManager();
+
+    // 获取当前视图信息来判断是主窗口还是分离窗口
+    const currentViewInfo = viewManager.getCurrentViewInfo(event.sender);
+
+    if (!currentViewInfo) {
+      return false;
+    }
+
+    // 如果是主窗口的视图调用，始终返回false（主窗口不支持全屏）
+    if (mainWindow && currentViewInfo.parentWindowId === mainWindow.id) {
+      return false;
+    }
+
+    // 如果是分离窗口调用，检查实际状态
+    const controller = BaseWindowController.getInstance();
+    const callingWindow = controller.getWindow(currentViewInfo.parentWindowId);
+
+    if (callingWindow && !callingWindow.isDestroyed()) {
+      // 检查是否全屏
+      const isFullScreen = callingWindow.isFullScreen?.() || false;
+      // 检查是否最大化
+      const isMaximized = callingWindow.isMaximized();
+
+      log.debug(`窗口状态检查 (ID: ${callingWindow.id}): 全屏=${isFullScreen}, 最大化=${isMaximized}`);
+
+      // 全屏或最大化都返回 true
+      return isFullScreen || isMaximized;
+    }
+
+    return false;
+  } catch (error) {
+    log.error('检查窗口是否全屏失败:', error);
+    return false;
+  }
+}
+
+/**
  * 检查窗口是否显示
  * @param id 窗口ID
  * @returns 窗口是否显示

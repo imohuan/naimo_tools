@@ -12,7 +12,7 @@ import {
   sendWindowMainShow,
   sendAppFocus,
   sendAppBlur,
-  sendDetachedWindowInit,
+  sendViewReattached,
   sendDetachedWindowClosed
 } from '@main/ipc-router/mainEvents'
 import { NewWindowManager } from '@main/window/NewWindowManager'
@@ -143,38 +143,42 @@ export class ProcessEventCoordinator {
       })
     })
 
-    // 控制栏动作事件
-    emitEvent.on('control-bar:action', (data) => {
-      if (!this.mainWebContents || this.mainWebContents.isDestroyed()) return
-      if (data.action !== 'init' && data.action !== 'reattach') return
-
-      sendDetachedWindowInit(this.mainWebContents, {
-        sourceViewId: data.data.sourceViewId || '',
-        sourceWindowId: data.data.sourceWindowId || 0,
-        detachedWindowId: data.data.detachedWindowId || 0,
-        config: {
-          action: data.action,
-          ...data.data
-        },
-        timestamp: data.timestamp
-      })
-    })
-
-
-    // 重新附加请求事件
+    // 重新附加请求事件 - 用于更新 ViewManager 的映射关系
     emitEvent.on('view:reattach-requested', (data) => {
       if (!this.newWindowManager) return
+
       const viewManager = this.newWindowManager.getViewManager()
       const { viewId, targetWindowId } = data
       const viewInfo = viewManager.getViewInfo(viewId)
 
       if (viewInfo) {
+        // 更新窗口-视图映射关系
         viewManager.addViewToWindow(targetWindowId, viewId)
+
+        // 切换到重新附加的视图
         const switchResult = viewManager.switchToView(targetWindowId, viewId)
         if (switchResult.success) {
-          log.info(`重新附加成功: ${viewId}`)
+          log.info(`重新附加并切换视图成功: ${viewId}`)
         }
       }
+    })
+
+    emitEvent.on('view:reattached', (data) => {
+      if (!this.mainWebContents || this.mainWebContents.isDestroyed()) return
+
+      const pluginInfo = data.pluginInfo || this.newWindowManager?.getViewManager()?.getViewInfo(data.viewId)?.config?.pluginMetadata
+
+      sendViewReattached(this.mainWebContents, {
+        sourceViewId: data.viewId,
+        sourceWindowId: data.toWindowId,
+        detachedWindowId: data.fromWindowId,
+        config: {
+          action: 'reattached',
+          pluginInfo: pluginInfo || {},
+          path: pluginInfo?.path || ''
+        },
+        timestamp: data.timestamp
+      })
     })
 
     // 分离窗口关闭事件
@@ -207,21 +211,6 @@ export class ProcessEventCoordinator {
   }
 
   /**
-   * 获取状态信息
-   */
-  public getStatus(): {
-    initialized: boolean
-    hasMainWebContents: boolean
-    mainWebContentsValid: boolean
-  } {
-    return {
-      initialized: this.isInitialized,
-      hasMainWebContents: this.mainWebContents !== null,
-      mainWebContentsValid: this.mainWebContents ? !this.mainWebContents.isDestroyed() : false
-    }
-  }
-
-  /**
    * 销毁
    */
   public destroy(): void {
@@ -236,7 +225,6 @@ export class ProcessEventCoordinator {
     emitEvent.removeAllListeners('window:main-created')
     emitEvent.removeAllListeners('window:main-focused')
     emitEvent.removeAllListeners('window:main-blurred')
-    emitEvent.removeAllListeners('control-bar:action')
 
     this.mainWebContents = null
     this.isInitialized = false

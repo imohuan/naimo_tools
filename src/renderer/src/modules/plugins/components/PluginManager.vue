@@ -99,8 +99,9 @@
               @uninstall="uninstallPlugin" />
           </div>
 
-          <!-- 加载占位符 -->
-          <div v-if="pluginStore.loading" class="flex items-center justify-center w-full py-1 animate-fade-in">
+          <!-- GitHub插件加载占位符 -->
+          <div v-if="pluginStore.loadingGithubPlugins"
+            class="flex items-center justify-center w-full py-1 animate-fade-in">
             <div class="w-full flex items-center justify-center">
               <div class="flex-1 border-t border-gray-200"></div>
               <span class="mx-4 text-gray-500 text-sm flex items-center gap-2">
@@ -109,7 +110,7 @@
                   </circle>
                   <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
                 </svg>
-                加载中
+                加载GitHub插件中...
               </span>
               <div class="flex-1 border-t border-gray-200"></div>
             </div>
@@ -121,12 +122,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from "vue";
+import { ref, computed, watch, onMounted } from "vue";
+import { useEventListener } from "@vueuse/core";
 import { usePluginStore } from "@/store/modules/plugin";
 import type { PluginConfig } from "@/typings/pluginTypes";
 import { PluginCategoryType, PLUGIN_CATEGORY_CONFIG } from "@/typings/pluginTypes";
 import PluginCard from "./PluginCard.vue";
 import PluginDetail from "./PluginDetail.vue";
+/** @ts-ignore */
+import IconMdiChevronLeft from "~icons/mdi/chevron-left";
+/** @ts-ignore */
+import IconMdiChevronRight from "~icons/mdi/chevron-right";
 
 const pluginStore = usePluginStore();
 const searchQuery = ref("");
@@ -243,82 +249,28 @@ const installPlugin = async (pluginConfig: PluginConfig) => {
     if (pluginConfig.downloadUrl) {
       // 开始安装（显示加载状态）
       setPluginInstalling(pluginConfig.id, true);
+      console.log(`📦 开始下载插件: ${pluginConfig.id}`);
+      console.log(`🔗 下载地址: ${pluginConfig.downloadUrl}`);
 
-      // 存储当前下载ID以便匹配事件
-      let currentDownloadId: string | null = null;
-
-      // 创建事件监听器
-      let progressUnsubscribe: (() => void) | null = null;
-      let completedUnsubscribe: (() => void) | null = null;
-      let errorUnsubscribe: (() => void) | null = null;
-      let cancelledUnsubscribe: (() => void) | null = null;
-      let startedUnsubscribe: (() => void) | null = null;
-
-      const cleanup = () => {
-        progressUnsubscribe?.();
-        completedUnsubscribe?.();
-        errorUnsubscribe?.();
-        cancelledUnsubscribe?.();
-        startedUnsubscribe?.();
-      };
-
-      // 监听下载开始事件，获取下载ID
-      startedUnsubscribe = naimo.download.onDownloadStarted((data) => {
-        // 简单的时间窗口匹配（如果在安装期间开始的下载，很可能就是这个插件的下载）
-        if (isPluginInstalling(pluginConfig.id)) {
-          currentDownloadId = data.id;
-          console.log(`🔄 插件下载开始: ${pluginConfig.id} (${data.id})`);
-        }
+      // 设置总超时（5分钟）
+      const timeoutPromise = new Promise<boolean>((_, reject) => {
+        setTimeout(() => {
+          reject(new Error('插件下载超时（5分钟）'));
+        }, 300000); // 5分钟
       });
 
-      // 监听下载进度
-      progressUnsubscribe = naimo.download.onDownloadProgress((data) => {
-        if (data.id === currentDownloadId) {
-          // 确保 totalBytes 不为 0 以避免 NaN
-          let progress = 0;
-          if (data.totalBytes && data.totalBytes > 0) {
-            progress = (data.bytesReceived / data.totalBytes) * 100;
-          } else if (data.progress !== undefined && !isNaN(data.progress)) {
-            // 如果字节信息不可用，使用已计算的进度
-            progress = data.progress;
-          }
-          console.log(`📊 插件下载进度: ${pluginConfig.id} - ${progress.toFixed(1)}%`);
-          setPluginInstalling(pluginConfig.id, true, progress, data.id);
-        }
-      });
+      // 并发执行下载和超时检查
+      const success = await Promise.race([
+        pluginStore.installUrl(pluginConfig.downloadUrl),
+        timeoutPromise
+      ]);
 
-      // 监听下载完成
-      completedUnsubscribe = naimo.download.onDownloadCompleted((data) => {
-        if (data.id === currentDownloadId) {
-          console.log(`✅ 插件下载完成: ${pluginConfig.id}`);
-          // 不在这里设置为false，因为还需要安装步骤
-        }
-      });
-
-      // 监听下载错误
-      errorUnsubscribe = naimo.download.onDownloadError((data) => {
-        if (data.id === currentDownloadId) {
-          console.error(`❌ 插件下载失败: ${pluginConfig.id}`, data.error);
-          setPluginInstalling(pluginConfig.id, false);
-          cleanup();
-        }
-      });
-
-      // 监听下载取消
-      cancelledUnsubscribe = naimo.download.onDownloadCancelled((data) => {
-        if (data.id === currentDownloadId) {
-          console.warn(`⚠️ 插件下载取消: ${pluginConfig.id}`);
-          setPluginInstalling(pluginConfig.id, false);
-          cleanup();
-        }
-      });
-
-      const success = await pluginStore.installUrl(pluginConfig.downloadUrl);
       setPluginInstalling(pluginConfig.id, false);
-      cleanup();
 
       if (success) {
         console.log(`✅ 插件安装成功: ${pluginConfig.id}`);
+      } else {
+        console.error(`❌ 插件安装失败: ${pluginConfig.id}`);
       }
     } else {
       // 普通安装（无下载）
@@ -332,6 +284,10 @@ const installPlugin = async (pluginConfig: PluginConfig) => {
   } catch (err) {
     console.error(`❌ 安装插件失败: ${pluginConfig.id}`, err);
     setPluginInstalling(pluginConfig.id, false);
+    // 显示错误提示
+    if (err instanceof Error) {
+      console.error('错误详情:', err.message);
+    }
   }
 };
 
@@ -373,7 +329,13 @@ watch([searchQuery, categoryFilter], () => {
 
 useEventListener(document, "keydown", handleKeydown);
 
-onMounted(() => {
+onMounted(async () => {
+  // 确保先显示默认和本地插件，然后异步加载GitHub插件
+  console.log('🔌 插件管理器已挂载');
+  console.log('📋 当前已安装插件数量:', pluginStore.installedPlugins.length);
+  console.log('📋 当前可用插件数量:', pluginStore.pluginList.length);
+
+  // 异步加载GitHub插件列表（不阻塞UI）
   pluginStore.loadAsyncPluginList();
 });
 </script>

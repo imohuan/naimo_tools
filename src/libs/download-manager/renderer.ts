@@ -92,10 +92,11 @@ export async function openDownloadFolder(filePath: string): Promise<boolean> {
 /**
  * 删除下载任务
  * @param id 下载ID
+ * @param deleteFile 是否同时删除文件
  * @returns 是否成功
  */
-export async function deleteDownload(id: string): Promise<boolean> {
-  return ipcRenderer.invoke('delete-download', id);
+export async function deleteDownload(id: string, deleteFile: boolean = false): Promise<boolean> {
+  return ipcRenderer.invoke('delete-download', id, deleteFile);
 }
 
 /**

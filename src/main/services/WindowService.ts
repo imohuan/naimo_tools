@@ -10,7 +10,8 @@ import { DownloadManagerMain, StorageProvider } from '@libs/download-manager/mai
 import type { Service } from '../core/ServiceContainer'
 import type { AppConfig } from '@shared/typings/appTypes'
 import type { WindowManagerConfig } from '@renderer/src/typings/windowTypes'
-import { LifecycleType } from '@renderer/src/typings/windowTypes'
+import { LifecycleType, ViewType } from '@renderer/src/typings/windowTypes'
+import { WebContentsViewInfo } from '@main/typings/windowTypes'
 
 /**
  * 窗口服务配置
@@ -89,6 +90,19 @@ export class WindowService implements Service {
    */
   private async initializeDownloadManager(): Promise<void> {
     try {
+      // 设置自定义消息广播函数，用于向所有窗口和视图广播下载事件
+      this.downloadManagerMain.setMessageBroadcaster((channel: string, data: any) => {
+        this.broadcastToAllWindows(channel, data, {
+          filter: (viewInfo) => {
+            // 判断是否是设置窗口
+            if (viewInfo.config.type === ViewType.SETTINGS) {
+              return true
+            }
+            return false
+          }
+        })
+      })
+
       this.downloadManagerMain.initialize()
       log.info('下载管理器初始化完成')
     } catch (error) {
@@ -281,6 +295,69 @@ export class WindowService implements Service {
    */
   getDownloadManager(): DownloadManagerMain {
     return this.downloadManagerMain
+  }
+
+  /**
+   * 向所有窗口和视图广播消息
+   * @param channel 消息通道
+   * @param data 消息数据
+   * @param options 可选配置
+   * @param options.filter 视图过滤函数，返回 true 表示发送到该视图
+   * @param options.includeDownloadWindow 是否包含下载窗口，默认为 false
+   */
+  private broadcastToAllWindows(
+    channel: string,
+    data: any,
+    options?: {
+      filter?: (viewInfo: WebContentsViewInfo) => boolean
+      includeDownloadWindow?: boolean
+    }
+  ): void {
+    try {
+      if (!this.windowManager) {
+        log.warn('[WindowService] 窗口管理器未初始化，无法广播消息')
+        return
+      }
+
+      const { filter, includeDownloadWindow = false } = options || {}
+      let sentCount = 0
+
+      // 获取所有视图（包括主窗口视图和分离窗口视图）
+      const allViews = this.windowManager.getViewManager().getAllViews()
+
+      allViews.forEach((viewInfo) => {
+        try {
+          // 应用过滤器
+          if (filter && !filter(viewInfo)) {
+            return
+          }
+
+          if (viewInfo.view && viewInfo.view.webContents && !viewInfo.view.webContents.isDestroyed()) {
+            viewInfo.view.webContents.send(channel, data)
+            sentCount++
+          }
+        } catch (error) {
+          log.error(`[WindowService] 向视图 ${viewInfo.id} 发送消息失败:`, error)
+        }
+      })
+
+      // 额外向下载窗口广播（如果存在且不在视图管理器中）
+      if (includeDownloadWindow && this.downloadWindow && !this.downloadWindow.isDestroyed()) {
+        try {
+          this.downloadWindow.webContents.send(channel, data)
+          sentCount++
+        } catch (error) {
+          log.error('[WindowService] 向下载窗口发送消息失败:', error)
+        }
+      }
+
+      log.info(
+        `[WindowService] 已向 ${sentCount} 个视图广播事件: ${channel}`,
+        data.id ? `(ID: ${data.id})` : ''
+      )
+    } catch (error) {
+      log.error('[WindowService] 广播消息失败:', error)
+    }
   }
 
   /**

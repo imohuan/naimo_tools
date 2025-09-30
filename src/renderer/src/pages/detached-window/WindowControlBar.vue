@@ -3,23 +3,32 @@
   提供窗口控制功能：最小化、最大化、关闭、重新附加等
 -->
 <template>
+  <!-- 控制栏容器 - 与 App.vue 的搜索头部区域保持一致的高度和样式 -->
   <div
-    class="flex items-center h-10 bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900 border-b border-slate-200 dark:border-slate-700 px-3 text-slate-700 dark:text-slate-300 shadow-sm backdrop-blur-sm"
+    class="w-full flex items-center justify-between bg-white transition-all duration-200 px-3 border-b border-gray-100"
+    :class="{ 'rounded-t-xl': !isFullscreen }" :style="{ height: `${controlBarHeight}px` }"
     style="-webkit-app-region: drag">
+
     <!-- 左侧：窗口图标和标题 -->
-    <div class="flex items-center flex-1 min-w-0">
-      <div v-if="windowIcon" class="flex-shrink-0 w-4 h-4 mr-3">
+    <div class="flex items-center flex-1 min-w-0 gap-3">
+      <!-- 窗口图标 -->
+      <div v-if="windowIcon" class="flex-shrink-0 w-5 h-5">
         <img :src="windowIcon" :alt="windowTitle" class="w-full h-full object-contain rounded-sm" />
       </div>
-      <div class="font-medium text-sm text-slate-800 dark:text-slate-200 truncate select-none" :title="windowTitle">
+
+      <!-- 默认图标（如果没有窗口图标） -->
+      <div v-else class="flex-shrink-0 w-5 h-5 flex items-center justify-center text-gray-400">
+        <IconMdiPuzzle class="w-5 h-5" />
+      </div>
+
+      <!-- 窗口标题 -->
+      <div class="font-medium text-sm text-gray-800 truncate select-none" :title="windowTitle">
         {{ windowTitle }}
       </div>
-    </div>
 
-    <!-- 中间：状态指示器（可选） -->
-    <div class="flex items-center justify-center mx-4">
-      <div v-if="isLoading" class="flex items-center gap-2 text-slate-500 dark:text-slate-400">
-        <IconMdiLoading class="w-3 h-3 text-blue-500 animate-spin" />
+      <!-- 加载指示器 -->
+      <div v-if="isLoading" class="flex items-center gap-2 text-gray-500">
+        <IconMdiLoading class="w-4 h-4 text-indigo-500 animate-spin" />
         <span class="text-xs font-medium">加载中...</span>
       </div>
     </div>
@@ -27,46 +36,43 @@
     <!-- 右侧：控制按钮 -->
     <div class="flex items-center gap-1 flex-shrink-0" style="-webkit-app-region: no-drag">
       <!-- 重新附加按钮 -->
-      <button
-        class="group flex items-center justify-center w-8 h-6 rounded-md transition-all duration-200 hover:bg-green-100 dark:hover:bg-green-900/30 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+      <button tabindex="-1"
+        class="group flex items-center justify-center w-9 h-9 rounded-lg transition-all duration-200 hover:bg-green-50 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent focus:outline-none"
         @click="handleReattach" :disabled="isOperating" title="重新附加到主窗口 (Ctrl+Shift+A)">
-        <IconMdiDockWindow
-          class="w-4 h-4 text-slate-600 dark:text-slate-400 group-hover:text-green-600 dark:group-hover:text-green-400 transition-colors" />
+        <IconMdiDockWindow class="w-5 h-5 text-gray-600 group-hover:text-green-600 transition-colors" />
       </button>
 
       <!-- 最小化按钮 -->
-      <button
-        class="group flex items-center justify-center w-8 h-6 rounded-md transition-all duration-200 hover:bg-yellow-100 dark:hover:bg-yellow-900/30 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+      <button tabindex="-1"
+        class="group flex items-center justify-center w-9 h-9 rounded-lg transition-all duration-200 hover:bg-gray-100 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent focus:outline-none"
         @click="handleMinimize" :disabled="isOperating" title="最小化">
-        <IconMdiWindowMinimize
-          class="w-4 h-4 text-slate-600 dark:text-slate-400 group-hover:text-yellow-600 dark:group-hover:text-yellow-400 transition-colors" />
+        <IconMdiWindowMinimize class="w-5 h-5 text-gray-600 group-hover:text-gray-800 transition-colors" />
       </button>
 
       <!-- 最大化/还原按钮 -->
-      <button
-        class="group flex items-center justify-center w-8 h-6 rounded-md transition-all duration-200 hover:bg-blue-100 dark:hover:bg-blue-900/30 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+      <button tabindex="-1"
+        class="group flex items-center justify-center w-9 h-9 rounded-lg transition-all duration-200 hover:bg-blue-50 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent focus:outline-none"
         @click="handleMaximize" :disabled="isOperating" :title="isMaximized ? '还原窗口' : '最大化'">
         <IconMdiWindowMaximize v-if="!isMaximized"
-          class="w-4 h-4 text-slate-600 dark:text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" />
-        <IconMdiWindowRestore v-else
-          class="w-4 h-4 text-slate-600 dark:text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" />
+          class="w-5 h-5 text-gray-600 group-hover:text-blue-600 transition-colors" />
+        <IconMdiWindowRestore v-else class="w-5 h-5 text-gray-600 group-hover:text-blue-600 transition-colors" />
       </button>
 
       <!-- 关闭按钮 -->
-      <button
-        class="group flex items-center justify-center w-8 h-6 rounded-md transition-all duration-200 hover:bg-red-100 dark:hover:bg-red-900/30 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+      <button tabindex="-1"
+        class="group flex items-center justify-center w-9 h-9 rounded-lg transition-all duration-200 hover:bg-red-50 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent focus:outline-none"
         @click="handleClose" :disabled="isOperating" title="关闭窗口">
-        <IconMdiWindowClose
-          class="w-4 h-4 text-slate-600 dark:text-slate-400 group-hover:text-red-600 dark:group-hover:text-red-400 transition-colors" />
+        <IconMdiWindowClose class="w-5 h-5 text-gray-600 group-hover:text-red-600 transition-colors" />
       </button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
-import { DetachedWindowAction, type DetachedWindowControlEvent } from '@/typings/windowTypes'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { DetachedWindowAction } from '@/typings/windowTypes'
 import type { WindowControlAPI } from './types/winControl'
+import { DEFAULT_WINDOW_LAYOUT } from '@shared/config/windowLayoutConfig'
 
 /** 组件属性 */
 interface Props {
@@ -80,6 +86,8 @@ interface Props {
   windowId?: number
   /** 视图ID */
   viewId?: string
+  /** 是否全屏 */
+  isFullscreen?: boolean
 }
 
 /** 组件事件 */
@@ -97,10 +105,11 @@ interface Emits {
 }
 const winControl = (window as any).naimo as Partial<WindowControlAPI>
 
-const props = withDefaults(defineProps<Props>(), {
+withDefaults(defineProps<Props>(), {
   windowTitle: '分离窗口',
   windowIcon: '',
-  isLoading: false
+  isLoading: false,
+  isFullscreen: false
 })
 
 const emit = defineEmits<Emits>()
@@ -108,6 +117,9 @@ const emit = defineEmits<Emits>()
 // 响应式状态
 const isOperating = ref(false)
 const isMaximized = ref(false)
+
+// 从配置文件读取控制栏高度
+const controlBarHeight = computed(() => DEFAULT_WINDOW_LAYOUT.detachedWindow.controlBarHeight)
 
 // 计算属性（暂未使用）
 // const effectiveTitle = computed(() => props.windowTitle || '分离窗口')
@@ -270,13 +282,6 @@ const handleClose = async (): Promise<void> => {
  * 发送控制事件
  */
 const emitControlEvent = (action: DetachedWindowAction): void => {
-  const event: DetachedWindowControlEvent = {
-    action,
-    windowId: props.windowId || 0,
-    viewId: props.viewId || '',
-    timestamp: Date.now()
-  }
-
   // 触发组件事件
   emit('control-action', action)
 }

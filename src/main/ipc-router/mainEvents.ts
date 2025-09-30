@@ -42,6 +42,40 @@ export function sendViewRestoreRequested(
 }
 
 /**
+ * 发送 view-reattached 事件
+ * @param webContents 目标 WebContents
+ * @param data 事件数据
+ */
+export function sendViewReattached(
+  webContents: WebContents,
+  data: EventData<'view-reattached'>
+): void {
+  if (webContents && !webContents.isDestroyed()) {
+    webContents.send('view-reattached', data)
+    log.debug(`事件已发送: view-reattached`, { data })
+  } else {
+    log.warn(`无法发送事件: WebContents已销毁 - view-reattached`)
+  }
+}
+
+/**
+ * 发送 detached-window-closed 事件
+ * @param webContents 目标 WebContents
+ * @param data 事件数据
+ */
+export function sendDetachedWindowClosed(
+  webContents: WebContents,
+  data: EventData<'detached-window-closed'>
+): void {
+  if (webContents && !webContents.isDestroyed()) {
+    webContents.send('detached-window-closed', data)
+    log.debug(`事件已发送: detached-window-closed`, { data })
+  } else {
+    log.warn(`无法发送事件: WebContents已销毁 - detached-window-closed`)
+  }
+}
+
+/**
  * 发送 plugin-window-closed 事件
  * @param webContents 目标 WebContents
  * @param data 事件数据
@@ -143,7 +177,6 @@ export function sendWindowMainShow(
   }
 }
 
-
 /**
  * 发送 global-hotkey-trigger 事件
  * @param webContents 目标 WebContents
@@ -158,40 +191,6 @@ export function sendGlobalHotkeyTrigger(
     log.debug(`事件已发送: global-hotkey-trigger`, { data })
   } else {
     log.warn(`无法发送事件: WebContents已销毁 - global-hotkey-trigger`)
-  }
-}
-
-/**
- * 发送 detached-window-init 事件
- * @param webContents 目标 WebContents
- * @param data 事件数据
- */
-export function sendDetachedWindowInit(
-  webContents: WebContents,
-  data: EventData<'detached-window-init'>
-): void {
-  if (webContents && !webContents.isDestroyed()) {
-    webContents.send('detached-window-init', data)
-    log.debug(`事件已发送: detached-window-init`, { data })
-  } else {
-    log.warn(`无法发送事件: WebContents已销毁 - detached-window-init`)
-  }
-}
-
-/**
- * 发送 detached-window-closed 事件
- * @param webContents 目标 WebContents
- * @param data 事件数据
- */
-export function sendDetachedWindowClosed(
-  webContents: WebContents,
-  data: EventData<'detached-window-closed'>
-): void {
-  if (webContents && !webContents.isDestroyed()) {
-    webContents.send('detached-window-closed', data)
-    log.debug(`事件已发送: detached-window-closed`, { data })
-  } else {
-    log.warn(`无法发送事件: WebContents已销毁 - detached-window-closed`)
   }
 }
 
@@ -284,6 +283,8 @@ export function sendDevReload(
 export const mainEvents = {
   viewDetached: sendViewDetached,
   viewRestoreRequested: sendViewRestoreRequested,
+  viewReattached: sendViewReattached,
+  detachedWindowClosed: sendDetachedWindowClosed,
   pluginWindowClosed: sendPluginWindowClosed,
   pluginViewOpened: sendPluginViewOpened,
   pluginViewClosed: sendPluginViewClosed,
@@ -291,8 +292,6 @@ export const mainEvents = {
   windowMainHide: sendWindowMainHide,
   windowMainShow: sendWindowMainShow,
   globalHotkeyTrigger: sendGlobalHotkeyTrigger,
-  detachedWindowInit: sendDetachedWindowInit,
-  detachedWindowClosed: sendDetachedWindowClosed,
   screenInfo: sendScreenInfo,
   appBlur: sendAppBlur,
   appFocus: sendAppFocus,

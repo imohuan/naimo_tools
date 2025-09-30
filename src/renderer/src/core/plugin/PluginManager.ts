@@ -55,25 +55,31 @@ export class PluginManager extends BaseSingleton implements CoreAPI {
   // 移除生命周期管理相关方法，这些功能已转移到 PluginWindowManager
 
   async updatePluginList(): Promise<void> {
-    this.allAvailablePlugins = await this.getPluginList()
+    const pluginList = await this.getPluginList()
+    console.log('📋 getPluginList() 返回的插件数量:', pluginList.size)
+    // 合并现有插件列表，避免覆盖 GitHub 插件
+    pluginList.forEach((plugin, id) => {
+      this.allAvailablePlugins.set(id, plugin)
+    })
+    // 保留 GitHub 插件
     this.githubPlugins.forEach(plugin => {
       this.allAvailablePlugins.set(plugin.id, plugin)
     })
+    console.log('📊 updatePluginList() 完成后 allAvailablePlugins 数量:', this.allAvailablePlugins.size)
   }
 
-  async loadAsyncPluginList(init = false): Promise<void> {
+  async loadAsyncPluginList(): Promise<void> {
     await this.github.loadMore()
     const githubPlugins = this.github.result
     const githubPluginsConfig: PluginConfig[] = githubPlugins.items.map(item => item.config).filter(Boolean) as PluginConfig[]
     this.githubPlugins = githubPluginsConfig
 
-    if (init) {
-      this.githubPlugins.forEach(plugin => {
-        // 避免已经下载到本地的插件重复添加
-        if (this.allAvailablePlugins.has(plugin.id)) return
-        this.allAvailablePlugins.set(plugin.id, plugin)
-      })
-    }
+    // 总是将 GitHub 插件添加到可用插件列表
+    this.githubPlugins.forEach(plugin => {
+      // 避免已经下载到本地的插件重复添加
+      if (this.allAvailablePlugins.has(plugin.id)) return
+      this.allAvailablePlugins.set(plugin.id, plugin)
+    })
   }
 
   /** 获取插件列表 */
@@ -242,53 +248,96 @@ export class PluginManager extends BaseSingleton implements CoreAPI {
   }
 
   async installUrl(url: string): Promise<boolean> {
-    const downloadId = await naimo.download.startDownload({ url })
+    console.log(`📦 开始从 URL 下载插件: ${url}`)
 
-    // 等待下载完成
-    return new Promise((resolve, reject) => {
-      let completedUnsubscribe: (() => void) | null = null
-      let errorUnsubscribe: (() => void) | null = null
-      let cancelledUnsubscribe: (() => void) | null = null
-
-      // 清理所有监听器的函数
-      const cleanup = () => {
-        completedUnsubscribe?.()
-        errorUnsubscribe?.()
-        cancelledUnsubscribe?.()
+    try {
+      const downloadId = await naimo.download.startDownload({ url })
+      if (!downloadId) {
+        console.error(`❌ 未能获取下载 ID`)
+        throw new Error('下载启动失败')
       }
+      console.log(`🔄 下载 ID: ${downloadId}`)
 
-      // 监听下载完成事件
-      completedUnsubscribe = naimo.download.onDownloadCompleted((data) => {
-        if (data.id === downloadId) {
-          cleanup() // 清理监听器
-          // 下载完成，获取文件路径并安装
-          this.installZip(data.filePath)
-            .then(result => resolve(result))
-            .catch(error => reject(error)).finally(() => {
-              // 删除下载文件
-              naimo.download.deleteDownload(downloadId, true)
-            })
-        }
-      })
+      // 等待下载完成
+      return new Promise((resolve, reject) => {
+        let completedUnsubscribe: (() => void) | null = null
+        let errorUnsubscribe: (() => void) | null = null
+        let cancelledUnsubscribe: (() => void) | null = null
+        let progressUnsubscribe: (() => void) | null = null
 
-      // 监听下载错误事件
-      errorUnsubscribe = naimo.download.onDownloadError((data) => {
-        if (data.id === downloadId) {
-          cleanup() // 清理监听器
-          console.error(`❌ 插件下载失败: ${data.error}`)
-          reject(new Error(data.error))
+        // 清理所有监听器的函数
+        const cleanup = () => {
+          completedUnsubscribe?.()
+          errorUnsubscribe?.()
+          cancelledUnsubscribe?.()
+          progressUnsubscribe?.()
         }
-      })
 
-      // 监听下载取消事件
-      cancelledUnsubscribe = naimo.download.onDownloadCancelled((data) => {
-        if (data.id === downloadId) {
-          cleanup() // 清理监听器
-          console.warn(`⚠️ 插件下载已取消`)
-          reject(new Error('下载已取消'))
-        }
+        // 设置超时，防止无限等待
+        const timeout = setTimeout(() => {
+          cleanup()
+          console.error(`❌ 插件下载超时 (5分钟): ${downloadId}`)
+          console.error(`❌ 请检查网络连接或URL是否有效`)
+          reject(new Error('下载超时（5分钟）'))
+        }, 300000) // 5分钟超时
+
+        // 监听下载进度（用于调试）
+        progressUnsubscribe = naimo.download.onDownloadProgress((data) => {
+          if (data.id === downloadId) {
+            const progress = data.totalBytes > 0 ? (data.bytesReceived / data.totalBytes * 100).toFixed(1) : '?'
+            console.log(`📊 下载进度: ${progress}% (${data.bytesReceived}/${data.totalBytes} bytes)`)
+          }
+        })
+
+        // 监听下载完成事件
+        completedUnsubscribe = naimo.download.onDownloadCompleted((data) => {
+          console.log(`📦 收到下载完成事件: ${data.id}, 期望ID: ${downloadId}`)
+          if (data.id === downloadId) {
+            clearTimeout(timeout)
+            cleanup()
+            console.log(`✅ 插件下载完成: ${data.filePath}`)
+            // 下载完成，获取文件路径并安装
+            this.installZip(data.filePath)
+              .then(result => {
+                console.log(`✅ 插件安装${result ? '成功' : '失败'}`)
+                resolve(result)
+              })
+              .catch(error => {
+                console.error(`❌ 插件安装错误:`, error)
+                reject(error)
+              })
+              .finally(() => {
+                // 删除下载文件
+                naimo.download.deleteDownload(downloadId, true)
+              })
+          }
+        })
+
+        // 监听下载错误事件
+        errorUnsubscribe = naimo.download.onDownloadError((data) => {
+          console.log(`❌ 收到下载错误事件: ${data.id}, 期望ID: ${downloadId}`)
+          if (data.id === downloadId) {
+            clearTimeout(timeout)
+            cleanup()
+            console.error(`❌ 插件下载失败: ${data.error}`)
+            reject(new Error(data.error))
+          }
+        })
+
+        // 监听下载取消事件
+        cancelledUnsubscribe = naimo.download.onDownloadCancelled((data) => {
+          if (data.id === downloadId) {
+            clearTimeout(timeout)
+            cleanup()
+            console.warn(`⚠️ 插件下载已取消`)
+            reject(new Error('下载已取消'))
+          }
+        })
       })
-    })
+    } catch (error) {
+      console.error(`❌ 下载插件失败:`, error)
+      throw error
+    }
   }
 
   /** 从ZIP文件安装插件 */
@@ -537,7 +586,6 @@ export class PluginManager extends BaseSingleton implements CoreAPI {
       ...(app.hidden && { hidden: app.hidden }),
       // 插件相关字段
       ...(app.pluginId && { pluginId: app.pluginId }),
-      ...(app.executeType && { executeType: app.executeType }),
     }
     return serialized
   }

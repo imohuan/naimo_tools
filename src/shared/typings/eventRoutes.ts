@@ -1,6 +1,6 @@
 /**
  * 自动生成的事件类型定义
- * 生成时间: 2025-09-29T04:38:00.723Z
+ * 生成时间: 2025-09-30T04:12:57.740Z
  * 请勿手动修改此文件
  */
 
@@ -17,6 +17,16 @@ interface EventInterface {
   "view-restore-requested": (handler: (event: any, data: EventData<'view-restore-requested'>) => void) => void;
   /** 监听 view-restore-requested 事件 */
   "onViewRestoreRequested": (handler: (event: any, data: EventData<'view-restore-requested'>) => void) => void;
+
+  /** 监听 view-reattached 事件 */
+  "view-reattached": (handler: (event: any, data: EventData<'view-reattached'>) => void) => void;
+  /** 监听 view-reattached 事件 */
+  "onViewReattached": (handler: (event: any, data: EventData<'view-reattached'>) => void) => void;
+
+  /** 监听 detached-window-closed 事件 */
+  "detached-window-closed": (handler: (event: any, data: EventData<'detached-window-closed'>) => void) => void;
+  /** 监听 detached-window-closed 事件 */
+  "onDetachedWindowClosed": (handler: (event: any, data: EventData<'detached-window-closed'>) => void) => void;
 
   /** 监听 plugin-window-closed 事件 */
   "plugin-window-closed": (handler: (event: any, data: EventData<'plugin-window-closed'>) => void) => void;
@@ -48,21 +58,10 @@ interface EventInterface {
   /** 监听 window-main-show 事件 */
   "onWindowMainShow": (handler: (event: any, data: EventData<'window-main-show'>) => void) => void;
 
-
   /** 监听 global-hotkey-trigger 事件 */
   "global-hotkey-trigger": (handler: (event: any, data: EventData<'global-hotkey-trigger'>) => void) => void;
   /** 监听 global-hotkey-trigger 事件 */
   "onGlobalHotkeyTrigger": (handler: (event: any, data: EventData<'global-hotkey-trigger'>) => void) => void;
-
-  /** 监听 detached-window-init 事件 */
-  "detached-window-init": (handler: (event: any, data: EventData<'detached-window-init'>) => void) => void;
-  /** 监听 detached-window-init 事件 */
-  "onDetachedWindowInit": (handler: (event: any, data: EventData<'detached-window-init'>) => void) => void;
-
-  /** 监听 detached-window-closed 事件 */
-  "detached-window-closed": (handler: (event: any, data: EventData<'detached-window-closed'>) => void) => void;
-  /** 监听 detached-window-closed 事件 */
-  "onDetachedWindowClosed": (handler: (event: any, data: EventData<'detached-window-closed'>) => void) => void;
 
   /** 监听 screen-info 事件 */
   "screen-info": (handler: (event: any, data: EventData<'screen-info'>) => void) => void;
@@ -102,6 +101,16 @@ export const EVENT_INFO = [
     method: "onViewRestoreRequested"
   },
   {
+    name: "view-reattached",
+    comment: "监听 view-reattached 事件",
+    method: "onViewReattached"
+  },
+  {
+    name: "detached-window-closed",
+    comment: "监听 detached-window-closed 事件",
+    method: "onDetachedWindowClosed"
+  },
+  {
     name: "plugin-window-closed",
     comment: "监听 plugin-window-closed 事件",
     method: "onPluginWindowClosed"
@@ -137,16 +146,6 @@ export const EVENT_INFO = [
     method: "onGlobalHotkeyTrigger"
   },
   {
-    name: "detached-window-init",
-    comment: "监听 detached-window-init 事件",
-    method: "onDetachedWindowInit"
-  },
-  {
-    name: "detached-window-closed",
-    comment: "监听 detached-window-closed 事件",
-    method: "onDetachedWindowClosed"
-  },
-  {
     name: "screen-info",
     comment: "监听 screen-info 事件",
     method: "onScreenInfo"
@@ -173,7 +172,7 @@ export const EVENT_INFO = [
   }
 ];
 // 合并所有事件接口类型
-export interface AllEventRouter extends EventInterface { }
+export interface AllEventRouter extends EventInterface {}
 
 // 事件信息类型
 export interface EventInfo {

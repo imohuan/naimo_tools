@@ -21,13 +21,6 @@ export const categoryConfig: Record<string, Omit<SearchCategory, 'items'>> = {
     isDragEnabled: true,
     maxDisplayCount: 16,
     isExpanded: false,
-    customSearch: (searchText: string, items: any[]) => {
-      return items.filter((item) => {
-        const name = item.name.toLowerCase()
-        const query = searchText.toLowerCase()
-        return name.includes(query) || name.split('.').pop()?.includes(query)
-      })
-    },
   },
   applications: {
     id: 'applications',

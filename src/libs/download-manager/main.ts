@@ -10,6 +10,9 @@ export interface StorageProvider {
   set<T = any>(key: string, value: T): void;
 }
 
+// 定义消息广播函数类型
+export type MessageBroadcaster = (channel: string, data: any) => void;
+
 /**
  * 下载管理器主进程类
  */
@@ -24,6 +27,8 @@ export class DownloadManagerMain {
   private downloads: Map<string, DownloadStatus> = new Map();
   /** 存储提供者 */
   private storageProvider: StorageProvider | null = null;
+  /** 自定义消息广播函数 */
+  private messageBroadcaster: MessageBroadcaster | null = null;
 
   static instance: DownloadManagerMain | null = null;
 
@@ -57,6 +62,15 @@ export class DownloadManagerMain {
   setStorageProvider(storageProvider: StorageProvider): void {
     this.storageProvider = storageProvider;
     this.loadDownloadsFromStorage();
+  }
+
+  /**
+   * 设置消息广播函数
+   * @param broadcaster 自定义的消息广播函数
+   */
+  setMessageBroadcaster(broadcaster: MessageBroadcaster): void {
+    this.messageBroadcaster = broadcaster;
+    console.log('✅ 下载管理器已设置自定义消息广播函数');
   }
 
   /**
@@ -264,9 +278,33 @@ export class DownloadManagerMain {
    */
   private sendToRenderer(channel: string, data: any): void {
     try {
-      if (this.mainWindow && !this.mainWindow.isDestroyed()) {
-        this.mainWindow.webContents.send(channel, data);
+      // 优先使用自定义消息广播函数
+      if (this.messageBroadcaster) {
+        console.log(`[DownloadManager] 使用自定义广播函数发送事件: ${channel}`, data.id ? `(ID: ${data.id})` : '');
+        this.messageBroadcaster(channel, data);
+        return;
       }
+
+      // 回退方案1: 使用 BrowserWindow.getAllWindows() (适用于传统 BrowserWindow)
+      const allWindows = BrowserWindow.getAllWindows();
+      if (allWindows.length > 0) {
+        console.log(`[DownloadManager] 向 ${allWindows.length} 个 BrowserWindow 广播事件: ${channel}`, data.id ? `(ID: ${data.id})` : '');
+        allWindows.forEach(window => {
+          if (window && !window.isDestroyed()) {
+            window.webContents.send(channel, data);
+          }
+        });
+        return;
+      }
+
+      // 回退方案2: 使用主窗口
+      if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+        console.log(`[DownloadManager] 向主窗口发送事件: ${channel}`, data.id ? `(ID: ${data.id})` : '');
+        this.mainWindow.webContents.send(channel, data);
+        return;
+      }
+
+      console.warn('[DownloadManager] 没有可用的窗口发送消息');
     } catch (error) {
       console.error('发送消息到渲染进程失败:', error);
     }

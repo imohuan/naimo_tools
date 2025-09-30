@@ -80,6 +80,7 @@ export function useAppLifecycle() {
     onWindowMainShow: (data: any) => void
     onViewDetached: (data: any) => void
     onViewRestoreRequested: (data: any) => void
+    onViewReattached: (data: any) => void
   }) => {
     naimo.event.onPluginWindowClosed((event, data) => {
       console.log("收到主进程插件窗口关闭消息:", data)
@@ -104,6 +105,11 @@ export function useAppLifecycle() {
     naimo.event.onViewRestoreRequested((event, data) => {
       console.log("收到视图恢复请求:", data)
       handlers.onViewRestoreRequested(data)
+    })
+
+    naimo.event.onViewReattached((event, data) => {
+      console.log("收到视图重新附加事件:", data)
+      handlers.onViewReattached(data)
     })
   }
 
@@ -131,11 +137,15 @@ export function useAppLifecycle() {
     onViewDetached: (data: any) => void
     onViewRestoreRequested: (data: any) => void
 
+    // 视图重新附加事件处理器
+    onViewReattached: (data: any) => void
+
     // 快捷键事件处理器
     onHotkeyTriggered: HotkeyEventListener
 
     // 初始化完成回调
     onInitComplete?: () => void
+
   }) => {
     console.log("🚀 开始应用初始化")
 
@@ -161,7 +171,8 @@ export function useAppLifecycle() {
         onWindowMainHide: handlers.onWindowMainHide,
         onWindowMainShow: handlers.onWindowMainShow,
         onViewDetached: handlers.onViewDetached,
-        onViewRestoreRequested: handlers.onViewRestoreRequested
+        onViewRestoreRequested: handlers.onViewRestoreRequested,
+        onViewReattached: handlers.onViewReattached
       })
 
       registerHotkeyEventListeners(handlers.onHotkeyTriggered)

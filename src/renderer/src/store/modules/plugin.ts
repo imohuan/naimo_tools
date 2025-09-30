@@ -11,13 +11,18 @@ import { searchEngine } from '@/core/search/SearchEngine'
 export const usePluginStore = defineStore('plugin', () => {
   // 基础状态
   const loading = ref(false)
+  const loadingGithubPlugins = ref(false) // GitHub插件加载状态
   const error = ref<string | null>(null)
   const installedPlugins = ref<PluginConfig[]>([])
+  const allPlugins = ref<PluginConfig[]>([])
 
   // 计算属性
   const enabledPlugins = computed(() =>
     installedPlugins.value.filter(p => p.enabled)
   )
+
+  // 插件列表（包含所有可用插件）
+  const pluginList = computed(() => allPlugins.value)
 
   const pluginCount = computed(() => installedPlugins.value.length)
   const enabledPluginCount = computed(() => enabledPlugins.value.length)
@@ -40,6 +45,7 @@ export const usePluginStore = defineStore('plugin', () => {
   const syncPluginState = () => {
     searchEngine.updatePluginCategories()
     installedPlugins.value = Array.from(pluginManager.installedPlugins.values())
+    allPlugins.value = Array.from(pluginManager.allAvailablePlugins.values())
   }
 
   /**
@@ -52,6 +58,9 @@ export const usePluginStore = defineStore('plugin', () => {
       await pluginManager.initialize()
       syncPluginState()
       console.log('🔌 插件系统初始化完成')
+      console.log('📊 已安装插件数量:', installedPlugins.value.length)
+      console.log('📊 可用插件数量:', allPlugins.value.length)
+      console.log('📊 PluginManager.allAvailablePlugins 数量:', pluginManager.allAvailablePlugins.size)
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : '初始化插件系统失败'
       setError(errorMessage)
@@ -202,11 +211,84 @@ export const usePluginStore = defineStore('plugin', () => {
   }
 
   /**
+   * 加载异步插件列表（GitHub插件）
+   */
+  const loadAsyncPluginList = async (): Promise<void> => {
+    try {
+      // 使用独立的loading状态，不影响已安装插件的显示
+      loadingGithubPlugins.value = true
+      console.log('🔄 开始加载GitHub插件列表...')
+      await pluginManager.loadAsyncPluginList()
+      syncPluginState()
+      console.log('✅ GitHub插件列表加载完成，新增插件数量:', pluginManager.githubPlugins.length)
+      console.log('📊 总可用插件数量:', allPlugins.value.length)
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : '加载插件列表失败'
+      setError(errorMessage)
+      console.error('❌ 加载插件列表失败:', err)
+    } finally {
+      loadingGithubPlugins.value = false
+    }
+  }
+
+  /**
+   * 通过URL安装插件
+   */
+  const installUrl = async (url: string): Promise<boolean> => {
+    try {
+      setLoading(true)
+      setError(null)
+      const success = await pluginManager.installUrl(url)
+      if (success) {
+        syncPluginState()
+        console.log(`✅ 插件从URL安装成功: ${url}`)
+      }
+      return success
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : '从URL安装插件失败'
+      setError(errorMessage)
+      return false
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  /**
+   * 通过ZIP文件安装插件
+   */
+  const installZip = async (zipPath: string): Promise<boolean> => {
+    try {
+      setLoading(true)
+      setError(null)
+      const success = await pluginManager.installZip(zipPath)
+      if (success) {
+        syncPluginState()
+        console.log(`✅ 插件从ZIP安装成功: ${zipPath}`)
+      }
+      return success
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : '从ZIP安装插件失败'
+      setError(errorMessage)
+      return false
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  /**
+   * 检查插件是否已安装（别名方法）
+   */
+  const isPluginInstalled = (pluginId: string): boolean => {
+    return isInstalled(pluginId)
+  }
+
+  /**
    * 重置状态
    */
   const reset = () => {
     pluginManager.reset()
     installedPlugins.value = []
+    allPlugins.value = []
     setError(null)
     setLoading(false)
   }
@@ -214,8 +296,10 @@ export const usePluginStore = defineStore('plugin', () => {
   return {
     // 只读状态
     loading: readonly(loading),
+    loadingGithubPlugins: readonly(loadingGithubPlugins),
     error: readonly(error),
     installedPlugins: readonly(installedPlugins),
+    pluginList,
 
     // 计算属性
     enabledPlugins,
@@ -225,13 +309,17 @@ export const usePluginStore = defineStore('plugin', () => {
     // 核心方法
     initialize,
     install,
+    installUrl,
+    installZip,
     uninstall,
     toggle,
     batchToggle,
+    loadAsyncPluginList,
 
     // 查询方法
     getPlugin,
     isInstalled,
+    isPluginInstalled,
     isEnabled,
     searchPlugins,
     getPluginsByCategory,

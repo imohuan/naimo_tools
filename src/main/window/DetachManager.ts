@@ -7,7 +7,6 @@
 import { BaseWindow, WebContentsView, screen, globalShortcut } from 'electron'
 import { resolve } from 'path'
 import log from 'electron-log'
-import { sendDetachedWindowInit } from '@main/ipc-router/mainEvents'
 import type {
   WebContentsViewInfo,
   WindowOperationResult,
@@ -26,6 +25,8 @@ import {
 import { BaseWindowController } from './BaseWindowController'
 import { getDirname } from '@main/utils'
 import { emitEvent } from '@main/core/ProcessEvent'
+import { DEFAULT_WINDOW_LAYOUT, calculateDetachedControlBarBounds, calculateDetachedContentBounds } from '@shared/config/windowLayoutConfig'
+import { isProduction } from '@shared/utils'
 
 /**
  * 分离窗口信息
@@ -51,10 +52,8 @@ export interface DetachedWindowInfo {
   hasControlBar: boolean
   /** 插件信息 */
   pluginInfo?: {
-    pluginId: string
     name: string
     path: string
-    version?: string
   }
 }
 
@@ -229,8 +228,11 @@ export class DetachManager {
           throw new Error('分离窗口在添加视图前被销毁')
         }
 
-        detachedWindow.contentView.addChildView(originalView)
+        // 重要：视图添加顺序（后添加的在上层）
+        // 1. 先添加 controlBarView（控制栏UI）- 在底层，提供边框、圆角、阴影和控制栏
+        // 2. 再添加 originalView（插件内容）- 在上层，显示在内容区域
         detachedWindow.contentView.addChildView(controlBarView)
+        detachedWindow.contentView.addChildView(originalView)
         log.info(`已将视图 ${sourceView.id} 从窗口 ${sourceView.parentWindowId} 移动到分离窗口 ${detachedWindow.id}`)
       } catch (error) {
         log.error('将视图添加到分离窗口失败:', error)
@@ -414,11 +416,13 @@ export class DetachManager {
         log.warn('ViewManager 未设置或不支持 updateViewParentWindow 方法')
       }
 
-      // 触发重新附加事件，通知 ViewManager 更新状态
+      // 触发重新附加请求事件，通知 ProcessEventCoordinator 更新窗口-视图映射
       emitEvent.emit('view:reattach-requested', {
         viewId: detachedWindowInfo.sourceViewId,
         targetWindowId,
-        timestamp: Date.now()
+        detachedWindowId,
+        timestamp: Date.now(),
+        pluginInfo: detachedWindowInfo.pluginInfo
       })
 
       // 关闭分离窗口
@@ -430,10 +434,22 @@ export class DetachManager {
       // 触发性能事件 - 移除重复的性能事件，统一使用 ProcessEvent
       // 性能监控通过其他方式处理
 
+      emitEvent.emit('view:reattached', {
+        viewId: detachedWindowInfo.sourceViewId,
+        fromWindowId: detachedWindowId,
+        toWindowId: targetWindowId,
+        timestamp: Date.now(),
+        pluginInfo: detachedWindowInfo.pluginInfo
+      })
+
       return {
         success: true,
         viewId: detachedWindowInfo.sourceViewId,
-        data: { reattachedTo: targetWindowId, view: originalView }
+        data: {
+          reattachedTo: targetWindowId,
+          view: originalView,
+          pluginInfo: detachedWindowInfo.pluginInfo
+        }
       }
     } catch (error) {
       const reattachTime = performance.now() - startTime
@@ -498,81 +514,6 @@ export class DetachManager {
       return {
         success: false,
         windowId,
-        error: error instanceof Error ? error.message : '未知错误'
-      }
-    }
-  }
-
-  /**
-   * 处理分离窗口控制栏事件
-   * @param windowId 分离窗口ID
-   * @param action 控制操作
-   * @returns 操作结果
-   */
-  public async handleControlBarAction(
-    windowId: number,
-    action: DetachedWindowAction
-  ): Promise<ViewOperationResult> {
-    try {
-      const detachedWindowInfo = this.detachedWindows.get(windowId)
-      if (!detachedWindowInfo) {
-        throw new Error('分离窗口不存在')
-      }
-
-      const { window } = detachedWindowInfo
-
-      switch (action) {
-        case DetachedWindowAction.MINIMIZE:
-          window.minimize()
-          break
-
-        case DetachedWindowAction.MAXIMIZE:
-          if (window.isMaximized()) {
-            window.unmaximize()
-          } else {
-            window.maximize()
-          }
-          break
-
-        case DetachedWindowAction.CLOSE:
-          await this.closeDetachedWindow(windowId)
-          break
-
-        case DetachedWindowAction.REATTACH:
-          // 直接执行重新附加到原始窗口
-          const reattachResult = await this.reattachView(windowId, detachedWindowInfo.sourceWindowId)
-          if (!reattachResult.success) {
-            throw new Error(reattachResult.error || '重新附加失败')
-          }
-          break
-
-        default:
-          throw new Error(`不支持的控制操作: ${action}`)
-      }
-
-      // 触发控制栏事件
-      const controlEvent: DetachedWindowControlEvent = {
-        action,
-        windowId,
-        viewId: detachedWindowInfo.sourceViewId,
-        timestamp: Date.now()
-      }
-
-      emitEvent.emit('control-bar:action', {
-        action: controlEvent.action,
-        data: controlEvent,
-        timestamp: Date.now()
-      })
-
-      return {
-        success: true,
-        viewId: detachedWindowInfo.sourceViewId,
-        data: { action, windowId }
-      }
-    } catch (error) {
-      log.error(`处理控制栏操作失败: ${windowId}, 操作: ${action}`, error)
-      return {
-        success: false,
         error: error instanceof Error ? error.message : '未知错误'
       }
     }
@@ -722,6 +663,10 @@ export class DetachManager {
         }
       })
 
+      if (!isProduction()) {
+        controlBarView.webContents.openDevTools()
+      }
+
       // 如果 ViewManager 可用，注册控制栏视图
       if (this.viewManager && typeof this.viewManager.registerDetachedControlBar === 'function') {
         try {
@@ -774,10 +719,21 @@ export class DetachManager {
       let loadPromise: Promise<void>
 
       // 构建URL参数
+      const pluginInfo = this.extractPluginInfo(sourceView)
+      const pluginName = pluginInfo?.name || sourceView.config.type || '分离窗口'
+
+      log.debug(`初始化控制栏，插件信息:`, {
+        pluginInfo,
+        pluginName,
+        viewId: sourceView.id,
+        configType: sourceView.config.type,
+        metadata: sourceView.config.pluginMetadata
+      })
+
       const urlParams = new URLSearchParams({
         windowId: detachedWindowId.toString(),
         viewId: sourceView.id,
-        pluginName: encodeURIComponent(this.extractPluginInfo(sourceView)?.name || sourceView.config.type || '分离窗口')
+        pluginName: encodeURIComponent(pluginName)
       })
 
       // 加载控制栏页面
@@ -811,28 +767,12 @@ export class DetachManager {
           return
         }
 
-        try {
-          const sourceUrl = sourceView.view.webContents.getURL()
-          log.info('发送控制栏初始化数据', {
-            windowId: detachedWindowId,
-            viewId: sourceView.id,
-            sourceUrl,
-            title: this.extractPluginInfo(sourceView)?.name || sourceView.config.type || '分离窗口'
-          })
-
-          sendDetachedWindowInit(controlBarView.webContents, {
-            sourceViewId: sourceView.id,
-            sourceWindowId: sourceView.parentWindowId,
-            detachedWindowId,
-            config: {
-              sourceUrl,
-              windowTitle: this.extractPluginInfo(sourceView)?.name || sourceView.config.type || '分离窗口'
-            },
-            timestamp: Date.now()
-          })
-        } catch (error) {
-          log.warn('发送控制栏初始化数据失败:', error)
-        }
+        // 控制栏初始化通过 URL 参数完成，不需要额外的 IPC 事件
+        log.info('控制栏已通过 URL 参数初始化', {
+          windowId: detachedWindowId,
+          viewId: sourceView.id,
+          title: this.extractPluginInfo(sourceView)?.name || sourceView.config.type || '分离窗口'
+        })
       }
 
       // 等待页面加载完成后发送初始化数据
@@ -893,10 +833,9 @@ export class DetachManager {
    */
   private extractPluginInfo(viewInfo: WebContentsViewInfo): DetachedWindowInfo['pluginInfo'] | undefined {
     const metadata = viewInfo.config.pluginMetadata
-    if (metadata?.pluginId) {
+    if (metadata?.path) {
       return {
-        pluginId: metadata.pluginId,
-        name: metadata.name || metadata.pluginId,
+        name: metadata.name || '',
         path: metadata.path || '',
         version: metadata.version
       }
@@ -937,7 +876,7 @@ export class DetachManager {
     const updateLayout = () => {
       if (controlBarView && !this.isInvalid(window) && !this.isInvalid(view) && !this.isInvalid(controlBarView)) {
         try {
-          this.updateViewBounds(window, view, controlBarView, controlBarHeight)
+          this.updateViewBounds(window, view, controlBarView)
           log.debug(`分离窗口大小调整，视图边界已更新: 窗口ID=${windowId}`)
         } catch (error) {
           log.error(`更新分离窗口视图边界失败: 窗口ID=${windowId}`, error)
@@ -1006,10 +945,18 @@ export class DetachManager {
 
     // Alt+R 重新附加
     if (input.key === 'r' && input.alt && input.type === 'keyDown') {
-      emitEvent.emit('view:reattach-requested', {
-        viewId: detachedWindowInfo.sourceViewId,
-        targetWindowId: 0, // 需要外部处理决定目标窗口
-        timestamp: Date.now()
+      // 直接调用 reattachView 方法，将视图重新附加回原窗口
+      this.reattachView(
+        detachedWindowInfo.windowId,
+        detachedWindowInfo.sourceWindowId
+      ).then(result => {
+        if (result.success) {
+          log.info(`快捷键重新附加成功: ${detachedWindowInfo.sourceViewId}`)
+        } else {
+          log.error(`快捷键重新附加失败: ${result.error}`)
+        }
+      }).catch(error => {
+        log.error('快捷键重新附加异常:', error)
       })
       event.preventDefault()
       return
@@ -1148,10 +1095,8 @@ export class DetachManager {
     }
 
     try {
-      const controlBarHeight = 40 // Control bar height (increased for better visibility)
-
       // 执行初始布局
-      this.updateViewBounds(detachedWindow, originalView, controlBarView, controlBarHeight)
+      this.updateViewBounds(detachedWindow, originalView, controlBarView)
 
       log.info(`分离窗口视图布局完成: 窗口ID=${detachedWindow.id}`)
     } catch (error) {
@@ -1164,39 +1109,32 @@ export class DetachManager {
    * @param detachedWindow 分离窗口
    * @param originalView 原始视图
    * @param controlBarView 控制栏视图
-   * @param controlBarHeight 控制栏高度
    */
   private updateViewBounds(
     detachedWindow: BaseWindow,
     originalView: WebContentsView,
-    controlBarView: WebContentsView,
-    controlBarHeight: number
+    controlBarView: WebContentsView
   ): void {
     if (this.isInvalid(detachedWindow) || this.isInvalid(originalView) || this.isInvalid(controlBarView)) {
       return
     }
 
     const windowBounds = detachedWindow.getBounds()
+    const config = DEFAULT_WINDOW_LAYOUT.detachedWindow
 
-    log.debug(`更新分离窗口视图边界, 窗口边界: ${JSON.stringify(windowBounds)}, 控制栏高度: ${controlBarHeight}`)
+    // 检查窗口是否最大化/全屏
+    const isMaximized = detachedWindow.isMaximized()
+    const isFullScreen = detachedWindow.isFullScreen?.() || false
 
-    // 设置控制栏视图边界（顶部）
-    const controlBarBounds = {
-      x: 0,
-      y: 0,
-      width: windowBounds.width,
-      height: controlBarHeight
-    }
+    log.debug(`更新分离窗口视图边界, 窗口边界: ${JSON.stringify(windowBounds)}, 控制栏高度: ${config.controlBarHeight}, padding: ${config.padding}, 最大化: ${isMaximized}, 全屏: ${isFullScreen}`)
+
+    // 使用配置文件中的计算函数获取控制栏边界
+    const controlBarBounds = calculateDetachedControlBarBounds(windowBounds)
     controlBarView.setBounds(controlBarBounds)
     log.debug(`控制栏边界已更新: ${JSON.stringify(controlBarBounds)}`)
 
-    // 设置原始视图边界（控制栏下方）
-    const originalViewBounds = {
-      x: 0,
-      y: controlBarHeight,
-      width: windowBounds.width,
-      height: Math.max(windowBounds.height - controlBarHeight, 0)
-    }
+    // 使用配置文件中的计算函数获取内容视图边界，传入最大化状态
+    const originalViewBounds = calculateDetachedContentBounds(windowBounds, isMaximized || isFullScreen)
     originalView.setBounds(originalViewBounds)
     log.debug(`原始视图边界已更新: ${JSON.stringify(originalViewBounds)}`)
   }

@@ -880,6 +880,10 @@ export class NewWindowManager {
     return this.lifecycleManager
   }
 
+  public getDetachManager(): DetachManager {
+    return this.detachManager
+  }
+
   /**
    * 销毁主窗口及相关资源
    */
@@ -1050,10 +1054,9 @@ export class NewWindowManager {
    * 设置事件处理器
    */
   private setupEventHandlers(): void {
-    // 设置分离管理器事件
-    emitEvent.on('view:reattach-requested', async (data) => {
-      // 处理重新附加请求
-      await this.handleReattachRequest(data)
+    // 设置视图管理器事件
+    emitEvent.on('view:switched', (data) => {
+      this.handleViewSwitched(data)
     })
 
     // 设置生命周期管理器事件
@@ -1061,10 +1064,6 @@ export class NewWindowManager {
       emitEvent.emit('cleanup:completed', { report: data.report, timestamp: Date.now() })
     })
 
-    // 设置视图管理器事件
-    emitEvent.on('view:switched', (data) => {
-      this.handleViewSwitched(data)
-    })
   }
 
   /**
@@ -1136,6 +1135,13 @@ export class NewWindowManager {
         path: params.pluginItem.path,
         name: params.pluginItem.name
       }
+
+      log.debug(`准备视图配置，设置插件元数据:`, {
+        viewId,
+        pluginItemName: params.pluginItem.name,
+        pluginItemPath: params.pluginItem.path,
+        viewType: params.type
+      })
     }
 
     return config
@@ -1216,27 +1222,6 @@ export class NewWindowManager {
     // 注意：不要在这里重复发出 view:switched 事件，避免无限循环
     // 这个方法是响应 view:switched 事件的，不应该再发出同样的事件
     log.debug(`视图切换处理完成: ${data.fromViewId || 'unknown'} -> ${data.toViewId}`)
-  }
-
-  /**
-   * 处理重新附加请求
-   */
-  private async handleReattachRequest(data: any): Promise<void> {
-    try {
-      // 这里可以实现重新附加的具体逻辑
-      // 例如重新创建视图并加载内容
-      log.info(`处理重新附加请求: ${data.sourceViewId}`)
-
-      // 触发重新附加完成事件
-      emitEvent.emit('view:reattached', {
-        viewId: data.viewId,
-        fromWindowId: data.detachedWindowId || 0,
-        toWindowId: data.targetWindowId,
-        timestamp: Date.now()
-      })
-    } catch (error) {
-      log.error('处理重新附加请求失败:', error)
-    }
   }
 
   /**

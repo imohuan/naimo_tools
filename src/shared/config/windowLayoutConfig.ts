@@ -35,6 +35,15 @@ export interface WindowLayoutConfig {
     duration: number
     easing: string
   }
+  /** 分离窗口配置 */
+  detachedWindow: {
+    /** 控制栏高度 */
+    controlBarHeight: number
+    /** 分离窗口内边距 */
+    padding: number
+    /** 分离窗口圆角半径 */
+    borderRadius: number
+  }
 }
 
 /**
@@ -68,6 +77,13 @@ export const DEFAULT_WINDOW_LAYOUT: WindowLayoutConfig = {
   animation: {
     duration: 300,
     easing: 'ease-in-out'
+  },
+
+  // 分离窗口配置
+  detachedWindow: {
+    controlBarHeight: 50,
+    padding: 8,
+    borderRadius: 12
   }
 }
 
@@ -127,6 +143,52 @@ export function calculateWindowHeight(contentHeight: number, isSettingsMode = fa
 }
 
 /**
+ * 计算分离窗口控制栏视图边界
+ * 控制栏视图包含 DetachedWindowApp.vue，它渲染整个窗口框架（包括padding、圆角、控制栏）
+ * 所以这个视图需要占满整个窗口
+ */
+export function calculateDetachedControlBarBounds(windowBounds: { width: number; height: number }) {
+  return {
+    x: 0,
+    y: 0,
+    width: windowBounds.width,
+    height: windowBounds.height
+  }
+}
+
+/**
+ * 计算分离窗口内容视图边界（带padding，在控制栏下方）
+ * 
+ * 布局说明：
+ * - appPadding (8px): DetachedWindowApp.vue 的外层 padding，用于显示边框和阴影
+ * - detachedWindow.padding (8px): 内容区域的额外 padding
+ * - 总 padding = appPadding + detachedWindow.padding
+ * - 全屏/最大化时：不使用 appPadding，让内容铺满屏幕
+ * 
+ * @param windowBounds 窗口边界
+ * @param isMaximized 是否最大化或全屏
+ */
+export function calculateDetachedContentBounds(
+  windowBounds: { width: number; height: number },
+  isMaximized: boolean = false
+) {
+  const config = DEFAULT_WINDOW_LAYOUT
+  const appPadding = isMaximized ? 0 : config.appPadding // 全屏时不使用外层 padding
+  const contentPadding = config.detachedWindow.padding // 内容区域额外的 padding
+  const controlBarHeight = config.detachedWindow.controlBarHeight
+
+  // 总 padding = app padding + content padding
+  const totalPadding = appPadding + contentPadding
+
+  return {
+    x: totalPadding,
+    y: controlBarHeight + totalPadding,
+    width: Math.max(windowBounds.width - totalPadding * 2, 0),
+    height: Math.max(windowBounds.height - controlBarHeight - totalPadding * 2, 0)
+  }
+}
+
+/**
  * 获取CSS变量对象（用于渲染进程）
  */
 export function getLayoutCSSVariables() {
@@ -141,6 +203,9 @@ export function getLayoutCSSVariables() {
     '--window-border-radius': `${config.windowBorderRadius}px`,
     '--animation-duration': `${config.animation.duration}ms`,
     '--animation-easing': config.animation.easing,
-    '--backdrop-blur': config.backdropBlur.enabled ? config.backdropBlur.amount : 'none'
+    '--backdrop-blur': config.backdropBlur.enabled ? config.backdropBlur.amount : 'none',
+    '--detached-control-bar-height': `${config.detachedWindow.controlBarHeight}px`,
+    '--detached-padding': `${config.detachedWindow.padding}px`,
+    '--detached-border-radius': `${config.detachedWindow.borderRadius}px`
   }
 }
