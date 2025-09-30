@@ -24,7 +24,7 @@ export class UpdateService implements Service {
   constructor(config: UpdateServiceConfig = {}) {
     this.config = {
       enabled: isProduction(),
-      repo: 'imohuan/electron-vue3-template',
+      repo: 'imohuan/naimo_tools',
       updateInterval: '1 hour',
       notifyUser: true,
       ...config

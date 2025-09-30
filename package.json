@@ -43,9 +43,9 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/imohuan/electron-vue3-template.git",
+    "url": "https://github.com/imohuan/naimo_tools.git",
     "owner": "imohuan",
-    "name": "electron-vue3-template"
+    "name": "naimo_tools"
   },
   "devDependencies": {
     "@electron-forge/cli": "^7.9.0",
