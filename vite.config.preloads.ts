@@ -65,6 +65,10 @@ export default defineConfig({
         "extract-file-icon",
         'crypto',
         'clean-stack',
+        "cheerio",
+        "axios",
+        "puppeteer-core",
+        "puppeteer-in-electron",
         ...builtinModules
       ],
       output: {

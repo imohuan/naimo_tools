@@ -51,7 +51,8 @@ export default defineConfig({
         'puppeteer-core',
         'puppeteer-in-electron',
         'axios',
-        'cheerio'
+        'cheerio',
+        'axios',
       ],
       output: {
         format: 'es',
