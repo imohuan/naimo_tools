@@ -16,8 +16,6 @@ declare module 'vue' {
     EmptyState: typeof import('./../src/components/ContentArea/EmptyState.vue')['default']
     GithubToken: typeof import('./../src/components/GithubToken.vue')['default']
     IconDisplay: typeof import('./../src/components/IconDisplay.vue')['default']
-    IconMdiChevronLeft: typeof import('~icons/mdi/chevron-left')['default']
-    IconMdiChevronRight: typeof import('~icons/mdi/chevron-right')['default']
     IconMdiClose: typeof import('~icons/mdi/close')['default']
     IconMdiContentCopy: typeof import('~icons/mdi/content-copy')['default']
     IconMdiDeleteOutline: typeof import('~icons/mdi/delete-outline')['default']

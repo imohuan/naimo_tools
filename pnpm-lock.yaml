@@ -20,15 +20,33 @@ importers:
       axios:
         specifier: ^1.12.2
         version: 1.12.2
+      cheerio:
+        specifier: ^1.1.2
+        version: 1.1.2
       clean-stack:
         specifier: ^5.2.0
         version: 5.2.0
+      electron-dl-manager:
+        specifier: ^4.2.0
+        version: 4.2.0(electron@38.0.0)
       electron-log:
         specifier: ^5.4.3
         version: 5.4.3
       electron-store:
         specifier: ^10.1.0
         version: 10.1.0
+      extract-file-icon:
+        specifier: ^0.3.2
+        version: 0.3.2
+      ms:
+        specifier: ^2.1.3
+        version: 2.1.3
+      puppeteer-core:
+        specifier: ^24.22.3
+        version: 24.22.3
+      puppeteer-in-electron:
+        specifier: ^3.0.5
+        version: 3.0.5
       update-electron-app:
         specifier: ^3.1.1
         version: 3.1.1
@@ -66,24 +84,24 @@ importers:
       '@types/archiver':
         specifier: ^6.0.3
         version: 6.0.3
+      '@types/ms':
+        specifier: ^2.1.0
+        version: 2.1.0
       '@types/node':
         specifier: ^24.3.1
         version: 24.3.1
-      auto-puppeteer:
-        specifier: workspace:*
-        version: link:src/libs/auto-puppeteer
       chokidar:
         specifier: ^4.0.3
         version: 4.0.3
       concurrently:
         specifier: ^9.2.1
         version: 9.2.1
-      download-manager:
-        specifier: workspace:*
-        version: link:src/libs/download-manager
       electron:
         specifier: ^38.0.0
         version: 38.0.0
+      github-url-to-object:
+        specifier: ^4.0.6
+        version: 4.0.6
       iconv-lite:
         specifier: ^0.6.3
         version: 0.6.3
@@ -114,68 +132,6 @@ importers:
       ws:
         specifier: ^8.18.3
         version: 8.18.3
-
-  src/libs/app-search:
-    devDependencies:
-      extract-file-icon:
-        specifier: ^0.3.2
-        version: 0.3.2
-
-  src/libs/auto-puppeteer:
-    dependencies:
-      axios:
-        specifier: ^1.12.2
-        version: 1.12.2
-      cheerio:
-        specifier: ^1.1.2
-        version: 1.1.2
-      download-manager:
-        specifier: workspace:*
-        version: link:../download-manager
-      electron:
-        specifier: '>=20.0.0'
-        version: 38.0.0
-      puppeteer-core:
-        specifier: ^24.22.3
-        version: 24.22.3
-      puppeteer-in-electron:
-        specifier: ^3.0.5
-        version: 3.0.5
-    devDependencies:
-      '@types/node':
-        specifier: ^20.0.0
-        version: 20.19.17
-      typescript:
-        specifier: ^5.0.0
-        version: 5.9.2
-
-  src/libs/download-manager:
-    dependencies:
-      electron:
-        specifier: '>=20.0.0'
-        version: 38.0.0
-      electron-dl-manager:
-        specifier: ^4.2.0
-        version: 4.2.0(electron@38.0.0)
-    devDependencies:
-      '@types/node':
-        specifier: ^20.0.0
-        version: 20.19.17
-      typescript:
-        specifier: ^5.0.0
-        version: 5.9.2
-
-  src/libs/update:
-    devDependencies:
-      '@types/ms':
-        specifier: ^2.1.0
-        version: 2.1.0
-      github-url-to-object:
-        specifier: ^4.0.6
-        version: 4.0.6
-      ms:
-        specifier: ^2.1.3
-        version: 2.1.3
 
   src/renderer:
     dependencies:
@@ -1562,9 +1518,6 @@ packages:
 
   '@types/node-fetch@2.6.13':
     resolution: {integrity: sha512-QGpRVpzSaUs30JBSGPjOg4Uveu384erbHBoT1zeONvyCfwQxIkUshLAOqN/k9EjGviPRmWTTe6aH2qySWKTVSw==}
-
-  '@types/node@20.19.17':
-    resolution: {integrity: sha512-gfehUI8N1z92kygssiuWvLiwcbOB3IRktR6hTDgJlXMYh5OvkPSRmgfoBUmfZt+vhwJtX7v1Yw4KvvAf7c5QKQ==}
 
   '@types/node@22.18.1':
     resolution: {integrity: sha512-rzSDyhn4cYznVG+PCzGe1lwuMYJrcBS1fc3JqSa2PvtABwWo+dZ1ij5OVok3tqfpEBCBoaR4d7upFJk73HRJDw==}
@@ -6499,10 +6452,6 @@ snapshots:
     dependencies:
       '@types/node': 24.3.1
       form-data: 4.0.4
-
-  '@types/node@20.19.17':
-    dependencies:
-      undici-types: 6.21.0
 
   '@types/node@22.18.1':
     dependencies:

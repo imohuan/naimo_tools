@@ -1,10 +1,9 @@
 packages:
   - src/renderer
-  - src/libs/**
 
 onlyBuiltDependencies:
-  - '@parcel/watcher'
-  - '@tailwindcss/oxide'
+  - "@parcel/watcher"
+  - "@tailwindcss/oxide"
   - electron
   - electron-winstaller
   - esbuild
