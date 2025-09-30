@@ -55,6 +55,7 @@ export function usePluginWindowManager() {
     dependencies: {
       openPluginWindowUI: (pluginItem: PluginItem) => void
       handleResize: () => void
+      toggleInput: (value?: boolean) => void
     }
   ) => {
     try {
@@ -74,6 +75,7 @@ export function usePluginWindowManager() {
       })
 
       if (result.success) {
+        dependencies.toggleInput(false)
         console.log(`✅ 插件视图创建成功: ${result.viewId} (${pluginItem.name})`)
       } else {
         console.error('❌ 插件窗口创建失败:', result.error)
@@ -132,6 +134,7 @@ export function usePluginWindowManager() {
       openPluginWindow: async (item: PluginItem) => {
         // 这里需要提供默认的选项
         await openPluginWindow(item, { url: '', preload: '' }, {
+          toggleInput: dependencies.toggleInput,
           openPluginWindowUI: dependencies.openPluginWindowUI,
           handleResize: () => { }
         })

@@ -861,6 +861,9 @@
         console.error('❌ 检查热键自动翻译失败:', error);
       }
     }
+    naimo.event.onPluginSearch((event, data) => {
+      console.log("收到插件搜索事件:", data)
+    })
   </script>
 </body>
 

@@ -1,4 +1,4 @@
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useEventListener } from '@vueuse/core'
 import { usePluginStore } from '@/store'
 

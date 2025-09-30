@@ -35,6 +35,7 @@ export interface EmitEvents {
       version?: string
     }
   }
+  'view:esc-pressed': { viewId: string; windowId: number; timestamp: number }
   'view:detach-failed': { viewId: string; windowId: number; error: string; timestamp: number }
   'view:detach-error': { viewId: string; windowId: number; error: Error; timestamp: number }
   'view:closed': { viewId: string; windowId: number; reason: string; timestamp: number }

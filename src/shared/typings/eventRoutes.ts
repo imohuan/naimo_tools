@@ -1,6 +1,6 @@
 /**
  * 自动生成的事件类型定义
- * 生成时间: 2025-09-30T10:29:33.050Z
+ * 生成时间: 2025-09-30T11:15:53.827Z
  * 请勿手动修改此文件
  */
 
@@ -8,6 +8,11 @@ import type { EventsConfig, EventData } from '@shared/config/eventsConfig'
 
 // 事件接口定义
 interface EventInterface {
+  /** 监听 view-esc-pressed 事件 */
+  "view-esc-pressed": (handler: (event: any, data: EventData<'view-esc-pressed'>) => void) => () => void;
+  /** 监听 view-esc-pressed 事件 */
+  "onViewEscPressed": (handler: (event: any, data: EventData<'view-esc-pressed'>) => void) => () => void;
+
   /** 监听 view-detached 事件 */
   "view-detached": (handler: (event: any, data: EventData<'view-detached'>) => void) => () => void;
   /** 监听 view-detached 事件 */
@@ -52,6 +57,11 @@ interface EventInterface {
   "plugin-uninstalled": (handler: (event: any, data: EventData<'plugin-uninstalled'>) => void) => () => void;
   /** 监听 plugin-uninstalled 事件 */
   "onPluginUninstalled": (handler: (event: any, data: EventData<'plugin-uninstalled'>) => void) => () => void;
+
+  /** 监听 plugin-search 事件 */
+  "plugin-search": (handler: (event: any, data: EventData<'plugin-search'>) => void) => () => void;
+  /** 监听 plugin-search 事件 */
+  "onPluginSearch": (handler: (event: any, data: EventData<'plugin-search'>) => void) => () => void;
 
   /** 监听 hotkey-updated 事件 */
   "hotkey-updated": (handler: (event: any, data: EventData<'hotkey-updated'>) => void) => () => void;
@@ -106,6 +116,11 @@ interface EventInterface {
 // 事件信息常量
 export const EVENT_INFO = [
   {
+    name: "view-esc-pressed",
+    comment: "监听 view-esc-pressed 事件",
+    method: "onViewEscPressed"
+  },
+  {
     name: "view-detached",
     comment: "监听 view-detached 事件",
     method: "onViewDetached"
@@ -149,6 +164,11 @@ export const EVENT_INFO = [
     name: "plugin-uninstalled",
     comment: "监听 plugin-uninstalled 事件",
     method: "onPluginUninstalled"
+  },
+  {
+    name: "plugin-search",
+    comment: "监听 plugin-search 事件",
+    method: "onPluginSearch"
   },
   {
     name: "hotkey-updated",

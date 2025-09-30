@@ -186,6 +186,7 @@ export function useUIStatus() {
   )
 
   const toggleInput = (value?: boolean) => {
+    console.log('toggleInput', value)
     showInput.value = value !== undefined ? value : !showInput.value
   }
 

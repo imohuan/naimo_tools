@@ -13,7 +13,7 @@
       <nav class="flex-1 p-3">
         <ul class="space-y-1">
           <li v-for="tab in tabsConfig" :key="tab.id">
-            <button @click="activeTab = tab.id" :class="[
+            <button @click="activeTab = tab.id" tabindex="-1" :class="[
               'w-full text-left px-3 py-2 rounded-lg transition-colors border border-transparent',
               activeTab === tab.id
                 ? 'bg-blue-100 text-blue-700 border-blue-200'
@@ -41,7 +41,7 @@
             {{ getTabDescription() }}
           </p>
         </div>
-        <button @click="closeSettings"
+        <button @click="closeSettings" tabindex="-1"
           class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors" title="关闭设置">
           <IconMdiClose class="w-6 h-6" />
         </button>
@@ -136,7 +136,7 @@ const tabsConfig: TabConfig[] = [
 ];
 
 // 当前激活的标签页
-const activeTab = ref<string>("hotkeys");
+const activeTab = ref<string>("plugins");
 
 // 组件引用
 const hotkeySettingsRef = ref<InstanceType<typeof HotkeySettings>>();

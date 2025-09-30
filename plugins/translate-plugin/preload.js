@@ -281,12 +281,6 @@ window.addEventListener('DOMContentLoaded', () => {
       e.preventDefault();
       naimo.router.windowToggleFullscreen();
     }
-
-    // Esc 最小化窗口
-    if (e.key === 'Escape') {
-      e.preventDefault();
-      naimo.router.windowMinimize();
-    }
   });
 
   // 禁用右键菜单（可选）

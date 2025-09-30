@@ -38,7 +38,7 @@ export function useAppEventHandlers() {
      */
     onWindowBlur: (event?: any) => {
       console.log("收到窗口blur事件:", event?.detail || "直接调用")
-      // dependencies.hide() // 根据需要启用
+      dependencies.hide() // 根据需要启用
     },
 
     /**
@@ -243,8 +243,8 @@ export function useAppEventHandlers() {
     /**
      * 恢复搜索栏为默认搜索状态
      */
-    recoverSearchState: (clearPlugin = false, skipHide = false) => {
-      console.log("恢复搜索状态", { clearPlugin, skipHide, searchText: dependencies.searchText.value })
+    recoverSearchState: (clearPlugin = false) => {
+      console.log("恢复搜索状态", { clearPlugin, searchText: dependencies.searchText.value })
 
       if (clearPlugin) {
         dependencies.searchHeaderActions.clearCurrentPlugin()
@@ -264,10 +264,6 @@ export function useAppEventHandlers() {
       nextTick(() => {
         dependencies.handleResize()
         dependencies.handleSearchFocus()
-        // 根据skipHide参数决定是否隐藏窗口
-        if (!skipHide) {
-          dependencies.hide()
-        }
       })
     }
   })

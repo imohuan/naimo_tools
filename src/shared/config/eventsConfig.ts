@@ -11,6 +11,12 @@
 
 /** 事件配置接口 */
 export interface EventsConfig {
+  'view-esc-pressed': {
+    viewId: string
+    windowId: number
+    timestamp: number
+  }
+
   // 视图相关事件
   'view-detached': {
     detachedViewId: string

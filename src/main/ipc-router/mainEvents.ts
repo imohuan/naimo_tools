@@ -8,6 +8,23 @@ import log from 'electron-log'
 import type { EventsConfig, EventType, EventData } from '@shared/config/eventsConfig'
 
 /**
+ * 发送 view-esc-pressed 事件
+ * @param webContents 目标 WebContents
+ * @param data 事件数据
+ */
+export function sendViewEscPressed(
+  webContents: WebContents,
+  data: EventData<'view-esc-pressed'>
+): void {
+  if (webContents && !webContents.isDestroyed()) {
+    webContents.send('view-esc-pressed', data)
+    log.debug(`事件已发送: view-esc-pressed`, { data })
+  } else {
+    log.warn(`无法发送事件: WebContents已销毁 - view-esc-pressed`)
+  }
+}
+
+/**
  * 发送 view-detached 事件
  * @param webContents 目标 WebContents
  * @param data 事件数据
@@ -157,6 +174,23 @@ export function sendPluginUninstalled(
     log.debug(`事件已发送: plugin-uninstalled`, { data })
   } else {
     log.warn(`无法发送事件: WebContents已销毁 - plugin-uninstalled`)
+  }
+}
+
+/**
+ * 发送 plugin-search 事件
+ * @param webContents 目标 WebContents
+ * @param data 事件数据
+ */
+export function sendPluginSearch(
+  webContents: WebContents,
+  data: EventData<'plugin-search'>
+): void {
+  if (webContents && !webContents.isDestroyed()) {
+    webContents.send('plugin-search', data)
+    log.debug(`事件已发送: plugin-search`, { data })
+  } else {
+    log.warn(`无法发送事件: WebContents已销毁 - plugin-search`)
   }
 }
 
@@ -332,6 +366,7 @@ export function sendDevReload(
 
 // 事件发送对象
 export const mainEvents = {
+  viewEscPressed: sendViewEscPressed,
   viewDetached: sendViewDetached,
   viewRestoreRequested: sendViewRestoreRequested,
   viewReattached: sendViewReattached,
@@ -341,6 +376,7 @@ export const mainEvents = {
   pluginViewClosed: sendPluginViewClosed,
   pluginInstalled: sendPluginInstalled,
   pluginUninstalled: sendPluginUninstalled,
+  pluginSearch: sendPluginSearch,
   hotkeyUpdated: sendHotkeyUpdated,
   windowAllBlur: sendWindowAllBlur,
   windowMainHide: sendWindowMainHide,

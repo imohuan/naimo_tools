@@ -130,6 +130,8 @@ import { pluginManager } from "@/core/plugin/PluginManager";
 import { useSearchHeader } from "@/core/window/useSearchHeader";
 import type { SearchHeaderConfig } from "@/core/window/SearchHeaderManager";
 
+import { useTestLoadPlugin } from "@/composables/useTestLoadPlugin";
+
 // 图标导入
 // @ts-ignore 
 import IconMdiPuzzle from "~icons/mdi/puzzle";
@@ -208,7 +210,6 @@ const {
   openPluginWindow: openPluginWindowUI,
   closePluginWindow: closePluginWindowUI,
   updateSearchResults,
-  toggleInput,
   resetToDefault,
   switchToSearch,
   switchToSettings,
@@ -264,52 +265,22 @@ const searchText = computed({
 const headerHeight = computed(() => searchHeaderState?.headerHeight ?? searchHeaderConfig.defaultHeight ?? 50);
 const padding = computed(() => uiConstants.value.padding);
 
+const toggleInput = (value?: boolean) => {
+  searchHeaderActions.setSearchBoxVisibility(value !== undefined ? value : !searchHeaderState.shouldShowSearchBox)
+}
+
 // 搜索处理函数
 const handleSearch = async (value: string) => {
-  // 方案1: 如果已激活插件，使用插件搜索
   const currentPlugin = displayedPluginItem.value;
-
   if (currentPlugin && isPluginWindowOpen.value) {
     console.log('🔍 执行已激活插件的自定义搜索:', {
       pluginName: currentPlugin.name,
       searchText: value,
       attachedFilesCount: attachedFiles.value.length
     });
-
     naimo.router.appForwardMessageToPluginView(currentPlugin.path, 'plugin-search', { searchText: value, timestamp: Date.now() })
     return
-
-    // try {
-    //   const pluginResults = currentPlugin.onPluginSearch(value, attachedFiles.value);
-
-    //   if (pluginResults && pluginResults.length > 0) {
-    //     console.log('✅ 插件搜索返回结果:', pluginResults.length, '个项目');
-
-    //     const pluginCategory: SearchCategory = {
-    //       id: 'plugin-search-results',
-    //       name: `${currentPlugin.name} 搜索结果`,
-    //       items: pluginResults,
-    //       isExpanded: true,
-    //       isDragEnabled: false,
-    //       maxDisplayCount: 50,
-    //       isPluginCategory: true,
-    //       pluginId: currentPlugin.pluginId
-    //     };
-
-    //     updateSearchResults(true);
-    //     setSearchCategories([pluginCategory]);
-    //     return;
-    //   } else {
-    //     console.log('📭 插件搜索无结果');
-    //     updateSearchResults(false);
-    //     setSearchCategories([]);
-    //     return;
-    //   }
-    // } catch (error) {
-    //   console.error('❌ 插件搜索失败:', error);
-    // }
   }
-
   // 默认搜索逻辑
   return handleSearchCore(value);
 };
@@ -559,9 +530,6 @@ watch(
   { deep: true }
 );
 
-// 存储watch触发的关闭时间戳，用于区分是否应该隐藏窗口
-let watchCloseTimestamp: number | null = null;
-
 // 监听搜索框内容和界面状态，当搜索框有内容且在设置界面时自动关闭设置view
 watch(
   [() => searchText.value, isSettingsInterface],
@@ -574,8 +542,6 @@ watch(
     // 当搜索框有内容且当前在设置界面时，关闭设置view
     if (newSearchText.trim() !== '' && isSettings) {
       try {
-        // 记录watch触发的关闭时间戳
-        watchCloseTimestamp = Date.now();
         await naimo.router.windowCloseSettingsView()
         console.log('✅ 搜索框有内容，已自动关闭设置view')
       } catch (error) {
@@ -667,19 +633,9 @@ onMounted(async () => {
     onWindowMainShow: () => show(),
     onViewDetached: () => searchStateHandler.recoverSearchState(true),
     onViewRestoreRequested: (data: { reason: 'settings-closed' | 'plugin-closed' | 'user-requested' | 'system', timestamp: number }) => {
-      const { reason, timestamp } = data;
+      const { reason, } = data;
       if (reason === 'settings-closed') {
-        // 检查是否是watch触发的关闭（时间戳差在100ms内认为是同一次操作）
-        const isWatchTriggered = !!(watchCloseTimestamp && Math.abs(timestamp - watchCloseTimestamp) < 100);
-        console.log('🔍 设置视图关闭，检查是否为watch触发:', { timestamp, watchCloseTimestamp, isWatchTriggered });
-
-        // 如果是watch触发的关闭，跳过隐藏窗口
-        searchStateHandler.recoverSearchState(false, isWatchTriggered);
-
-        // 清理时间戳
-        if (isWatchTriggered) {
-          watchCloseTimestamp = null;
-        }
+        searchStateHandler.recoverSearchState(false);
       } else if (reason === 'plugin-closed') {
         searchStateHandler.recoverSearchState(true);
       }
@@ -729,6 +685,10 @@ onMounted(async () => {
         console.error("❌ 处理视图重新附加失败:", error)
       }
     },
+    onViewEscPressed: (data: any) => {
+      console.log("收到视图esc事件:", data)
+      handleEscAction()
+    },
 
     // 快捷键事件处理器
     onHotkeyTriggered: hotkeyHandler,
@@ -760,8 +720,11 @@ onMounted(async () => {
   searchHeaderEvents.on('open-settings', openSettings);
 
   console.log("🎉 App.vue onMounted - 应用初始化完成");
+
+
 });
 
+useTestLoadPlugin()
 </script>
 
 <style scoped></style>

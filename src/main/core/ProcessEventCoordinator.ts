@@ -13,7 +13,8 @@ import {
   sendAppFocus,
   sendAppBlur,
   sendViewReattached,
-  sendDetachedWindowClosed
+  sendDetachedWindowClosed,
+  sendViewEscPressed
 } from '@main/ipc-router/mainEvents'
 import { NewWindowManager } from '@main/window/NewWindowManager'
 
@@ -76,6 +77,15 @@ export class ProcessEventCoordinator {
    * 设置事件监听器
    */
   private setupEventListeners(): void {
+    emitEvent.on('view:esc-pressed', (data) => {
+      if (!this.mainWebContents || this.mainWebContents.isDestroyed()) return
+      sendViewEscPressed(this.mainWebContents, {
+        viewId: data.viewId,
+        windowId: data.windowId,
+        timestamp: data.timestamp
+      })
+    })
+
     // 视图恢复请求事件 如果是设置视图关闭，通知主视图恢复状态
     emitEvent.on('view:restore-requested', (data) => {
       if (!this.mainWebContents || this.mainWebContents.isDestroyed()) return

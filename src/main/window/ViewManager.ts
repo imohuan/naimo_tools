@@ -812,6 +812,17 @@ export class ViewManager {
         this.handleViewDetach(viewInfo)
         return
       }
+
+      // 监听esc
+      if (input.key === 'Escape' && input.type === 'keyDown') {
+        emitEvent.emit('view:esc-pressed', {
+          viewId: viewInfo.id,
+          windowId: viewInfo.parentWindowId,
+          timestamp: Date.now()
+        })
+        event.preventDefault()
+        return
+      }
     })
 
     log.debug(`[${id}] Alt+D 快捷键监听器已设置`)
