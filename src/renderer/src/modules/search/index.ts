@@ -118,6 +118,11 @@ export function useSearch(attachedFiles: Ref<AttachedFile[]>) {
     return defaultCategories
   }
 
+  // 直接设置搜索分类（用于插件自定义搜索结果）
+  const setSearchCategories = (categories: SearchCategory[]) => {
+    searchState.value.searchCategories = categories
+  }
+
 
   return {
     // 状态
@@ -140,7 +145,8 @@ export function useSearch(attachedFiles: Ref<AttachedFile[]>) {
     handleCategoryDragEnd,
     handleAppDelete,
     handleAppPin,
-    updateStoreCategory
+    updateStoreCategory,
+    setSearchCategories
   }
 }
 

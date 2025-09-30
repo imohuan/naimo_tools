@@ -161,6 +161,7 @@ import { usePluginStore } from "@/store";
 
 // 类型导入
 import type { AppItem } from "@shared/typings";
+import type { SearchCategory } from "@/typings/searchTypes";
 // ==================== 核心管理器初始化 ====================
 /**
  * 搜索头部管理器配置
@@ -234,6 +235,7 @@ const {
   handleCategoryDragEnd,
   handleAppDelete,
   handleAppPin,
+  setSearchCategories,
 } = useSearch(attachedFiles);
 
 // 拖拽处理器
@@ -263,10 +265,52 @@ const headerHeight = computed(() => searchHeaderState?.headerHeight ?? searchHea
 const padding = computed(() => uiConstants.value.padding);
 
 // 搜索处理函数
-const handleSearch = (value: string) => {
-  if (isPluginWindowOpen.value) {
-    // TODO 执行插件的搜索逻辑
+const handleSearch = async (value: string) => {
+  // 方案1: 如果已激活插件，使用插件搜索
+  const currentPlugin = displayedPluginItem.value;
+
+  if (currentPlugin && isPluginWindowOpen.value) {
+    console.log('🔍 执行已激活插件的自定义搜索:', {
+      pluginName: currentPlugin.name,
+      searchText: value,
+      attachedFilesCount: attachedFiles.value.length
+    });
+
+    naimo.router.appForwardMessageToPluginView(currentPlugin.path, 'plugin-search', { searchText: value, timestamp: Date.now() })
+    return
+
+    // try {
+    //   const pluginResults = currentPlugin.onPluginSearch(value, attachedFiles.value);
+
+    //   if (pluginResults && pluginResults.length > 0) {
+    //     console.log('✅ 插件搜索返回结果:', pluginResults.length, '个项目');
+
+    //     const pluginCategory: SearchCategory = {
+    //       id: 'plugin-search-results',
+    //       name: `${currentPlugin.name} 搜索结果`,
+    //       items: pluginResults,
+    //       isExpanded: true,
+    //       isDragEnabled: false,
+    //       maxDisplayCount: 50,
+    //       isPluginCategory: true,
+    //       pluginId: currentPlugin.pluginId
+    //     };
+
+    //     updateSearchResults(true);
+    //     setSearchCategories([pluginCategory]);
+    //     return;
+    //   } else {
+    //     console.log('📭 插件搜索无结果');
+    //     updateSearchResults(false);
+    //     setSearchCategories([]);
+    //     return;
+    //   }
+    // } catch (error) {
+    //   console.error('❌ 插件搜索失败:', error);
+    // }
   }
+
+  // 默认搜索逻辑
   return handleSearchCore(value);
 };
 

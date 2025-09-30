@@ -602,7 +602,6 @@ export class DetachManager {
       showControlBar: this.config.autoShowControlBar,
       parentWindowId: sourceView.parentWindowId,
       metadata: {
-        pluginId: pluginInfo?.pluginId,
         path: pluginInfo?.path,
         name: pluginInfo?.name,
         originalConfig: sourceView.config,
@@ -837,7 +836,6 @@ export class DetachManager {
       return {
         name: metadata.name || '',
         path: metadata.path || '',
-        version: metadata.version
       }
     }
     return undefined

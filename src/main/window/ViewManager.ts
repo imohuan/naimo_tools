@@ -906,7 +906,7 @@ export class ViewManager {
           reason: 'settings-closed',
           timestamp: Date.now()
         })
-      } else if (id.startsWith('plugin-')) {
+      } else if (id.startsWith('plugin:')) {
         // 如果是插件视图关闭，通知主视图恢复状态
         emitEvent.emit('view:restore-requested', {
           viewId: 'main-view',

@@ -79,6 +79,11 @@ export interface EventsConfig {
     timestamp: number
   }
 
+  'plugin-search': {
+    searchText: string
+    timestamp: number
+  }
+
   // 快捷键相关事件
   'hotkey-updated': {
     hotkeyId: string

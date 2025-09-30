@@ -191,6 +191,79 @@ export async function forwardMessageToMainView(
     }
 
     // 获取所有视图并广播事件
+    const viewManager = windowManager.getViewManager()
+    if (!viewManager) {
+      log.warn('视图管理器未初始化，无法广播插件事件');
+      return false;
+    }
+    // 吸附
+    const viewInfo = viewManager.getViewInfo(windowManager.getMainViewId());
+    let sentCount = 0;
+
+    if (viewInfo && viewInfo.view && viewInfo.view.webContents) {
+      try {
+        // 跳过发送事件的view，避免自己给自己发消息
+        if (viewInfo.view.webContents.id === event.sender.id) {
+          // 吸附：如果是自己则不发送，直接返回false
+          return false;
+        }
+
+        if (!viewInfo.view.webContents.isDestroyed()) {
+          viewInfo.view.webContents.send(channel, {
+            ...data,
+            timestamp: Date.now()
+          });
+          sentCount++;
+        }
+      } catch (error) {
+        log.error(`向视图 ${viewInfo.id} 发送插件事件失败:`, error);
+      }
+    } else {
+      log.warn('主视图信息不存在，无法广播插件事件');
+    }
+
+    if (sentCount > 0) {
+      log.info(`已向 ${sentCount} 个视图广播插件事件: ${channel}`, data);
+      return true;
+    } else {
+      log.warn(`没有可用的视图接收插件事件: ${channel}`);
+      return false;
+    }
+  } catch (error) {
+    log.error(`广播插件事件失败: ${channel}`, error);
+    return false;
+  }
+}
+
+
+/**
+ * 广播插件事件到所有视图
+ * @param event IPC事件
+ * @param channel 消息通道
+ * @param data 消息数据
+ * @returns 是否广播成功
+ */
+export async function forwardMessageToPluginView(
+  event: Electron.IpcMainInvokeEvent,
+  pluginPath: string,
+  channel: string,
+  data: any
+): Promise<boolean> {
+  try {
+    const windowService = appBootstrap.getService('windowService');
+
+    if (!windowService) {
+      log.warn('窗口服务未初始化，无法广播插件事件');
+      return false;
+    }
+
+    const windowManager: NewWindowManager = windowService.getWindowManager();
+    if (!windowManager) {
+      log.warn('窗口管理器未初始化，无法广播插件事件');
+      return false;
+    }
+
+    // 获取所有视图并广播事件
     const allViews = windowManager.getViewManager().getAllViews();
     let sentCount = 0;
 
@@ -204,7 +277,8 @@ export async function forwardMessageToMainView(
         if (
           viewInfo.view &&
           viewInfo.view.webContents &&
-          !viewInfo.view.webContents.isDestroyed()
+          !viewInfo.view.webContents.isDestroyed() &&
+          viewInfo.id.startsWith('plugin:' + pluginPath)
         ) {
           viewInfo.view.webContents.send(channel, {
             ...data,
