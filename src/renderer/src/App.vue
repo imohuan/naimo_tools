@@ -724,7 +724,7 @@ onMounted(async () => {
 
 });
 
-useTestLoadPlugin()
+// useTestLoadPlugin()
 </script>
 
 <style scoped></style>
