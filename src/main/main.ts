@@ -3,6 +3,8 @@
  * 使用结构化架构和类型安全的 IPC 通信
  */
 
+import { app, shell } from 'electron'
+import log from 'electron-log'
 import { AppBootstrap } from "./core/AppBootstrap";
 import { isProduction } from "@shared/utils";
 // import { autoPuppeteerMain } from "@libs/auto-puppeteer/main";
@@ -33,8 +35,26 @@ const appBootstrap = new AppBootstrap({
     download: {
       enableDownloadWindow: true
     }
+  },
+  tray: {
+    enabled: true
   }
 });
+
+/**
+ * 打开日志文件
+ */
+function openLogFile() {
+  try {
+    const logPath = log.transports.file.getFile().path
+    console.log('打开日志文件:', logPath)
+    shell.openPath(logPath).catch((error) => {
+      console.error('打开日志文件失败:', error)
+    })
+  } catch (error) {
+    console.error('获取日志文件路径失败:', error)
+  }
+}
 
 // 初始化应用
 appBootstrap
@@ -44,8 +64,20 @@ appBootstrap
   })
   .catch((error) => {
     console.error("❌ 应用启动失败:", error);
-    appBootstrap.cleanup();
-    process.exit(1);
+    log.error("应用启动失败:", error);
+
+    // 在生产环境中，启动失败时自动打开日志文件
+    if (isProduction()) {
+      openLogFile();
+      // 延迟退出，确保日志文件被打开
+      setTimeout(() => {
+        appBootstrap.cleanup();
+        process.exit(1);
+      }, 1500);
+    } else {
+      appBootstrap.cleanup();
+      process.exit(1);
+    }
   });
 
 // 确保在进程退出时调用清理
@@ -63,5 +95,6 @@ export const appService = {
   getWindowManager: () => appBootstrap.getService('windowService')?.getWindowManager(),
   getConfigManager: () => appBootstrap.getService('configManager'),
   getDownloadWindow: () => appBootstrap.getService('windowService')?.getDownloadWindow(),
+  getTrayService: () => appBootstrap.getService('trayService'),
   cleanup: () => appBootstrap.cleanup()
 };

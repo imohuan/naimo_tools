@@ -8,6 +8,7 @@ import { CoreService } from './CoreService'
 import { ErrorService } from '../services/ErrorService'
 import { UpdateService } from '../services/UpdateService'
 import { WindowService } from '../services/WindowService'
+import { TrayService } from '../services/TrayService'
 import { AppConfigManager } from '../config/appConfig'
 
 /**
@@ -36,6 +37,10 @@ export interface AppBootstrapConfig {
     download?: {
       enableDownloadWindow?: boolean
     }
+  }
+  tray?: {
+    enabled?: boolean
+    iconPath?: string
   }
 }
 
@@ -77,6 +82,10 @@ export class AppBootstrap {
           enableDownloadWindow: true,
           ...config.window?.download
         }
+      },
+      tray: {
+        enabled: true,
+        ...config.tray
       }
     }
 
@@ -129,6 +138,13 @@ export class AppBootstrap {
       dependencies: ['configManager']
     })
 
+    // 注册托盘服务
+    this.serviceContainer.register({
+      name: 'trayService',
+      factory: (container) => new TrayService(container, this.config.tray),
+      singleton: true
+    })
+
     log.info('所有服务注册完成')
   }
 
@@ -168,7 +184,8 @@ export class AppBootstrap {
       'coreService',     // 核心服务 - 最先初始化
       'errorService',    // 错误服务 - 尽早初始化以捕获错误
       'updateService',   // 更新服务 - 在核心功能之后
-      'windowService'    // 窗口服务 - 最后初始化
+      'windowService',   // 窗口服务
+      'trayService'      // 托盘服务 - 最后初始化
     ]
 
     for (const serviceName of initOrder) {
@@ -243,6 +260,13 @@ export class AppBootstrap {
         const windowService = this.serviceContainer.get('windowService')
         if (windowService && typeof windowService.updateConfig === 'function') {
           windowService.updateConfig(config.window)
+        }
+      }
+
+      if (config.tray && this.serviceContainer.has('trayService')) {
+        const trayService = this.serviceContainer.get('trayService')
+        if (trayService && typeof trayService.updateConfig === 'function') {
+          trayService.updateConfig(config.tray)
         }
       }
     } catch (error) {

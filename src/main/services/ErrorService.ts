@@ -2,7 +2,7 @@
  * 错误处理服务 - 统一管理所有错误处理逻辑
  */
 
-import { app } from 'electron'
+import { app, shell } from 'electron'
 import log from 'electron-log'
 import { MainErrorHandler } from '@libs/unhandled/main'
 import { isProduction } from '@shared/utils'
@@ -11,6 +11,7 @@ import type { Service } from '../core/ServiceContainer'
 export interface ErrorServiceConfig {
   showDialog?: boolean
   enableReporting?: boolean
+  openLogOnCrash?: boolean
   onError?: (error: Error) => void
 }
 
@@ -25,6 +26,7 @@ export class ErrorService implements Service {
     this.config = {
       showDialog: !isProduction(),
       enableReporting: true,
+      openLogOnCrash: true, // 默认在崩溃时打开日志
       ...config
     }
 
@@ -135,10 +137,35 @@ export class ErrorService implements Service {
       this.config.onError(error)
     }
 
+    // 在退出前打开日志文件
+    if (this.config.openLogOnCrash) {
+      this.openLogFile()
+    }
+
     // 关键错误可能需要退出应用
     if (isProduction()) {
       log.error('关键错误导致应用退出')
-      process.exit(1)
+      // 延迟退出，确保日志文件被打开
+      setTimeout(() => {
+        process.exit(1)
+      }, 1000)
+    }
+  }
+
+  /**
+   * 打开日志文件
+   */
+  private openLogFile(): void {
+    try {
+      const logPath = log.transports.file.getFile().path
+      log.info('打开日志文件:', logPath)
+      shell.openPath(logPath).then((error) => {
+        if (error) {
+          log.error('打开日志文件失败:', error)
+        }
+      })
+    } catch (error) {
+      log.error('获取日志文件路径失败:', error)
     }
   }
 

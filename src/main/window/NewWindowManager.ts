@@ -4,7 +4,7 @@
  * 提供统一的窗口管理接口，支持 BaseWindow + WebContentsView 架构
  */
 
-import { BaseWindow, } from 'electron'
+import { BaseWindow, app } from 'electron'
 import { resolve } from 'path'
 import log from 'electron-log'
 import { sendPluginViewOpened, sendPluginViewClosed } from '@main/ipc-router/mainEvents'
@@ -909,6 +909,16 @@ export class NewWindowManager {
         }
       }
 
+      // 先移除事件监听器，避免 closed 事件触发 handleMainWindowClosed
+      this.mainWindow.removeAllListeners('closed')
+      this.mainWindow.removeAllListeners('blur')
+      this.mainWindow.removeAllListeners('focus')
+
+      // 清空引用，避免在销毁过程中访问
+      const mainWindowToDestroy = this.mainWindow
+      this.mainWindow = null
+      this.activeViewId = null
+
       // 销毁 BaseWindow
       const result = this.baseWindowController.destroyWindow(windowId)
       if (!result.success) {
@@ -1080,6 +1090,9 @@ export class NewWindowManager {
   private setupMainWindowEvents(): void {
     if (!this.mainWindow) return
 
+    // 保存窗口ID，避免在事件回调中访问可能已销毁的窗口对象
+    const windowId = this.mainWindow.id
+
     // 窗口关闭事件
     this.mainWindow.on('closed', () => {
       this.handleMainWindowClosed()
@@ -1087,12 +1100,12 @@ export class NewWindowManager {
 
     // 窗口失焦事件
     this.mainWindow.on('blur', () => {
-      emitEvent.emit('window:main-blurred', { windowId: this.mainWindow!.id, timestamp: Date.now() })
+      emitEvent.emit('window:main-blurred', { windowId, timestamp: Date.now() })
     })
 
     // 窗口聚焦事件
     this.mainWindow.on('focus', () => {
-      emitEvent.emit('window:main-focused', { windowId: this.mainWindow!.id, timestamp: Date.now() })
+      emitEvent.emit('window:main-focused', { windowId, timestamp: Date.now() })
     })
   }
 
@@ -1228,19 +1241,37 @@ export class NewWindowManager {
    * 处理主窗口关闭
    */
   private handleMainWindowClosed(): void {
-    log.info('主窗口已关闭')
+    try {
+      log.info('主窗口已关闭，准备退出应用')
 
+      // 如果已经清理过了,直接返回
+      if (!this.mainWindow) {
+        log.debug('主窗口引用已清空,跳过重复清理')
+        return
+      }
 
-    emitEvent.emit('window:main-closed', {
-      windowId: this.mainWindow!.id,
-      timestamp: Date.now()
-    })
+      // 保存窗口ID,因为窗口对象即将被销毁
+      const windowId = this.mainWindow.id
 
-    this.mainWindow = null
-    this.activeViewId = null
+      // 先清空引用,避免在清理过程中访问已销毁的对象
+      this.mainWindow = null
+      this.activeViewId = null
 
-    // 清理所有资源
-    this.cleanup()
+      // 发出窗口关闭事件
+      emitEvent.emit('window:main-closed', {
+        windowId,
+        timestamp: Date.now()
+      })
+
+      // 清理所有资源
+      this.cleanup()
+
+      // 主窗口关闭后直接退出应用
+      log.info('主窗口已关闭，正在退出应用...')
+      app.quit()
+    } catch (error) {
+      log.error('处理主窗口关闭时出错:', error)
+    }
   }
 
   /**

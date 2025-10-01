@@ -135,7 +135,8 @@ export class BaseWindowController {
         // 分离窗口可调整大小
         resizable: true,
         alwaysOnTop: false,
-        ...this.defaultConfig
+        ...this.defaultConfig,
+        skipTaskbar: false,
       }
 
       const window = this.createBaseWindow(windowConfig)
@@ -398,6 +399,7 @@ export class BaseWindowController {
     // 窗口关闭处理
     window.on('closed', () => {
       log.info(`BaseWindow 主窗口已关闭: ID=${windowId}`)
+      // 在窗口销毁后立即清理引用,避免后续访问已销毁的对象
       this.createdWindows.delete(windowId)
       this.hiddenWindowPositions.delete(windowId)
     })

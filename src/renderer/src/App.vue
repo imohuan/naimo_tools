@@ -415,6 +415,17 @@ const closePluginWindow = async () => {
 
 // 设置页面管理
 const openSettings = async () => {
+  // 如果有打开的插件窗口，先关闭插件view
+  if (isPluginWindowOpen.value) {
+    console.log('🔧 打开设置前，先关闭插件view');
+    try {
+      await naimo.router.windowClosePluginView();
+      console.log('✅ 插件view已关闭');
+    } catch (error) {
+      console.error('❌ 关闭插件view失败:', error);
+    }
+  }
+
   await settingsManager.openSettings({
     switchToSettings: () => {
       switchToSettings();
@@ -694,7 +705,16 @@ onMounted(async () => {
     onHotkeyTriggered: hotkeyHandler,
 
     // 初始化完成回调
-    onInitComplete: () => {
+    onInitComplete: async () => {
+      // 页面刷新时关闭所有插件view
+      console.log('🔄 页面初始化，检查并关闭所有插件view');
+      try {
+        await naimo.router.windowClosePluginView();
+        console.log('✅ 所有插件view已关闭');
+      } catch (error) {
+        console.error('❌ 关闭插件view失败:', error);
+      }
+
       // 初始化应用数据
       initAppApps();
       // 初始化窗口大小

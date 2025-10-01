@@ -1,6 +1,6 @@
 import { FusesPlugin } from '@electron-forge/plugin-fuses';
 import { FuseV1Options, FuseVersion } from '@electron/fuses';
-import { readFileSync, writeFileSync, readdirSync } from 'fs';
+import { readFileSync, writeFileSync, readdirSync, copyFileSync, mkdirSync, existsSync } from 'fs';
 import { join, resolve } from "path"
 
 import JavaScriptObfuscator from "javascript-obfuscator";
@@ -22,6 +22,33 @@ function prunePackageJson(buildPath) {
     }
   });
   writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
+}
+
+/**
+ * 复制图标文件到 resources 目录（在 asar 外部）
+ * @param {*} buildPath 
+ */
+function copyIconToResources(buildPath) {
+  try {
+    const sourceIcon = resolve(process.cwd(), 'setup/exe.ico');
+    const targetDir = join(buildPath, 'resources');
+    const targetIcon = join(targetDir, 'app-icon.ico');
+
+    // 确保 resources 目录存在
+    if (!existsSync(targetDir)) {
+      mkdirSync(targetDir, { recursive: true });
+    }
+
+    // 复制图标文件
+    if (existsSync(sourceIcon)) {
+      copyFileSync(sourceIcon, targetIcon);
+      console.log('✅ 图标文件复制成功:', targetIcon);
+    } else {
+      console.warn('⚠️ 源图标文件不存在:', sourceIcon);
+    }
+  } catch (error) {
+    console.error('❌ 复制图标文件失败:', error.message);
+  }
 }
 
 /**
@@ -96,7 +123,6 @@ function obfuscateMainProcess(buildPath) {
 
 export default {
   packagerConfig: {
-    asar: true,
     icon: './setup/exe.ico', // 需要准备图标文件
     name: pkg.name,
     executableName: pkg.name,
@@ -133,7 +159,9 @@ export default {
     },
     win32metadata: {
       CompanyName: 'IMOHUAN',
-      ProductName: pkg.name
+      ProductName: pkg.name,
+      FileDescription: pkg.description,
+      InternalName: pkg.name
       // 安装包需要以管理员权限运行
       // "requested-execution-level": "requireAdministrator"
     },
@@ -149,6 +177,8 @@ export default {
       //await fsPromises.rmdir(path.join(buildPath, "src"), { recursive: true });
       try {
         console.log('🔍 开始执行混淆和精简操作...');
+        // 复制图标文件到 resources 目录（在 asar 外部，运行时可访问）
+        copyIconToResources(buildPath);
         // 加密生产代码，不影响 build 目录下代码
         obfuscateMainProcess(buildPath);
         // 精简package.json，删除无需暴露的属性
@@ -177,6 +207,17 @@ export default {
       config: {
         name: pkg.name,
         setupIcon: './setup/exe.ico',
+        // 以下配置确保创建开始菜单和桌面快捷方式
+        setupExe: `${pkg.name}-${pkg.version}-setup.exe`,
+        // 不跳过创建快捷方式
+        noMsi: true,
+        // 安装后自动启动
+        // remoteReleases: false,
+
+        // 创建桌面快捷方式的关键配置
+        loadingGif: undefined,
+        // 设置应用程序快捷方式
+        // Squirrel 会在首次运行时创建快捷方式，我们通过 setupIcon 来设置图标
       },
     },
     // macOS 专用安装包

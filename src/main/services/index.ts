@@ -9,11 +9,13 @@
 export { ErrorService } from './ErrorService'
 export { UpdateService } from './UpdateService'
 export { WindowService } from './WindowService'
+export { TrayService } from './TrayService'
 
 // 服务配置类型
 export type { ErrorServiceConfig } from './ErrorService'
 export type { UpdateServiceConfig } from './UpdateService'
 export type { WindowServiceConfig } from './WindowService'
+export type { TrayServiceConfig } from './TrayService'
 
 // 核心接口（从 core 模块重新导出，方便使用）
 export type { Service } from '../core/ServiceContainer'

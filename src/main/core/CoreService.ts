@@ -2,7 +2,7 @@
  * 核心服务 - 管理应用的核心生命周期
  */
 
-import { app } from 'electron'
+import { app, shell } from 'electron'
 import log from 'electron-log'
 import { LogConfigManager } from '../config/logConfig'
 import { cleanupIpcRouter, initializeIpcRouter } from '../ipc-router'
@@ -14,9 +14,6 @@ import { getDirname } from '../utils'
 import { processEventCoordinator } from './ProcessEventCoordinator'
 import type { Service, ServiceContainer } from './ServiceContainer'
 
-/**
- * 核心服务配置
- */
 /**
  * 核心服务配置接口
  * @property enableIconWorker 是否启用图标工作进程
@@ -108,15 +105,56 @@ export class CoreService implements Service {
   private async waitForAppReady(): Promise<void> {
     if (app.isReady()) {
       log.info('Electron 应用已准备就绪')
+      // 在应用准备就绪后创建桌面快捷方式
+      this.createDesktopShortcut()
       return
     }
 
     return new Promise((resolve) => {
       app.whenReady().then(() => {
         log.info('Electron 应用准备就绪')
+        // 在应用准备就绪后创建桌面快捷方式
+        this.createDesktopShortcut()
         resolve()
       })
     })
+  }
+
+  /**
+   * 创建桌面快捷方式（仅在 Windows 生产环境首次运行时）
+   */
+  private createDesktopShortcut(): void {
+    // 仅在 Windows 平台且为打包版本时执行
+    if (process.platform !== 'win32' || !app.isPackaged) {
+      return
+    }
+
+    try {
+      const desktopPath = app.getPath('desktop')
+      const shortcutPath = resolve(desktopPath, 'Naimo Tools.lnk')
+
+      // 如果快捷方式已存在，不重复创建
+      if (existsSync(shortcutPath)) {
+        log.info('桌面快捷方式已存在')
+        return
+      }
+
+      // 使用 shell.writeShortcutLink 创建快捷方式
+      const success = shell.writeShortcutLink(shortcutPath, {
+        target: process.execPath,
+        description: 'Naimo Tools',
+        icon: process.execPath,
+        iconIndex: 0
+      })
+
+      if (success) {
+        log.info('✅ 桌面快捷方式创建成功:', shortcutPath)
+      } else {
+        log.warn('⚠️ 桌面快捷方式创建失败')
+      }
+    } catch (error) {
+      log.error('❌ 创建桌面快捷方式时出错:', error)
+    }
   }
 
   /**
@@ -169,7 +207,8 @@ export class CoreService implements Service {
    * 设置应用事件监听器
    */
   private setupAppEvents(): void {
-    // 所有窗口关闭时退出应用
+    // 所有窗口关闭时的处理
+    // 注意：主窗口关闭时会直接调用 app.quit()，所以这里主要处理 macOS 的情况
     app.on('window-all-closed', () => {
       if (process.platform !== 'darwin') {
         log.info('所有窗口已关闭，退出应用')
