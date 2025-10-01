@@ -465,7 +465,13 @@ const searchHandlers = eventHandlers.createSearchHandlers({
   executeItem,
   searchCategories: searchCategories,
   attachedFiles: attachedFiles,
-  setAttachedFiles: (files) => { attachedFiles.value = [...files]; },
+  setAttachedFiles: (files) => {
+    attachedFiles.value = [...files];
+    // 同步清空搜索头部管理器中的附加文件
+    if (files.length === 0) {
+      searchHeaderActions.clearAttachedFiles();
+    }
+  },
   currentPluginItem: currentPluginItem,
   setCurrentPluginItem: (item) => { currentPluginItem.value = item; },
   show,
@@ -479,7 +485,13 @@ const windowStateHandlers = eventHandlers.createWindowStateHandlers({
   setSearchText: (text: string) => { searchText.value = text; },
   handleSearch,
   attachedFiles: attachedFiles,
-  setAttachedFiles: (files) => { attachedFiles.value = [...files]; },
+  setAttachedFiles: (files) => {
+    attachedFiles.value = [...files];
+    // 同步清空搜索头部管理器中的附加文件
+    if (files.length === 0) {
+      searchHeaderActions.clearAttachedFiles();
+    }
+  },
   currentPluginItem: currentPluginItem,
   setCurrentPluginItem: (item) => { currentPluginItem.value = item; },
   closePluginWindow,
@@ -613,7 +625,13 @@ const handlePluginExecuted = async (event: { pluginId: string, path: string, hot
       uninstall: async (id: string) => { await pluginStore.uninstall(id); },
       toggle: async (id: string) => { await pluginStore.toggle(id); },
     },
-    setAttachedFiles: (files) => { attachedFiles.value = [...files]; },
+    setAttachedFiles: (files) => {
+      attachedFiles.value = [...files];
+      // 同步清空搜索头部管理器中的附加文件
+      if (files.length === 0) {
+        searchHeaderActions.clearAttachedFiles();
+      }
+    },
     setSearchText: (text) => { searchText.value = text; }
   });
 };

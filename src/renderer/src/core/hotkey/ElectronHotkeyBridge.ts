@@ -137,6 +137,9 @@ export class ElectronHotkeyBridge extends BaseSingleton {
    */
   private normalizeElectronKeys(keys: string): string {
     // 将常见的快捷键格式转换为Electron格式
+    // Electron 快捷键格式要求：
+    // - 修饰键：CmdOrCtrl, Alt, Shift, Cmd 等（首字母大写）
+    // - 功能键和字母键：Space, Enter, Esc, A, B, C 等（首字母大写）
     return keys
       .toLowerCase()
       .replace(/ctrl/g, 'CmdOrCtrl')
@@ -146,7 +149,26 @@ export class ElectronHotkeyBridge extends BaseSingleton {
       .replace(/meta/g, 'Cmd')
       .replace(/super/g, 'Cmd')
       .replace(/win/g, 'Cmd')
+      .replace(/space/g, 'Space')
+      .replace(/enter/g, 'Enter')
+      .replace(/esc/g, 'Escape')
+      .replace(/tab/g, 'Tab')
+      .replace(/backspace/g, 'Backspace')
+      .replace(/delete/g, 'Delete')
+      .replace(/up/g, 'Up')
+      .replace(/down/g, 'Down')
+      .replace(/left/g, 'Left')
+      .replace(/right/g, 'Right')
       .replace(/\+/g, '+')
+      // 将单个字母转为大写
+      .split('+')
+      .map(part => {
+        if (part.length === 1 && /[a-z]/.test(part)) {
+          return part.toUpperCase()
+        }
+        return part
+      })
+      .join('+')
   }
 
   /**
@@ -184,7 +206,7 @@ export class ElectronHotkeyBridge extends BaseSingleton {
     // 检查是否已经注册过监听器
     if (!window.hasOwnProperty('_globalHotkeyListenerInitialized')) {
       // 使用 naimo.event API 监听全局快捷键触发事件
-      naimo.event.onGlobalHotkeyTrigger((event, data) => {
+      naimo.event.onGlobalHotkeyTrigger((_event, data) => {
         this.handleGlobalHotkeyTrigger(data)
       })
         ; (window as any)._globalHotkeyListenerInitialized = true

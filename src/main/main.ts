@@ -11,6 +11,16 @@ import { isProduction } from "@shared/utils";
 
 console.log("🚀 主进程启动中...");
 
+// 单实例锁定 - 防止应用多次启动
+const gotTheLock = app.requestSingleInstanceLock()
+
+if (!gotTheLock) {
+  console.log("⚠️ 应用已经在运行，退出当前实例");
+  log.info("检测到应用已运行，退出重复实例");
+  app.quit()
+  process.exit(0)
+}
+
 // 创建应用启动器
 const appBootstrap = new AppBootstrap({
   core: {

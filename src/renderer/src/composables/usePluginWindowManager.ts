@@ -163,6 +163,8 @@ export function usePluginWindowManager() {
     dependencies.setAttachedFiles([])
     dependencies.setSearchText("")
     await dependencies.handleSearch("")
+    // 重新显示搜索框，确保用户可以继续输入
+    dependencies.toggleInput(true)
   }
 
   /**

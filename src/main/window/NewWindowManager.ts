@@ -1289,23 +1289,38 @@ export class NewWindowManager {
    * 检查性能
    */
   private checkPerformance(): void {
-    const metrics = this.getPerformanceMetrics()
-    const memoryThreshold = this.options.memoryManagement?.threshold || 1000
+    try {
+      // 检查主窗口是否存在且未销毁
+      if (!this.mainWindow || this.mainWindow.isDestroyed()) {
+        log.debug('主窗口已销毁，跳过性能检查')
+        // 停止性能监控，避免继续执行
+        if (this.performanceTimer) {
+          clearInterval(this.performanceTimer)
+          this.performanceTimer = undefined
+        }
+        return
+      }
 
-    // 检查内存使用
-    if (metrics.memoryUsage > memoryThreshold) {
-      log.warn(`内存使用超过阈值: ${metrics.memoryUsage}MB > ${memoryThreshold}MB`)
+      const metrics = this.getPerformanceMetrics()
+      const memoryThreshold = this.options.memoryManagement?.threshold || 1000
 
-      // 触发内存清理
-      this.cleanupBackgroundViews()
+      // 检查内存使用
+      if (metrics.memoryUsage > memoryThreshold) {
+        log.warn(`内存使用超过阈值: ${metrics.memoryUsage}MB > ${memoryThreshold}MB`)
+
+        // 触发内存清理
+        this.cleanupBackgroundViews()
+      }
+
+      // 触发性能监控事件
+      emitEvent.emit('performance:metrics', {
+        windowId: this.mainWindow?.id || 0,
+        metrics,
+        timestamp: Date.now()
+      })
+    } catch (error) {
+      log.error('性能检查失败:', error)
     }
-
-    // 触发性能监控事件
-    emitEvent.emit('performance:metrics', {
-      windowId: this.mainWindow?.id || 0,
-      metrics,
-      timestamp: Date.now()
-    })
   }
 
 
