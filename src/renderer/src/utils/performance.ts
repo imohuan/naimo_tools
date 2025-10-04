@@ -476,7 +476,7 @@ export function useSmartCache<T>(
 
       // 限制缓存大小
       if (cache.size > maxSize) {
-        const firstKey = cache.keys().next().value
+        const firstKey: any = cache.keys().next().value
         cache.delete(firstKey)
       }
 
