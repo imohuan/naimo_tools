@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { shallowRef, computed, shallowReactive } from 'vue'
+import { shallowRef, computed, shallowReactive, ref } from 'vue'
 import type { PluginConfig, PluginHook, PluginItem, CommandConfig } from '@/typings/pluginTypes'
 import type { PluginInstaller } from '@/temp_code/typings/plugin'
 import { SystemPluginInstaller } from './modules/system'
@@ -8,19 +8,19 @@ import { GithubPluginInstaller } from './modules/github'
 import { useLoading } from '@/temp_code/hooks/useLoading'
 import { storeUtils } from '@/temp_code/utils/store'
 
+const modules = {
+  system: new SystemPluginInstaller(),
+  local: new LocalPluginInstaller(),
+  github: new GithubPluginInstaller()
+}
+modules.github.setLocalInstaller(modules.local)
+
 /**
  * 插件管理 Store（简化版）
  */
 export const usePluginStoreNew = defineStore('pluginNew', () => {
   // ==================== 工具实例 ====================
   const loading = useLoading()
-
-  // ==================== 安装器实例 ====================
-  const systemInstaller = new SystemPluginInstaller()
-  const localInstaller = new LocalPluginInstaller()
-  const githubInstaller = new GithubPluginInstaller()
-  githubInstaller.setLocalInstaller(localInstaller)
-
   // ==================== 状态（单一数据源） ====================
   /** 已安装的插件列表 */
   const installedPlugins = shallowRef<PluginConfig[]>([])
@@ -32,21 +32,23 @@ export const usePluginStoreNew = defineStore('pluginNew', () => {
   const commands = shallowReactive<Map<string, CommandConfig>>(new Map())
   /** 安装器列表 */
   const installers = shallowReactive<Map<string, PluginInstaller>>(new Map())
+  /** 是否静默 （是否不进行通讯） */
+  const silent = ref(true)
 
   // ==================== 计算属性 ====================
   const enabledPlugins = computed(() => installedPlugins.value.filter(p => p.enabled))
-  const systemPlugins = computed(() => availablePlugins.value.filter(p => p.options?.isSystem))
-  const localPlugins = computed(() => availablePlugins.value.filter(p => p.options?.isThirdParty))
-  const githubPlugins = computed(() => availablePlugins.value.filter(p => p.options?.isGithub))
+  const systemPlugins = computed(() => availablePlugins.value.filter(p => p.options?.pluginType === 'system'))
+  const localPlugins = computed(() => availablePlugins.value.filter(p => p.options?.pluginType === 'local'))
+  const githubPlugins = computed(() => availablePlugins.value.filter(p => p.options?.pluginType === 'github'))
   const pluginCount = computed(() => installedPlugins.value.length)
   const enabledCount = computed(() => enabledPlugins.value.length)
 
   // ==================== 安装器管理 ====================
 
-  /** 注册安装器 */
-  const registerInstaller = (installer: PluginInstaller) => {
+  // 注册所有安装器
+  Object.values(modules).forEach(installer => {
     installers.set(installer.type, installer)
-  }
+  })
 
   /** 查找合适的安装器 */
   const findInstaller = (source: any): PluginInstaller | null => {
@@ -55,12 +57,6 @@ export const usePluginStoreNew = defineStore('pluginNew', () => {
     }
     return null
   }
-
-  // 注册所有安装器
-  registerInstaller(systemInstaller)
-  registerInstaller(localInstaller)
-  registerInstaller(githubInstaller)
-
   // ==================== 存储操作 ====================
 
   /** 获取已安装的插件ID列表 */
@@ -75,6 +71,8 @@ export const usePluginStoreNew = defineStore('pluginNew', () => {
   }
 
   // ==================== 工具方法 ====================
+  /** 获取插件详情 */
+  const getPlugin = (id: string) => availablePlugins.value.find(p => p.id === id)
 
   /** 合并插件到可用列表（去重） */
   const mergePlugins = (newPlugins: PluginConfig[]) => {
@@ -96,7 +94,7 @@ export const usePluginStoreNew = defineStore('pluginNew', () => {
 
   /** 获取插件API */
   const getPluginApi = async (pluginId: string) => {
-    const plugin = availablePlugins.value.find(p => p.id === pluginId)
+    const plugin = getPlugin(pluginId)
     if (!plugin) {
       console.warn(`⚠️ 插件未找到: ${pluginId}`)
       return null
@@ -147,10 +145,10 @@ export const usePluginStoreNew = defineStore('pluginNew', () => {
   const initialize = loading.withLoading(async () => {
     console.log('🚀 [插件系统] 开始初始化')
 
-    // 1. 并行加载所有可用插件
+    // 1. 并行加载所有可用插件（使用包装后的安装器）
     const [system, local] = await Promise.all([
-      systemInstaller.getList(),
-      localInstaller.getList()
+      modules.system.getList(),
+      modules.local.getList()
     ])
 
     availablePlugins.value = [...system, ...local]
@@ -176,7 +174,7 @@ export const usePluginStoreNew = defineStore('pluginNew', () => {
       if (!installer) throw new Error(`未找到支持的安装器: ${source}`)
 
       console.log(`使用 ${installer.name} 安装`)
-      plugin = await installer.install(source, { silent: false })
+      plugin = await installer.install(source)
     }
 
     // 检查是否已安装
@@ -193,10 +191,8 @@ export const usePluginStoreNew = defineStore('pluginNew', () => {
       availablePlugins.value.push(plugin)
     }
 
-    // 保存并广播
     await saveInstalledPluginIds()
-    await naimo.router.appForwardMessageToMainView('plugin-installed', { pluginId: plugin.id })
-
+    if (!silent.value) await naimo.router.appForwardMessageToMainView('plugin-installed', { pluginId: plugin.id })
     console.log(`✅ 安装成功: ${plugin.id}`)
     return plugin
   }, '安装插件失败')
@@ -205,11 +201,13 @@ export const usePluginStoreNew = defineStore('pluginNew', () => {
   const uninstall = loading.withLoading(async (id: string) => {
     console.log(`🗑️ 卸载插件: ${id}`)
 
-    const plugin = installedPlugins.value.find(p => p.id === id)
+    const plugin = getPlugin(id)
     if (!plugin) throw new Error(`插件未安装: ${id}`)
 
     // 使用对应的安装器卸载
-    const installer = plugin.options?.isSystem ? systemInstaller : localInstaller
+    const installer = findInstaller(plugin)
+    if (!installer) throw new Error(`未找到支持的安装器: ${plugin.id}`)
+
     if (!await installer.uninstall(id)) {
       throw new Error(`卸载插件失败: ${id}`)
     }
@@ -220,15 +218,14 @@ export const usePluginStoreNew = defineStore('pluginNew', () => {
     // 清除钩子和保存
     clearPluginHooks(id)
     await saveInstalledPluginIds()
-    await naimo.router.appForwardMessageToMainView('plugin-uninstalled', { pluginId: id })
-
+    if (!silent.value) await naimo.router.appForwardMessageToMainView('plugin-uninstalled', { pluginId: id })
     console.log(`✅ 卸载成功: ${id}`)
     return true
   }, '卸载插件失败')
 
   /** 切换插件启用状态 */
   const toggle = loading.withLoading(async (id: string, enabled?: boolean) => {
-    const plugin = installedPlugins.value.find(p => p.id === id)
+    const plugin = getPlugin(id)
     if (!plugin) throw new Error(`插件未安装: ${id}`)
 
     plugin.enabled = enabled !== undefined ? enabled : !plugin.enabled
@@ -243,21 +240,18 @@ export const usePluginStoreNew = defineStore('pluginNew', () => {
     return true
   }, '切换插件状态失败')
 
-  /** 获取插件详情 */
-  const getPlugin = (id: string) => installedPlugins.value.find(p => p.id === id)
-
   // ==================== GitHub 插件相关 ====================
 
   /** 加载 GitHub 插件列表 */
   const loadGithubPlugins = loading.withLoading(async (options?: { search?: string; page?: number }) => {
-    const plugins = await githubInstaller.getList(options)
+    const plugins = await modules.github.getList(options)
     mergePlugins(plugins)
     return plugins
   }, '加载 GitHub 插件失败')
 
   /** 加载更多 GitHub 插件 */
   const loadMoreGithubPlugins = loading.withLoading(async () => {
-    const plugins = await githubInstaller.loadMore()
+    const plugins = await modules.github.loadMore()
     mergePlugins(plugins)
     return plugins
   }, '加载更多 GitHub 插件失败')
@@ -265,10 +259,10 @@ export const usePluginStoreNew = defineStore('pluginNew', () => {
   /** 更新所有插件列表 */
   const updateAllLists = async () => {
     const [system, local] = await Promise.all([
-      systemInstaller.getList(),
-      localInstaller.getList()
+      modules.system.getList(),
+      modules.local.getList()
     ])
-    const github = availablePlugins.value.filter(p => p.options?.isGithub)
+    const github = availablePlugins.value.filter(p => p.options?.pluginType === 'github')
     availablePlugins.value = [...system, ...local, ...github]
   }
 
@@ -299,9 +293,9 @@ export const usePluginStoreNew = defineStore('pluginNew', () => {
     // GitHub 相关
     loadGithubPlugins,
     loadMoreGithubPlugins,
-    setGithubToken: githubInstaller.setGithubToken.bind(githubInstaller),
-    clearGithubCache: githubInstaller.clearCache.bind(githubInstaller),
-    getGithubSearchResult: githubInstaller.getSearchResult.bind(githubInstaller),
+    setGithubToken: modules.github.setGithubToken.bind(modules.github),
+    clearGithubCache: modules.github.clearCache.bind(modules.github),
+    getGithubSearchResult: modules.github.getSearchResult.bind(modules.github),
 
     // 工具方法
     updateAllLists,
@@ -311,6 +305,7 @@ export const usePluginStoreNew = defineStore('pluginNew', () => {
       return plugin?.enabled && plugin.items?.find(item => item.path === itemPath) || null
     },
     clearError: loading.clearError,
+    setSilent: (value: boolean) => { silent.value = value },
 
     // 钩子和命令
     hooks,

@@ -10,6 +10,7 @@ export class LocalPluginInstaller extends BasePluginInstaller {
   readonly name = '本地插件'
   readonly type = PluginSourceType.LOCAL
   readonly weight = 2
+  readonly pluginType = 'local'
 
   /** 判断是否为本地插件来源 */
   canHandle(source: any): boolean {
@@ -18,7 +19,8 @@ export class LocalPluginInstaller extends BasePluginInstaller {
       const notUrl = !source.startsWith('http://') && !source.startsWith('https://')
       return hasPath && notUrl
     }
-    return source?.options?.isThirdParty === true
+    // 检查插件类型标记（支持新旧两种标记方式）
+    return source?.options?.pluginType === this.pluginType
   }
 
   /** 获取所有本地已安装的插件列表 */
@@ -30,7 +32,8 @@ export class LocalPluginInstaller extends BasePluginInstaller {
       try {
         const config = await naimo.webUtils.loadPluginConfig(plugin.configPath)
         if (config) {
-          config.options = { ...config.options, isThirdParty: true }
+          // 添加类型标记
+          this.setPluginType(config)
           plugins.push(config)
         }
       } catch (error) {
@@ -62,21 +65,8 @@ export class LocalPluginInstaller extends BasePluginInstaller {
 
     console.log(`📦 [本地插件] 安装: ${pluginData.id}`)
 
-    // 验证和处理
-    if (!this.validatePluginConfig(pluginData)) {
-      throw new Error(`插件配置无效: ${pluginData.id}`)
-    }
-
-    const processed = await this.preprocessPlugin(pluginData)
-    this.processPluginResources(processed, options?.getResourcePath)
-    this.setupPluginItems(processed)
-
-    const plugin = this.createPluginConfig(processed)
-    plugin.options = { ...plugin.options, isThirdParty: true }
-
-    if (!options?.silent) {
-      await this.broadcastEvent('plugin-installed', { pluginId: plugin.id })
-    }
+    // 统一处理插件（自动添加类型标记）
+    const plugin = await this.processPlugin(pluginData, options)
 
     console.log(`✅ [本地插件] 安装成功: ${plugin.id}`)
     return plugin
@@ -86,11 +76,7 @@ export class LocalPluginInstaller extends BasePluginInstaller {
   private async installFromZip(zipPath: string): Promise<PluginConfig | null> {
     const zipConfig = await naimo.router.pluginInstallPluginFromZip(zipPath)
     if (!zipConfig) throw new Error(`安装ZIP失败: ${zipPath}`)
-
-    const config = await naimo.webUtils.loadPluginConfig(zipConfig.configPath)
-    if (!config) throw new Error(`读取配置失败: ${zipConfig.configPath}`)
-
-    return config
+    return this.installFromPath(zipConfig.configPath)
   }
 
   /** 从本地路径安装 */
@@ -103,13 +89,10 @@ export class LocalPluginInstaller extends BasePluginInstaller {
   /** 卸载本地插件 */
   async uninstall(pluginId: string): Promise<boolean> {
     console.log(`🗑️ [本地插件] 卸载: ${pluginId}`)
-
     if (!await naimo.router.pluginUninstallPlugin(pluginId)) {
       console.error(`❌ 删除插件文件失败: ${pluginId}`)
       return false
     }
-
-    await this.broadcastEvent('plugin-uninstalled', { pluginId })
     console.log(`✅ [本地插件] 卸载成功: ${pluginId}`)
     return true
   }

@@ -58,8 +58,6 @@ export interface PluginInstaller {
  * 安装选项
  */
 export interface InstallOptions {
-  /** 是否静默安装（不触发事件） */
-  silent?: boolean
   /** 是否强制重新安装 */
   force?: boolean
   /** 自定义资源路径解析器 */

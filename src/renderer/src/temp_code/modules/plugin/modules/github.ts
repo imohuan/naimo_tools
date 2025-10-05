@@ -4,6 +4,7 @@ import { PluginSourceType, type InstallOptions } from '@/temp_code/typings/plugi
 import { request } from '@/core/request'
 import { useCacheStore } from '@/temp_code/modules/cache'
 import { uniqueArrayByProperty } from '@/temp_code/utils/unique'
+import { set } from 'lodash-es'
 
 /** GitHub 插件项 */
 export interface GithubPluginItem {
@@ -32,6 +33,7 @@ export class GithubPluginInstaller extends BasePluginInstaller {
   readonly name = 'GitHub插件'
   readonly type = PluginSourceType.REMOTE
   readonly weight = 3
+  readonly pluginType = 'github'
 
   private searchResult: GithubSearchResult = {
     search: '',
@@ -141,18 +143,13 @@ export class GithubPluginInstaller extends BasePluginInstaller {
     try {
       const url = `https://raw.githubusercontent.com/${item.user}/${item.repo}/${this.branch}/manifest.json`
       const config = await request.get<PluginConfig>(url)
-
       if (config) {
         // 处理图标和路径
-        if (config.icon) {
-          config.icon = this.resolveUrl(item.user, item.repo, config.icon)
-        }
-
-        ; (config as any).downloadUrl = `https://github.com/${item.user}/${item.repo}/archive/refs/heads/${this.branch}.zip`
-          ; (config as any).getResourcePath = (...paths: string[]) =>
-            this.resolveUrl(item.user, item.repo, ...paths)
-
-        config.options = { ...config.options, isGithub: true }
+        if (config.icon) config.icon = this.resolveRootUrl(item.user, item.repo, config.icon)
+        set(config, 'downloadUrl', `https://github.com/${item.user}/${item.repo}/archive/refs/heads/${this.branch}.zip`)
+        set(config, 'getResourcePath', (...paths: string[]) => this.resolveRootUrl(item.user, item.repo, ...paths))
+        // 添加 GitHub 类型标记
+        this.setPluginType(config)
         return { ...item, config }
       }
     } catch (error) {
@@ -161,8 +158,8 @@ export class GithubPluginInstaller extends BasePluginInstaller {
     return item
   }
 
-  /** 解析资源URL */
-  private resolveUrl(user: string, repo: string, ...paths: string[]): string {
+  /** 解析资源URL: 以当前路径为跟路径 解析 */
+  private resolveRootUrl(user: string, repo: string, ...paths: string[]): string {
     if (!paths?.[0]) return ''
 
     let path = paths.join('/').trim()
@@ -176,7 +173,6 @@ export class GithubPluginInstaller extends BasePluginInstaller {
   /** 安装 GitHub 插件 */
   async install(source: any, options?: InstallOptions): Promise<PluginConfig> {
     if (!this.localInstaller) throw new Error('本地安装器未初始化')
-
     // 获取下载URL
     let downloadUrl: string
     if (typeof source === 'object' && source.downloadUrl) {
@@ -192,19 +188,22 @@ export class GithubPluginInstaller extends BasePluginInstaller {
     } else {
       throw new Error('无效的插件来源')
     }
-
     console.log(`📥 [GitHub插件] 下载: ${downloadUrl}`)
-
-    // 下载并安装
+    // 下载ZIP插件
     const zipPath = await this.download(downloadUrl)
+    // 安装ZIP插件
     const plugin = await this.localInstaller.install(zipPath, options)
-    plugin.options = { ...plugin.options, isGithub: true }
-
+    // 覆盖类型标记为 github
+    this.setPluginType(plugin)
     console.log(`✅ [GitHub插件] 安装成功: ${plugin.id}`)
     return plugin
   }
 
-  /** 下载插件 */
+  /** 
+   * 下载插件
+   * @param url 下载URL
+   * @returns 下载后的文件路径 ZIP文件路径
+   */
   private download(url: string): Promise<string> {
     return new Promise((resolve, reject) => {
       const cleanup = {
