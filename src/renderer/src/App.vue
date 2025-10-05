@@ -70,7 +70,7 @@ import { DEFAULT_WINDOW_LAYOUT } from "@shared/config/windowLayoutConfig";
 
 // 模块导入 - 直接导入辅助函数
 import { useKeyboardNavigation } from "@/components/Search/hooks/useKeyboardNavigation";
-import { useAppActions } from "@/components/Search/hooks/useAppActions";
+import { useAppActions } from "@/composables/useAppActions";
 
 // Store 导入
 import { HotkeyType, useApp, type HotkeyConfig } from "@/temp_code";
@@ -163,7 +163,6 @@ const flatItems = computed(() => {
     const displayItems = category.isExpanded || category.items.length <= category.maxDisplayCount
       ? category.items
       : category.items.slice(0, category.maxDisplayCount);
-
     items.push(...displayItems.map((item: any) => ({
       ...item,
       categoryId: category.id
@@ -394,9 +393,7 @@ const { handleKeyNavigation } = useKeyboardNavigation(
   (app: AppItem) => {
     executeItem(app);
     handleSearch("");
-  },
-  handleSearch,
-  handleEscAction
+  }
 );
 
 // ==================== 事件监听 ====================

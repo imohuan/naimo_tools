@@ -30,7 +30,7 @@ for (const path in moduleFiles) {
         typeof instance.deleteItem === 'function' &&
         typeof instance.addItem === 'function'
       ) {
-        const oldGetItems = instance.getItems
+        const oldGetItems = instance.getItems.bind(instance)
         instance.getItems = async () => {
           const items = await oldGetItems()
           const newItems = items.map(item => ({ ...item, category: moduleName }))
@@ -108,7 +108,7 @@ export const useSearchStore = defineStore('search', () => {
     // 重新获取所有模块的搜索项
     const items: AppItem[] = []
     for (const module of Object.values(modules)) {
-      items.push(...await module.getItems())
+      items.push(...await module.getItems());
     }
 
     // 加载图标

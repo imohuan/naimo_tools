@@ -1,21 +1,11 @@
-import { nextTick } from "vue";
 import type { AppItem } from "@shared/typings";
 
 export function useKeyboardNavigation(
   flatItems: any,
   searchCategories: any,
   selectedIndex: any,
-  executeItem: (app: AppItem) => void,
-  handleSearch: (value: string) => Promise<void>,
-  handleEscAction: () => Promise<void>
+  executeItem: (app: AppItem) => void
 ) {
-  // 滚动到选中的项目
-  const scrollToSelectedItem = () => {
-    nextTick(() => {
-      // AppItem组件会监听isSelected变化并自动滚动
-    });
-  };
-
   // 智能键盘导航处理
   const handleKeyNavigation = (event: KeyboardEvent) => {
     if (flatItems.value.length === 0) return;
@@ -57,7 +47,6 @@ export function useKeyboardNavigation(
             categoryStartIndex + (categoryRow - 1) * itemsPerRow + categoryCol;
           if (newIndex >= 0 && newIndex < flatItems.value.length) {
             selectedIndex.value = newIndex;
-            scrollToSelectedItem();
           }
         } else {
           const currentCategoryIndex = searchCategories.value.findIndex(
@@ -79,7 +68,6 @@ export function useKeyboardNavigation(
                 );
               if (targetIndex < flatItems.value.length) {
                 selectedIndex.value = targetIndex;
-                scrollToSelectedItem();
               }
             }
           }
@@ -93,7 +81,6 @@ export function useKeyboardNavigation(
             categoryStartIndex + (categoryRow + 1) * itemsPerRow + categoryCol;
           if (newIndex < flatItems.value.length) {
             selectedIndex.value = newIndex;
-            scrollToSelectedItem();
           }
         } else {
           const currentCategoryIndex = searchCategories.value.findIndex(
@@ -109,7 +96,6 @@ export function useKeyboardNavigation(
                 nextCategoryStartIndex + Math.min(categoryCol, itemsPerRow - 1);
               if (targetIndex < flatItems.value.length) {
                 selectedIndex.value = targetIndex;
-                scrollToSelectedItem();
               }
             }
           }
@@ -127,7 +113,6 @@ export function useKeyboardNavigation(
             selectedIndex.value = newIndex;
           }
         }
-        scrollToSelectedItem();
         break;
 
       case "ArrowRight":
@@ -144,7 +129,6 @@ export function useKeyboardNavigation(
             selectedIndex.value = newIndex;
           }
         }
-        scrollToSelectedItem();
         break;
 
       case "Enter":
@@ -153,16 +137,8 @@ export function useKeyboardNavigation(
           executeItem(flatItems.value[selectedIndex.value]);
         }
         break;
-
-      case "Escape":
-        event.preventDefault();
-        handleEscAction();
-        break;
     }
   };
 
-  return {
-    handleKeyNavigation,
-    scrollToSelectedItem,
-  };
+  return { handleKeyNavigation };
 }
