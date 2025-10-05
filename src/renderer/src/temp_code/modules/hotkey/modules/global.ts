@@ -9,14 +9,11 @@ import { normalizeElectronKeys } from '@/temp_code/utils/hotkey'
  * - 不维护独立的快捷键数据（数据由父 store 统一管理）
  * - 只负责与系统层面的快捷键交互
  */
-export function useGlobalHotkeyModule() {
+export class GlobalModule {
   /**
    * 注册全局快捷键到 Electron 主进程
-   * 
-   * @param config 快捷键配置
-   * @returns 是否注册成功
    */
-  const register = async (config: HotkeyConfig): Promise<boolean> => {
+  async register(config: HotkeyConfig): Promise<boolean> {
     try {
       // 标准化快捷键格式为 Electron 格式
       const normalizedKeys = normalizeElectronKeys(config.keys)
@@ -41,11 +38,8 @@ export function useGlobalHotkeyModule() {
 
   /**
    * 注销全局快捷键
-   * 
-   * @param id 快捷键 ID
-   * @returns 是否注销成功
    */
-  const unregister = async (id: string): Promise<boolean> => {
+  async unregister(id: string): Promise<boolean> {
     try {
       console.log(`[GlobalHotkey] 注销全局快捷键: ${id}`)
 
@@ -67,15 +61,12 @@ export function useGlobalHotkeyModule() {
 
   /**
    * 批量注册全局快捷键
-   * 
-   * @param configs 快捷键配置列表
-   * @returns 成功注册的数量
    */
-  const batchRegister = async (configs: HotkeyConfig[]): Promise<number> => {
+  async batchRegister(configs: HotkeyConfig[]): Promise<number> {
     let successCount = 0
 
     for (const config of configs) {
-      const success = await register(config)
+      const success = await this.register(config)
       if (success) successCount++
     }
 
@@ -84,15 +75,12 @@ export function useGlobalHotkeyModule() {
 
   /**
    * 批量注销全局快捷键
-   * 
-   * @param ids 快捷键 ID 列表
-   * @returns 成功注销的数量
    */
-  const batchUnregister = async (ids: string[]): Promise<number> => {
+  async batchUnregister(ids: string[]): Promise<number> {
     let successCount = 0
 
     for (const id of ids) {
-      const success = await unregister(id)
+      const success = await this.unregister(id)
       if (success) successCount++
     }
 
@@ -101,10 +89,8 @@ export function useGlobalHotkeyModule() {
 
   /**
    * 注销所有全局快捷键
-   * 
-   * @returns 是否成功
    */
-  const unregisterAll = async (): Promise<boolean> => {
+  async unregisterAll(): Promise<boolean> {
     try {
       console.log('[GlobalHotkey] 注销所有全局快捷键')
       await naimo.router.hotkeyUnregisterAllGlobalHotkeys()
@@ -114,12 +100,5 @@ export function useGlobalHotkeyModule() {
       return false
     }
   }
-
-  return {
-    register,
-    unregister,
-    batchRegister,
-    batchUnregister,
-    unregisterAll
-  }
 }
+

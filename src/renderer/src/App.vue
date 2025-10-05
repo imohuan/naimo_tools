@@ -63,7 +63,6 @@ import { pluginManager } from "@/core/plugin/PluginManager";
 // Composables 导入
 import { useFileHandler } from "@/composables/useFileHandler";
 import { useWindowManager } from "@/composables/useWindowManager";
-import { useEventSystem } from "@/composables/useEventSystem";
 import { usePluginWindowManager } from "@/composables/usePluginWindowManager";
 import { useSettingsManager } from "@/composables/useSettingsManager";
 
@@ -73,11 +72,10 @@ import { DEFAULT_WINDOW_LAYOUT } from "@shared/config/windowLayoutConfig";
 // 模块导入
 import { useKeyboardNavigation } from "@/modules/search";
 import { useSearch } from "@/modules/search";
-import { useHotkeyManager } from "@/modules/hotkeys/hooks/useHotkeyManager";
 import { usePluginStore } from "@/store";
 
 // Store 导入
-import { useApp } from "@/temp_code";
+import { HotkeyType, useApp, type HotkeyConfig } from "@/temp_code";
 
 // 类型导入
 import type { AppItem } from "@shared/typings";
@@ -85,10 +83,8 @@ import type { AppItem } from "@shared/typings";
 // ==================== 初始化 ====================
 const app = useApp();
 const pluginStore = usePluginStore();
-const { addHotKeyListener, initializeHotkeys } = useHotkeyManager();
 const pluginWindowManager = usePluginWindowManager();
 const settingsManager = useSettingsManager();
-const eventSystem = useEventSystem();
 
 // UI 配置管理
 const uiConstants = ref({
@@ -126,7 +122,7 @@ const initializeApp = async () => {
     await loadUIConstants();
 
     // 2. 初始化快捷键（优先执行，确保全局快捷键可用）
-    await initializeHotkeys();
+    await app.hotkey.initialize();
 
     // 3. 初始化插件
     await pluginStore.initialize();
@@ -143,7 +139,12 @@ const searchHeaderRef = ref<InstanceType<typeof SearchHeader>>();
 const contentAreaRef = ref<InstanceType<typeof ContentArea>>();
 
 // 窗口管理器
-const { setSize, isWindowVisible, show: handleWindowShow, hide } = useWindowManager();
+const {
+  setSize,
+  isWindowVisible,
+  show: handleWindowShow,
+  hide,
+} = useWindowManager();
 const show = () => {
   handleWindowShow();
   contentAreaRef.value?.handleResize();
@@ -196,17 +197,24 @@ const handleSearch = async (value: string) => {
       searchText: value,
       attachedFilesCount: attachedFiles.value.length,
     });
-    naimo.router.appForwardMessageToPluginView(currentPlugin.path, "plugin-search", {
-      searchText: value,
-      timestamp: Date.now(),
-    });
+    naimo.router.appForwardMessageToPluginView(
+      currentPlugin.path,
+      "plugin-search",
+      {
+        searchText: value,
+        timestamp: Date.now(),
+      }
+    );
     return;
   }
   return handleSearchCore(value);
 };
 
 // 防抖搜索
-const debouncedHandleSearch = useDebounceFn(() => handleSearch(searchText.value), 100);
+const debouncedHandleSearch = useDebounceFn(
+  () => handleSearch(searchText.value),
+  100
+);
 
 // 聚焦搜索框
 const handleSearchFocus = () => {
@@ -384,10 +392,12 @@ const onVisibilityChange = () => {
 };
 
 // 快捷键事件
-const onHotkeyTriggered = async (event: any) => {
-  const detail = event.detail;
-
-  switch (detail.id) {
+const onHotkeyTriggered = async (event: {
+  id: string;
+  config: HotkeyConfig;
+  type: HotkeyType;
+}) => {
+  switch (event.id) {
     case "app_focus_search":
       console.log("收到聚焦搜索框请求");
       handleSearchFocus();
@@ -408,10 +418,10 @@ const onHotkeyTriggered = async (event: any) => {
       break;
 
     default:
-      if (detail.id.startsWith("custom_global_")) {
-        const name = detail.config.name?.trim();
+      if (event.id.startsWith("custom_global_")) {
+        const name = event.config.name?.trim();
         if (!name) {
-          console.log("不存在Name:", detail.config);
+          console.log("不存在Name:", event.config);
           return;
         }
 
@@ -434,7 +444,7 @@ const onHotkeyTriggered = async (event: any) => {
       break;
   }
 
-  console.log("🔍 收到全局快捷键触发事件:", detail);
+  console.log("🔍 收到快捷键触发事件:", event);
 };
 
 // ==================== 插件事件处理 ====================
@@ -637,12 +647,9 @@ onMounted(async () => {
     handleEscAction();
   });
 
-  // 注册快捷键事件监听
-  addHotKeyListener("hotkey-triggered", onHotkeyTriggered);
-  addHotKeyListener("app-hotkey-triggered", onHotkeyTriggered);
-
-  // 注册插件事件
-  eventSystem.on("plugin:executed", handlePluginExecuted);
+  // 注册事件监听（统一使用 app.event）
+  app.event.on("hotkey:triggered", onHotkeyTriggered);
+  app.event.on("plugin:executed", handlePluginExecuted);
 
   // 页面刷新时关闭所有插件view
   console.log("🔄 页面初始化，检查并关闭所有插件view");

@@ -1,49 +1,74 @@
 <template>
   <div class="min-h-full flex flex-col space-y-4">
-
     <!-- 快捷键列表 -->
     <div v-if="customHotkeys.length > 0" class="space-y-2">
-      <div v-for="(hotkey, index) in customHotkeys" :key="hotkey.id"
-        class="bg-white rounded-lg border border-gray-200 px-4 py-2">
+      <div
+        v-for="(hotkey, index) in customHotkeys"
+        :key="hotkey.id"
+        class="bg-white rounded-lg border border-gray-200 px-4 py-2"
+      >
         <div class="flex items-center space-x-4">
           <!-- 序号 -->
-          <div class="flex-shrink-0 w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
+          <div
+            class="flex-shrink-0 w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center"
+          >
             <span class="text-sm font-medium text-gray-600">{{ index + 1 }}</span>
           </div>
 
           <!-- 输入框 -->
           <div class="flex-1">
-            <input v-model="hotkey.name" placeholder="输入快捷键名称"
+            <input
+              v-model="hotkey.name"
+              placeholder="输入快捷键名称"
               class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              @input="updateHotkeyName(hotkey)" />
+              @input="updateHotkeyName(hotkey)"
+            />
           </div>
 
           <!-- 快捷键监听面板 -->
           <div class="flex-shrink-0">
             <div
               class="w-48 h-10 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-blue-400 transition-colors"
-              :class="{ 'border-blue-500 bg-blue-50': isListening && currentListeningId === hotkey.id }"
-              @click="startListeningHotkey(hotkey)">
+              :class="{
+                'border-blue-500 bg-blue-50':
+                  isListening && currentListeningId === hotkey.id,
+              }"
+              @click="startListeningHotkey(hotkey)"
+            >
               <div class="w-full h-full flex items-center justify-center">
-                <div v-if="hotkey.keys && !(isListening && currentListeningId === hotkey.id)"
-                  class="flex items-center space-x-1">
-                  <kbd v-for="key in hotkey.keys.split('+')" :key="key"
-                    class="px-2 py-1 text-xs font-semibold text-gray-800 bg-gray-100 border border-gray-200 rounded">
+                <div
+                  v-if="hotkey.keys && !(isListening && currentListeningId === hotkey.id)"
+                  class="flex items-center space-x-1"
+                >
+                  <kbd
+                    v-for="key in hotkey.keys.split('+')"
+                    :key="key"
+                    class="px-2 py-1 text-xs font-semibold text-gray-800 bg-gray-100 border border-gray-200 rounded"
+                  >
                     {{ formatKeyDisplay(key) }}
                   </kbd>
                 </div>
-                <div v-else-if="isListening && currentListeningId === hotkey.id" class="text-center">
-                  <div v-if="currentKeys.length > 0" class="flex items-center justify-center space-x-1">
-                    <kbd v-for="key in currentKeys" :key="key"
-                      class="px-2 py-1 text-xs font-semibold text-blue-800 bg-blue-100 border border-blue-200 rounded">
+                <div
+                  v-else-if="isListening && currentListeningId === hotkey.id"
+                  class="text-center"
+                >
+                  <div
+                    v-if="currentKeys.length > 0"
+                    class="flex items-center justify-center space-x-1"
+                  >
+                    <kbd
+                      v-for="key in currentKeys"
+                      :key="key"
+                      class="px-2 py-1 text-xs font-semibold text-blue-800 bg-blue-100 border border-blue-200 rounded"
+                    >
                       {{ formatKeyDisplay(key) }}
                     </kbd>
                   </div>
-                  <div v-else class="text-xs text-blue-600 font-medium mb-1">正在监听...</div>
+                  <div v-else class="text-xs text-blue-600 font-medium mb-1">
+                    正在监听...
+                  </div>
                 </div>
-                <div v-else class="text-xs text-gray-400">
-                  点击设置快捷键
-                </div>
+                <div v-else class="text-xs text-gray-400">点击设置快捷键</div>
               </div>
             </div>
           </div>
@@ -51,16 +76,23 @@
           <!-- 开关 -->
           <div class="flex-shrink-0">
             <label class="flex items-center">
-              <input type="checkbox" v-model="hotkey.enabled" @change="toggleHotkey(hotkey)"
-                class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2" />
+              <input
+                type="checkbox"
+                v-model="hotkey.enabled"
+                @change="toggleHotkey(hotkey)"
+                class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+              />
               <span class="ml-2 text-sm text-gray-700">启用</span>
             </label>
           </div>
 
           <!-- 删除按钮 -->
           <div class="flex-shrink-0">
-            <button @click="removeCustomHotkey(hotkey.id)"
-              class="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="删除快捷键">
+            <button
+              @click="removeCustomHotkey(hotkey.id)"
+              class="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+              title="删除快捷键"
+            >
               <IconMdiDelete class="w-4 h-4" />
             </button>
           </div>
@@ -76,14 +108,15 @@
     </div>
 
     <!-- 统一的添加按钮 -->
-    <div @click="addCustomHotkey"
-      class="w-full border-2 border-dashed border-gray-300 rounded-lg bg-gray-50 hover:border-gray-400 hover:bg-gray-100 cursor-pointer transition-all duration-200 flex items-center justify-center px-4 py-3">
+    <div
+      @click="addCustomHotkey"
+      class="w-full border-2 border-dashed border-gray-300 rounded-lg bg-gray-50 hover:border-gray-400 hover:bg-gray-100 cursor-pointer transition-all duration-200 flex items-center justify-center px-4 py-3"
+    >
       <div class="flex items-center space-x-2 text-gray-400 hover:text-gray-600">
         <IconMdiPlus class="w-4 h-4" />
         <span class="text-sm font-medium">点击添加自定义快捷键</span>
       </div>
     </div>
-
   </div>
 </template>
 
@@ -98,9 +131,16 @@ import IconMdiDelete from "~icons/mdi/delete";
 import IconMdiKeyboard from "~icons/mdi/keyboard";
 /** @ts-ignore */
 import IconMdiInformation from "~icons/mdi/information";
-import { HotkeyType, type HotkeyConfig } from "@/typings/hotkeyTypes";
-import { hotkeyManager } from "@/core/hotkey/HotkeyManager";
+import { HotkeyType } from "@/temp_code/typings/hotkey";
+import type { HotkeyConfig } from "@/temp_code/typings/hotkey";
+import { useApp } from "@/temp_code";
 import { useHotkeyListener } from "../hooks/useHotkeyListener";
+
+// 使用新的快捷键系统
+const app = useApp();
+
+// 自定义快捷键前缀
+const CUSTOM_HOTKEY_PREFIX = "custom_global_";
 
 // 自定义快捷键列表
 const customHotkeys = ref<HotkeyConfig[]>([]);
@@ -117,26 +157,25 @@ const currentEditingHotkey = ref<HotkeyConfig | null>(null);
 // 添加自定义快捷键
 const addCustomHotkey = async () => {
   const newHotkey: HotkeyConfig = {
-    id: `${hotkeyManager.customHotKeyPrefix}${Date.now()}`,
+    id: `${CUSTOM_HOTKEY_PREFIX}${Date.now()}`,
     name: `快捷键 ${customHotkeys.value.length + 1}`,
     keys: "",
     type: HotkeyType.GLOBAL,
     enabled: false,
-    scope: "all"
+    scope: "all",
   };
-  // 直接注册到 hotkeyManager，它会自动处理存储
-  // await hotkeyManager.register(newHotkey);
+  // 注册到新系统
+  await app.hotkey.register(newHotkey);
   // 更新本地状态
-  await hotkeyManager.addCustomHotkey(newHotkey);
   customHotkeys.value.push(newHotkey);
 };
 
 // 删除自定义快捷键
 const removeCustomHotkey = async (id: string) => {
-  const index = customHotkeys.value.findIndex(h => h.id === id);
+  const index = customHotkeys.value.findIndex((h) => h.id === id);
   if (index > -1) {
-    // 使用 hotkeyManager 注销，它会自动处理存储
-    await hotkeyManager.unregister(id);
+    // 使用新系统注销
+    await app.hotkey.unregister(id);
     // 更新本地状态
     customHotkeys.value.splice(index, 1);
   }
@@ -166,7 +205,9 @@ const handleHotkeyCaptured = async (keys: string[]) => {
   const keysString = keys.join("+");
 
   // 检查快捷键是否已存在
-  const existingHotkey = customHotkeys.value.find(h => h.keys === keysString && h.id !== currentEditingHotkey.value!.id);
+  const existingHotkey = customHotkeys.value.find(
+    (h) => h.keys === keysString && h.id !== currentEditingHotkey.value!.id
+  );
   if (existingHotkey) {
     alert("该快捷键已被其他项目使用");
     cancelListening();
@@ -176,11 +217,11 @@ const handleHotkeyCaptured = async (keys: string[]) => {
   // 设置快捷键
   currentEditingHotkey.value.keys = keysString;
 
-  // 保存快捷键
-  await hotkeyManager.updateConfig(currentEditingHotkey.value.id, { keys: keysString });
-  if (currentEditingHotkey.value.enabled) {
-    await hotkeyManager.register(currentEditingHotkey.value);
-  }
+  // 使用新系统保存快捷键
+  await app.hotkey.updateConfig(currentEditingHotkey.value.id, { keys: keysString });
+
+  // 重新加载快捷键列表
+  await loadCustomHotkeys();
 
   cancelListening();
 };
@@ -193,63 +234,65 @@ const cancelListening = () => {
 
 // 更新快捷键名称（带 debounce）
 const updateHotkeyName = useDebounceFn(async (hotkey: HotkeyConfig) => {
-  // 名称更新不需要重新注册，只需要更新本地状态
-  // hotkeyManager 会在下次注册时自动保存最新配置
   if (hotkey) {
-    await hotkeyManager.updateConfig(hotkey.id, { name: hotkey.name });
+    await app.hotkey.updateConfig(hotkey.id, { name: hotkey.name });
   }
 }, 500);
 
 // 切换快捷键启用状态
 const toggleHotkey = async (hotkey: HotkeyConfig) => {
-  // 使用 hotkeyManager 的 toggle 方法，它会自动处理存储
-  await hotkeyManager.toggle(hotkey.id, hotkey.enabled);
+  // 使用新系统的 toggle 方法
+  await app.hotkey.toggle(hotkey.id);
+  // 重新加载以更新状态
+  await loadCustomHotkeys();
 };
 
 // 格式化按键显示
 const formatKeyDisplay = (key: string) => {
   switch (key) {
-    case 'ctrl':
-      return 'Ctrl';
-    case 'shift':
-      return 'Shift';
-    case 'alt':
-      return 'Alt';
-    case 'meta':
-      return 'Meta';
-    case 'space':
-      return 'Space';
-    case 'esc':
-      return 'Escape';
-    case 'enter':
-      return 'Enter';
-    case 'tab':
-      return 'Tab';
-    case 'backspace':
-      return 'Backspace';
-    case 'delete':
-      return 'Delete';
-    case 'up':
-      return '↑';
-    case 'down':
-      return '↓';
-    case 'left':
-      return '←';
-    case 'right':
-      return '→';
+    case "ctrl":
+      return "Ctrl";
+    case "shift":
+      return "Shift";
+    case "alt":
+      return "Alt";
+    case "meta":
+      return "Meta";
+    case "space":
+      return "Space";
+    case "esc":
+      return "Escape";
+    case "enter":
+      return "Enter";
+    case "tab":
+      return "Tab";
+    case "backspace":
+      return "Backspace";
+    case "delete":
+      return "Delete";
+    case "up":
+      return "↑";
+    case "down":
+      return "↓";
+    case "left":
+      return "←";
+    case "right":
+      return "→";
     default:
       return key.toUpperCase();
   }
 };
 
-// 从 hotkeyManager 加载自定义快捷键
+// 从新系统加载自定义快捷键
 const loadCustomHotkeys = async () => {
   try {
-    // 获取所有快捷键，过滤出自定义快捷键（ID 以 custom_ 开头）
-    const allHotkeys = hotkeyManager.getAll();
-    customHotkeys.value = allHotkeys.filter(hotkey => hotkey.id.startsWith(hotkeyManager.customHotKeyPrefix));
+    // 获取所有快捷键，过滤出自定义快捷键（ID 以 custom_global_ 开头）
+    const allHotkeys = Array.from(app.hotkey.hotkeys.values());
+    customHotkeys.value = allHotkeys.filter((hotkey) =>
+      hotkey.id.startsWith(CUSTOM_HOTKEY_PREFIX)
+    );
   } catch (error) {
-    console.error('加载自定义快捷键失败:', error);
+    console.error("加载自定义快捷键失败:", error);
   }
 };
 

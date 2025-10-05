@@ -6,7 +6,7 @@
 import { createApp } from 'vue'
 import SettingsApp from './SettingsApp.vue'
 import { pinia, usePluginStore } from '@/store'
-import { useHotkeyManager } from '@/modules/hotkeys/hooks/useHotkeyManager'
+import { useApp } from '@/temp_code'
 import '@/style.css'
 
 // 创建设置页面应用
@@ -38,10 +38,12 @@ if (import.meta.env.DEV) {
 // 初始化核心系统（设置页面需要访问插件和快捷键数据）
 ; (async () => {
   try {
+    // 获取 App Store 实例
+    const app = useApp()
+
     // 1. 初始化快捷键系统（优先执行，确保插件快捷键可以正确注册）
     console.log('⌨️ 设置页面 - 开始初始化快捷键系统...')
-    const { initializeHotkeys } = useHotkeyManager()
-    await initializeHotkeys()
+    await app.hotkey.initialize()
     console.log('✅ 设置页面 - 快捷键系统初始化完成')
 
     // 2. 初始化插件系统

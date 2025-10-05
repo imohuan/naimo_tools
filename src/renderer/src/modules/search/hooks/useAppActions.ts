@@ -1,7 +1,7 @@
 import type { AppItem } from "@shared/typings";
 import { pluginManager } from "@/core/plugin/PluginManager";
 import type { PluginItem } from "@/typings/pluginTypes";
-import { eventSystem } from "@/utils/eventSystem";
+import { appEventManager } from "@/temp_code/modules/event";
 import { ElectronStoreBridge } from "@/core/store/ElectronStoreBridge";
 
 export function useAppActions(
@@ -28,7 +28,7 @@ export function useAppActions(
         }
 
         // 发送全局事件通知插件执行完成
-        eventSystem.emit('plugin:executed', { pluginId: pluginItem.pluginId!, path: app.path, hotkeyEmit });
+        appEventManager.emit('plugin:executed', { pluginId: pluginItem.pluginId!, path: app.path, hotkeyEmit });
 
 
         if (!pluginItem?.onSearch) {

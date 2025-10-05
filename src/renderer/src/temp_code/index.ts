@@ -4,6 +4,7 @@ import { useCacheStore } from './modules/cache'
 import { useSearchStore } from './modules/search'
 import { usePluginStoreNew } from './modules/plugin'
 import { useHotkeyStore } from './modules/hotkey'
+import { appEventManager } from './modules/event'
 
 /**
  * 根 Store - 统一管理所有子模块
@@ -16,6 +17,7 @@ import { useHotkeyStore } from './modules/hotkey'
  * app.search.setSearchCategories() // 访问搜索模块
  * app.plugin.install(plugin)     // 访问插件模块
  * app.hotkey.register(config)    // 访问快捷键模块
+ * app.event.on('hotkey-triggered', handler) // 访问事件模块
  * ```
  */
 export const useApp = defineStore('app', () => {
@@ -34,6 +36,9 @@ export const useApp = defineStore('app', () => {
 
   /** 快捷键模块 */
   const hotkey = useHotkeyStore()
+
+  /** 事件系统模块（单例实例） */
+  const event = appEventManager
 
   // ==================== 全局方法 ====================
   /**
@@ -115,6 +120,7 @@ export const useApp = defineStore('app', () => {
     search,
     plugin,
     hotkey,
+    event,
 
     // 全局方法
     initialize,
@@ -130,15 +136,13 @@ export { useCacheStore } from './modules/cache'
 export { useSearchStore } from './modules/search'
 export { usePluginStoreNew } from './modules/plugin'
 export { useHotkeyStore } from './modules/hotkey'
-
-// 导出子模块
-export { useAppHotkeyModule } from './modules/hotkey/appHotkey'
-export { useGlobalHotkeyModule } from './modules/hotkey/globalHotkey'
+export { appEventManager } from './modules/event'
 
 // 导出类型
 export { InterfaceType } from '@/temp_code/typings/ui'
 export { HotkeyType } from '@/temp_code/typings/hotkey'
 export type { CacheItem } from '@/temp_code/typings/cache'
 export type { SearchCategory } from '@/temp_code/typings/search'
-export type { HotkeyConfig, HotkeyStats, HotkeyEventDetail } from '@/temp_code/typings/hotkey'
+export type { HotkeyConfig, HotkeyStats } from '@/temp_code/typings/hotkey'
+export type { AppEvents, AppEventType, AppEventHandler } from '@/temp_code/typings/event'
 

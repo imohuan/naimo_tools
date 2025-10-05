@@ -1,4 +1,6 @@
 import type { HotkeyConfig } from '@/temp_code/typings/hotkey'
+import { HotkeyType } from '@/temp_code/typings/hotkey'
+import { appEventManager } from '@/temp_code/modules/event'
 
 /**
  * 标准化应用内快捷键格式（用于 hotkeys-js）
@@ -63,25 +65,16 @@ export function normalizeElectronKeys(keys: string): string {
 
 /**
  * 触发快捷键事件
+ * 统一触发 hotkey:triggered 事件，通过 type 区分类型（HotkeyType.GLOBAL 或 HotkeyType.APPLICATION）
  * @param config 快捷键配置
- * @param event 原始键盘事件（可选）
  */
-export function triggerHotkeyEvent(config: HotkeyConfig, event?: KeyboardEvent): void {
-  // 创建事件详情
-  const eventDetail = {
-    id: config.id,
-    keys: config.keys,
-    config,
-    originalEvent: event
-  }
-
-  // 触发自定义事件
-  const customEvent = new CustomEvent('hotkey-triggered', {
-    detail: eventDetail
+export function triggerHotkeyEvent(config: HotkeyConfig): void {
+  // 通过 appEventManager 触发 hotkey:triggered 事件
+  appEventManager.emit('hotkey:triggered', {
+    id: config.id, config, type: config.type
   })
-
-  window.dispatchEvent(customEvent)
-  console.log(`[HotkeyEvent] 快捷键事件已触发: ${config.id}`)
+  const typeLabel = config.type === HotkeyType.GLOBAL ? '全局' : '应用内'
+  console.log(`[HotkeyEvent] hotkey:triggered 已触发: ${config.id} (${typeLabel})`)
 }
 
 /**

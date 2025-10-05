@@ -2,33 +2,47 @@
   <div class="min-h-full flex flex-col space-y-4">
     <template v-if="!isEditingHotkey">
       <!-- 全局快捷键分组 -->
-      <div v-if="config.global.length > 0" class="bg-white rounded-lg border border-gray-200 p-4">
+      <div
+        v-if="config.global.length > 0"
+        class="bg-white rounded-lg border border-gray-200 p-4"
+      >
         <div class="mb-4">
           <h3 class="text-base font-medium text-gray-900">全局快捷键</h3>
           <p class="text-xs text-gray-600 mt-1">可以在任何应用程序中使用</p>
         </div>
 
         <div class="space-y-4">
-          <div v-for="hotkey in config.global" :key="hotkey.id"
-            class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+          <div
+            v-for="hotkey in config.global"
+            :key="hotkey.id"
+            class="flex items-center justify-between p-4 bg-gray-50 rounded-lg"
+          >
             <div class="flex-1">
               <div class="font-medium text-gray-900">{{ hotkey.name }}</div>
               <div class="text-sm text-gray-600 mt-1">{{ hotkey.description }}</div>
             </div>
             <div class="flex items-center space-x-3">
               <div class="flex items-center space-x-2">
-                <kbd class="px-2 py-1 text-xs font-semibold text-gray-800 bg-gray-100 border border-gray-200 rounded">
+                <kbd
+                  class="px-2 py-1 text-xs font-semibold text-gray-800 bg-gray-100 border border-gray-200 rounded"
+                >
                   {{ formatHotkeyDisplay(hotkey.keys.split("+")) }}
                 </kbd>
               </div>
               <div class="flex items-center space-x-2">
                 <label class="flex items-center">
-                  <input type="checkbox" :checked="hotkey.enabled" @change="toggleIndividualHotkey(hotkey)"
-                    class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2" />
+                  <input
+                    type="checkbox"
+                    :checked="hotkey.enabled"
+                    @change="toggleIndividualHotkey(hotkey)"
+                    class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                  />
                   <span class="ml-2 text-sm text-gray-700">启用</span>
                 </label>
-                <button @click="startEditingHotkey(hotkey.id, hotkey.type)"
-                  class="px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 hover:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 shadow-sm">
+                <button
+                  @click="startEditingHotkey(hotkey.id, hotkey.type)"
+                  class="px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 hover:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 shadow-sm"
+                >
                   重新设置
                 </button>
               </div>
@@ -38,33 +52,47 @@
       </div>
 
       <!-- 应用内快捷键分组 -->
-      <div v-if="config.application.length > 0" class="bg-white rounded-lg border border-gray-200 p-4">
+      <div
+        v-if="config.application.length > 0"
+        class="bg-white rounded-lg border border-gray-200 p-4"
+      >
         <div class="mb-4">
           <h3 class="text-base font-medium text-gray-900">应用内快捷键</h3>
           <p class="text-xs text-gray-600 mt-1">仅在 Naimo 获得焦点时生效</p>
         </div>
 
         <div class="space-y-4">
-          <div v-for="hotkey in config.application" :key="hotkey.id"
-            class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+          <div
+            v-for="hotkey in config.application"
+            :key="hotkey.id"
+            class="flex items-center justify-between p-4 bg-gray-50 rounded-lg"
+          >
             <div class="flex-1">
               <div class="font-medium text-gray-900">{{ hotkey.name }}</div>
               <div class="text-sm text-gray-600 mt-1">{{ hotkey.description }}</div>
             </div>
             <div class="flex items-center space-x-3">
               <div class="flex items-center space-x-2">
-                <kbd class="px-2 py-1 text-xs font-semibold text-gray-800 bg-gray-100 border border-gray-200 rounded">
+                <kbd
+                  class="px-2 py-1 text-xs font-semibold text-gray-800 bg-gray-100 border border-gray-200 rounded"
+                >
                   {{ formatHotkeyDisplay(hotkey.keys.split("+")) }}
                 </kbd>
               </div>
               <div class="flex items-center space-x-2">
                 <label class="flex items-center">
-                  <input type="checkbox" :checked="hotkey.enabled" @change="toggleIndividualHotkey(hotkey)"
-                    class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2" />
+                  <input
+                    type="checkbox"
+                    :checked="hotkey.enabled"
+                    @change="toggleIndividualHotkey(hotkey)"
+                    class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                  />
                   <span class="ml-2 text-sm text-gray-700">启用</span>
                 </label>
-                <button @click="startEditingHotkey(hotkey.id, hotkey.type)"
-                  class="px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 hover:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 shadow-sm">
+                <button
+                  @click="startEditingHotkey(hotkey.id, hotkey.type)"
+                  class="px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 hover:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 shadow-sm"
+                >
                   重新设置
                 </button>
               </div>
@@ -91,7 +119,10 @@
     </template>
 
     <!-- 快捷键编辑界面 -->
-    <div v-else class="bg-white rounded-lg border border-gray-200 p-6 flex flex-col gap-4">
+    <div
+      v-else
+      class="bg-white rounded-lg border border-gray-200 p-6 flex flex-col gap-4"
+    >
       <h3 class="text-lg font-medium text-gray-900">
         设置快捷键 -
         <span class="px-2 py-1 rounded text-blue-700 underline">
@@ -102,17 +133,25 @@
 
       <!-- 使用 HotkeyInterceptor 组件 -->
       <div class="h-32 border-2 border-dashed border-gray-300 rounded-lg">
-        <HotkeyInterceptor :hotkey-type="editingHotkeyType" :scope="editingHotkeyId"
-          @hotkey-captured="handleHotkeyCaptured" />
+        <HotkeyInterceptor
+          :hotkey-type="editingHotkeyType"
+          :scope="editingHotkeyId"
+          @hotkey-captured="handleHotkeyCaptured"
+        />
       </div>
 
       <div class="flex justify-center space-x-3">
-        <button @click="cancelEditing"
-          class="px-6 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 shadow-sm">
+        <button
+          @click="cancelEditing"
+          class="px-6 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 shadow-sm"
+        >
           取消
         </button>
-        <button @click="confirmEditing" :disabled="currentEditingKeys.length === 0"
-          class="px-6 py-2.5 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm">
+        <button
+          @click="confirmEditing"
+          :disabled="currentEditingKeys.length === 0"
+          class="px-6 py-2.5 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm"
+        >
           确认设置
         </button>
       </div>
@@ -124,43 +163,52 @@
 import { ref, computed, onMounted } from "vue";
 /** @ts-ignore */
 import IconMdiInformation from "~icons/mdi/information";
-import { HotkeyType, type HotkeyConfig, type HotkeySettingsConfig } from "@/typings/hotkeyTypes";
-import { hotkeyManager } from "@/core/hotkey/HotkeyManager";
+import { HotkeyType } from "@/temp_code/typings/hotkey";
+import type { HotkeyConfig, HotkeySettingsConfig } from "@/temp_code/typings/hotkey";
+import { useApp } from "@/temp_code";
 import HotkeyInterceptor from "./HotkeyInterceptor.vue";
+
+// 使用新的快捷键系统
+const app = useApp();
 
 // 快捷键配置数据
 const config = ref<HotkeySettingsConfig>({ global: [], application: [] });
 
 // 切换单个快捷键的启用状态
 const toggleIndividualHotkey = async (hotkey: HotkeyConfig) => {
-  const success = await hotkeyManager.toggle(hotkey.id, !hotkey.enabled);
+  const success = await app.hotkey.toggle(hotkey.id);
   if (success) {
     // 刷新配置以更新UI状态
-    config.value = await hotkeyManager.getHotkeyConfig();
+    await loadHotkeyConfig();
   }
 };
 
 // 更新快捷键配置
 const updateHotkeyConfig = async (hotkeyId: string, newKeys: string) => {
-  const allHotkeys = getAllHotkeys();
-  const hotkey = allHotkeys.find(h => h.id === hotkeyId);
+  const hotkey = app.hotkey.getConfig(hotkeyId);
   if (hotkey) {
-    // 先注销旧的快捷键
-    await hotkeyManager.unregister(hotkeyId);
-    // 注册新的快捷键
-    const updatedConfig = {
-      ...hotkey,
-      keys: newKeys,
-      enabled: true
-    };
-    return await hotkeyManager.register(updatedConfig);
+    // 使用 updateConfig 方法更新快捷键
+    const success = await app.hotkey.updateConfig(hotkeyId, { keys: newKeys });
+    return success;
   }
   return false;
 };
 
 // 获取所有快捷键
 const getAllHotkeys = () => {
-  return hotkeyManager.getAll();
+  return Array.from(app.hotkey.hotkeys.values());
+};
+
+// 加载快捷键配置
+const loadHotkeyConfig = async () => {
+  const globalHotkeys = app.hotkey.globalHotkeys;
+  const appHotkeys = app.hotkey.appHotkeys;
+
+  // 过滤掉自定义快捷键（以 'custom_global_' 开头的）
+  config.value = {
+    global: globalHotkeys.filter((h) => !h.id.startsWith("custom_global_")),
+    application: appHotkeys,
+  };
 };
 
 // 快捷键编辑状态
@@ -197,51 +245,51 @@ const formatHotkeyDisplay = (keys: string[]) => {
   return keys
     .map((key) => {
       switch (key) {
-        case 'ctrl':
-          return 'Ctrl';
-        case 'shift':
-          return 'Shift';
-        case 'alt':
-          return 'Alt';
-        case 'meta':
-          return 'Meta';
-        case 'space':
-          return 'Space';
-        case 'esc':
-          return 'Escape';
-        case 'enter':
-          return 'Enter';
-        case 'tab':
-          return 'Tab';
-        case 'backspace':
-          return 'Backspace';
-        case 'delete':
-          return 'Delete';
-        case 'up':
-          return '↑';
-        case 'down':
-          return '↓';
-        case 'left':
-          return '←';
-        case 'right':
-          return '→';
+        case "ctrl":
+          return "Ctrl";
+        case "shift":
+          return "Shift";
+        case "alt":
+          return "Alt";
+        case "meta":
+          return "Meta";
+        case "space":
+          return "Space";
+        case "esc":
+          return "Escape";
+        case "enter":
+          return "Enter";
+        case "tab":
+          return "Tab";
+        case "backspace":
+          return "Backspace";
+        case "delete":
+          return "Delete";
+        case "up":
+          return "↑";
+        case "down":
+          return "↓";
+        case "left":
+          return "←";
+        case "right":
+          return "→";
         default:
           return key.toUpperCase();
       }
     })
-    .join(' + ');
+    .join(" + ");
 };
 
 // 确认编辑
 const confirmEditing = async () => {
   if (currentEditingKeys.value.length === 0) return;
 
-  const newKeys = currentEditingKeys.value.join('+');
+  const newKeys = currentEditingKeys.value.join("+");
   const success = await updateHotkeyConfig(editingHotkeyId.value, newKeys);
   if (success) {
     console.log(`✅ 快捷键更新成功: ${editingHotkeyId.value} -> ${newKeys}`);
     // 刷新配置
-    config.value = await hotkeyManager.getHotkeyConfig();
+    await loadHotkeyConfig();
   } else {
     console.error(`❌ 快捷键更新失败: ${editingHotkeyId.value} -> ${newKeys}`);
   }
@@ -253,18 +301,17 @@ const confirmEditing = async () => {
 // 取消编辑
 const cancelEditing = () => {
   isEditingHotkey.value = false;
-  editingHotkeyId.value = '';
+  editingHotkeyId.value = "";
   currentEditingKeys.value = [];
 };
 
 // 初始化配置
 onMounted(async () => {
-  config.value = await hotkeyManager.getHotkeyConfig();
-  config.value.global = config.value.global.filter(h => !h.id.startsWith(hotkeyManager.customHotKeyPrefix));
+  await loadHotkeyConfig();
 });
 
 // 暴露编辑状态给父组件
-defineExpose({ isEditingHotkey, });
+defineExpose({ isEditingHotkey });
 </script>
 
 <style scoped>

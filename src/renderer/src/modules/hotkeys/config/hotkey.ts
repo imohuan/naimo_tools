@@ -1,7 +1,12 @@
-import { HotkeyType } from "@/typings/hotkeyTypes";
-import type { HotkeySettingsConfig } from "@/typings/hotkeyTypes";
+import { HotkeyType } from "@/temp_code/typings/hotkey";
+import type { HotkeySettingsConfig } from "@/temp_code/typings/hotkey";
 
-// 快捷键配置
+/**
+ * 默认快捷键配置
+ * 
+ * 此配置在应用首次启动时加载，或在存储的配置为空时使用。
+ * 用户可以在设置中修改这些快捷键，修改后的配置会保存到本地存储。
+ */
 export const hotkeyConfig: HotkeySettingsConfig = {
   global: [
     {

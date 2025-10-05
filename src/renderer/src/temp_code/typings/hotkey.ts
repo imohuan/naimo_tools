@@ -20,30 +20,28 @@ export interface HotkeyConfig {
   type: HotkeyType
   /** 是否启用 */
   enabled: boolean
+  /** 快捷键名称 */
+  name?: string
+  /** 快捷键描述 */
+  description?: string
   /** 快捷键作用域（仅应用内快捷键有效） */
   scope?: string
   /** 是否阻止默认行为 */
   preventDefault?: boolean
   /** 是否阻止事件传播 */
   stopPropagation?: boolean
-  /** 快捷键描述 */
-  description?: string
   /** 回调函数（可选，可以通过事件监听） */
   callback?: (event?: KeyboardEvent) => void
 }
 
 /**
- * 快捷键触发事件详情
+ * 快捷键设置配置
  */
-export interface HotkeyEventDetail {
-  /** 快捷键 ID */
-  id: string
-  /** 快捷键组合 */
-  keys: string
-  /** 快捷键配置 */
-  config: HotkeyConfig
-  /** 原始键盘事件 */
-  originalEvent?: KeyboardEvent
+export interface HotkeySettingsConfig {
+  /** 全局快捷键分组 */
+  global: HotkeyConfig[]
+  /** 应用内快捷键分组 */
+  application: HotkeyConfig[]
 }
 
 /**
