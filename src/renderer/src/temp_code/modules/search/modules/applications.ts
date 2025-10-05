@@ -5,7 +5,6 @@ export class AppModule implements SearchModule {
   name = "应用列表"
   isDragEnabled = false
   maxDisplayCount = 16
-  isExpanded = false
 
   async getItems() {
     const apps = await naimo.router.appSearchApps() || []

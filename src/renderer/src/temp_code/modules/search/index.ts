@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, shallowRef, computed, triggerRef } from 'vue'
+import { ref, shallowRef, computed, triggerRef, reactive } from 'vue'
 import type { AppItem, AttachedInfo, SearchModule } from '@/temp_code/typings/search'
 
 import { loadAppIcons } from '@/temp_code/utils/search'
@@ -58,6 +58,8 @@ export const useSearchStore = defineStore('search', () => {
   const searchText = ref('')
   /** 是否已初始化（防止重复初始化） */
   const isInitialized = ref(false)
+  /** 展开的分类 ID 映射（用于动态控制分类展开/折叠） */
+  const expandedCategories = reactive<Record<string, boolean>>({})
 
   // ==================== 计算属性 ====================
   /** 是否有结果 */
@@ -89,10 +91,12 @@ export const useSearchStore = defineStore('search', () => {
         name: module.name,
         isDragEnabled: module.isDragEnabled,
         maxDisplayCount: module.maxDisplayCount,
-        isExpanded: module.isExpanded,
+        isExpanded: expandedCategories[category] || false, // 从状态中读取展开状态
         items: items
       })
     })
+
+    return categories
   })
 
   // ==================== 核心方法 ====================
@@ -381,6 +385,18 @@ export const useSearchStore = defineStore('search', () => {
   }
 
   // ==================== 辅助方法 ====================
+  /**
+   * 切换分类的展开/折叠状态
+   */
+  const toggleCategory = (categoryId: string) => {
+    expandedCategories[categoryId] = !expandedCategories[categoryId]
+    console.log('🔄 切换分类展开状态:', {
+      categoryId,
+      isExpanded: expandedCategories[categoryId],
+      allExpanded: { ...expandedCategories }
+    })
+  }
+
   const clearResults = () => {
     searchResults.value = []
     triggerRef(searchResults)
@@ -388,6 +404,10 @@ export const useSearchStore = defineStore('search', () => {
 
   const reset = () => {
     searchText.value = ''
+    // 清空展开状态
+    Object.keys(expandedCategories).forEach(key => {
+      delete expandedCategories[key]
+    })
     showDefaultResults()
   }
 
@@ -414,6 +434,7 @@ export const useSearchStore = defineStore('search', () => {
     getItemModule,
 
     // 辅助方法
+    toggleCategory,
     clearResults,
     reset
   }

@@ -6,7 +6,6 @@ export class PinnedModule implements SearchModule {
   name = "插件列表"
   isDragEnabled = true
   maxDisplayCount = 16
-  isExpanded = false
 
   async getItems() {
     const plugins = usePluginStoreNew()

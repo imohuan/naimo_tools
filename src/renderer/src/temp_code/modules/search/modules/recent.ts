@@ -6,7 +6,6 @@ export class RecentModule implements SearchModule {
   name = "最近使用"
   isDragEnabled = true
   maxDisplayCount = 16
-  isExpanded = false
 
   async getItems() {
     return await naimo.router.storeGet("recentApps") || []

@@ -6,7 +6,6 @@ export class PinnedModule implements SearchModule {
   name = "已固定"
   isDragEnabled = true
   maxDisplayCount = 16
-  isExpanded = false
 
   async getItems() {
     return await naimo.router.storeGet("pinnedApps") || []

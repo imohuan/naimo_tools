@@ -6,7 +6,6 @@ export class FilesModule implements SearchModule {
   name = "文件列表"
   isDragEnabled = true
   maxDisplayCount = 16
-  isExpanded = false
 
   async getItems() {
     return await naimo.router.storeGet("fileList") || []

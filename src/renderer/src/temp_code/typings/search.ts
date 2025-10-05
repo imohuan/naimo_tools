@@ -3,17 +3,19 @@
  */
 export interface SearchCategory {
   /** 分类ID */
-  id: string
+  id: string;
   /** 分类名称 */
-  name: string
-  /** 分类图标 */
-  icon?: string
+  name: string;
   /** 分类项列表 */
-  items: AppItem[]
+  items: AppItem[];
   /** 是否展开 */
-  expanded?: boolean
+  isExpanded?: boolean;
+  /** 是否允许拖拽 */
+  isDragEnabled?: boolean;
+  /** 最大显示数量 */
+  maxDisplayCount?: number;
   /** 排序权重 */
-  weight?: number
+  weight?: number;
 }
 
 /**
@@ -21,76 +23,73 @@ export interface SearchCategory {
  */
 export interface SearchConfig {
   /** 搜索延迟（毫秒） */
-  delay?: number
+  delay?: number;
   /** 最大结果数 */
-  maxResults?: number
+  maxResults?: number;
 }
 
 /** 提供正则搜索 */
 export interface RegexSearch {
   /** 类型 */
-  type: "regex"
+  type: "regex";
   /** 正则匹配 */
-  match?: string
+  match?: string;
   /** 排除条件 */
-  exclude?: string
+  exclude?: string;
   /** 最小长度 */
-  minLength?: number
+  minLength?: number;
   /** 最大长度 */
-  maxLength?: number
+  maxLength?: number;
 }
 
 /** 默认： 提供文本搜索 name，path，description，anonymousSearchFields */
 export interface TextSearch {
   /** 类型 */
-  type: "text"
+  type: "text";
   /** 最小长度 */
-  minLength?: number
+  minLength?: number;
   /** 最大长度 */
-  maxLength?: number
+  maxLength?: number;
 }
 
 /** 提供图片搜索 */
 export interface ImgSearch {
   /** 类型 */
-  type: "img"
+  type: "img";
 }
 
 /** 提供文件搜索 */
 export interface FileSearch {
   /** 类型 */
-  type: "files"
+  type: "files";
   /** 文件类型 */
-  fileType: "file" | "directory"
+  fileType: "file" | "directory";
   /** 文件扩展名 */
-  extensions?: string[]
+  extensions?: string[];
   /** 正则匹配文件名称 */
-  match?: string
+  match?: string;
   /** 最少文件数 (可选) */
-  minLength?: number
+  minLength?: number;
   /** 最多文件数 (可选) */
-  maxLength?: number
+  maxLength?: number;
 }
-
 
 export interface SearchModule {
   /** 模块名称 */
-  name: string
+  name: string;
   /** 排序权重 */
-  weight: number
+  weight: number;
   /** 是否允许拖拽 */
-  isDragEnabled: boolean
+  isDragEnabled: boolean;
   /** 最大显示数量 */
-  maxDisplayCount: number
-  /** 是否展开 */
-  isExpanded: boolean
+  maxDisplayCount: number;
 
   /** 获取模块 */
-  getItems: () => Promise<AppItem[]>
+  getItems: () => Promise<AppItem[]>;
   /** 删除项 */
-  deleteItem: (item: AppItem) => Promise<void>
+  deleteItem: (item: AppItem) => Promise<void>;
   /** 添加项 */
-  addItem: (item: AppItem) => Promise<void>
+  addItem: (item: AppItem) => Promise<void>;
 }
 
 export type AppItem = (RegexSearch | TextSearch | ImgSearch | FileSearch) & {
@@ -101,38 +100,38 @@ export type AppItem = (RegexSearch | TextSearch | ImgSearch | FileSearch) & {
   /** 应用图标，null 表示无图标 */
   icon: string | null;
   /** 分类 */
-  category?: string
+  category?: string;
   /** 应用平台 默认所有平台 */
-  platform?: ('windows' | 'macos' | 'linux')[];
+  platform?: ("windows" | "macos" | "linux")[];
   /** 应用描述 */
   description?: string;
   /** 匿名搜索字段列表（用于匿名搜索匹配） */
-  anonymousSearchFields?: string[]
+  anonymousSearchFields?: string[];
   /** 不主动显示搜索框 */
-  notVisibleSearch?: boolean
+  notVisibleSearch?: boolean;
   /** 排序权重 */
-  weight?: number
-}
+  weight?: number;
+};
 
 export interface AttachedFile {
-  type: "file"
-  data: File[]
+  type: "file";
+  data: File[];
 }
 
 export interface AttachedText {
-  type: "text"
-  data: string
+  type: "text";
+  data: string;
 }
 
 export interface AttachedImg {
-  type: "img"
+  type: "img";
   /** base64 图片 */
-  data: string
+  data: string;
 }
 
 export interface AttachedPlugin {
-  type: "plugin"
-  data: any
+  type: "plugin";
+  data: any;
 }
 
-export type AttachedInfo = AttachedFile | AttachedText | AttachedImg | AttachedPlugin
+export type AttachedInfo = AttachedFile | AttachedText | AttachedImg | AttachedPlugin;

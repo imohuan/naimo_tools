@@ -68,9 +68,9 @@ import { useSettingsManager } from "@/composables/useSettingsManager";
 // 配置导入
 import { DEFAULT_WINDOW_LAYOUT } from "@shared/config/windowLayoutConfig";
 
-// 模块导入
-import { useKeyboardNavigation } from "@/modules/search";
-import { useSearch } from "@/modules/search";
+// 模块导入 - 直接导入辅助函数
+import { useKeyboardNavigation } from "@/modules/search/hooks/useKeyboardNavigation";
+import { useAppActions } from "@/modules/search/hooks/useAppActions";
 
 // Store 导入
 import { HotkeyType, useApp, type HotkeyConfig } from "@/temp_code";
@@ -124,8 +124,8 @@ const initializeApp = async () => {
     // 3. 初始化插件
     await app.plugin.initialize();
 
+    // 4. 初始化搜索
     await app.search.initialize();
-    console.log(111111,app.search.searchItems);
 
     console.log("🎉 应用初始化完成");
   } catch (error) {
@@ -153,21 +153,46 @@ const show = () => {
 // 文件处理器
 const { attachedFiles, addFiles, clearAttachedFiles } = useFileHandler();
 
-// 搜索模块
+// 搜索状态
+const selectedIndex = ref(0);
+const searchCategories = computed(() => app.search.categories);
+const flatItems = computed(() => {
+  // 扁平化搜索结果，添加 categoryId
+  const items: any[] = [];
+  for (const category of searchCategories.value) {
+    const displayItems = category.isExpanded || category.items.length <= category.maxDisplayCount
+      ? category.items
+      : category.items.slice(0, category.maxDisplayCount);
+
+    items.push(...displayItems.map((item: any) => ({
+      ...item,
+      categoryId: category.id
+    })));
+  }
+  return items;
+});
+
+// 搜索和应用操作
+const updateStoreCategory = async () => {
+  await app.search.initItems();
+};
+
+const performSearchInternal = async (updateSearchState: boolean = false) => {
+  if (updateSearchState) {
+    await updateStoreCategory();
+  }
+};
+
 const {
-  selectedIndex,
-  initAppApps,
-  searchText: searchModuleText,
-  searchCategories,
-  flatItems,
-  handleSearch: handleSearchCore,
   executeItem,
-  updateStoreCategory,
-  handleCategoryToggle,
   handleCategoryDragEnd,
   handleAppDelete,
   handleAppPin,
-} = useSearch(attachedFiles);
+} = useAppActions(performSearchInternal);
+
+const handleCategoryToggle = (categoryId: string) => {
+  app.search.toggleCategory(categoryId);
+};
 
 // ==================== 计算属性 ====================
 const searchText = ref("");
@@ -207,7 +232,9 @@ const handleSearch = async (value: string) => {
     );
     return;
   }
-  return handleSearchCore(value);
+
+  // 使用 app.search 执行搜索
+  await app.search.performSearch(value);
 };
 
 // 防抖搜索
@@ -311,6 +338,7 @@ const recoverSearchState = (clearPlugin = false) => {
   shouldShowSearchBox.value = true;
 
   const currentText = searchText.value ?? "";
+  app.ui.query = currentText;
   handleSearch(currentText);
 
   nextTick(() => {
@@ -350,6 +378,7 @@ const handleEscAction = async () => {
   if (searchText.value.trim() !== "") {
     console.log("清空搜索框");
     searchText.value = "";
+    app.ui.query = "";
     handleSearch("");
     return;
   }
@@ -426,6 +455,7 @@ const onHotkeyTriggered = async (event: {
         }
 
         searchText.value = name;
+        app.ui.query = name;
         await handleSearch(name);
         show();
 
@@ -576,7 +606,8 @@ watch(
   () => searchText.value,
   (newSearchText, oldSearchText) => {
     if (newSearchText === oldSearchText) return;
-    searchModuleText.value = newSearchText;
+    // 同步搜索文本到 UI store（用于控制内容区域可见性）
+    app.ui.query = newSearchText;
     debouncedHandleSearch();
   }
 );
@@ -655,6 +686,7 @@ onMounted(async () => {
       app.ui.openPluginWindow(pluginItem);
 
       searchText.value = "";
+      app.ui.query = "";
       attachedFiles.value = [];
 
       await handleSearch("");
@@ -686,8 +718,6 @@ onMounted(async () => {
     console.error("❌ 关闭插件view失败:", error);
   }
 
-  // 初始化应用数据
-  initAppApps();
   // 初始化窗口大小
   initializeWindowSize();
   // 重置到默认状态
