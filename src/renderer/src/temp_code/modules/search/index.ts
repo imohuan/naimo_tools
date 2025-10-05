@@ -113,7 +113,7 @@ export const useSearchStore = defineStore('search', () => {
     triggerRef(searchItems)
 
     // 重新执行搜索
-    performSearch(searchText.value)
+    await performSearch(searchText.value)
   }
 
   const getItemModule = (item: AppItem) => {
@@ -145,7 +145,7 @@ export const useSearchStore = defineStore('search', () => {
    */
   const initialize = async () => {
     if (isInitialized.value) return
-    initItems()
+    await initItems()
     isInitialized.value = true
   }
 

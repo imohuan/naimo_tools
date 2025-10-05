@@ -124,6 +124,9 @@ const initializeApp = async () => {
     // 3. 初始化插件
     await app.plugin.initialize();
 
+    await app.search.initialize();
+    console.log(111111,app.search.searchItems);
+
     console.log("🎉 应用初始化完成");
   } catch (error) {
     console.error("❌ 应用初始化失败:", error);
