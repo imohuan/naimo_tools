@@ -164,8 +164,10 @@ const addCustomHotkey = async () => {
     enabled: false,
     scope: "all",
   };
-  // 注册到新系统
-  await app.hotkey.register(newHotkey);
+
+  // 使用 skipValidation 参数允许注册 keys 为空的快捷键
+  await app.hotkey.register(newHotkey, true);
+
   // 更新本地状态
   customHotkeys.value.push(newHotkey);
 };
@@ -214,11 +216,11 @@ const handleHotkeyCaptured = async (keys: string[]) => {
     return;
   }
 
-  // 设置快捷键
-  currentEditingHotkey.value.keys = keysString;
-
-  // 使用新系统保存快捷键
-  await app.hotkey.updateConfig(currentEditingHotkey.value.id, { keys: keysString });
+  // 先注销旧的配置
+  await app.hotkey.unregister(currentEditingHotkey.value.id);
+  // 使用新的 keys 重新注册
+  const updatedConfig = { ...currentEditingHotkey.value, keys: keysString };
+  await app.hotkey.register(updatedConfig);
 
   // 重新加载快捷键列表
   await loadCustomHotkeys();
@@ -241,6 +243,11 @@ const updateHotkeyName = useDebounceFn(async (hotkey: HotkeyConfig) => {
 
 // 切换快捷键启用状态
 const toggleHotkey = async (hotkey: HotkeyConfig) => {
+  // 如果 keys 为空，不允许启用
+  if (!hotkey.keys) {
+    hotkey.enabled = false;
+    return;
+  }
   // 使用新系统的 toggle 方法
   await app.hotkey.toggle(hotkey.id);
   // 重新加载以更新状态
@@ -288,9 +295,9 @@ const loadCustomHotkeys = async () => {
   try {
     // 获取所有快捷键，过滤出自定义快捷键（ID 以 custom_global_ 开头）
     const allHotkeys = Array.from(app.hotkey.hotkeys.values());
-    customHotkeys.value = allHotkeys.filter((hotkey) =>
-      hotkey.id.startsWith(CUSTOM_HOTKEY_PREFIX)
-    );
+    customHotkeys.value = allHotkeys
+      .filter((hotkey) => hotkey.id.startsWith(CUSTOM_HOTKEY_PREFIX))
+      .map((m) => JSON.parse(JSON.stringify(m)));
   } catch (error) {
     console.error("加载自定义快捷键失败:", error);
   }

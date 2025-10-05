@@ -5,10 +5,9 @@ import { categoryConfig } from '@/modules/search/config/searchConfig'
 import type { SearchCategory } from '@/typings/searchTypes'
 import { SearchMode } from '@/typings/searchTypes'
 import type { AppItem } from '@shared/typings'
-import { pluginManager } from '../plugin/PluginManager'
 import type { AttachedFile } from '@/typings/composableTypes'
 import { PinyinSearch } from '@/utils/pinyinSearch'
-import type { PluginItem } from '@/typings/pluginTypes'
+import type { PluginItem, PluginConfig } from '@/typings/pluginTypes'
 import { toRaw } from 'vue'
 
 /**
@@ -33,10 +32,10 @@ export class SearchEngine extends BaseSingleton implements CoreAPI {
   }
 
   /** 获取插件分类 */
-  getPluginCategories(): SearchCategory[] {
+  getPluginCategories(installedPlugins: PluginConfig[] = []): SearchCategory[] {
     console.log('🔌 开始加载插件数据...')
     try {
-      const plugins = Array.from(pluginManager.installedPlugins.values())
+      const plugins = installedPlugins
       console.log('📦 加载到的插件:', plugins.map(p => ({ id: p.id, name: p.name, itemsCount: p.items.length })))
       const pluginCategories: SearchCategory[] = []
 
@@ -88,8 +87,8 @@ export class SearchEngine extends BaseSingleton implements CoreAPI {
   }
 
   /** 更新插件分类 */
-  updatePluginCategories(): void {
-    const pluginCategories = this.getPluginCategories()
+  updatePluginCategories(installedPlugins: PluginConfig[] = []): void {
+    const pluginCategories = this.getPluginCategories(installedPlugins)
     this.categories = this.categories.filter(cat => !cat.isPluginCategory)
     this.addCategories(...pluginCategories)
   }
@@ -134,14 +133,14 @@ export class SearchEngine extends BaseSingleton implements CoreAPI {
   }
 
   /** 获取默认分类 */
-  getDefaultCategories(): SearchCategory[] {
+  getDefaultCategories(installedPlugins: PluginConfig[] = []): SearchCategory[] {
     const recentCategory = this.categories.find(cat => cat.id === 'recent')
     const pinnedCategory = this.categories.find(cat => cat.id === 'pinned')
     const filesCategory = this.categories.find(cat => cat.id === 'files')
     const applicationsCategory = this.categories.find(cat => cat.id === 'applications')
 
     if (recentCategory && recentCategory.items.length > 0) {
-      const enabledPluginIds = new Set(Array.from(pluginManager.installedPlugins.values()).filter(plugin => plugin.enabled).map(plugin => plugin.id))
+      const enabledPluginIds = new Set(installedPlugins.filter(plugin => plugin.enabled).map(plugin => plugin.id))
       recentCategory.items = recentCategory.items.filter(item => {
         const pluginId = (item as PluginItem).pluginId
         return pluginId ? enabledPluginIds.has(pluginId) : true

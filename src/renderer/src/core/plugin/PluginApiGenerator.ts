@@ -1,6 +1,4 @@
 import type { PluginItem } from '@/typings/pluginTypes'
-import type { PluginApi } from '@shared/typings/global'
-import { pluginManager } from './PluginManager'
 import { ElectronStoreBridge } from '../store/ElectronStoreBridge'
 import { LifecycleType } from '@/typings/windowTypes'
 
@@ -40,11 +38,15 @@ export class PluginApiGenerator {
         uninstall: (pluginId: string) => Promise<boolean>
         toggle: (pluginId: string, enabled: boolean) => Promise<boolean>
       }
+      getPluginApi?: (pluginId: string) => Promise<any>
       hotkeyEmit?: boolean
     } = {}
-  ): Promise<PluginApi> {
+  ): Promise<any> {
     // 获取插件基础 API
-    const pluginApi = await pluginManager.getPluginApi(pluginItem.pluginId as string)
+    if (!options.getPluginApi) {
+      throw new Error('getPluginApi is required in options')
+    }
+    const pluginApi = await options.getPluginApi(pluginItem.pluginId as string)
 
     // 文件列表管理
     const addPathToFileList = async (name: string, path: string) => {
@@ -137,13 +139,15 @@ export class PluginApiGenerator {
         uninstall: (pluginId: string) => Promise<boolean>
         toggle: (pluginId: string, enabled: boolean) => Promise<boolean>
       }
+      getPluginApi?: (pluginId: string) => Promise<any>
       hotkeyEmit?: boolean
     }
-  ): Promise<PluginApi> {
+  ): Promise<any> {
     return this.generateApi(pluginItem, {
       toggleInput: context.toggleInput,
       openPluginWindow: context.openPluginWindow,
       pluginStore: context.pluginStore,
+      getPluginApi: context.getPluginApi,
       hotkeyEmit: context.hotkeyEmit
     })
   }

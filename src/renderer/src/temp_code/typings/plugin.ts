@@ -58,6 +58,8 @@ export interface PluginInstaller {
  * 安装选项
  */
 export interface InstallOptions {
+  /** 是否跳过加载插件配置 */
+  skipLoad?: boolean
   /** 是否强制重新安装 */
   force?: boolean
   /** 自定义资源路径解析器 */

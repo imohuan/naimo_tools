@@ -4,12 +4,10 @@
  */
 
 import { nextTick, toRaw } from 'vue'
-import { pluginManager } from '@/core/plugin/PluginManager'
 import { pluginApiGenerator } from '@/core/plugin/PluginApiGenerator'
 import { LifecycleType } from '@/typings/windowTypes'
 import type { PluginItem } from '@/typings/pluginTypes'
 import type { AttachedFile } from '@/typings/composableTypes'
-import type { PluginApi } from '@shared/typings'
 
 /**
  * 插件窗口管理器
@@ -26,13 +24,14 @@ export function usePluginWindowManager() {
       toggleInput: (value?: boolean) => void
       openPluginWindow: (item: PluginItem) => Promise<void>
       pluginStore: {
-        installZip: (zipPath: string) => Promise<void>
-        install: (pluginPath: string) => Promise<void>
-        uninstall: (pluginId: string) => Promise<void>
-        toggle: (pluginId: string) => Promise<void>
+        installZip: (zipPath: string) => Promise<boolean>
+        install: (pluginPath: string) => Promise<boolean>
+        uninstall: (pluginId: string) => Promise<boolean>
+        toggle: (pluginId: string, enabled: boolean) => Promise<boolean>
       }
+      getPluginApi: (pluginId: string) => Promise<any>
     }
-  ): Promise<PluginApi> => {
+  ): Promise<any> => {
     // 创建适配器函数，将双参数函数转换为单参数函数
     const openPluginWindowAdapter = async (item: PluginItem) => {
       await dependencies.openPluginWindow(item)
@@ -42,6 +41,7 @@ export function usePluginWindowManager() {
       toggleInput: dependencies.toggleInput,
       openPluginWindow: openPluginWindowAdapter,
       pluginStore: dependencies.pluginStore,
+      getPluginApi: dependencies.getPluginApi,
       hotkeyEmit
     })
   }
@@ -117,17 +117,24 @@ export function usePluginWindowManager() {
       updateStoreCategory: () => Promise<void>
       handleSearch: (text: string) => Promise<void>
       pluginStore: {
-        installZip: (zipPath: string) => Promise<void>
-        install: (pluginPath: string) => Promise<void>
-        uninstall: (pluginId: string) => Promise<void>
-        toggle: (pluginId: string) => Promise<void>
+        installZip: (zipPath: string) => Promise<boolean>
+        install: (pluginPath: string) => Promise<boolean>
+        uninstall: (pluginId: string) => Promise<boolean>
+        toggle: (pluginId: string, enabled: boolean) => Promise<boolean>
       }
       setAttachedFiles: (files: AttachedFile[]) => void
       setSearchText: (text: string) => void
+      getInstalledPluginItem: (pluginId: string, path: string) => PluginItem | null
+      getPluginApi: (pluginId: string) => Promise<any>
     }
   ) => {
     const { pluginId, path, hotkeyEmit } = event
-    const pluginItem = pluginManager.getInstalledPluginItem(pluginId, path)!
+    const pluginItem = dependencies.getInstalledPluginItem(pluginId, path)
+
+    if (!pluginItem) {
+      console.warn(`⚠️ 未找到插件: ${pluginId}, path: ${path}`)
+      return
+    }
 
     const genApi = await generatePluginApi(pluginItem, hotkeyEmit, {
       toggleInput: dependencies.toggleInput,
@@ -139,7 +146,8 @@ export function usePluginWindowManager() {
           handleResize: () => { }
         })
       },
-      pluginStore: dependencies.pluginStore
+      pluginStore: dependencies.pluginStore,
+      getPluginApi: dependencies.getPluginApi
     })
 
     dependencies.toggleInput(false)

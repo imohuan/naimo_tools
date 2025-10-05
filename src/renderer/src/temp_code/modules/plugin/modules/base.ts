@@ -53,7 +53,7 @@ export abstract class BasePluginInstaller implements PluginInstaller {
       typeof pluginData.items?.[0]?.onEnter === 'function'
 
     // 如果已经有有效的 items，跳过加载
-    if (!firstItemHasOnEnter || !hasItems) {
+    if ((!firstItemHasOnEnter || !hasItems) && !options?.skipLoad) {
       if (!pluginData?.main) {
         throw new Error(`❌ 插件主文件不存在: ${pluginData.id}`)
       }

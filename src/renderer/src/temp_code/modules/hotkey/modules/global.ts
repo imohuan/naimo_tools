@@ -17,12 +17,9 @@ export class GlobalModule {
     try {
       // 标准化快捷键格式为 Electron 格式
       const normalizedKeys = normalizeElectronKeys(config.keys)
-
       console.log(`[GlobalHotkey] 注册全局快捷键: ${config.id} -> ${normalizedKeys}`)
-
       // 调用 Electron IPC 注册全局快捷键
       const result = await naimo.router.hotkeyRegisterGlobalHotkey(normalizedKeys, config.id)
-
       if (result) {
         console.log(`[GlobalHotkey] ✅ 注册成功: ${config.id}`)
       } else {
@@ -42,10 +39,9 @@ export class GlobalModule {
   async unregister(id: string): Promise<boolean> {
     try {
       console.log(`[GlobalHotkey] 注销全局快捷键: ${id}`)
-
       // 调用 Electron IPC 注销全局快捷键
-      const result = await naimo.router.hotkeyUnregisterGlobalHotkey(id, id)
-
+      // 第一个参数传空字符串，后端会从缓存中获取真实的 accelerator
+      const result = await naimo.router.hotkeyUnregisterGlobalHotkey('', id)
       if (result) {
         console.log(`[GlobalHotkey] ✅ 注销成功: ${id}`)
       } else {

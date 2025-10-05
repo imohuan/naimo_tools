@@ -79,17 +79,40 @@ export function registerGlobalHotkey(event: Electron.IpcMainInvokeEvent, acceler
  */
 export function unregisterGlobalHotkey(event: Electron.IpcMainInvokeEvent, accelerator: string, id: string = "-1"): boolean {
   try {
+    // 优先从缓存中获取真实的 accelerator
     const cacheAccelerator = registeredGlobalShortcuts.get(id);
-    const accelerators: string[] = [cacheAccelerator, accelerator].filter(
-      Boolean
-    ) as string[];
-    for (const accelerator of accelerators) {
-      if (globalShortcut.isRegistered(accelerator)) {
-        globalShortcut.unregister(accelerator);
-      }
-      registeredGlobalShortcuts.delete(id);
+
+    // 判断传入的 accelerator 是否是有效的快捷键格式
+    // 有效的快捷键格式应该包含 + 或者是单个功能键（如 F1-F12）
+    const isValidAccelerator = (acc: string): boolean => {
+      if (!acc) return false;
+      // 简单验证：包含 + 或者是功能键格式
+      return acc.includes('+') || /^F\d+$/i.test(acc) || /^(Delete|Insert|Home|End|PageUp|PageDown|Escape|Enter|Space|Tab|Backspace)$/i.test(acc);
+    };
+
+    // 收集需要注销的 accelerator
+    const acceleratorsToUnregister: string[] = [];
+    if (cacheAccelerator) {
+      acceleratorsToUnregister.push(cacheAccelerator);
     }
-    log.info(`注销全局快捷键成功: ${accelerator} (${id})`);
+    if (accelerator && isValidAccelerator(accelerator) && accelerator !== cacheAccelerator) {
+      acceleratorsToUnregister.push(accelerator);
+    }
+
+    // 注销快捷键
+    let unregistered = false;
+    for (const acc of acceleratorsToUnregister) {
+      if (globalShortcut.isRegistered(acc)) {
+        globalShortcut.unregister(acc);
+        unregistered = true;
+        log.info(`注销全局快捷键: ${acc}`);
+      }
+    }
+
+    // 从缓存中删除
+    registeredGlobalShortcuts.delete(id);
+
+    log.info(`注销全局快捷键成功: ${id}`);
     return true;
   } catch (error) {
     log.error(`注销全局快捷键异常: ${id}`, error);

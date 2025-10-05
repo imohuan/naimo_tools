@@ -57,8 +57,7 @@ import { useDebounceFn, watchDebounced, useEventListener } from "@vueuse/core";
 import ContentArea from "@/components/ContentArea.vue";
 import SearchHeader from "@/components/SearchHeader/SearchHeader.vue";
 
-// 核心导入
-import { pluginManager } from "@/core/plugin/PluginManager";
+// 核心导入（已移除 pluginManager，使用 app.plugin 代替）
 
 // Composables 导入
 import { useFileHandler } from "@/composables/useFileHandler";
@@ -72,7 +71,6 @@ import { DEFAULT_WINDOW_LAYOUT } from "@shared/config/windowLayoutConfig";
 // 模块导入
 import { useKeyboardNavigation } from "@/modules/search";
 import { useSearch } from "@/modules/search";
-import { usePluginStore } from "@/store";
 
 // Store 导入
 import { HotkeyType, useApp, type HotkeyConfig } from "@/temp_code";
@@ -82,7 +80,6 @@ import type { AppItem } from "@shared/typings";
 
 // ==================== 初始化 ====================
 const app = useApp();
-const pluginStore = usePluginStore();
 const pluginWindowManager = usePluginWindowManager();
 const settingsManager = useSettingsManager();
 
@@ -125,7 +122,7 @@ const initializeApp = async () => {
     await app.hotkey.initialize();
 
     // 3. 初始化插件
-    await pluginStore.initialize();
+    await app.plugin.initialize();
 
     console.log("🎉 应用初始化完成");
   } catch (error) {
@@ -465,16 +462,36 @@ const handlePluginExecuted = async (event: {
     handleSearch,
     pluginStore: {
       installZip: async (zipPath: string) => {
-        await pluginStore.install(zipPath);
+        try {
+          await app.plugin.install(zipPath);
+          return true;
+        } catch {
+          return false;
+        }
       },
       install: async (path: string) => {
-        await pluginStore.install(path);
+        try {
+          await app.plugin.install(path);
+          return true;
+        } catch {
+          return false;
+        }
       },
       uninstall: async (id: string) => {
-        await pluginStore.uninstall(id);
+        try {
+          await app.plugin.uninstall(id);
+          return true;
+        } catch {
+          return false;
+        }
       },
-      toggle: async (id: string) => {
-        await pluginStore.toggle(id);
+      toggle: async (id: string, enabled: boolean) => {
+        try {
+          await app.plugin.toggle(id, enabled);
+          return true;
+        } catch {
+          return false;
+        }
       },
     },
     setAttachedFiles: (files) => {
@@ -482,6 +499,12 @@ const handlePluginExecuted = async (event: {
     },
     setSearchText: (text) => {
       searchText.value = text;
+    },
+    getInstalledPluginItem: (pluginId: string, path: string) => {
+      return app.plugin.getInstalledPluginItem(pluginId, path);
+    },
+    getPluginApi: async (pluginId: string) => {
+      return await app.plugin.getPluginApi(pluginId);
     },
   });
 };
@@ -614,7 +637,7 @@ onMounted(async () => {
     }
 
     try {
-      const pluginItem = pluginManager.getInstalledPluginItem(
+      const pluginItem = app.plugin.getInstalledPluginItem(
         config.pluginInfo.path.split(":")[0],
         config.pluginInfo.path || config.path
       );

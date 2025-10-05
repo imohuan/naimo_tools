@@ -3,8 +3,10 @@ import { searchEngine } from '@/core/search/SearchEngine'
 import { useAppActions } from './hooks/useAppActions'
 import type { SearchCategory, SearchState } from '@/typings/searchTypes'
 import type { AttachedFile } from '@/typings/composableTypes'
+import { useApp } from '@/temp_code'
 
 export function useSearch(attachedFiles: Ref<AttachedFile[]>) {
+  const app = useApp()
   const selectedIndex = ref(0)
 
   // 搜索状态管理
@@ -113,7 +115,7 @@ export function useSearch(attachedFiles: Ref<AttachedFile[]>) {
     await searchEngine.initialize()
 
     // 设置默认显示的分类（最近和固定）
-    const defaultCategories = searchEngine.getDefaultCategories()
+    const defaultCategories = searchEngine.getDefaultCategories(app.plugin.installedPlugins)
     searchState.value.searchCategories = defaultCategories
     return defaultCategories
   }

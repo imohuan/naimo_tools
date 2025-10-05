@@ -1,12 +1,16 @@
 <template>
   <div class="h-full flex flex-col bg-gray-50">
     <!-- 错误提示 -->
-    <div v-if="pluginStore.error"
-      class="mx-4 mt-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3">
+    <div
+      v-if="pluginStore.error"
+      class="mx-4 mt-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3"
+    >
       <span class="text-red-500 text-lg">❌</span>
       <span class="text-red-700 flex-1">{{ pluginStore.error }}</span>
-      <button @click="pluginStore.clearError"
-        class="px-3 py-1 bg-red-500 text-white text-sm rounded hover:bg-red-600 transition-colors">
+      <button
+        @click="pluginStore.clearError"
+        class="px-3 py-1 bg-red-500 text-white text-sm rounded hover:bg-red-600 transition-colors"
+      >
         清除
       </button>
     </div>
@@ -14,11 +18,16 @@
     <!-- 主要内容 -->
     <div class="flex-1 flex flex-col">
       <!-- 详情页面 -->
-      <PluginDetail v-if="selectedPlugin" :plugin="selectedPlugin as PluginConfig"
-        :is-installed="pluginStore.isPluginInstalled(selectedPlugin.id)"
+      <PluginDetail
+        v-if="selectedPlugin"
+        :plugin="selectedPlugin as PluginConfig"
+        :is-installed="isPluginInstalled(selectedPlugin.id)"
         :is-installing="isPluginInstalling(selectedPlugin.id)"
-        :install-progress="getPluginInstallProgress(selectedPlugin.id)" @close="closePluginDetail"
-        @install="installPlugin" @uninstall="uninstallPlugin" />
+        :install-progress="getPluginInstallProgress(selectedPlugin.id)"
+        @close="closePluginDetail"
+        @install="installPlugin"
+        @uninstall="uninstallPlugin"
+      />
 
       <!-- 插件列表页面 -->
       <template v-else>
@@ -36,22 +45,36 @@
             <div class="flex-1 flex items-center gap-3">
               <!-- 搜索框 -->
               <div class="relative w-48">
-                <input v-model="searchQuery" type="text" placeholder="搜索插件"
-                  class="w-full pl-8 pr-3 py-1.5 text-sm border border-gray-300 rounded-md bg-gray-50 focus:bg-white focus:border-blue-400 focus:ring-1 focus:ring-blue-100 focus:outline-none transition-all duration-200 placeholder-gray-500" />
-                <div class="absolute left-2.5 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm">
+                <input
+                  v-model="searchQuery"
+                  type="text"
+                  placeholder="搜索插件"
+                  class="w-full pl-8 pr-3 py-1.5 text-sm border border-gray-300 rounded-md bg-gray-50 focus:bg-white focus:border-blue-400 focus:ring-1 focus:ring-blue-100 focus:outline-none transition-all duration-200 placeholder-gray-500"
+                />
+                <div
+                  class="absolute left-2.5 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm"
+                >
                   🔍
                 </div>
               </div>
 
               <!-- 分类列表 -->
               <div class="flex items-center gap-1.5">
-                <label class="text-xs font-medium text-gray-700 whitespace-nowrap">分类:</label>
-                <select v-model="categoryFilter"
-                  class="px-2 py-1.5 border border-gray-300 rounded-md text-xs bg-gray-50 focus:bg-white focus:border-blue-400 focus:ring-1 focus:ring-blue-100 focus:outline-none transition-all duration-200 cursor-pointer">
+                <label class="text-xs font-medium text-gray-700 whitespace-nowrap"
+                  >分类:</label
+                >
+                <select
+                  v-model="categoryFilter"
+                  class="px-2 py-1.5 border border-gray-300 rounded-md text-xs bg-gray-50 focus:bg-white focus:border-blue-400 focus:ring-1 focus:ring-blue-100 focus:outline-none transition-all duration-200 cursor-pointer"
+                >
                   <option value="all">全部</option>
                   <option value="installed">已安装</option>
                   <option value="available">可安装</option>
-                  <option v-for="(config, category) in PLUGIN_CATEGORY_CONFIG" :key="category" :value="category">
+                  <option
+                    v-for="(config, category) in PLUGIN_CATEGORY_CONFIG"
+                    :key="category"
+                    :value="category"
+                  >
                     {{ config.name }}
                   </option>
                 </select>
@@ -60,18 +83,30 @@
 
             <!-- 分页控件 -->
             <div class="flex items-center gap-1.5">
-              <button @click="previousPage" :disabled="currentPage === 1"
+              <button
+                @click="previousPage"
+                :disabled="currentPage === 1"
                 class="p-1.5 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 group"
-                title="上一页">
-                <IconMdiChevronLeft class="w-4 h-4 text-gray-600 group-hover:text-gray-800" />
+                title="上一页"
+              >
+                <IconMdiChevronLeft
+                  class="w-4 h-4 text-gray-600 group-hover:text-gray-800"
+                />
               </button>
-              <span class="px-2 py-1.5 text-xs text-gray-600 bg-gray-50 rounded-md font-medium">
+              <span
+                class="px-2 py-1.5 text-xs text-gray-600 bg-gray-50 rounded-md font-medium"
+              >
                 {{ currentPage }} / {{ totalPages }}
               </span>
-              <button @click="nextPage" :disabled="currentPage === totalPages"
+              <button
+                @click="nextPage"
+                :disabled="currentPage === totalPages"
                 class="p-1.5 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 group"
-                title="下一页">
-                <IconMdiChevronRight class="w-4 h-4 text-gray-600 group-hover:text-gray-800" />
+                title="下一页"
+              >
+                <IconMdiChevronRight
+                  class="w-4 h-4 text-gray-600 group-hover:text-gray-800"
+                />
               </button>
             </div>
           </div>
@@ -80,9 +115,13 @@
         <!-- 插件列表 -->
         <div class="flex-1 pt-2 flex flex-col pb-2">
           <!-- 空状态 -->
-          <div v-if="filteredPlugins.length === 0 && !pluginStore.loading"
-            class="flex-1 flex items-center justify-center">
-            <div class="flex flex-col items-center justify-center text-center text-gray-500">
+          <div
+            v-if="filteredPlugins.length === 0 && !pluginStore.loading"
+            class="flex-1 flex items-center justify-center"
+          >
+            <div
+              class="flex flex-col items-center justify-center text-center text-gray-500"
+            >
               <div class="text-6xl mb-4">📦</div>
               <p class="text-lg mb-2">暂无插件</p>
               <p class="text-sm mb-4">
@@ -93,22 +132,42 @@
 
           <!-- 插件网格 -->
           <div v-else-if="filteredPlugins.length > 0" class="grid grid-cols-2 gap-2">
-            <PluginCard v-for="plugin in paginatedPlugins" :key="plugin.id" :plugin="plugin as PluginConfig"
-              :is-installed="pluginStore.isPluginInstalled(plugin.id)" :is-installing="isPluginInstalling(plugin.id)"
-              :install-progress="getPluginInstallProgress(plugin.id)" @click="showPluginDetail" @install="installPlugin"
-              @uninstall="uninstallPlugin" />
+            <PluginCard
+              v-for="plugin in paginatedPlugins"
+              :key="plugin.id"
+              :plugin="plugin as PluginConfig"
+              :is-installed="isPluginInstalled(plugin.id)"
+              :is-installing="isPluginInstalling(plugin.id)"
+              :install-progress="getPluginInstallProgress(plugin.id)"
+              @click="showPluginDetail"
+              @install="installPlugin"
+              @uninstall="uninstallPlugin"
+            />
           </div>
 
           <!-- GitHub插件加载占位符 -->
-          <div v-if="pluginStore.loadingGithubPlugins"
-            class="flex items-center justify-center w-full py-1 animate-fade-in">
+          <div
+            v-if="pluginStore.loading"
+            class="flex items-center justify-center w-full py-1 animate-fade-in"
+          >
             <div class="w-full flex items-center justify-center">
               <div class="flex-1 border-t border-gray-200"></div>
               <span class="mx-4 text-gray-500 text-sm flex items-center gap-2">
                 <svg class="animate-spin h-4 w-4 text-blue-400" viewBox="0 0 24 24">
-                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none">
-                  </circle>
-                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                  <circle
+                    class="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    stroke-width="4"
+                    fill="none"
+                  ></circle>
+                  <path
+                    class="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                  ></path>
                 </svg>
                 加载GitHub插件中...
               </span>
@@ -124,7 +183,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from "vue";
 import { useEventListener } from "@vueuse/core";
-import { usePluginStore } from "@/store/modules/plugin";
+import { useApp } from "@/temp_code";
 import type { PluginConfig } from "@/typings/pluginTypes";
 import { PluginCategoryType, PLUGIN_CATEGORY_CONFIG } from "@/typings/pluginTypes";
 import PluginCard from "./PluginCard.vue";
@@ -134,7 +193,8 @@ import IconMdiChevronLeft from "~icons/mdi/chevron-left";
 /** @ts-ignore */
 import IconMdiChevronRight from "~icons/mdi/chevron-right";
 
-const pluginStore = usePluginStore();
+const app = useApp();
+const pluginStore = app.plugin;
 const searchQuery = ref("");
 const categoryFilter = ref("all");
 const currentPage = ref(1);
@@ -142,12 +202,19 @@ const itemsPerPage = 6;
 const selectedPlugin = ref<PluginConfig | null>(null);
 
 // 安装状态管理
-const installingPlugins = ref<Map<string, { progress?: number, downloadId?: string }>>(new Map());
+const installingPlugins = ref<Map<string, { progress?: number; downloadId?: string }>>(
+  new Map()
+);
+
+// 检查插件是否已安装
+const isPluginInstalled = (pluginId: string) => {
+  return pluginStore.installedPlugins.some((p) => p.id === pluginId);
+};
 
 // 计算过滤后的插件列表
 const filteredPlugins = computed(() => {
   const installedPluginIds = new Set(pluginStore.installedPlugins.map((p) => p.id));
-  let result = [...pluginStore.pluginList];
+  let result = [...pluginStore.availablePlugins];
 
   // 搜索过滤
   if (searchQuery.value.trim()) {
@@ -221,7 +288,12 @@ const getPluginInstallProgress = (pluginId: string): number | undefined => {
   return installingPlugins.value.get(pluginId)?.progress;
 };
 
-const setPluginInstalling = (pluginId: string, downloading: boolean, progress?: number, downloadId?: string) => {
+const setPluginInstalling = (
+  pluginId: string,
+  downloading: boolean,
+  progress?: number,
+  downloadId?: string
+) => {
   if (downloading) {
     installingPlugins.value.set(pluginId, { progress, downloadId });
   } else {
@@ -255,38 +327,24 @@ const installPlugin = async (pluginConfig: PluginConfig) => {
       // 设置总超时（5分钟）
       const timeoutPromise = new Promise<boolean>((_, reject) => {
         setTimeout(() => {
-          reject(new Error('插件下载超时（5分钟）'));
+          reject(new Error("插件下载超时（5分钟）"));
         }, 300000); // 5分钟
       });
-
       // 并发执行下载和超时检查
-      const success = await Promise.race([
-        pluginStore.installUrl(pluginConfig.downloadUrl),
-        timeoutPromise
-      ]);
-
+      await Promise.race([pluginStore.install(pluginConfig.downloadUrl), timeoutPromise]);
       setPluginInstalling(pluginConfig.id, false);
-
-      if (success) {
-        console.log(`✅ 插件安装成功: ${pluginConfig.id}`);
-      } else {
-        console.error(`❌ 插件安装失败: ${pluginConfig.id}`);
-      }
     } else {
       // 普通安装（无下载）
       setPluginInstalling(pluginConfig.id, true);
-      const success = await pluginStore.install(pluginConfig);
+      await pluginStore.install(pluginConfig);
       setPluginInstalling(pluginConfig.id, false);
-      if (success) {
-        console.log(`✅ 插件安装成功: ${pluginConfig.id}`);
-      }
     }
   } catch (err) {
     console.error(`❌ 安装插件失败: ${pluginConfig.id}`, err);
     setPluginInstalling(pluginConfig.id, false);
     // 显示错误提示
     if (err instanceof Error) {
-      console.error('错误详情:', err.message);
+      console.error("错误详情:", err.message);
     }
   }
 };
@@ -331,11 +389,11 @@ useEventListener(document, "keydown", handleKeydown);
 
 onMounted(async () => {
   // 确保先显示默认和本地插件，然后异步加载GitHub插件
-  console.log('🔌 插件管理器已挂载');
-  console.log('📋 当前已安装插件数量:', pluginStore.installedPlugins.length);
-  console.log('📋 当前可用插件数量:', pluginStore.pluginList.length);
+  console.log("🔌 插件管理器已挂载");
+  console.log("📋 当前已安装插件数量:", pluginStore.installedPlugins.length);
+  console.log("📋 当前可用插件数量:", pluginStore.availablePlugins.length);
 
   // 异步加载GitHub插件列表（不阻塞UI）
-  pluginStore.loadAsyncPluginList();
+  pluginStore.loadGithubPlugins();
 });
 </script>

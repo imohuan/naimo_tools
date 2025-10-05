@@ -30,10 +30,14 @@ export class LocalPluginInstaller extends BasePluginInstaller {
 
     for (const plugin of thirdPartyPlugins) {
       try {
-        const config = await naimo.webUtils.loadPluginConfig(plugin.configPath)
+        const config: PluginConfig = await naimo.webUtils.loadPluginConfig(plugin.configPath)
         if (config) {
           // 添加类型标记
           this.setPluginType(config)
+          // 处理资源路径
+          if ((config as any).getResourcePath) {
+            config.icon = (config as any).getResourcePath(config.icon)
+          }
           plugins.push(config)
         }
       } catch (error) {
