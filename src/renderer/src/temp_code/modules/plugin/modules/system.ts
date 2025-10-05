@@ -13,7 +13,7 @@ export class SystemPluginInstaller extends BasePluginInstaller {
   readonly pluginType = 'system'
 
   /** 插件模块缓存 */
-  private pluginModules = import.meta.glob('@/components/Plugins/base-plugins/*.ts', { eager: true })
+  private pluginModules = import.meta.glob('@/plugins/base-plugins/*.ts', { eager: true })
   /** 插件列表缓存 */
   private pluginsCache: PluginConfig[] | null = null
 

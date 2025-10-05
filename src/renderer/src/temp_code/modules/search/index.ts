@@ -3,7 +3,7 @@ import { ref, shallowRef, computed, triggerRef, reactive } from 'vue'
 import type { AppItem, AttachedInfo, SearchModule } from '@/temp_code/typings/search'
 
 import { loadAppIcons } from '@/temp_code/utils/search'
-import { PinyinSearch } from '@/utils/pinyinSearch'
+import { PinyinSearch } from '@/temp_code/utils/pinyinSearch'
 
 /** 动态导入所有模块 */
 const moduleFiles = import.meta.glob<{ [key: string]: any }>('./modules/*.ts', { eager: true })
