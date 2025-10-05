@@ -54,7 +54,7 @@ import { ref, computed, onMounted, nextTick, watch } from "vue";
 import { useDebounceFn, watchDebounced, useEventListener } from "@vueuse/core";
 
 // 组件导入
-import ContentArea from "@/components/ContentArea.vue";
+import ContentArea from "@/components/ContentArea/ContentArea.vue";
 import SearchHeader from "@/components/SearchHeader/SearchHeader.vue";
 
 // 核心导入（已移除 pluginManager，使用 app.plugin 代替）
@@ -69,8 +69,8 @@ import { useSettingsManager } from "@/composables/useSettingsManager";
 import { DEFAULT_WINDOW_LAYOUT } from "@shared/config/windowLayoutConfig";
 
 // 模块导入 - 直接导入辅助函数
-import { useKeyboardNavigation } from "@/modules/search/hooks/useKeyboardNavigation";
-import { useAppActions } from "@/modules/search/hooks/useAppActions";
+import { useKeyboardNavigation } from "@/components/Search/hooks/useKeyboardNavigation";
+import { useAppActions } from "@/components/Search/hooks/useAppActions";
 
 // Store 导入
 import { HotkeyType, useApp, type HotkeyConfig } from "@/temp_code";

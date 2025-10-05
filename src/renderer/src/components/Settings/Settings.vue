@@ -13,12 +13,15 @@
       <nav class="flex-1 p-3">
         <ul class="space-y-1">
           <li v-for="tab in tabsConfig" :key="tab.id">
-            <button @click="activeTab = tab.id" tabindex="-1" :class="[
-              'w-full text-left px-3 py-2 rounded-lg transition-colors border border-transparent',
-              activeTab === tab.id
-                ? 'bg-blue-100 text-blue-700 border-blue-200'
-                : 'text-gray-700 hover:bg-gray-100',
-            ]">
+            <button
+              @click="activeTab = tab.id"
+              :class="[
+                'w-full text-left px-3 py-2 rounded-lg transition-colors border border-transparent',
+                activeTab === tab.id
+                  ? 'bg-blue-100 text-blue-700 border-blue-200'
+                  : 'text-gray-700 hover:bg-gray-100',
+              ]"
+            >
               <div class="flex items-center">
                 <component :is="tab.icon" class="w-4 h-4 mr-2" />
                 <span class="text-sm font-medium">{{ tab.title }}</span>
@@ -32,7 +35,9 @@
     <!-- 右侧内容区域 -->
     <div class="flex-1 flex flex-col">
       <!-- 内容头部 -->
-      <div class="p-3 border-b border-gray-200 bg-white flex items-center justify-between">
+      <div
+        class="p-3 border-b border-gray-200 bg-white flex items-center justify-between"
+      >
         <div>
           <h2 class="text-base font-medium text-gray-900">
             {{ getTabTitle() }}
@@ -41,15 +46,24 @@
             {{ getTabDescription() }}
           </p>
         </div>
-        <button @click="closeSettings" tabindex="-1"
-          class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors" title="关闭设置">
+        <button
+          @click="closeSettings"
+          class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+          title="关闭设置"
+        >
           <IconMdiClose class="w-6 h-6" />
         </button>
       </div>
 
       <!-- 内容主体 -->
-      <div class="flex-1 p-3 relative" :class="isEditingHotkey ? 'overflow-hidden' : 'overflow-auto'">
-        <component :is="currentTabConfig.component" :ref="activeTab === 'hotkeys' ? 'hotkeySettingsRef' : undefined" />
+      <div
+        class="flex-1 p-3 relative"
+        :class="isEditingHotkey ? 'overflow-hidden' : 'overflow-auto'"
+      >
+        <component
+          :is="currentTabConfig.component"
+          :ref="activeTab === 'hotkeys' ? 'hotkeySettingsRef' : undefined"
+        />
       </div>
     </div>
   </div>
@@ -72,14 +86,21 @@ import IconMdiSettings from "~icons/mdi/settings";
 /** @ts-ignore */
 import IconMdiDownload from "~icons/mdi/download";
 
-import HotkeySettings from "@/components/Hotkeys/HotkeySettings.vue";
-import PluginManager from "@/components/Plugins/PluginManager.vue";
-import PluginSettings from "@/components/Plugins/PluginSettings.vue";
-import CustomHotkeys from "@/components/Hotkeys/CustomHotkeys.vue";
-import DownloadManager from "@/components/Downloads/DownloadManager.vue";
+import HotkeySettings from "../Hotkeys/HotkeySettings.vue";
+import PluginManager from "../Plugins/PluginManager.vue";
+import PluginSettings from "../Plugins/PluginSettings.vue";
+import CustomHotkeys from "../Hotkeys/CustomHotkeys.vue";
+import DownloadManager from "../Downloads/DownloadManager.vue";
 
-import About from "@/components/About/About.vue";
-import GithubToken from "@/components/GithubToken/GithubToken.vue";
+import About from "../About/About.vue";
+import GithubToken from "../GithubToken/GithubToken.vue";
+
+// 事件定义
+interface Emits {
+  (e: "close"): void;
+}
+
+const emit = defineEmits<Emits>();
 
 // 标签页配置
 interface TabConfig {
@@ -96,47 +117,47 @@ const tabsConfig: TabConfig[] = [
     title: "插件管理",
     description: "管理插件，扩展应用程序功能",
     icon: IconMdiPuzzle,
-    component: PluginManager
+    component: PluginManager,
   },
   {
     id: "plugin-settings",
     title: "插件设置",
     description: "配置已安装插件的个性化设置",
     icon: IconMdiSettings,
-    component: PluginSettings
+    component: PluginSettings,
   },
   {
     id: "hotkeys",
     title: "快捷键设置",
     description: "配置应用程序的快捷键，提高操作效率",
     icon: IconMdiKeyboard,
-    component: HotkeySettings
+    component: HotkeySettings,
   },
   {
     id: "custom",
     title: "自定义快捷键",
     description: "创建和管理您的自定义快捷键",
     icon: IconMdiCog,
-    component: CustomHotkeys
+    component: CustomHotkeys,
   },
   {
     id: "downloads",
     title: "下载",
     description: "管理文件下载任务，监控下载进度",
     icon: IconMdiDownload,
-    component: DownloadManager
+    component: DownloadManager,
   },
   {
     id: "about",
     title: "关于",
     description: "了解 Naimo 应用程序的详细信息",
     icon: IconMdiInformation,
-    component: About
+    component: About,
   },
 ];
 
 // 当前激活的标签页
-const activeTab = ref<string>("plugins");
+const activeTab = ref<string>("hotkeys");
 
 // 组件引用
 const hotkeySettingsRef = ref<InstanceType<typeof HotkeySettings>>();
@@ -148,7 +169,7 @@ const isEditingHotkey = computed(() => {
 
 // 获取当前标签页配置
 const currentTabConfig = computed(() => {
-  return tabsConfig.find(tab => tab.id === activeTab.value) || tabsConfig[0];
+  return tabsConfig.find((tab) => tab.id === activeTab.value) || tabsConfig[0];
 });
 
 // 获取标签页标题
@@ -161,23 +182,9 @@ const getTabDescription = () => {
   return currentTabConfig.value.description;
 };
 
-// 关闭设置 - 通知主进程关闭此 WebContentsView
-const closeSettings = async () => {
-  try {
-    // 通过 IPC 通知主进程关闭设置页面视图
-    if (window.naimo?.router && 'windowCloseSettingsView' in window.naimo.router) {
-      await (window.naimo.router as any).windowCloseSettingsView();
-    } else {
-      // 降级处理：发送关闭消息给主进程
-      console.warn('IPC 方法不可用，尝试替代方案');
-      // 这里可以通过其他方式通知主进程，比如自定义事件
-      window.dispatchEvent(new CustomEvent('settings-close-requested'));
-    }
-  } catch (error) {
-    console.error('关闭设置页面失败:', error);
-    // 最后的降级处理
-    window.close();
-  }
+// 关闭设置
+const closeSettings = () => {
+  emit("close");
 };
 </script>
 

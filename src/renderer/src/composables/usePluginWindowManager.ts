@@ -4,7 +4,7 @@
  */
 
 import { nextTick, toRaw } from 'vue'
-import { pluginApiGenerator } from '@/core/plugin/PluginApiGenerator'
+import { storeUtils } from '@/temp_code/utils/store'
 import { LifecycleType } from '@/typings/windowTypes'
 import type { PluginItem } from '@/typings/pluginTypes'
 import type { AttachedFile } from '@/typings/composableTypes'
@@ -32,18 +32,78 @@ export function usePluginWindowManager() {
       getPluginApi: (pluginId: string) => Promise<any>
     }
   ): Promise<any> => {
-    // 创建适配器函数，将双参数函数转换为单参数函数
-    const openPluginWindowAdapter = async (item: PluginItem) => {
-      await dependencies.openPluginWindow(item)
+    // 获取插件基础 API
+    const pluginApi = await dependencies.getPluginApi(pluginItem.pluginId as string)
+
+    // 文件列表管理
+    const addPathToFileList = async (name: string, path: string) => {
+      await storeUtils.addListItem("fileList", {
+        name: name,
+        path: path,
+        icon: null,
+        lastUsed: Date.now(),
+        usageCount: 1,
+      }, {
+        position: 'start',
+        unique: true,
+        uniqueField: 'path'
+      })
     }
 
-    return pluginApiGenerator.generateApi(pluginItem, {
-      toggleInput: dependencies.toggleInput,
-      openPluginWindow: openPluginWindowAdapter,
-      pluginStore: dependencies.pluginStore,
-      getPluginApi: dependencies.getPluginApi,
-      hotkeyEmit
-    })
+    // 创建网页窗口
+    const openWebPageWindow = async (url: string, windowOptions: any = {}) => {
+      // 获取当前视图信息
+      const currentViewInfo = await naimo.router.windowGetCurrentViewInfo()
+      if (!currentViewInfo) {
+        console.warn('⚠️ 无法获取当前视图信息，跳过插件窗口创建')
+        return
+      }
+
+      // 合并选项
+      const finalOptions = {
+        path: windowOptions.path || pluginItem.path,
+        pluginId: pluginItem.pluginId,
+        name: pluginItem.name,
+        title: windowOptions.title || pluginItem.name,
+        url,
+        lifecycleType: windowOptions.lifecycleType || pluginItem.lifecycleType,
+        preload: windowOptions.preload,
+        hotkeyEmit: hotkeyEmit || false,
+        ...windowOptions
+      }
+
+      // 直接创建插件视图
+      const result = await naimo.router.windowCreatePluginView({
+        path: finalOptions.path,
+        title: finalOptions.name || '插件',
+        url: url || '',
+        lifecycleType: finalOptions.lifecycleType === LifecycleType.BACKGROUND ? 'background' : 'foreground',
+        preload: finalOptions.preload || ''
+      })
+
+      if (result.success && dependencies.openPluginWindow) {
+        // 通知主应用打开插件窗口
+        await dependencies.openPluginWindow(pluginItem)
+        console.log(`✅ 插件视图创建成功: ${result.viewId} (${pluginItem.name})`)
+      }
+
+      return result
+    }
+
+    // 组装完整的 API 对象
+    return {
+      ...pluginApi,
+      toggleInput: dependencies.toggleInput || (() => { }),
+      openPluginWindow: dependencies.openPluginWindow ? () => dependencies.openPluginWindow(pluginItem) : () => Promise.resolve(),
+      addPathToFileList,
+      plugin: dependencies.pluginStore || {
+        installZip: () => Promise.resolve(false),
+        install: () => Promise.resolve(false),
+        uninstall: () => Promise.resolve(false),
+        toggle: () => Promise.resolve(false),
+      },
+      openWebPageWindow
+    }
   }
 
   /**

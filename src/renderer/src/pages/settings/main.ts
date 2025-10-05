@@ -5,15 +5,12 @@
 
 import { createApp } from 'vue'
 import SettingsApp from './SettingsApp.vue'
-import { pinia } from '@/store'
 import { useApp } from '@/temp_code'
 import '@/style.css'
 
 // 创建设置页面应用
 const app = createApp(SettingsApp)
-
-// 配置 Pinia
-app.use(pinia)
+app.use(createPinia());
 
 // 配置Vue全局错误处理
 app.config.errorHandler = (err, _instance, info) => {

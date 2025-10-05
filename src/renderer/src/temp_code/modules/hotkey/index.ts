@@ -13,7 +13,7 @@ import {
 import { useLoading } from "@/temp_code/hooks/useLoading";
 
 // 导入默认快捷键配置
-import { hotkeyConfig } from "@/modules/hotkeys/config/hotkey";
+import { hotkeyConfig } from "@/config/hotkey";
 
 /**
  * 快捷键主 Store

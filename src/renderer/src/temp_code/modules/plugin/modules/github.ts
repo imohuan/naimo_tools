@@ -1,7 +1,7 @@
 import type { PluginConfig } from '@/typings/pluginTypes'
 import { BasePluginInstaller } from './base'
 import { PluginSourceType, type InstallOptions } from '@/temp_code/typings/plugin'
-import { request } from '@/core/request'
+import { request } from '@/temp_code/utils/request'
 import { useCacheStore } from '@/temp_code/modules/cache'
 import { uniqueArrayByProperty } from '@/temp_code/utils/unique'
 import { set } from 'lodash-es'

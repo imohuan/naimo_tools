@@ -211,7 +211,10 @@ export const usePluginStoreNew = defineStore("pluginNew", () => {
     }
 
     await saveInstalledPluginIds();
-    if (!silent.value) await naimo.router.appForwardMessageToMainView("plugin-installed", { pluginId: plugin.id, });
+    if (!silent.value)
+      await naimo.router.appForwardMessageToMainView("plugin-installed", {
+        pluginId: plugin.id,
+      });
 
     console.log(`✅ 安装成功: ${plugin.id}`);
     return plugin;
@@ -238,7 +241,10 @@ export const usePluginStoreNew = defineStore("pluginNew", () => {
     // 清除钩子和保存
     clearPluginHooks(id);
     await saveInstalledPluginIds();
-    if (!silent.value) await naimo.router.appForwardMessageToMainView("plugin-uninstalled", { pluginId: id, });
+    if (!silent.value)
+      await naimo.router.appForwardMessageToMainView("plugin-uninstalled", {
+        pluginId: id,
+      });
     console.log(`✅ 卸载成功: ${id}`);
     return true;
   }, "卸载插件失败");
@@ -301,7 +307,9 @@ export const usePluginStoreNew = defineStore("pluginNew", () => {
         return;
       }
       // 静默状态：当前是主窗口，执行真正的安装逻辑
-      console.log(`📥 [PluginStoreNew] 主窗口接收到安装事件，开始执行真正的安装: ${data.pluginId}`);
+      console.log(
+        `📥 [PluginStoreNew] 主窗口接收到安装事件，开始执行真正的安装: ${data.pluginId}`
+      );
 
       try {
         // 1. 更新所有插件列表 (包含新安装的插件 也就是本地插件，这里不需要加载远程插件）
@@ -325,7 +333,9 @@ export const usePluginStoreNew = defineStore("pluginNew", () => {
         return;
       }
       // 静默状态：当前是主窗口，执行真正的卸载逻辑
-      console.log(`📥 [PluginStoreNew] 主窗口接收到卸载事件，开始执行真正的卸载: ${data.pluginId}`);
+      console.log(
+        `📥 [PluginStoreNew] 主窗口接收到卸载事件，开始执行真正的卸载: ${data.pluginId}`
+      );
       try {
         // 调用 uninstall 方法执行完整的卸载流程
         // 因为 silent = true，uninstall 方法不会再广播事件

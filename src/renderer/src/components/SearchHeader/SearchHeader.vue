@@ -51,12 +51,12 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import DraggableArea from '@/components/DraggableArea.vue'
-import SearchInput from '@/modules/search/components/SearchInput.vue'
-import PluginInfoDisplay from './components/PluginInfoDisplay.vue'
-import FileInfoDisplay from './components/FileInfoDisplay.vue'
-import DragIcon from './components/DragIcon.vue'
-import SettingsButton from './components/SettingsButton.vue'
+import DraggableArea from '@/components/DraggableArea/DraggableArea.vue'
+import SearchInput from '@/components/Search/SearchInput.vue'
+import PluginInfoDisplay from './PluginInfoDisplay.vue'
+import FileInfoDisplay from './FileInfoDisplay.vue'
+import DragIcon from './DragIcon.vue'
+import SettingsButton from './SettingsButton.vue'
 import { useDragDrop } from '@/composables/useDragDrop'
 import { useFilePaste } from './hooks/useFilePaste'
 import type { AttachedFile } from '@/typings/composableTypes'
@@ -103,8 +103,10 @@ const noDragStyles = computed(() => ({
 }))
 
 // ==================== 拖拽处理 ====================
-const addFilesInternal = async (files: File[]) => {
-  emit('add-files', files)
+const addFilesInternal = async (files: File[] | FileList): Promise<AttachedFile[]> => {
+  const fileArray = Array.isArray(files) ? files : Array.from(files)
+  emit('add-files', fileArray)
+  return []
 }
 
 const {
@@ -119,7 +121,11 @@ const {
 const { handleFilePaste } = useFilePaste()
 
 const handlePaste = async (event: ClipboardEvent) => {
-  await handleFilePaste(event, addFilesInternal)
+  // 创建适配器函数，匹配 useFilePaste 期望的签名
+  const addFilesAdapter = async (files: File[]): Promise<void> => {
+    emit('add-files', files)
+  }
+  await handleFilePaste(event, addFilesAdapter)
 }
 
 // ==================== 清除处理 ====================
