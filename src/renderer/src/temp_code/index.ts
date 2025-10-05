@@ -140,6 +140,5 @@ export { InterfaceType } from '@/temp_code/typings/ui'
 export { HotkeyType } from '@/temp_code/typings/hotkey'
 export type { CacheItem } from '@/temp_code/typings/cache'
 export type { SearchCategory } from '@/temp_code/typings/search'
-export type { PluginConfig } from '@/temp_code/typings/plugin'
 export type { HotkeyConfig, HotkeyStats, HotkeyEventDetail } from '@/temp_code/typings/hotkey'
 

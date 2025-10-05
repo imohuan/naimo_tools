@@ -1,7 +1,6 @@
 import type { AttachedFile } from '@/typings/composableTypes'
 import type { AppItem } from '@shared/typings'
 import type { SearchMode } from './searchTypes'
-import type { PluginApi } from '@shared/typings/global'
 /** 插件钩子 */
 export type PluginHook = (...args: any[]) => void | Promise<void>
 
@@ -171,9 +170,9 @@ export interface PluginItem extends AppItem {
   /** 插件搜索回调（插件搜索模式使用） */
   onPluginSearch?: (searchText: string, files: AttachedFile[]) => AppItem[]
   /** 进入回调 */
-  onEnter?: (params: { files: AttachedFile[], searchText: string }, api: PluginApi) => void
+  onEnter?: (params: { files: AttachedFile[], searchText: string }, api: any) => void
   /** 安装回调 */
-  onInstall?: (api: PluginApi) => void
+  onInstall?: (api: any) => void
   /** 在哪些搜索模式下隐藏 */
   hideInModes?: SearchMode[]
   /** 在哪些搜索模式下显示 */

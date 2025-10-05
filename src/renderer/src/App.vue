@@ -1,223 +1,153 @@
 <template>
-  <div class="w-full h-full p-2 bg-transparent" @keydown="handleKeyNavigation" @click="handleContainerClick">
-    <!-- <Test /> -->
-    <!-- 主应用容器 - 透明背景，恢复阴影和圆角效果 -->
-    <div class="w-full bg-transparent relative overflow-hidden h-full rounded-xl transition-all duration-200"
-      :class="{ 'ring-2 ring-indigo-400 ring-opacity-50': isDragOver }"
-      style="box-shadow: 0 1px 3px 0 rgba(60, 72, 120, 0.48);">
+  <div
+    class="w-full h-full p-2 bg-transparent"
+    @keydown="handleKeyNavigation"
+    @click="handleContainerClick"
+  >
+    <!-- 主应用容器 -->
+    <div
+      class="w-full bg-transparent relative overflow-hidden h-full rounded-xl transition-all duration-200"
+      style="box-shadow: 0 1px 3px 0 rgba(60, 72, 120, 0.48)"
+    >
+      <!-- 搜索头部区域 -->
+      <SearchHeader
+        ref="searchHeaderRef"
+        :height="headerHeight"
+        :plugin-item="currentPluginItem"
+        :attached-files="attachedFiles"
+        :is-settings-interface="isSettingsInterface"
+        :search-text="searchText"
+        :should-show-search-box="shouldShowSearchBox"
+        @click="handleSearchFocus"
+        @update:search-text="searchText = $event"
+        @search="handleSearch"
+        @input="debouncedHandleSearch"
+        @add-files="addFiles"
+        @clear-files="clearAttachedFiles"
+        @clear-plugin="handleClearPlugin"
+        @open-settings="openSettings"
+      />
 
-      <!-- 搜索头部区域 - 固定区域，支持自定义窗口拖拽 -->
-      <DraggableArea class="w-full flex items-center justify-center" :style="{ height: `${headerHeight}px` }"
-        @click="searchHeaderActions.handleClick">
-
-        <div class="w-full h-full relative flex items-center bg-white rounded-t-xl transition-all duration-200"
-          :class="{ 'bg-indigo-50': isDragOver }" @dragover="handleDragOver" @dragenter="handleDragEnter"
-          @dragleave="handleDragLeave" @drop="originalHandleDrop">
-
-          <!-- 插件信息显示区域 -->
-          <div v-if="displayedPluginItem && !searchHeaderState.isSettingsInterface"
-            class="h-full flex items-center p-2">
-            <!-- 调试信息 -->
-            <!-- {{ console.log('🔍 Debug插件信息:', { shouldShow: searchHeaderComputed.shouldShowPluginInfo.value, currentPluginItem: searchHeaderState.currentPluginItem, isSettings: searchHeaderState.isSettingsInterface }) }} -->
-            <!-- 插件图标容器 -->
-            <div class="h-full p-2 flex items-center space-x-1 border border-indigo-200 bg-indigo-50 rounded-md">
-              <div class="p-1 flex items-center justify-center">
-                <IconDisplay :src="displayedPluginItem?.icon" :alt="displayedPluginItem?.name"
-                  icon-class="w-4 h-4 object-cover" fallback-class="w-5 h-5 flex items-center justify-center">
-                  <template #fallback>
-                    <IconMdiPuzzle class="w-4 h-4 text-indigo-500" />
-                  </template>
-                </IconDisplay>
-              </div>
-
-              <!-- 插件名称和类型 -->
-              <div class="flex items-center justify-center gap-2">
-                <span class="text-sm font-medium text-indigo-700 truncate max-w-24" :title="displayedPluginItem?.name">
-                  {{ displayedPluginItem?.name }}
-                </span>
-                <span class="font-mono bg-indigo-400 rounded-md text-white px-2 text-xs">
-                  插件
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <!-- 文件信息显示区域 -->
-          <div v-else-if="searchHeaderState.attachedFiles.length > 0 && !displayedPluginItem"
-            class="h-full flex items-center p-2">
-            <!-- 文件图标容器 -->
-            <div class="h-full p-2 flex items-center space-x-1 border border-gray-200 bg-gray-50 rounded-md">
-              <div class="p-1">
-                <IconDisplay :src="searchHeaderComputed.firstFile.value?.icon"
-                  :alt="searchHeaderComputed.firstFile.value?.name" icon-class="w-5 h-5 object-cover"
-                  fallback-class="w-5 h-5 flex items-center justify-center">
-                  <template #fallback>
-                    <IconMdiFile class="w-4 h-4 text-gray-500" />
-                  </template>
-                </IconDisplay>
-              </div>
-
-              <!-- 文件名和数量 -->
-              <div class="flex items-center justify-center gap-2">
-                <span class="text-sm font-medium text-gray-700 truncate max-w-24"
-                  :title="searchHeaderComputed.firstFile.value?.name">
-                  {{ searchHeaderComputed.firstFile.value?.name }}
-                </span>
-                <span v-if="searchHeaderState.attachedFiles.length > 1"
-                  class="font-mono bg-gray-400 rounded-md text-white px-2 text-xs">
-                  {{ searchHeaderState.attachedFiles.length }}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <!-- 拖拽图标 -->
-          <div v-else
-            class="h-full aspect-square flex items-center justify-center text-gray-400 transition-colors duration-200"
-            :class="{
-              'text-indigo-500': isDragOver && !searchHeaderState.currentPluginItem,
-              'text-gray-300': searchHeaderState.currentPluginItem
-            }">
-            <IconMdiFileUpload v-if="isDragOver && !searchHeaderState.currentPluginItem" class="w-5 h-5" />
-            <IconMdiMagnify v-else class="w-5 h-5" />
-          </div>
-
-          <!-- 搜索输入框组件 -->
-          <SearchInput ref="searchInputRef" :model-value="searchText"
-            :has-files="searchHeaderState.attachedFiles.length > 0 || searchHeaderState.currentPluginItem !== null"
-            :should-show-search-box="searchHeaderState.shouldShowSearchBox"
-            @update:model-value="(value: string) => searchText = value" @enter="handleSearch"
-            @input="debouncedHandleSearch" @paste="handleFilePaste" @clear-files="handleClearFilesOrPlugin"
-            :placeholder="searchHeaderComputed.placeholderText.value"
-            :style="searchHeaderComputed.noDragStyles.value" />
-
-          <!-- 设置按钮 -->
-          <div class="h-full aspect-square" :style="searchHeaderComputed.noDragStyles.value">
-            <button
-              class="w-full h-full p-3 text-gray-500 transition-colors duration-200 rounded-lg flex items-center justify-center"
-              title="打开设置" @click="openSettings">
-              <IconMdiCog class="w-5 h-5 hover:text-gray-700" />
-            </button>
-          </div>
-        </div>
-      </DraggableArea>
-
-      <!-- 内容呈现区域 - 动态区域 -->
-      <ContentArea ref="contentAreaRef" :content-area-visible="contentAreaVisible" :search-categories="searchCategories"
-        :selected-index="selectedIndex" :flat-items="flatItems" :show-plugin-window="isWindowInterface"
-        :show-settings-background="isSettingsInterface" @app-click="executeItem" @category-toggle="handleCategoryToggle"
-        @category-drag-end="handleCategoryDragEnd" @app-delete="handleAppDelete" @app-pin="handleAppPin"
-        @window-resize="handleWindowResize" />
+      <!-- 内容呈现区域 -->
+      <ContentArea
+        ref="contentAreaRef"
+        :content-area-visible="contentAreaVisible"
+        :search-categories="searchCategories"
+        :selected-index="selectedIndex"
+        :flat-items="flatItems"
+        :show-plugin-window="isWindowInterface"
+        :show-settings-background="isSettingsInterface"
+        @app-click="executeItem"
+        @category-toggle="handleCategoryToggle"
+        @category-drag-end="handleCategoryDragEnd"
+        @app-delete="handleAppDelete"
+        @app-pin="handleAppPin"
+        @window-resize="handleWindowResize"
+      />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 // ==================== 导入依赖 ====================
-import { ref, reactive, onMounted, nextTick, watch, computed } from "vue";
-import { useDebounceFn, watchDebounced } from "@vueuse/core";
+import { ref, computed, onMounted, nextTick, watch } from "vue";
+import { useDebounceFn, watchDebounced, useEventListener } from "@vueuse/core";
 
 // 组件导入
 import ContentArea from "@/components/ContentArea.vue";
-import SearchInput from "@/modules/search/components/SearchInput.vue";
-import IconDisplay from "@/components/IconDisplay.vue";
-import DraggableArea from "@/components/DraggableArea.vue";
+import SearchHeader from "@/components/SearchHeader/SearchHeader.vue";
 
 // 核心导入
 import { pluginManager } from "@/core/plugin/PluginManager";
 
-// 新窗口管理相关导入
-import { useSearchHeader } from "@/core/window/useSearchHeader";
-import type { SearchHeaderConfig } from "@/core/window/SearchHeaderManager";
-
-import { useTestLoadPlugin } from "@/composables/useTestLoadPlugin";
-
-// 图标导入
-// @ts-ignore 
-import IconMdiPuzzle from "~icons/mdi/puzzle";
-// @ts-ignore
-import IconMdiFile from "~icons/mdi/file";
-// @ts-ignore
-import IconMdiFileUpload from "~icons/mdi/file-upload";
-// @ts-ignore
-import IconMdiMagnify from "~icons/mdi/magnify";
-// @ts-ignore
-import IconMdiCog from "~icons/mdi/cog";
-
 // Composables 导入
-import { useDragDrop } from "@/composables/useDragDrop";
 import { useFileHandler } from "@/composables/useFileHandler";
-import { useUIStatus } from "@/composables/useUIStatus";
-// import { InterfaceType as UIInterfaceType } from "@/typings/composableTypes";
 import { useWindowManager } from "@/composables/useWindowManager";
 import { useEventSystem } from "@/composables/useEventSystem";
-import { useAppLifecycle } from "@/composables/useAppLifecycle";
 import { usePluginWindowManager } from "@/composables/usePluginWindowManager";
 import { useSettingsManager } from "@/composables/useSettingsManager";
-import { useAppEventHandlers } from "@/composables/useAppEventHandlers";
+
+// 配置导入
+import { DEFAULT_WINDOW_LAYOUT } from "@shared/config/windowLayoutConfig";
 
 // 模块导入
 import { useKeyboardNavigation } from "@/modules/search";
 import { useSearch } from "@/modules/search";
+import { useHotkeyManager } from "@/modules/hotkeys/hooks/useHotkeyManager";
 import { usePluginStore } from "@/store";
+
+// Store 导入
+import { useApp } from "@/temp_code";
 
 // 类型导入
 import type { AppItem } from "@shared/typings";
-import type { SearchCategory } from "@/typings/searchTypes";
-// ==================== 核心管理器初始化 ====================
-/**
- * 搜索头部管理器配置
- */
-const searchHeaderConfig = reactive<Partial<SearchHeaderConfig>>({
-  defaultHeight: 50,
-  enableFileDrop: true,
-  enableNativeDrag: false,
-  searchDelay: 300,
-  maxAttachedFiles: 10
-});
 
-// 初始化所有管理器
-const {
-  state: searchHeaderState,
-  computed: searchHeaderComputed,
-  actions: searchHeaderActions,
-  events: searchHeaderEvents
-} = useSearchHeader({ config: searchHeaderConfig });
-
+// ==================== 初始化 ====================
+const app = useApp();
 const pluginStore = usePluginStore();
-const { uiConstants, initializeApp } = useAppLifecycle();
+const { addHotKeyListener, initializeHotkeys } = useHotkeyManager();
 const pluginWindowManager = usePluginWindowManager();
 const settingsManager = useSettingsManager();
-const eventHandlers = useAppEventHandlers();
+const eventSystem = useEventSystem();
 
+// UI 配置管理
+const uiConstants = ref({
+  headerHeight: DEFAULT_WINDOW_LAYOUT.searchHeaderHeight,
+  padding: DEFAULT_WINDOW_LAYOUT.appPadding,
+});
 
-// ==================== 基础状态和管理器 ====================
+/**
+ * 从主进程获取UI常量配置
+ */
+const loadUIConstants = async () => {
+  try {
+    const config = await naimo.router.windowGetUIConstants();
+    if (config) {
+      uiConstants.value = config;
+      console.log("✅ UI常量配置加载成功:", config);
+      return config;
+    }
+    console.warn("⚠️ 未获取到UI常量配置，使用默认值");
+    return uiConstants.value;
+  } catch (error) {
+    console.warn("❌ 获取UI常量配置失败，使用默认值:", error);
+    return uiConstants.value;
+  }
+};
+
+/**
+ * 应用初始化序列
+ */
+const initializeApp = async () => {
+  console.log("🚀 开始应用初始化");
+
+  try {
+    // 1. 加载UI常量配置
+    await loadUIConstants();
+
+    // 2. 初始化快捷键（优先执行，确保全局快捷键可用）
+    await initializeHotkeys();
+
+    // 3. 初始化插件
+    await pluginStore.initialize();
+
+    console.log("🎉 应用初始化完成");
+  } catch (error) {
+    console.error("❌ 应用初始化失败:", error);
+    throw error;
+  }
+};
+
+// 组件引用
+const searchHeaderRef = ref<InstanceType<typeof SearchHeader>>();
+const contentAreaRef = ref<InstanceType<typeof ContentArea>>();
+
 // 窗口管理器
 const { setSize, isWindowVisible, show: handleWindowShow, hide } = useWindowManager();
 const show = () => {
   handleWindowShow();
   contentAreaRef.value?.handleResize();
 };
-
-// UI状态管理器
-const {
-  searchText: uiSearchText,
-  isSettingsInterface,
-  isWindowInterface,
-  isPluginWindowOpen,
-  contentAreaVisible,
-  currentPluginItem,
-  openPluginWindow: openPluginWindowUI,
-  closePluginWindow: closePluginWindowUI,
-  updateSearchResults,
-  resetToDefault,
-  switchToSearch,
-  switchToSettings,
-} = useUIStatus();
-
-// 组件引用
-const searchInputRef = ref<InstanceType<typeof SearchInput>>();
-const contentAreaRef = ref<InstanceType<typeof ContentArea>>();
 
 // 文件处理器
 const { attachedFiles, addFiles, clearAttachedFiles } = useFileHandler();
@@ -236,67 +166,188 @@ const {
   handleCategoryDragEnd,
   handleAppDelete,
   handleAppPin,
-  setSearchCategories,
 } = useSearch(attachedFiles);
 
-// 拖拽处理器
-const {
-  isDragOver,
-  handleDragOver,
-  handleDragEnter,
-  handleDragLeave,
-  handleDrop: originalHandleDrop,
-} = useDragDrop(addFiles);
-
-// 事件系统
-const eventSystem = useEventSystem();
-
-// ==================== 核心业务函数 ====================
-// 计算属性：双向绑定搜索文本
-const searchText = computed({
-  get: () => uiSearchText.value,
-  set: (value: string) => {
-    uiSearchText.value = value;
-    searchModuleText.value = value;
-  }
-});
-
-// 计算属性：UI常量
-const headerHeight = computed(() => searchHeaderState?.headerHeight ?? searchHeaderConfig.defaultHeight ?? 50);
+// ==================== 计算属性 ====================
+const searchText = ref("");
+const shouldShowSearchBox = ref(true);
+const headerHeight = computed(() => uiConstants.value.headerHeight);
 const padding = computed(() => uiConstants.value.padding);
 
-const toggleInput = (value?: boolean) => {
-  searchHeaderActions.setSearchBoxVisibility(value !== undefined ? value : !searchHeaderState.shouldShowSearchBox)
-}
+// UI 状态（使用 useApp().ui）
+const isSettingsInterface = computed(() => app.ui.isSettingsInterface);
+const isWindowInterface = computed(() => app.ui.isWindowInterface);
+const isPluginWindowOpen = computed(() => app.ui.isWindowInterface);
+const contentAreaVisible = computed(() => app.ui.isContentVisible);
+const currentPluginItem = computed({
+  get: () => app.ui.activePlugin,
+  set: (value) => {
+    app.ui.activePlugin = value;
+  },
+});
 
+// ==================== 核心业务函数 ====================
 // 搜索处理函数
 const handleSearch = async (value: string) => {
-  const currentPlugin = displayedPluginItem.value;
+  const currentPlugin = currentPluginItem.value;
   if (currentPlugin && isPluginWindowOpen.value) {
-    console.log('🔍 执行已激活插件的自定义搜索:', {
+    console.log("🔍 执行已激活插件的自定义搜索:", {
       pluginName: currentPlugin.name,
       searchText: value,
-      attachedFilesCount: attachedFiles.value.length
+      attachedFilesCount: attachedFiles.value.length,
     });
-    naimo.router.appForwardMessageToPluginView(currentPlugin.path, 'plugin-search', { searchText: value, timestamp: Date.now() })
-    return
+    naimo.router.appForwardMessageToPluginView(currentPlugin.path, "plugin-search", {
+      searchText: value,
+      timestamp: Date.now(),
+    });
+    return;
   }
-  // 默认搜索逻辑
   return handleSearchCore(value);
 };
 
 // 防抖搜索
-const debouncedHandleSearch = useDebounceFn(
-  () => handleSearch(searchText.value),
-  100
-);
+const debouncedHandleSearch = useDebounceFn(() => handleSearch(searchText.value), 100);
 
-// ESC键处理函数 - 使用事件处理器中的逻辑
-const handleEscAction =
-  async () => {
-    console.log("收到ESC键处理函数", isPluginWindowOpen.value)
-    await windowStateHandlers.handleCloseWindowRequested();
+// 聚焦搜索框
+const handleSearchFocus = () => {
+  nextTick(() => {
+    if (shouldShowSearchBox.value && searchHeaderRef.value) {
+      searchHeaderRef.value.focus();
+    }
+  });
+};
+
+// 容器点击处理
+const handleContainerClick = (event: MouseEvent) => {
+  const target = event.target as HTMLElement;
+  if (
+    target.tagName === "INPUT" ||
+    target.tagName === "BUTTON" ||
+    target.closest("input") ||
+    target.closest("button") ||
+    target.closest('[role="button"]') ||
+    target.classList.contains("no-drag")
+  ) {
+    return false;
   }
+  return false;
+};
+
+// ==================== 文件和插件处理 ====================
+// 清除插件
+const handleClearPlugin = async () => {
+  currentPluginItem.value = null;
+  await closePluginWindow();
+};
+
+// ==================== 插件和设置管理 ====================
+const closePluginWindow = async () => {
+  await pluginWindowManager.closePluginWindow({
+    closePluginWindowUI: () => app.ui.closePluginWindow(),
+    handleSearchFocus,
+  });
+};
+
+const openSettings = async () => {
+  if (isPluginWindowOpen.value) {
+    console.log("🔧 打开设置前，先关闭插件view");
+    try {
+      await naimo.router.windowClosePluginView();
+      console.log("✅ 插件view已关闭");
+    } catch (error) {
+      console.error("❌ 关闭插件view失败:", error);
+    }
+  }
+
+  await settingsManager.openSettings({
+    switchToSettings: () => app.ui.switchToSettings(),
+    handleResize: () => contentAreaRef.value?.handleResize(),
+  });
+};
+
+const closeSettings = async () => {
+  await settingsManager.closeSettings({
+    switchToSearch: () => app.ui.switchToSearch(),
+    handleSearchFocus,
+  });
+};
+
+// ==================== 窗口管理 ====================
+const initializeWindowSize = () => {
+  setSize({ height: headerHeight.value + padding.value });
+};
+
+const handleWindowResize = async (height: number) => {
+  try {
+    await naimo.router.windowAdjustHeight(height);
+  } catch (error) {
+    console.error("调整窗口高度失败:", error);
+    naimo.router.windowSetSize(-1, height);
+  }
+};
+
+const handleResetToDefault = () => {
+  if (isPluginWindowOpen.value) closePluginWindow();
+  app.ui.resetToDefault();
+};
+
+// ==================== 搜索状态恢复 ====================
+const recoverSearchState = (clearPlugin = false) => {
+  console.log("恢复搜索状态", { clearPlugin, searchText: searchText.value });
+
+  if (clearPlugin) {
+    currentPluginItem.value = null;
+  }
+
+  app.ui.switchToSearch();
+  shouldShowSearchBox.value = true;
+
+  const currentText = searchText.value ?? "";
+  handleSearch(currentText);
+
+  nextTick(() => {
+    contentAreaRef.value?.handleResize();
+    handleSearchFocus();
+  });
+};
+
+// ==================== ESC处理 ====================
+const handleEscAction = async () => {
+  console.log("收到ESC键处理函数", isPluginWindowOpen.value);
+
+  // 如果当前是插件窗口，关闭插件窗口
+  if (isPluginWindowOpen.value) {
+    console.log("关闭插件窗口");
+    closePluginWindow();
+    attachedFiles.value = [];
+    currentPluginItem.value = null;
+    return;
+  }
+
+  // 如果当前是设置页面，关闭设置页面
+  if (isSettingsInterface.value) {
+    console.log("关闭设置页面");
+    await closeSettings();
+    return;
+  }
+
+  if (attachedFiles.value.length > 0 || currentPluginItem.value) {
+    console.log("清空附加内容");
+    attachedFiles.value = [];
+    currentPluginItem.value = null;
+    return;
+  }
+
+  // 如果当前是搜索页面
+  if (searchText.value.trim() !== "") {
+    console.log("清空搜索框");
+    searchText.value = "";
+    handleSearch("");
+    return;
+  }
+
+  hide();
+};
 
 // 键盘导航
 const { handleKeyNavigation } = useKeyboardNavigation(
@@ -311,214 +362,127 @@ const { handleKeyNavigation } = useKeyboardNavigation(
   handleEscAction
 );
 
-// ==================== 窗口和状态管理 ====================
-// 初始化窗口大小
-const initializeWindowSize = () => {
-  setSize({ height: headerHeight.value + padding.value });
-};
-
-// 处理窗口大小调整
-const handleWindowResize = async (height: number) => {
-  try {
-    await naimo.router.windowAdjustHeight(height);
-  } catch (error) {
-    console.error('调整窗口高度失败:', error);
-    naimo.router.windowSetSize(-1, height);
-  }
-};
-
-// 重置到默认状态
-const handleResetToDefault = () => {
-  if (isPluginWindowOpen.value) closePluginWindow();
-  resetToDefault();
-};
-
-// ==================== 用户交互处理 ====================
-// 聚焦搜索框
-const handleSearchFocus = () => {
-  nextTick(() => {
-    if (searchHeaderState.shouldShowSearchBox && searchInputRef.value) {
-      searchInputRef.value.focus();
-    }
+// ==================== 事件监听 ====================
+// 窗口焦点事件
+const onWindowFocus = () => {
+  handleSearchFocus();
+  isWindowVisible().then((isVisible) => {
+    if (!isVisible) show();
   });
 };
 
-// 调试状态函数
-const displayedPluginItem = computed(() => searchHeaderState.currentPluginItem ?? currentPluginItem.value ?? null);
+const onWindowBlur = (data?: any) => {
+  console.log("收到窗口blur事件:", data);
+  hide();
+};
 
-// 处理容器点击
-const handleContainerClick = eventHandlers.handleContainerClick;
+const onVisibilityChange = () => {
+  if (!document.hidden && document.hasFocus()) {
+    handleSearchFocus();
+    console.log("页面重新变为可见且获得焦点时，聚焦到搜索框");
+  }
+};
 
-// ==================== 文件和插件处理 ====================
-// 处理文件粘贴事件
-const handleFilePaste = async (event: ClipboardEvent) => {
-  searchHeaderActions.handlePaste(event);
+// 快捷键事件
+const onHotkeyTriggered = async (event: any) => {
+  const detail = event.detail;
 
-  const items = event.clipboardData?.items;
-  if (!items) return;
+  switch (detail.id) {
+    case "app_focus_search":
+      console.log("收到聚焦搜索框请求");
+      handleSearchFocus();
+      break;
 
-  const files: File[] = [];
-  let hasTextContent = false;
+    case "app_close_window":
+      handleEscAction();
+      break;
 
-  for (let i = 0; i < items.length; i++) {
-    const item = items[i];
+    case "global_show_window":
+      console.log("收到显示/隐藏窗口请求");
+      const isMainWindowVisible = await isWindowVisible();
+      if (isMainWindowVisible) {
+        hide();
+      } else {
+        show();
+      }
+      break;
 
-    if (item.kind === "file") {
-      const file = item.getAsFile();
-      if (file) files.push(file);
-    } else if (item.kind === "string" && item.type === "text/plain") {
-      hasTextContent = true;
-      item.getAsString((text: string) => {
-        const trimmedText = text.trim();
-        if (trimmedText.length > 30) {
-          const fileName = trimmedText.slice(0, 10) + ".txt";
-          const blob = new Blob([trimmedText], { type: 'text/plain;charset=utf-8' });
-          const file = new File([blob], fileName, { type: 'text/plain' });
-          addFiles([file]);
+    default:
+      if (detail.id.startsWith("custom_global_")) {
+        const name = detail.config.name?.trim();
+        if (!name) {
+          console.log("不存在Name:", detail.config);
+          return;
         }
-      });
-    }
+
+        searchText.value = name;
+        await handleSearch(name);
+        show();
+
+        const items = searchCategories.value.find(
+          (category) => category.id === "best-match"
+        )?.items;
+        if (items && items.length > 0) {
+          executeItem(items[0], true);
+        } else {
+          console.log("没有搜索结果");
+        }
+
+        console.log("搜索结果:", searchCategories.value, { items });
+        console.log("收到自定义全局快捷键触发事件:", name);
+      }
+      break;
   }
 
-  if (files.length > 0) {
-    event.preventDefault();
-    await addFiles(files);
-  } else if (hasTextContent) {
-    event.preventDefault();
-  }
+  console.log("🔍 收到全局快捷键触发事件:", detail);
 };
 
-// 清除文件或插件
-const handleClearFilesOrPlugin = async () => {
-  if (searchHeaderState.currentPluginItem) {
-    currentPluginItem.value = null;
-    searchHeaderActions.clearCurrentPlugin();
-    await closePluginWindow();
-  } else if (attachedFiles.value.length > 0) {
-    searchHeaderActions.clearAttachedFiles();
-    clearAttachedFiles();
-  }
-};
-
-// ==================== 插件和设置管理 ====================
-
-const closePluginWindow = async () => {
-  await pluginWindowManager.closePluginWindow({
-    closePluginWindowUI: () => {
-      closePluginWindowUI();
-      // 清除搜索头部管理器中的插件状态
-      searchHeaderActions.clearCurrentPlugin();
+// ==================== 插件事件处理 ====================
+const handlePluginExecuted = async (event: {
+  pluginId: string;
+  path: string;
+  hotkeyEmit: boolean;
+}) => {
+  await pluginWindowManager.handlePluginExecuted(event, {
+    openPluginWindowUI: (plugin) => app.ui.openPluginWindow(plugin),
+    toggleInput: (value?: boolean) => {
+      shouldShowSearchBox.value =
+        value !== undefined ? value : !shouldShowSearchBox.value;
     },
-    handleSearchFocus
+    attachedFiles: attachedFiles.value,
+    searchText: searchText.value,
+    updateStoreCategory,
+    handleSearch,
+    pluginStore: {
+      installZip: async (zipPath: string) => {
+        await pluginStore.install(zipPath);
+      },
+      install: async (path: string) => {
+        await pluginStore.install(path);
+      },
+      uninstall: async (id: string) => {
+        await pluginStore.uninstall(id);
+      },
+      toggle: async (id: string) => {
+        await pluginStore.toggle(id);
+      },
+    },
+    setAttachedFiles: (files) => {
+      attachedFiles.value = [...files];
+    },
+    setSearchText: (text) => {
+      searchText.value = text;
+    },
   });
 };
 
-// 设置页面管理
-const openSettings = async () => {
-  // 如果有打开的插件窗口，先关闭插件view
-  if (isPluginWindowOpen.value) {
-    console.log('🔧 打开设置前，先关闭插件view');
-    try {
-      await naimo.router.windowClosePluginView();
-      console.log('✅ 插件view已关闭');
-    } catch (error) {
-      console.error('❌ 关闭插件view失败:', error);
-    }
-  }
-
-  await settingsManager.openSettings({
-    switchToSettings: () => {
-      switchToSettings();
-      // 同步设置状态到搜索头部管理器
-      searchHeaderActions.setSettingsInterface(true);
-      searchHeaderActions.clearCurrentPlugin();
-    },
-    handleResize: () => contentAreaRef.value?.handleResize()
+const handlePluginWindowClosed = async (data: any) => {
+  await pluginWindowManager.handlePluginWindowClosed(data, {
+    isPluginWindowOpen: isPluginWindowOpen.value,
+    closePluginWindow,
+    recoverSearchState,
   });
 };
-
-const closeSettings = async () => {
-  await settingsManager.closeSettings({
-    switchToSearch: () => {
-      switchToSearch();
-      // 清除设置状态
-      searchHeaderActions.setSettingsInterface(false);
-    },
-    handleSearchFocus
-  });
-};
-
-
-// ==================== 事件处理器创建 ====================
-// 创建事件处理器
-const windowFocusHandlers = eventHandlers.createWindowFocusHandlers({
-  handleSearchFocus,
-  isWindowVisible,
-  show,
-  hide
-});
-
-const searchHandlers = eventHandlers.createSearchHandlers({
-  searchText: searchText,
-  setSearchText: (text: string) => { searchText.value = text; },
-  handleSearch,
-  executeItem,
-  searchCategories: searchCategories,
-  attachedFiles: attachedFiles,
-  setAttachedFiles: (files) => {
-    attachedFiles.value = [...files];
-    // 同步清空搜索头部管理器中的附加文件
-    if (files.length === 0) {
-      searchHeaderActions.clearAttachedFiles();
-    }
-  },
-  currentPluginItem: currentPluginItem,
-  setCurrentPluginItem: (item) => { currentPluginItem.value = item; },
-  show,
-  handleSearchFocus
-});
-
-const windowStateHandlers = eventHandlers.createWindowStateHandlers({
-  isPluginWindowOpen: isPluginWindowOpen,
-  isSettingsInterface: isSettingsInterface,
-  searchText: searchText,
-  setSearchText: (text: string) => { searchText.value = text; },
-  handleSearch,
-  attachedFiles: attachedFiles,
-  setAttachedFiles: (files) => {
-    attachedFiles.value = [...files];
-    // 同步清空搜索头部管理器中的附加文件
-    if (files.length === 0) {
-      searchHeaderActions.clearAttachedFiles();
-    }
-  },
-  currentPluginItem: currentPluginItem,
-  setCurrentPluginItem: (item) => { currentPluginItem.value = item; },
-  closePluginWindow,
-  closeSettings,
-  isWindowVisible,
-  hide,
-  show
-});
-
-const searchStateHandler = eventHandlers.createSearchStateHandler({
-  searchHeaderActions,
-  setCurrentPluginItem: (item) => { currentPluginItem.value = item; },
-  switchToSearch,
-  searchText: searchText,
-  handleSearch,
-  handleResize: () => contentAreaRef.value?.handleResize(),
-  handleSearchFocus,
-  hide
-});
-
-// 创建快捷键处理器
-const hotkeyHandler = eventHandlers.createHotkeyHandler({
-  handleFocusSearchRequested: searchHandlers.handleFocusSearchRequested,
-  handleCloseWindowRequested: windowStateHandlers.handleCloseWindowRequested,
-  handleShowHideWindowRequested: windowStateHandlers.handleShowHideWindowRequested,
-  handleCustomGlobalHotkeyTriggered: searchHandlers.handleCustomGlobalHotkeyTriggered
-});
 
 // ==================== 监听器 ====================
 // 监听搜索结果变化
@@ -528,7 +492,7 @@ watchDebounced(
     const hasResults = searchCategories.value.some(
       (category: any) => category.items.length > 0
     );
-    updateSearchResults(hasResults);
+    app.ui.setSearchResults(hasResults);
   },
   { debounce: 100 }
 );
@@ -537,8 +501,6 @@ watchDebounced(
 watch(
   () => attachedFiles.value,
   (newFiles, oldFiles) => {
-    searchHeaderActions.addAttachedFiles(newFiles);
-
     if (
       newFiles.length !== oldFiles?.length ||
       (newFiles.length > 0 &&
@@ -546,29 +508,28 @@ watch(
         newFiles.some((file, index) => file.path !== oldFiles[index]?.path))
     ) {
       console.log("📎 附件文件发生变化，自动执行搜索");
-      switchToSearch();
+      app.ui.switchToSearch();
       handleSearch(searchText.value);
     }
   },
   { deep: true }
 );
 
-// 监听搜索框内容和界面状态，当搜索框有内容且在设置界面时自动关闭设置view
+// 监听搜索框内容和界面状态
 watch(
   [() => searchText.value, isSettingsInterface],
   async ([newSearchText, isSettings]) => {
-    console.log('🔍 监听搜索框内容和界面状态，当前状态:', {
+    console.log("🔍 监听搜索框内容和界面状态，当前状态:", {
       newSearchText,
-      isSettings
-    })
+      isSettings,
+    });
 
-    // 当搜索框有内容且当前在设置界面时，关闭设置view
-    if (newSearchText.trim() !== '' && isSettings) {
+    if (newSearchText.trim() !== "" && isSettings) {
       try {
-        await naimo.router.windowCloseSettingsView()
-        console.log('✅ 搜索框有内容，已自动关闭设置view')
+        await naimo.router.windowCloseSettingsView();
+        console.log("✅ 搜索框有内容，已自动关闭设置view");
       } catch (error) {
-        console.error('❌ 关闭设置view失败:', error)
+        console.error("❌ 关闭设置view失败:", error);
       }
     }
   }
@@ -580,190 +541,129 @@ watch(
   (newSearchText, oldSearchText) => {
     if (newSearchText === oldSearchText) return;
     searchModuleText.value = newSearchText;
-    if (searchHeaderState.searchText !== newSearchText) {
-      searchHeaderActions.updateSearchText(newSearchText);
-    }
     debouncedHandleSearch();
   }
 );
-
-// 监听插件状态变化 - 确保UI状态和搜索头部状态同步
-watch(
-  () => currentPluginItem.value,
-  (newPluginItem) => {
-    // 同步到搜索头部管理器
-    if (searchHeaderState.currentPluginItem !== newPluginItem) {
-      searchHeaderActions.setCurrentPluginItem(newPluginItem);
-    }
-  },
-  { immediate: true }
-);
-
-// 监听搜索头部插件状态变化，同步到UI状态
-watch(
-  () => searchHeaderState.currentPluginItem,
-  (newPluginItem) => {
-    if (currentPluginItem.value !== newPluginItem) {
-      currentPluginItem.value = newPluginItem;
-    }
-  },
-  { immediate: true }
-);
-
-// ==================== 插件事件处理 ====================
-const handlePluginExecuted = async (event: { pluginId: string, path: string, hotkeyEmit: boolean }) => {
-  await pluginWindowManager.handlePluginExecuted(event, {
-    openPluginWindowUI,
-    toggleInput,
-    attachedFiles: attachedFiles.value,
-    searchText: searchText.value,
-    updateStoreCategory,
-    handleSearch,
-    pluginStore: {
-      installZip: async (zipPath: string) => { await pluginStore.install(zipPath); },
-      install: async (path: string) => { await pluginStore.install(path); },
-      uninstall: async (id: string) => { await pluginStore.uninstall(id); },
-      toggle: async (id: string) => { await pluginStore.toggle(id); },
-    },
-    setAttachedFiles: (files) => {
-      attachedFiles.value = [...files];
-      // 同步清空搜索头部管理器中的附加文件
-      if (files.length === 0) {
-        searchHeaderActions.clearAttachedFiles();
-      }
-    },
-    setSearchText: (text) => { searchText.value = text; }
-  });
-};
-
-const handlePluginWindowClosed = async (event: { windowId: number, title: string, path?: string }) => {
-  await pluginWindowManager.handlePluginWindowClosed(event, {
-    isPluginWindowOpen: isPluginWindowOpen.value,
-    closePluginWindow,
-    recoverSearchState: searchStateHandler.recoverSearchState
-  });
-};
-
 
 // ==================== 生命周期 ====================
 onMounted(async () => {
   console.log("🚀 App.vue onMounted - 开始应用初始化");
 
-  // 使用生命周期管理器初始化应用
-  await initializeApp({
-    // 窗口事件处理器
-    onWindowFocus: windowFocusHandlers.onWindowFocus,
-    onWindowBlur: windowFocusHandlers.onWindowBlur,
-    onVisibilityChange: windowFocusHandlers.onVisibilityChange,
+  // 初始化应用
+  await initializeApp();
 
-    // 主进程事件处理器
-    onPluginWindowClosed: handlePluginWindowClosed,
-    onWindowMainHide: () => hide(),
-    onWindowMainShow: () => show(),
-    onViewDetached: () => searchStateHandler.recoverSearchState(true),
-    onViewRestoreRequested: (data: { reason: 'settings-closed' | 'plugin-closed' | 'user-requested' | 'system', timestamp: number }) => {
-      const { reason, } = data;
-      if (reason === 'settings-closed') {
-        searchStateHandler.recoverSearchState(false);
-      } else if (reason === 'plugin-closed') {
-        searchStateHandler.recoverSearchState(true);
-      }
-    },
-    onViewReattached: async (data) => {
-      console.log("🔗 收到视图重新附加事件:", data)
-      const { config } = data
+  // 直接注册窗口事件监听
+  naimo.event.onAppFocus(() => {
+    onWindowFocus();
+  });
 
-      if (!config?.pluginInfo) {
-        console.warn("⚠️ 视图重新附加事件缺少插件信息")
-        return
-      }
+  naimo.event.onAppBlur((_event, data) => {
+    onWindowBlur(data);
+  });
 
-      try {
-        // 通过pluginInfo获取完整的插件配置
-        const pluginItem = pluginManager.getInstalledPluginItem(
-          config.pluginInfo.path.split(":")[0],
-          config.pluginInfo.path || config.path
-        )
+  useEventListener(document, "visibilitychange", onVisibilityChange);
 
-        if (!pluginItem) {
-          console.warn("⚠️ 未找到插件配置:", config.pluginInfo)
-          return
-        }
+  // 直接注册主进程事件监听
+  naimo.event.onPluginWindowClosed((_event, data) => {
+    console.log("收到主进程插件窗口关闭消息:", data);
+    handlePluginWindowClosed(data);
+  });
 
-        console.log("✅ 找到插件配置:", pluginItem)
+  naimo.event.onWindowMainHide((_event, data) => {
+    console.log("收到窗口隐藏事件:", data);
+    hide();
+  });
 
-        // 切换到插件状态
-        openPluginWindowUI(pluginItem)
+  naimo.event.onWindowMainShow((_event, data) => {
+    console.log("收到窗口显示事件:", data);
+    show();
+  });
 
-        // 设置搜索头部的插件状态
-        searchHeaderActions.setCurrentPluginItem(pluginItem)
+  naimo.event.onViewDetached((_event, data) => {
+    console.log("收到视图分离事件，恢复搜索状态:", data);
+    recoverSearchState(true);
+  });
 
-        // 清除搜索文本和附件
-        searchText.value = ""
-        attachedFiles.value = []
-
-        // 更新搜索结果
-        await handleSearch("")
-
-        // 调整窗口大小
-        await nextTick()
-        contentAreaRef.value?.handleResize()
-
-        console.log("✅ 插件状态已恢复:", pluginItem.name)
-      } catch (error) {
-        console.error("❌ 处理视图重新附加失败:", error)
-      }
-    },
-    onViewEscPressed: (data: any) => {
-      console.log("收到视图esc事件:", data)
-      handleEscAction()
-    },
-
-    // 快捷键事件处理器
-    onHotkeyTriggered: hotkeyHandler,
-
-    // 初始化完成回调
-    onInitComplete: async () => {
-      // 页面刷新时关闭所有插件view
-      console.log('🔄 页面初始化，检查并关闭所有插件view');
-      try {
-        await naimo.router.windowClosePluginView();
-        console.log('✅ 所有插件view已关闭');
-      } catch (error) {
-        console.error('❌ 关闭插件view失败:', error);
-      }
-
-      // 初始化应用数据
-      initAppApps();
-      // 初始化窗口大小
-      initializeWindowSize();
-      // 重置到默认状态
-      handleResetToDefault();
-      // 聚焦搜索框
-      handleSearchFocus();
+  naimo.event.onViewRestoreRequested((_event, data) => {
+    console.log("收到视图恢复请求:", data);
+    const { reason } = data;
+    if (reason === "settings-closed") {
+      recoverSearchState(false);
+    } else if (reason === "plugin-closed") {
+      recoverSearchState(true);
     }
   });
 
-  // 注册插件和搜索头部事件
-  eventSystem.on('plugin:executed', handlePluginExecuted);
+  naimo.event.onViewReattached(async (_event, data) => {
+    console.log("🔗 收到视图重新附加事件:", data);
+    const { config } = data;
 
-  searchHeaderEvents.on("click", handleSearchFocus);
-  searchHeaderEvents.on('search', handleSearch);
-  searchHeaderEvents.on('input', debouncedHandleSearch);
-  searchHeaderEvents.on('search-text-updated', (text: string) => {
-    if (searchText.value !== text) {
-      searchText.value = text;
+    if (!config?.pluginInfo) {
+      console.warn("⚠️ 视图重新附加事件缺少插件信息");
+      return;
+    }
+
+    try {
+      const pluginItem = pluginManager.getInstalledPluginItem(
+        config.pluginInfo.path.split(":")[0],
+        config.pluginInfo.path || config.path
+      );
+
+      if (!pluginItem) {
+        console.warn("⚠️ 未找到插件配置:", config.pluginInfo);
+        return;
+      }
+
+      console.log("✅ 找到插件配置:", pluginItem);
+
+      app.ui.openPluginWindow(pluginItem);
+
+      searchText.value = "";
+      attachedFiles.value = [];
+
+      await handleSearch("");
+
+      await nextTick();
+      contentAreaRef.value?.handleResize();
+
+      console.log("✅ 插件状态已恢复:", pluginItem.name);
+    } catch (error) {
+      console.error("❌ 处理视图重新附加失败:", error);
     }
   });
-  searchHeaderEvents.on('open-settings', openSettings);
+
+  naimo.event.onViewEscPressed((_event, data) => {
+    console.log("收到视图esc事件:", data);
+    handleEscAction();
+  });
+
+  // 注册快捷键事件监听
+  addHotKeyListener("hotkey-triggered", onHotkeyTriggered);
+  addHotKeyListener("app-hotkey-triggered", onHotkeyTriggered);
+
+  // 注册插件事件
+  eventSystem.on("plugin:executed", handlePluginExecuted);
+
+  // 页面刷新时关闭所有插件view
+  console.log("🔄 页面初始化，检查并关闭所有插件view");
+  try {
+    await naimo.router.windowClosePluginView();
+    console.log("✅ 所有插件view已关闭");
+  } catch (error) {
+    console.error("❌ 关闭插件view失败:", error);
+  }
+
+  // 初始化应用数据
+  initAppApps();
+  // 初始化窗口大小
+  initializeWindowSize();
+  // 重置到默认状态
+  handleResetToDefault();
+  // 聚焦搜索框
+  handleSearchFocus();
 
   console.log("🎉 App.vue onMounted - 应用初始化完成");
-
-
 });
-
-// useTestLoadPlugin()
 </script>
 
 <style scoped></style>
-z

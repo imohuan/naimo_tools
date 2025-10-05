@@ -22,7 +22,7 @@ for (const path in moduleFiles) {
       typeof ExportClass === 'function' &&
       /^[A-Z]/.test(exportName)
     ) {
-      const instance = new ExportClass()
+      const instance: SearchModule = new ExportClass()
       // 判断是否实现了 SearchModule 的必要方法
       if (
         instance &&
@@ -30,8 +30,8 @@ for (const path in moduleFiles) {
         typeof instance.deleteItem === 'function' &&
         typeof instance.addItem === 'function'
       ) {
-        const oldGetItems = modules[moduleName].getItems
-        modules[moduleName].getItems = async () => {
+        const oldGetItems = instance.getItems
+        instance.getItems = async () => {
           const items = await oldGetItems()
           const newItems = items.map(item => ({ ...item, category: moduleName }))
           return newItems
