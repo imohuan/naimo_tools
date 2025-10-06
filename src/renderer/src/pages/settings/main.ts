@@ -4,12 +4,13 @@
  */
 
 import { createApp } from 'vue'
-import SettingsApp from './SettingsApp.vue'
+import { createPinia } from 'pinia'
+import App from './App.vue'
 import { useApp } from '@/temp_code'
 import '@/style.css'
 
 // 创建设置页面应用
-const app = createApp(SettingsApp)
+const app = createApp(App)
 app.use(createPinia());
 
 // 配置Vue全局错误处理
