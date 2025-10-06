@@ -19,7 +19,7 @@ export const baseToolsPlugin: PluginConfig = {
       path: 'add-to-file-list',
       icon: null,
       type: "files",
-      fileType: "all",
+      fileType: "file",
       notVisibleSearch: true,
       onEnter: async (options, api) => {
         for (const file of options.files) {

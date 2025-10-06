@@ -4,6 +4,9 @@ import type { AppItem, AttachedInfo, SearchModule } from '@/temp_code/typings/se
 
 import { loadAppIcons } from '@/temp_code/utils/search'
 import { PinyinSearch } from '@/temp_code/utils/pinyinSearch'
+import type { AttachedFile } from '@/typings/composableTypes'
+import { usePluginStoreNew } from '../plugin'
+import type { PluginItem } from '@/typings'
 
 /** 动态导入所有模块 */
 const moduleFiles = import.meta.glob<{ [key: string]: any }>('./modules/*.ts', { eager: true })
@@ -206,6 +209,7 @@ export const useSearchStore = defineStore('search', () => {
   const initialize = async () => {
     if (isInitialized.value) return
     await initItems()
+    await _setupEventListeners()
     isInitialized.value = true
   }
 
@@ -318,45 +322,73 @@ export const useSearchStore = defineStore('search', () => {
 
           case 'files':
             // 文件搜索类型：匹配文件扩展名、正则或数量
-            if (attachedInfo?.type === 'file') {
-              const files = attachedInfo.data
+            if (['file', 'text', 'img'].includes(attachedInfo?.type || '')) {
+
+              let files: AttachedFile[] = []
+              switch (attachedInfo?.type) {
+                case 'file':
+                  files = attachedInfo.data
+                  break
+                case 'text':
+                  files = [attachedInfo.originalFile]
+                  break
+                case 'img':
+                  files = [attachedInfo.originalFile]
+                  break
+              }
+
+              // 根据 item.fileType 过滤文件列表
+              let filteredFiles = files
+              if (item.fileType === 'file') {
+                // 只保留文件（排除文件夹）
+                filteredFiles = files.filter(file => file.type !== 'directory')
+              } else if (item.fileType === 'directory') {
+                // 只保留文件夹
+                filteredFiles = files.filter(file => file.type === 'directory')
+              }
 
               // 检查文件数量限制
               const fileCountValid =
-                (files.length > (item.minLength || 0)) &&
-                (item.maxLength === undefined || files.length <= item.maxLength)
+                (filteredFiles.length > (item.minLength || 0)) &&
+                (item.maxLength === undefined || filteredFiles.length <= item.maxLength)
 
               if (fileCountValid) {
-                // 检查文件扩展名或正则匹配（两者满足其一即可）
-                if (item.extensions) {
-                  // 优先检查扩展名
-                  const hasMatchingExt = files.some(file => {
-                    const fileName = file.name.toLowerCase()
-                    return item.extensions!.some(ext =>
-                      fileName.endsWith(ext.toLowerCase())
-                    )
-                  })
+                // 对于文件夹，直接匹配（不使用 extensions 和 match）
+                if (item.fileType === 'directory') {
+                  matched = true
+                  score = 20
+                } else if (item.fileType === 'file') {
+                  // 对于文件，检查扩展名或正则匹配
+                  if (item.extensions) {
+                    // 优先检查扩展名
+                    const hasMatchingExt = filteredFiles.some(file => {
+                      const fileName = file.name.toLowerCase()
+                      return item.extensions!.some(ext =>
+                        fileName.endsWith(ext.toLowerCase())
+                      )
+                    })
 
-                  if (hasMatchingExt) {
-                    matched = true
-                    score = 25
-                  }
-                } else if (item.match) {
-                  // 如果没有 extensions，使用正则匹配文件名
-                  try {
-                    const regex = new RegExp(item.match, 'i')
-                    const hasMatchingName = files.every(file => regex.test(file.name))
-                    if (hasMatchingName) {
+                    if (hasMatchingExt) {
                       matched = true
                       score = 25
                     }
-                  } catch (e) {
-                    console.warn('文件名正则表达式错误:', e)
+                  } else if (item.match) {
+                    // 如果没有 extensions，使用正则匹配文件名
+                    try {
+                      const regex = new RegExp(item.match, 'i')
+                      const hasMatchingName = filteredFiles.every(file => regex.test(file.name))
+                      if (hasMatchingName) {
+                        matched = true
+                        score = 25
+                      }
+                    } catch (e) {
+                      console.warn('文件名正则表达式错误:', e)
+                    }
+                  } else {
+                    // 没有指定扩展名和正则限制，只要文件数量符合就匹配
+                    matched = true
+                    score = 20
                   }
-                } else {
-                  // 没有指定扩展名和正则限制，只要文件数量符合就匹配
-                  matched = true
-                  score = 20
                 }
 
                 // 最终也要执行通用文本搜索并叠加分数
@@ -387,14 +419,14 @@ export const useSearchStore = defineStore('search', () => {
             break
 
           default:
-            // 检查长度限制
+            // 检查长度限制D
             const textLengthValid =
               (query.length > (item.minLength || 0)) &&
               (item.maxLength === undefined || query.length <= item.maxLength)
+
+            matched = false
             // 如果不满足长度限制，不匹配
-            if (!textLengthValid) {
-              matched = false
-            } else {
+            if (textLengthValid && !attachedInfo) {
               // 文本搜索类型：默认执行通用文本搜索
               const textResult = performTextSearch(item)
               matched = textResult.matched
@@ -436,7 +468,7 @@ export const useSearchStore = defineStore('search', () => {
     searchText.value = query
     const trimmedQuery = query.trim().toLowerCase()
     // 无搜索词时显示所有项
-    if (!trimmedQuery) {
+    if (!trimmedQuery && !attachedInfo) {
       showDefaultResults()
     } else {
       await showSearchResults(query, attachedInfo)
@@ -470,7 +502,23 @@ export const useSearchStore = defineStore('search', () => {
     showDefaultResults()
   }
 
-
+  // ==================== 事件监听 ====================
+  const _setupEventListeners = async () => {
+    naimo.event.onPluginUninstalled(async (_event, _data) => {
+      // 更新最近使用的列表，因为如果插件卸载了，那么最近使用的列表中应该删除这个插件
+      const plugin = usePluginStoreNew()
+      searchItems.value.filter(item => item.category === "recent").forEach(item => {
+        // 判断是否是插件，判断插件是否卸载了
+        if (plugin.isPluginItem(item)) {
+          const pluginId = (item as PluginItem).pluginId
+          // 如果插件ID存在，并且插件不存在，则删除这个插件在搜索列表中的项
+          if (pluginId && !plugin.getInstalledPluginItem(pluginId, item.path)) {
+            deleteItem(item)
+          }
+        }
+      })
+    });
+  };
   // ==================== 返回 ====================
   return {
     // 状态

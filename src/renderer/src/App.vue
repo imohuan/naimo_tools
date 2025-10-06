@@ -23,7 +23,7 @@
         @search="handleSearch"
         @input="debouncedHandleSearch"
         @add-files="addFiles"
-        @clear-files="clearAttachedFiles"
+        @clear-files="handleClearFiles"
         @clear-plugin="handleClearPlugin"
         @open-settings="openSettings"
       />
@@ -76,11 +76,7 @@ import { useAppActions } from "@/composables/useAppActions";
 import { HotkeyType, useApp, type HotkeyConfig } from "@/temp_code";
 
 // 类型导入
-import type {
-  AppItem,
-  AttachedFile,
-  AttachedInfo,
-} from "@/temp_code/typings/search";
+import type { AppItem, AttachedInfo } from "@/temp_code/typings/search";
 
 // ==================== 初始化 ====================
 const app = useApp();
@@ -193,10 +189,7 @@ const handleSearch = async (value: string) => {
     naimo.router.appForwardMessageToPluginView(
       currentPlugin.path,
       "plugin-search",
-      {
-        searchText: value,
-        timestamp: Date.now(),
-      }
+      { searchText: value, timestamp: Date.now() }
     );
     return;
   }
@@ -225,7 +218,7 @@ const processAttachedInfo = async (): Promise<AttachedInfo | undefined> => {
 
   // 图片类型：使用已提取的 icon（base64）
   if (file.type.startsWith("image/") && file.icon) {
-    return { type: "img", data: file.icon, path: file.path };
+    return { type: "img", data: file.icon, originalFile: file };
   }
 
   // 文本类型：读取文件内容
@@ -235,7 +228,7 @@ const processAttachedInfo = async (): Promise<AttachedInfo | undefined> => {
       const text = file.originalFile
         ? await file.originalFile.text()
         : await naimo.router.filesystemReadFileContent(file.path, "utf-8");
-      return { type: "text", data: text, path: file.path };
+      return { type: "text", data: text, originalFile: file };
     } catch (error) {
       console.error("读取文本文件失败:", error);
     }
@@ -272,10 +265,19 @@ const clearSearchAndPlugin = () => {
   attachedFiles.value = [];
 };
 
-// 清除插件
+// 清除附件文件并触发搜索
+const handleClearFiles = () => {
+  clearAttachedFiles();
+  // 清除文件后触发搜索
+  handleSearch(searchText.value);
+};
+
+// 清除插件并触发搜索
 const handleClearPlugin = async () => {
   currentPluginItem.value = null;
   await closePluginWindow();
+  // 清除插件后触发搜索
+  handleSearch(searchText.value);
 };
 
 // ==================== 插件和设置管理 ====================

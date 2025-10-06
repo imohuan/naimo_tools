@@ -65,7 +65,7 @@ export interface FileSearch {
   /** 类型 */
   type: "files";
   /** 文件类型 */
-  fileType: "file" | "directory" | "all";
+  fileType: "file" | "directory";
   /** 文件扩展名 */
   extensions?: string[];
   /** 正则匹配文件名称 */
@@ -133,16 +133,16 @@ export interface AttachedFile {
 export interface AttachedText {
   type: "text";
   data: string;
-  /** 文件路径 */
-  path: string;
+  /** 原始文件 */
+  originalFile: AttachedFileFromComposableTypes;
 }
 
 export interface AttachedImg {
   type: "img";
   /** base64 图片 */
   data: string;
-  /** 文件路径 */
-  path: string;
+  /** 原始文件 */
+  originalFile: AttachedFileFromComposableTypes;
 }
 
 export interface AttachedPlugin {
