@@ -8,16 +8,16 @@ import type { PluginItem } from '@/typings/pluginTypes'
  */
 export const useUIStore = defineStore('ui', () => {
   // ==================== 状态 ====================
-  /** 搜索查询文本 */
-  const query = ref('')
+  /** 搜索文本 */
+  const searchText = ref('')
   /** 界面类型 */
   const interfaceType = ref<InterfaceType>(InterfaceType.SEARCH)
   /** 当前激活的插件 - 使用 shallowRef 优化性能 */
   const activePlugin = shallowRef<PluginItem | null>(null)
   /** 是否有搜索结果 */
-  const hasResults = ref(false)
-  /** 输入框可见性 */
-  const isInputVisible = ref(true)
+  const hasSearchResults = ref(false)
+  /** 搜索框可见性 */
+  const isSearchBoxVisible = ref(true)
 
   // ==================== 计算属性 ====================
   /** 插件是否激活 */
@@ -31,7 +31,7 @@ export const useUIStore = defineStore('ui', () => {
 
   /** 当前激活的界面 */
   const currentInterfaceType = computed(() => {
-    const hasQuery = query.value.trim() !== ''
+    const hasQuery = searchText.value.trim() !== ''
 
     // 设置界面优先级最高
     if (interfaceType.value === InterfaceType.SETTINGS) {
@@ -51,19 +51,19 @@ export const useUIStore = defineStore('ui', () => {
   const isContentVisible = computed(() => {
     // 搜索界面：有搜索内容或有搜索结果时显示
     if (isSearchInterface.value) {
-      return query.value.trim() !== '' || hasResults.value
+      return searchText.value.trim() !== '' || hasSearchResults.value
     }
     // 设置界面和窗口界面：总是显示
     return isSettingsInterface.value || isWindowInterface.value
   })
 
-  /** 搜索框是否可见 */
-  const isSearchBoxVisible = computed(() => {
+  /** 搜索输入框是否显示 */
+  const shouldShowSearchBox = computed(() => {
     // 如果不在插件窗口界面，总是显示搜索框
     if (!isWindowInterface.value || !isPluginActive.value) {
       return true
     }
-    return isInputVisible.value
+    return isSearchBoxVisible.value
   })
 
   // ==================== 方法 ====================
@@ -71,7 +71,7 @@ export const useUIStore = defineStore('ui', () => {
    * 切换到搜索界面
    */
   const switchToSearch = () => {
-    isInputVisible.value = true
+    isSearchBoxVisible.value = true
     interfaceType.value = InterfaceType.SEARCH
   }
 
@@ -80,7 +80,7 @@ export const useUIStore = defineStore('ui', () => {
    */
   const switchToSettings = () => {
     // 清空搜索文本和插件状态
-    query.value = ''
+    searchText.value = ''
     activePlugin.value = null
     interfaceType.value = InterfaceType.SETTINGS
   }
@@ -90,7 +90,7 @@ export const useUIStore = defineStore('ui', () => {
    */
   const switchToWindow = () => {
     // 清空搜索文本
-    query.value = ''
+    searchText.value = ''
     interfaceType.value = InterfaceType.WINDOW
   }
 
@@ -126,44 +126,44 @@ export const useUIStore = defineStore('ui', () => {
    * 设置搜索结果状态
    */
   const setSearchResults = (value: boolean) => {
-    hasResults.value = value
+    hasSearchResults.value = value
   }
 
   /**
    * 清空搜索
    */
   const clearSearch = () => {
-    query.value = ''
-    hasResults.value = false
+    searchText.value = ''
+    hasSearchResults.value = false
   }
 
   /**
    * 重置到默认状态
    */
   const resetToDefault = () => {
-    query.value = ''
-    hasResults.value = false
+    searchText.value = ''
+    hasSearchResults.value = false
     activePlugin.value = null
     interfaceType.value = InterfaceType.SEARCH
-    isInputVisible.value = true
+    isSearchBoxVisible.value = true
   }
 
   /**
-   * 切换输入框可见性
+   * 切换搜索框可见性
    */
-  const toggleInputVisibility = (value?: boolean) => {
-    isInputVisible.value = value !== undefined ? value : !isInputVisible.value
+  const toggleSearchBoxVisibility = (value?: boolean) => {
+    isSearchBoxVisible.value = value !== undefined ? value : !isSearchBoxVisible.value
   }
 
   // ==================== 监听器 ====================
   /**
    * 监听搜索文本变化，自动切换界面
    */
-  watch(query, (newQuery, oldQuery) => {
-    if (newQuery === oldQuery) return
+  watch(searchText, (newText, oldText) => {
+    if (newText === oldText) return
 
     // 如果有搜索内容
-    if (newQuery.trim() !== '') {
+    if (newText.trim() !== '') {
       // 在设置界面或窗口界面输入搜索内容时，不在这里处理界面切换
       // 界面切换由外部逻辑处理（会关闭设置view或插件view）
       if (
@@ -184,7 +184,7 @@ export const useUIStore = defineStore('ui', () => {
     }
 
     // 如果清空了搜索内容
-    if (newQuery.trim() === '') {
+    if (newText.trim() === '') {
       // 如果有插件窗口打开，并且当前在搜索界面，则切换到窗口界面
       if (
         interfaceType.value === InterfaceType.SEARCH &&
@@ -198,11 +198,11 @@ export const useUIStore = defineStore('ui', () => {
   // ==================== 返回 ====================
   return {
     // 状态
-    query,
+    searchText,
     interfaceType,
     activePlugin,
-    hasResults,
-    isInputVisible,
+    hasSearchResults,
+    isSearchBoxVisible,
 
     // 计算属性
     isPluginActive,
@@ -211,7 +211,7 @@ export const useUIStore = defineStore('ui', () => {
     isSettingsInterface,
     isWindowInterface,
     isContentVisible,
-    isSearchBoxVisible,
+    shouldShowSearchBox,
 
     // 方法
     switchToSearch,
@@ -223,7 +223,7 @@ export const useUIStore = defineStore('ui', () => {
     setSearchResults,
     clearSearch,
     resetToDefault,
-    toggleInputVisibility
+    toggleSearchBoxVisibility
   }
 })
 

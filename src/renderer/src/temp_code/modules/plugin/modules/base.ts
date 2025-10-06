@@ -40,13 +40,32 @@ export abstract class BasePluginInstaller implements PluginInstaller {
    * @param options 安装选项
    * @returns 处理完成的插件配置
    */
-  protected async processPlugin(pluginData: PluginConfig, options?: InstallOptions): Promise<PluginConfig> {
+  async processPlugin(pluginData: PluginConfig, options?: InstallOptions): Promise<PluginConfig> {
     // 1. 验证配置
     if (!this.validatePluginConfig(pluginData)) {
       throw new Error(`插件配置无效: ${pluginData.id}`)
     }
 
     // 2. 预处理 - 加载插件主文件
+    await this.loadPluginItems(pluginData, options)
+
+    // 3. 处理资源路径
+    this.resolveResourcePaths(pluginData, options)
+
+    // 4. 设置插件项
+    this.setupPluginItems(pluginData)
+
+    // 5. 创建完整配置并添加类型标记
+    const plugin = this.createPluginConfig(pluginData)
+
+    // 6. 自动添加类型标记
+    this.setPluginType(plugin)
+
+    return plugin
+  }
+
+  /** 加载插件主文件和 items */
+  async loadPluginItems(pluginData: PluginConfig, options?: InstallOptions): Promise<void> {
     const hasItems = pluginData?.items && pluginData.items?.length > 0
     const firstItemHasOnEnter = hasItems &&
       pluginData.items?.[0]?.onEnter &&
@@ -85,8 +104,10 @@ export abstract class BasePluginInstaller implements PluginInstaller {
 
       pluginData.items = items
     }
+  }
 
-    // 3. 处理资源路径
+  /** 处理资源路径 */
+  resolveResourcePaths(pluginData: PluginConfig, options?: InstallOptions): void {
     const resolver = options?.getResourcePath || (pluginData as any)?.getResourcePath
     if (resolver) {
       if (pluginData.icon) {
@@ -98,28 +119,28 @@ export abstract class BasePluginInstaller implements PluginInstaller {
         }
       })
     }
+  }
 
-    // 4. 设置插件项
+  /** 设置插件项 */
+  setupPluginItems(pluginData: PluginConfig): void {
     pluginData.items?.forEach(item => {
       item.pluginId = pluginData.id
       item.path = item.pluginId + ':' + item.path
     })
+  }
 
-    // 5. 创建完整配置并添加类型标记
-    const plugin = {
+  /** 创建完整配置 */
+  createPluginConfig(pluginData: PluginConfig): PluginConfig {
+    return {
       ...pluginData,
       enabled: pluginData.enabled !== false,
     }
-
-    // 6. 自动添加类型标记
-    this.setPluginType(plugin)
-
-    return plugin
   }
 
   /**
    * 为插件添加类型标记
    * @param plugin 插件配置
+   * @param options 选项
    */
   protected setPluginType(plugin: PluginConfig, options: any = {}): void {
     plugin.options = { ...(plugin.options || {}), ...options, pluginType: this.pluginType }

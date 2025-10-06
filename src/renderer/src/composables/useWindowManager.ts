@@ -1,5 +1,16 @@
+/**
+ * 统一窗口管理组合式函数
+ * 整合了基础窗口管理、插件窗口管理、设置页面管理功能
+ */
 
-import { ref, computed, readonly } from 'vue'
+import { ref, computed, readonly, nextTick, toRaw } from 'vue'
+import { useApp } from '@/temp_code'
+import { storeUtils } from '@/temp_code/utils/store'
+import { LifecycleType } from '@/typings/windowTypes'
+import type { PluginItem } from '@/typings/pluginTypes'
+import type { AttachedFile } from '@/typings/composableTypes'
+
+// ==================== 类型定义 ====================
 
 /**
  * 窗口尺寸接口
@@ -50,16 +61,46 @@ export interface WindowManagerOptions {
 }
 
 /**
- * 窗口管理组合式函数
- * 提供完整的窗口管理功能
+ * 插件窗口打开选项
  */
-export function useWindowManager(options: WindowManagerOptions = {}) {
+export interface PluginWindowOptions {
+  url: string
+  preload: string
+}
+
+/**
+ * 依赖注入接口 - 用于需要外部传入的依赖
+ */
+export interface WindowManagerDependencies {
+  /** 处理窗口大小调整 */
+  handleResize?: () => void
+  /** 处理搜索框聚焦 */
+  handleSearchFocus?: () => void
+  /** 附件文件列表（响应式） */
+  attachedFiles?: () => AttachedFile[]
+  /** 搜索文本（响应式） */
+  searchText?: () => string
+}
+
+// ==================== 主函数 ====================
+
+/**
+ * 统一窗口管理组合式函数
+ */
+export function useWindowManager(
+  options: WindowManagerOptions = {},
+  dependencies: WindowManagerDependencies = {}
+) {
+  const app = useApp()
+
   const {
     enableStateTracking = false,
     defaultSize,
     minSize,
     maxSize
   } = options
+
+  // ==================== 状态管理 ====================
 
   // 窗口状态跟踪
   const windowState = ref<WindowState>({
@@ -74,6 +115,8 @@ export function useWindowManager(options: WindowManagerOptions = {}) {
 
   // 当前窗口位置
   const currentPosition = ref<WindowPosition>({ x: 0, y: 0 })
+
+  // ==================== 基础窗口操作 ====================
 
   /**
    * 验证窗口尺寸
@@ -132,13 +175,20 @@ export function useWindowManager(options: WindowManagerOptions = {}) {
    */
   const setPosition = async (position: WindowPosition): Promise<boolean> => {
     try {
-      const success = await naimo.router.windowSetPosition?.(position.x, position.y)
+      // windowSetPosition 可能不存在，需要检查
+      const router = naimo.router as any
+      if (!router.windowSetPosition) {
+        console.warn('windowSetPosition 方法不可用')
+        return false
+      }
+
+      const success = await router.windowSetPosition(position.x, position.y)
 
       if (success && enableStateTracking) {
         currentPosition.value = { ...position }
       }
 
-      return success ?? false
+      return success
     } catch (error) {
       console.error('设置窗口位置失败:', error)
       return false
@@ -146,9 +196,9 @@ export function useWindowManager(options: WindowManagerOptions = {}) {
   }
 
   /**
-   * 检查窗口是否可见
+   * 检查窗口是否可见（异步）
    */
-  const isWindowVisible = async (): Promise<boolean> => {
+  const checkVisible = async (): Promise<boolean> => {
     try {
       const currentViewInfo = await naimo.router.windowGetCurrentViewInfo()
       if (!currentViewInfo) return false
@@ -247,14 +297,21 @@ export function useWindowManager(options: WindowManagerOptions = {}) {
    */
   const restore = async (): Promise<boolean> => {
     try {
-      const success = await naimo.router.windowRestore?.()
+      // windowRestore 可能不存在，需要检查
+      const router = naimo.router as any
+      if (!router.windowRestore) {
+        console.warn('windowRestore 方法不可用')
+        return false
+      }
+
+      const success = await router.windowRestore()
 
       if (success && enableStateTracking) {
         windowState.value.minimized = false
         windowState.value.maximized = false
       }
 
-      return success ?? false
+      return success
     } catch (error) {
       console.error('还原窗口失败:', error)
       return false
@@ -265,7 +322,7 @@ export function useWindowManager(options: WindowManagerOptions = {}) {
    * 切换窗口显示状态
    */
   const toggle = async (): Promise<boolean> => {
-    const visible = await isWindowVisible()
+    const visible = await checkVisible()
     return visible ? await hide() : await show()
   }
 
@@ -291,24 +348,279 @@ export function useWindowManager(options: WindowManagerOptions = {}) {
     if (!enableStateTracking) return
 
     try {
-      windowState.value.visible = await isWindowVisible()
-      // 这里可以添加更多状态检查
+      windowState.value.visible = await checkVisible()
     } catch (error) {
       console.error('刷新窗口状态失败:', error)
     }
   }
 
-  // 计算属性
+  // ==================== 插件窗口管理 ====================
+
+  /**
+   * 生成插件API
+   */
+  const generatePluginApi = async (
+    pluginItem: PluginItem,
+    hotkeyEmit = false
+  ): Promise<any> => {
+    // 获取插件基础 API
+    const pluginApi = await app.plugin.getPluginApi(pluginItem.pluginId as string)
+
+    // 文件列表管理
+    const addPathToFileList = async (name: string, path: string) => {
+      await storeUtils.addListItem("fileList", {
+        name: name,
+        path: path,
+        icon: null,
+        type: 'text',
+      }, {
+        position: 'start',
+        unique: true,
+        uniqueField: 'path'
+      })
+    }
+
+    // 创建网页窗口
+    const openWebPageWindow = async (url: string, windowOptions: any = {}) => {
+      // 获取当前视图信息
+      const currentViewInfo = await naimo.router.windowGetCurrentViewInfo()
+      if (!currentViewInfo) {
+        console.warn('⚠️ 无法获取当前视图信息，跳过插件窗口创建')
+        return
+      }
+
+      // 合并选项
+      const finalOptions = {
+        path: windowOptions.path || pluginItem.path,
+        pluginId: pluginItem.pluginId,
+        name: pluginItem.name,
+        title: windowOptions.title || pluginItem.name,
+        url,
+        lifecycleType: windowOptions.lifecycleType || pluginItem.lifecycleType,
+        preload: windowOptions.preload,
+        hotkeyEmit: hotkeyEmit || false,
+        ...windowOptions
+      }
+
+      // 直接创建插件视图
+      const result = await naimo.router.windowCreatePluginView({
+        path: finalOptions.path,
+        title: finalOptions.name || '插件',
+        url: url || '',
+        lifecycleType: finalOptions.lifecycleType === LifecycleType.BACKGROUND ? 'background' : 'foreground',
+        preload: finalOptions.preload || ''
+      })
+
+      if (result.success) {
+        // 通知主应用打开插件窗口
+        await openPluginWindow(pluginItem, { url: '', preload: '' })
+        console.log(`✅ 插件视图创建成功: ${result.viewId} (${pluginItem.name})`)
+      }
+
+      return result
+    }
+
+    // 组装完整的 API 对象
+    return {
+      ...pluginApi,
+      toggleInput: (value?: boolean) => {
+        // 可以通过依赖注入或直接操作
+        console.log('toggleInput:', value)
+      },
+      openPluginWindow: () => openPluginWindow(pluginItem, { url: '', preload: '' }),
+      addPathToFileList,
+      plugin: {
+        installZip: (zipPath: string) => app.plugin.install(zipPath).then(() => true).catch(() => false),
+        install: (path: string) => app.plugin.install(path).then(() => true).catch(() => false),
+        uninstall: (id: string) => app.plugin.uninstall(id).then(() => true).catch(() => false),
+        toggle: (id: string, enabled: boolean) => app.plugin.toggle(id, enabled).then(() => true).catch(() => false),
+      },
+      openWebPageWindow
+    }
+  }
+
+  /**
+   * 打开插件窗口
+   */
+  const openPluginWindow = async (
+    pluginItem: PluginItem,
+    options: PluginWindowOptions
+  ) => {
+    try {
+      // 打开插件窗口UI
+      app.ui.openPluginWindow(pluginItem)
+
+      // 确保窗口高度调整到最大高度
+      dependencies.handleResize?.()
+      await nextTick()
+
+      // 直接创建插件视图
+      const result = await naimo.router.windowCreatePluginView({
+        path: pluginItem.path,
+        title: pluginItem.name || '插件',
+        url: options.url || '',
+        lifecycleType: pluginItem.lifecycleType || LifecycleType.FOREGROUND,
+        preload: options.preload || ''
+      })
+
+      if (result.success) {
+        console.log(`✅ 插件视图创建成功: ${result.viewId} (${pluginItem.name})`)
+      } else {
+        console.error('❌ 插件窗口创建失败:', result.error)
+      }
+    } catch (error) {
+      console.error('❌ 打开插件窗口失败:', error)
+    }
+  }
+
+  /**
+   * 关闭插件窗口
+   */
+  const closePlugin = async () => {
+    try {
+      // 关闭插件view
+      await naimo.router.windowClosePluginView()
+      // 关闭插件窗口UI
+      app.ui.closePluginWindow()
+      // 聚焦到搜索输入框
+      dependencies.handleSearchFocus?.()
+    } catch (error) {
+      console.error('❌ 关闭插件窗口失败:', error)
+    }
+  }
+
+  /**
+   * 处理插件执行完成事件
+   * 简化版本 - 直接使用 app 和少量外部依赖
+   */
+  const onPluginExecuted = async (
+    event: { pluginId: string; path: string; hotkeyEmit: boolean },
+    externalDeps?: {
+      toggleInput?: (value?: boolean) => void
+      handleSearch?: (text: string) => Promise<void>
+    }
+  ) => {
+    const { pluginId, path, hotkeyEmit } = event
+    const pluginItem = app.plugin.getInstalledPluginItem(pluginId, path)
+
+    if (!pluginItem) {
+      console.warn(`⚠️ 未找到插件: ${pluginId}, path: ${path}`)
+      return
+    }
+
+    const genApi = await generatePluginApi(pluginItem, hotkeyEmit)
+    // 隐藏搜索框
+    externalDeps?.toggleInput?.(false)
+    // 执行插件
+    if (pluginItem.pluginId && pluginItem.onEnter) {
+      await pluginItem.onEnter?.(
+        {
+          files: toRaw(dependencies.attachedFiles?.() || []),
+          searchText: dependencies.searchText?.() || ''
+        },
+        genApi
+      )
+    } else {
+      console.log('🔍 收到插件执行完成事件，插件项目信息:', {
+        name: pluginItem.name,
+        lifecycleType: pluginItem.lifecycleType
+      })
+    }
+
+    // 更新并清理状态
+    await app.search.initItems()
+
+    // 清空搜索和附件
+    if (externalDeps?.handleSearch) {
+      await externalDeps.handleSearch("")
+    }
+
+    // 重新显示搜索框
+    externalDeps?.toggleInput?.(true)
+  }
+
+  /**
+   * 处理插件窗口关闭事件
+   */
+  const onPluginClosed = async (
+    event: { windowId: number; title: string; path?: string },
+    externalDeps?: {
+      recoverSearchState?: (clearPlugin?: boolean) => void
+    }
+  ) => {
+    console.log("收到插件窗口关闭事件:", event)
+
+    // 如果当前是插件窗口模式，关闭插件窗口状态
+    if (app.ui.isWindowInterface) {
+      console.log("关闭插件窗口状态")
+      await closePlugin()
+      externalDeps?.recoverSearchState?.(true)
+    }
+  }
+
+  // ==================== 设置页面管理 ====================
+
+  /**
+   * 打开设置页面
+   */
+  const openSettings = async () => {
+    try {
+      // 切换到设置界面状态
+      app.ui.switchToSettings()
+
+      // 确保窗口高度调整到最大高度
+      dependencies.handleResize?.()
+      await nextTick()
+
+      // 调用 IPC 方法创建设置页面 WebContentsView
+      const result = await naimo.router.windowCreateSettingsView()
+      if (result.success) {
+        console.log('✅ 设置页面 WebContentsView 创建成功:', result.viewId)
+      } else {
+        console.error('❌ 设置页面 WebContentsView 创建失败:', result.error)
+      }
+    } catch (error) {
+      console.error('❌ 打开设置页面失败:', error)
+    }
+  }
+
+  /**
+   * 关闭设置页面
+   */
+  const closeSettings = async () => {
+    try {
+      // 调用 IPC 方法关闭设置页面 WebContentsView
+      const result = await naimo.router.windowCloseSettingsView()
+      if (result.success) {
+        console.log('✅ 设置页面 WebContentsView 关闭成功')
+      } else {
+        console.error('❌ 设置页面 WebContentsView 关闭失败:', result.error)
+      }
+    } catch (error) {
+      console.error('❌ 关闭设置页面失败:', error)
+    }
+
+    // 切换回搜索界面状态
+    app.ui.switchToSearch()
+
+    // 聚焦到搜索输入框
+    dependencies.handleSearchFocus?.()
+  }
+
+  // ==================== 计算属性 ====================
+
   const isVisible = computed(() => windowState.value.visible)
   const isMinimized = computed(() => windowState.value.minimized)
   const isMaximized = computed(() => windowState.value.maximized)
   const isFullscreen = computed(() => windowState.value.fullscreen)
 
+  // ==================== 返回值 ====================
+
   return {
     // 只读状态
-    windowState: readonly(windowState),
-    currentSize: readonly(currentSize),
-    currentPosition: readonly(currentPosition),
+    state: readonly(windowState),
+    size: readonly(currentSize),
+    position: readonly(currentPosition),
 
     // 计算属性
     isVisible,
@@ -316,26 +628,32 @@ export function useWindowManager(options: WindowManagerOptions = {}) {
     isMaximized,
     isFullscreen,
 
-    // 基础操作
+    // 基础窗口操作
     setSize,
     setPosition,
     show,
     hide,
     toggle,
-    isWindowVisible,
-
-    // 高级操作
+    checkVisible,
     minimize,
     maximize,
     restore,
-    resetToDefault,
-    refreshState,
-
-    // 工具方法
+    reset: resetToDefault,
+    refresh: refreshState,
     validateSize,
 
+    // 插件窗口管理
+    openPlugin: openPluginWindow,
+    closePlugin,
+    onPluginExecuted,
+    onPluginClosed,
+
+    // 设置页面管理
+    openSettings,
+    closeSettings,
+
     // 配置信息
-    options: readonly({
+    config: readonly({
       enableStateTracking,
       defaultSize,
       minSize,

@@ -61,6 +61,12 @@ export const usePluginStoreNew = defineStore("pluginNew", () => {
 
   // 注册所有安装器
   Object.values(modules).forEach((installer) => {
+    const oldGetList = installer.getList.bind(installer);
+    installer.getList = async (options?: any) => {
+      const list = await oldGetList(options);
+      list.forEach((p) => installer.setupPluginItems(p));
+      return list
+    }
     installers.set(installer.type, installer);
   });
 
@@ -178,26 +184,29 @@ export const usePluginStoreNew = defineStore("pluginNew", () => {
 
     // 2. 加载已安装的插件
     const installedIds = await getInstalledPluginIds();
-    installedPlugins.value = availablePlugins.value.filter((p) =>
-      installedIds.includes(p.id)
-    );
 
-    _setupEventListeners();
+    // 3. 安装已安装的插件
+    if (silent.value) {
+      // 实际安装和安装监听事件
+      const waitInstalls = availablePlugins.value.filter((p) => installedIds.includes(p.id))
+      await Promise.all(waitInstalls.map((p) => install(p)));
+      _setupEventListeners();
+    } else {
+      // 数据上的变化
+      installedPlugins.value = availablePlugins.value.filter((p) =>
+        installedIds.includes(p.id)
+      );
+    }
     console.log(`✅ 初始化完成，已安装 ${installedPlugins.value.length} 个插件`);
   }, "初始化插件系统失败");
 
   /** 安装插件 */
   const install = loading.withLoading(async (source: PluginConfig | string) => {
     console.log(`📦 开始安装:`, typeof source === "string" ? source : source.id);
-    let plugin: PluginConfig;
-    if (typeof source !== "string") {
-      plugin = source;
-    } else {
-      const installer = findInstaller(source);
-      if (!installer) throw new Error(`未找到支持的安装器: ${source}`);
-      console.log(`使用 ${installer.name} 安装`);
-      plugin = await installer.install(source, { skipLoad: silent.value });
-    }
+    const installer = findInstaller(source);
+    if (!installer) throw new Error(`未找到支持的安装器: ${source}`);
+    console.log(`使用 ${installer.name} 安装`);
+    const plugin = await installer.install(source, { skipLoad: !silent.value });
 
     // 检查是否已安装
     if (installedPlugins.value.some((p) => p.id === plugin.id)) {
@@ -214,10 +223,11 @@ export const usePluginStoreNew = defineStore("pluginNew", () => {
     }
 
     await saveInstalledPluginIds();
-    if (!silent.value)
+    if (!silent.value) {
       await naimo.router.appForwardMessageToMainView("plugin-installed", {
         pluginId: plugin.id,
       });
+    }
 
     console.log(`✅ 安装成功: ${plugin.id}`);
     return plugin;
@@ -254,9 +264,7 @@ export const usePluginStoreNew = defineStore("pluginNew", () => {
   const toggle = loading.withLoading(async (id: string, enabled?: boolean) => {
     const plugin = getPlugin(id);
     if (!plugin) throw new Error(`插件未安装: ${id}`);
-
     plugin.enabled = enabled !== undefined ? enabled : !plugin.enabled;
-
     console.log(`✅ 切换插件状态: ${id} -> ${plugin.enabled ? "启用" : "禁用"}`);
     return true;
   }, "切换插件状态失败");
@@ -322,11 +330,6 @@ export const usePluginStoreNew = defineStore("pluginNew", () => {
   const _setupEventListeners = () => {
     // 监听插件安装事件（主窗口执行真正的安装）
     naimo.event.onPluginInstalled(async (_event, data) => {
-      // 非静默状态：当前窗口是发送方（设置窗口），不处理自己发送的事件
-      if (!silent.value) {
-        console.log(`🔇 [PluginStoreNew] 忽略自己发送的安装事件: ${data.pluginId}`);
-        return;
-      }
       // 静默状态：当前是主窗口，执行真正的安装逻辑
       console.log(
         `📥 [PluginStoreNew] 主窗口接收到安装事件，开始执行真正的安装: ${data.pluginId}`
@@ -348,11 +351,6 @@ export const usePluginStoreNew = defineStore("pluginNew", () => {
 
     // 监听插件卸载事件（主窗口执行真正的卸载）
     naimo.event.onPluginUninstalled(async (_event, data) => {
-      // 非静默状态：当前窗口是发送方（设置窗口），不处理自己发送的事件
-      if (!silent.value) {
-        console.log(`🔇 [PluginStoreNew] 忽略自己发送的卸载事件: ${data.pluginId}`);
-        return;
-      }
       // 静默状态：当前是主窗口，执行真正的卸载逻辑
       console.log(
         `📥 [PluginStoreNew] 主窗口接收到卸载事件，开始执行真正的卸载: ${data.pluginId}`

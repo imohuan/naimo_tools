@@ -89,7 +89,7 @@ export const useApp = defineStore('app', () => {
       ui: {
         currentInterfaceType: ui.currentInterfaceType,
         isPluginActive: ui.isPluginActive,
-        hasResults: ui.hasResults
+        hasResults: ui.hasSearchResults
       },
       search: {
         totalResults: search.totalResults,
