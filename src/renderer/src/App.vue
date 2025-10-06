@@ -50,7 +50,7 @@
 
 <script setup lang="ts">
 // ==================== 导入依赖 ====================
-import { ref, computed, onMounted, nextTick, watch } from "vue";
+import { ref, computed, onMounted, nextTick, watch, toRaw } from "vue";
 import { useDebounceFn, watchDebounced, useEventListener } from "@vueuse/core";
 
 // 组件导入
@@ -403,142 +403,6 @@ const { handleKeyNavigation } = useKeyboardNavigation(
 );
 
 // ==================== 事件监听 ====================
-// 窗口焦点事件
-const onWindowFocus = () => {
-  handleSearchFocus();
-  isWindowVisible().then((isVisible) => {
-    if (!isVisible) show();
-  });
-};
-
-const onWindowBlur = (data?: any) => {
-  console.log("收到窗口blur事件:", data);
-  hide();
-};
-
-const onVisibilityChange = () => {
-  if (!document.hidden && document.hasFocus()) {
-    handleSearchFocus();
-    console.log("页面重新变为可见且获得焦点时，聚焦到搜索框");
-  }
-};
-
-// 快捷键事件
-const onHotkeyTriggered = async (event: {
-  id: string;
-  config: HotkeyConfig;
-  type: HotkeyType;
-}) => {
-  switch (event.id) {
-    case "app_focus_search":
-      console.log("收到聚焦搜索框请求");
-      handleSearchFocus();
-      break;
-
-    case "app_close_window":
-      handleEscAction();
-      break;
-
-    case "global_show_window":
-      console.log("收到显示/隐藏窗口请求");
-      const isMainWindowVisible = await isWindowVisible();
-      if (isMainWindowVisible) {
-        hide();
-      } else {
-        show();
-      }
-      break;
-
-    default:
-      if (event.id.startsWith("custom_global_")) {
-        const name = event.config.name?.trim();
-        if (!name) {
-          console.log("不存在Name:", event.config);
-          return;
-        }
-
-        // 设置搜索文本并搜索
-        searchText.value = name;
-        app.ui.query = name;
-        await handleSearch(name);
-        show();
-
-        // 尝试执行最佳匹配项
-        const bestMatchItems = searchCategories.value.find(
-          (c) => c.id === "best-match"
-        )?.items;
-        if (bestMatchItems?.length) {
-          handlePrepareAction(bestMatchItems[0], true);
-        } else {
-          console.log("没有搜索结果");
-        }
-
-        console.log("收到自定义全局快捷键触发事件:", name, {
-          items: bestMatchItems,
-        });
-      }
-      break;
-  }
-
-  console.log("🔍 收到快捷键触发事件:", event);
-};
-
-// ==================== 插件事件处理 ====================
-const handlePluginExecuted = async (event: {
-  pluginId: string;
-  path: string;
-  hotkeyEmit: boolean;
-}) => {
-  await pluginWindowManager.handlePluginExecuted(event, {
-    openPluginWindowUI: (plugin) => app.ui.openPluginWindow(plugin),
-    toggleInput: (value?: boolean) => {
-      shouldShowSearchBox.value = value ?? !shouldShowSearchBox.value;
-    },
-    attachedFiles: attachedFiles.value,
-    searchText: searchText.value,
-    updateStoreCategory: () => app.search.initItems(),
-    handleSearch,
-    pluginStore: {
-      installZip: (zipPath: string) =>
-        app.plugin
-          .install(zipPath)
-          .then(() => true)
-          .catch(() => false),
-      install: (path: string) =>
-        app.plugin
-          .install(path)
-          .then(() => true)
-          .catch(() => false),
-      uninstall: (id: string) =>
-        app.plugin
-          .uninstall(id)
-          .then(() => true)
-          .catch(() => false),
-      toggle: (id: string, enabled: boolean) =>
-        app.plugin
-          .toggle(id, enabled)
-          .then(() => true)
-          .catch(() => false),
-    },
-    setAttachedFiles: (files) => {
-      attachedFiles.value = [...files];
-    },
-    setSearchText: (text) => {
-      searchText.value = text;
-    },
-    getInstalledPluginItem: (pluginId: string, path: string) =>
-      app.plugin.getInstalledPluginItem(pluginId, path),
-    getPluginApi: (pluginId: string) => app.plugin.getPluginApi(pluginId),
-  });
-};
-
-const handlePluginWindowClosed = async (data: any) => {
-  await pluginWindowManager.handlePluginWindowClosed(data, {
-    isPluginWindowOpen: isPluginWindowOpen.value,
-    closePluginWindow,
-    recoverSearchState,
-  });
-};
 
 // ==================== 监听器 ====================
 // 监听搜索结果变化
@@ -622,19 +486,38 @@ onMounted(async () => {
 
   // 直接注册窗口事件监听
   naimo.event.onAppFocus(() => {
-    onWindowFocus();
+    handleSearchFocus();
+    isWindowVisible().then((isVisible) => {
+      if (!isVisible) show();
+    });
   });
 
   naimo.event.onAppBlur((_event, data) => {
-    onWindowBlur(data);
+    console.log("收到窗口blur事件:", data);
+    hide();
   });
 
-  useEventListener(document, "visibilitychange", onVisibilityChange);
+  useEventListener(document, "visibilitychange", () => {
+    if (!document.hidden && document.hasFocus()) {
+      handleSearchFocus();
+      console.log("页面重新变为可见且获得焦点时，聚焦到搜索框");
+    }
+  });
 
   // 直接注册主进程事件监听
-  naimo.event.onPluginWindowClosed((_event, data) => {
+  naimo.event.onPluginWindowClosed(async (_event, data) => {
     console.log("收到主进程插件窗口关闭消息:", data);
-    handlePluginWindowClosed(data);
+    // 转换数据格式以匹配 handlePluginWindowClosed 的类型要求
+    const event = {
+      windowId: data.windowId,
+      title: data.pluginId || "",
+      path: data.pluginId,
+    };
+    await pluginWindowManager.handlePluginWindowClosed(event, {
+      isPluginWindowOpen: isPluginWindowOpen.value,
+      closePluginWindow,
+      recoverSearchState,
+    });
   });
 
   naimo.event.onWindowMainHide((_event, data) => {
@@ -705,8 +588,110 @@ onMounted(async () => {
   });
 
   // 注册事件监听（统一使用 app.event）
-  app.event.on("hotkey:triggered", onHotkeyTriggered);
-  app.event.on("plugin:executed", handlePluginExecuted);
+  app.event.on(
+    "hotkey:triggered",
+    async (event: { id: string; config: HotkeyConfig; type: HotkeyType }) => {
+      switch (event.id) {
+        case "app_focus_search":
+          console.log("收到聚焦搜索框请求");
+          handleSearchFocus();
+          break;
+
+        case "app_close_window":
+          handleEscAction();
+          break;
+
+        case "global_show_window":
+          console.log("收到显示/隐藏窗口请求");
+          const isMainWindowVisible = await isWindowVisible();
+          if (isMainWindowVisible) {
+            hide();
+          } else {
+            show();
+          }
+          break;
+
+        default:
+          if (event.id.startsWith("custom_global_")) {
+            const name = event.config.name?.trim();
+            if (!name) {
+              console.log("不存在Name:", event.config);
+              return;
+            }
+
+            // 设置搜索文本并搜索
+            searchText.value = name;
+            app.ui.query = name;
+            await handleSearch(name);
+            show();
+
+            // 尝试执行最佳匹配项
+            const bestMatchItems = searchCategories.value.find(
+              (c) => c.id === "best-match"
+            )?.items;
+            if (bestMatchItems?.length) {
+              handlePrepareAction(bestMatchItems[0], true);
+            } else {
+              console.log("没有搜索结果");
+            }
+
+            console.log("收到自定义全局快捷键触发事件:", name, {
+              items: bestMatchItems,
+            });
+          }
+          break;
+      }
+
+      console.log("🔍 收到快捷键触发事件:", event);
+    }
+  );
+
+  app.event.on(
+    "plugin:executed",
+    async (event: { pluginId: string; path: string; hotkeyEmit: boolean }) => {
+      await pluginWindowManager.handlePluginExecuted(event, {
+        openPluginWindowUI: (plugin) => app.ui.openPluginWindow(plugin),
+        toggleInput: (value?: boolean) => {
+          shouldShowSearchBox.value = value ?? !shouldShowSearchBox.value;
+        },
+        attachedFiles: attachedFiles.value,
+        searchText: searchText.value,
+        updateStoreCategory: () => app.search.initItems(),
+        handleSearch,
+        pluginStore: {
+          installZip: (zipPath: string) =>
+            app.plugin
+              .install(zipPath)
+              .then(() => true)
+              .catch(() => false),
+          install: (path: string) =>
+            app.plugin
+              .install(path)
+              .then(() => true)
+              .catch(() => false),
+          uninstall: (id: string) =>
+            app.plugin
+              .uninstall(id)
+              .then(() => true)
+              .catch(() => false),
+          toggle: (id: string, enabled: boolean) =>
+            app.plugin
+              .toggle(id, enabled)
+              .then(() => true)
+              .catch(() => false),
+        },
+        setAttachedFiles: (files) => {
+          attachedFiles.value = [...files];
+        },
+        setSearchText: (text) => {
+          searchText.value = text;
+        },
+        getInstalledPluginItem: (pluginId: string, path: string) =>
+          app.plugin.getInstalledPluginItem(pluginId, path),
+        getPluginApi: (pluginId: string) => app.plugin.getPluginApi(pluginId),
+      });
+    }
+  );
 
   // 页面刷新时关闭所有插件view
   console.log("🔄 页面初始化，检查并关闭所有插件view");
