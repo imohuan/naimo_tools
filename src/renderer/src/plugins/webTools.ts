@@ -19,6 +19,7 @@ export const webToolsPlugin: PluginConfig = {
       path: 'https://github.com',
       icon: null,
       type: 'text' as const,
+      recommend: true,
       onEnter: async () => {
         await naimo.router.appLaunchApp('https://github.com')
       }

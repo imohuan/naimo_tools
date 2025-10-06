@@ -6,7 +6,7 @@ import { loadAppIcons } from '@/temp_code/utils/search'
 import { PinyinSearch } from '@/temp_code/utils/pinyinSearch'
 import type { AttachedFile } from '@/typings/composableTypes'
 import { usePluginStoreNew } from '../plugin'
-import type { PluginItem } from '@/typings'
+import type { PluginItem, SearchCategory } from '@/typings'
 
 /** 动态导入所有模块 */
 const moduleFiles = import.meta.glob<{ [key: string]: any }>('./modules/*.ts', { eager: true })
@@ -72,6 +72,9 @@ export const useSearchStore = defineStore('search', () => {
   /** 结果总数 */
   const totalResults = computed(() => searchResults.value.length)
 
+  /** 结果模式 */
+  const resultMode = ref<"default" | "search">("default")
+
   /** 将items转为category格式 */
   const categories = computed(() => {
     // 根据 item 中的cateory进行分组
@@ -86,21 +89,56 @@ export const useSearchStore = defineStore('search', () => {
       categorieMap.set(category, items)
     }
 
-    const categories: any[] = []
-    Array.from(categorieMap.entries()).map(([category, items]) => {
-      const module = modules[category || '']
-      if (!module) return
-      categories.push({
-        id: category,
-        name: module.name,
-        isDragEnabled: module.isDragEnabled,
-        maxDisplayCount: module.maxDisplayCount,
-        isExpanded: expandedCategories[category] || false, // 从状态中读取展开状态
-        items: items
-      })
-    })
+    if (resultMode.value === "search") {
+      const searchCategory: SearchCategory = {
+        id: "best-match",
+        name: "最佳匹配",
+        items: [],
+        isDragEnabled: false,
+        maxDisplayCount: 16,
+        isExpanded: false,
+      }
 
-    return categories
+      const recommendCategory: SearchCategory = {
+        id: "recommend",
+        name: "推荐",
+        items: [],
+        isDragEnabled: false,
+        maxDisplayCount: 16,
+        isExpanded: false,
+      }
+
+      Array.from(categorieMap.entries()).map(([_category, items]) => {
+        items.forEach((item: AppItem) => {
+          if ((item as PluginItem)?.recommend) {
+            recommendCategory.items.push(item)
+          } else {
+            searchCategory.items.push(item)
+          }
+        })
+      })
+
+      const categories: SearchCategory[] = [{ ...searchCategory, items: searchCategory.items }]
+      if (recommendCategory.items.length > 0) {
+        categories.push({ ...recommendCategory, items: recommendCategory.items })
+      }
+      return categories
+    } else {
+      const categories: SearchCategory[] = []
+      Array.from(categorieMap.entries()).map(([category, items]) => {
+        const module = modules[category || '']
+        if (!module) return
+        categories.push({
+          id: category,
+          name: module.name,
+          isDragEnabled: module.isDragEnabled,
+          maxDisplayCount: module.maxDisplayCount,
+          isExpanded: expandedCategories[category] || false, // 从状态中读取展开状态
+          items: items
+        })
+      })
+      return categories
+    }
   })
 
   // ==================== 核心方法 ====================
@@ -470,8 +508,10 @@ export const useSearchStore = defineStore('search', () => {
     // 无搜索词时显示所有项
     if (!trimmedQuery && !attachedInfo) {
       showDefaultResults()
+      resultMode.value = "default"
     } else {
       await showSearchResults(query, attachedInfo)
+      resultMode.value = "search"
     }
   }
 

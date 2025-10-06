@@ -1,6 +1,7 @@
 import type { AttachedFile } from '@/typings/composableTypes'
 import type { AppItem } from '@/temp_code/typings/search'
 import type { SettingConfig } from './settingTypes'
+import type { LifecycleType } from './windowTypes'
 
 /** 插件钩子 */
 export type PluginHook = (...args: any[]) => void | Promise<void>
@@ -131,8 +132,6 @@ export interface PluginConfig {
   enabled: boolean
 }
 
-
-
 /** 插件项目类型 - 基于新的搜索系统 AppItem */
 export type PluginItem = AppItem & {
   /** 插件ID */
@@ -140,29 +139,11 @@ export type PluginItem = AppItem & {
   /** 开机启动 */
   autoStart?: boolean
   /** 生命周期类型 */
-  lifecycleType?: import('./windowTypes').LifecycleType
+  lifecycleType?: LifecycleType
+  /** 推荐 */
+  recommend?: boolean
   /** 进入回调 */
   onEnter?: (params: { files: AttachedFile[], searchText: string }, api: any) => void
   /** 安装回调 */
   onInstall?: (api: any) => void
-}
-
-/** 插件分类接口 */
-export interface PluginCategory {
-  /** 分类ID */
-  id: string
-  /** 分类名称 */
-  name: string
-  /** 分类描述 */
-  description?: string
-  /** 分类图标 */
-  icon?: string
-  /** 是否启用 */
-  enabled: boolean
-  /** 插件列表 */
-  plugins: PluginConfig[]
-  /** 最大显示数量 */
-  maxDisplayCount: number
-  /** 是否展开显示全部 */
-  isExpanded: boolean
 }

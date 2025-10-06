@@ -6,7 +6,7 @@ import type {
   PluginItem,
   CommandConfig,
 } from "@/typings/pluginTypes";
-import type { PluginInstaller, UninstallOptions } from "@/temp_code/typings/plugin";
+import type { PluginInstaller, } from "@/temp_code/typings/plugin";
 import { SystemPluginInstaller } from "./modules/system";
 import { LocalPluginInstaller } from "./modules/local";
 import { GithubPluginInstaller } from "./modules/github";
