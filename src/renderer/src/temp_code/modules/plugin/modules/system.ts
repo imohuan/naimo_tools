@@ -1,6 +1,6 @@
 import type { PluginConfig } from '@/typings/pluginTypes'
 import { BasePluginInstaller } from './base'
-import { PluginSourceType, type InstallOptions } from '@/temp_code/typings/plugin'
+import { PluginSourceType, type InstallOptions, type UninstallOptions } from '@/temp_code/typings/plugin'
 
 /**
  * 系统插件安装器
@@ -13,7 +13,7 @@ export class SystemPluginInstaller extends BasePluginInstaller {
   readonly pluginType = 'system'
 
   /** 插件模块缓存 */
-  private pluginModules = import.meta.glob('@/plugins/base-plugins/*.ts', { eager: true })
+  private pluginModules = import.meta.glob('@/plugins/*.ts', { eager: true })
   /** 插件列表缓存 */
   private pluginsCache: PluginConfig[] | null = null
 
@@ -26,7 +26,6 @@ export class SystemPluginInstaller extends BasePluginInstaller {
     if (this.pluginsCache) {
       return this.pluginsCache
     }
-
     const plugins: PluginConfig[] = []
 
     console.log('🔍 [系统插件] 开始加载默认插件...')
@@ -115,7 +114,7 @@ export class SystemPluginInstaller extends BasePluginInstaller {
   }
 
   /** 卸载系统插件（只是禁用） */
-  async uninstall(pluginId: string): Promise<boolean> {
+  async uninstall(pluginId: string, _options?: UninstallOptions): Promise<boolean> {
     console.log(`🗑️ [系统插件] 卸载: ${pluginId}`)
     console.log(`✅ [系统插件] 卸载成功: ${pluginId}`)
     return true

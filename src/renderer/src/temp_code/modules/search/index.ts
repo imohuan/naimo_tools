@@ -28,7 +28,8 @@ for (const path in moduleFiles) {
         instance &&
         typeof instance.getItems === 'function' &&
         typeof instance.deleteItem === 'function' &&
-        typeof instance.addItem === 'function'
+        typeof instance.addItem === 'function' &&
+        typeof instance.setItems === 'function'
       ) {
         const oldGetItems = instance.getItems.bind(instance)
         instance.getItems = async () => {
@@ -124,24 +125,79 @@ export const useSearchStore = defineStore('search', () => {
     return modules[item.category || '']
   }
 
-  const deleteItem = async (item: AppItem) => {
-    const index = searchItems.value.findIndex(i => i.path === item.path)
-    if (index !== -1) {
-      getItemModule(item)?.deleteItem(item)
-      searchItems.value.splice(index, 1)
-      triggerRef(searchItems)
+  /**
+   * 执行模块方法的通用函数
+   * @param moduleKey - 模块的 category 字符串或 AppItem 对象
+   * @param methodName - 要执行的方法名
+   * @param args - 方法参数数组
+   * @param options - 配置选项
+   */
+  const executeModuleMethod = async <T extends keyof SearchModule>(
+    moduleKey: string | AppItem,
+    methodName: T,
+    args: any[],
+    options: {
+      /** 是否克隆参数（深拷贝） */
+      cloneArgs?: boolean
+      /** 是否重新加载所有项，默认 true */
+      reloadItems?: boolean
+      /** 错误提示信息 */
+      errorMessage?: string
+      /** 抛出错误 */
+      throwError?: boolean
+    } = {}
+  ) => {
+    // 获取模块
+    const module = typeof moduleKey === 'string'
+      ? modules[moduleKey]
+      : getItemModule(moduleKey)
+
+    // 获取分类名称用于错误提示
+    const category = typeof moduleKey === 'string'
+      ? moduleKey
+      : moduleKey.category
+
+    if (!module) {
+      console.error(`未找到分类: ${category}`)
+      return
+    }
+
+    try {
+      // 克隆参数（如果需要）
+      const finalArgs = options.cloneArgs
+        ? args.map(arg => JSON.parse(JSON.stringify(arg)))
+        : args
+      // 执行模块方法
+      await (module[methodName] as any)(...finalArgs)
+      // 重新加载所有搜索项（如果需要）
+      if (options.reloadItems !== false) await initItems()
+    } catch (error) {
+      console.error(options.errorMessage || "执行模块方法失败", error)
+      if (options.throwError) throw error
     }
   }
 
+  const deleteItem = async (item: AppItem) => {
+    await executeModuleMethod(item, 'deleteItem', [item], {
+      reloadItems: true,
+      errorMessage: '删除搜索项失败'
+    })
+  }
+
   const addItem = async (item: AppItem) => {
-    try {
-      searchItems.value = [...searchItems.value, item]
-      triggerRef(searchItems)
-      const copyItem = JSON.parse(JSON.stringify(item))
-      getItemModule(item)?.addItem(copyItem)
-    } catch (error) {
-      console.error("添加搜索项失败", error)
-    }
+    await executeModuleMethod(item, 'addItem', [item], {
+      cloneArgs: true,
+      reloadItems: true,
+      errorMessage: '添加搜索项失败'
+    })
+  }
+
+  const setItems = async (category: string, items: AppItem[]) => {
+    await executeModuleMethod(category, 'setItems', [items], {
+      cloneArgs: true,
+      reloadItems: true,
+      errorMessage: '批量设置搜索项失败'
+    })
   }
 
   /**
@@ -155,12 +211,13 @@ export const useSearchStore = defineStore('search', () => {
 
   // 显示默认结果
   const showDefaultResults = () => {
-    searchResults.value = searchItems.value.filter(item => {
-      const includeCategory = ['applications', 'pinned', 'recent', 'files'].includes(item.category || '')
-      return includeCategory
-    }).sort((a, b) => {
-      return (getItemModule(a)?.weight) - (getItemModule(b)?.weight)
-    })
+    // searchResults.value = searchItems.value.filter(item => {
+    //   const includeCategory = ['applications', 'pinned', 'recent', 'files'].includes(item.category || '')
+    //   return includeCategory
+    // }).sort((a, b) => {
+    //   return (getItemModule(a)?.weight) - (getItemModule(b)?.weight)
+    // })
+    searchResults.value = searchItems.value
     triggerRef(searchResults)
   }
 
@@ -173,6 +230,10 @@ export const useSearchStore = defineStore('search', () => {
     const performTextSearch = (item: AppItem): { matched: boolean; score: number } => {
       let score = 0
       let matched = false
+
+      if (item.notVisibleSearch && !attachedInfo) {
+        return { matched: false, score: 0 }
+      }
 
       // 1. 搜索 name 字段
       if (PinyinSearch.match(item.name, query)) {
@@ -221,22 +282,6 @@ export const useSearchStore = defineStore('search', () => {
 
         // 根据不同类型执行不同的搜索逻辑
         switch (item.type) {
-          case 'text':
-            // 检查长度限制
-            const textLengthValid =
-              (item.minLength === undefined || query.length >= item.minLength) &&
-              (item.maxLength === undefined || query.length <= item.maxLength)
-            // 如果不满足长度限制，不匹配
-            if (!textLengthValid) {
-              matched = false
-            } else {
-              // 文本搜索类型：默认执行通用文本搜索
-              const textResult = performTextSearch(item)
-              matched = textResult.matched
-              score = textResult.score
-            }
-            break
-
           case 'regex':
             // 正则搜索类型：用正则匹配 query
             if (item.match) {
@@ -342,8 +387,22 @@ export const useSearchStore = defineStore('search', () => {
             break
 
           default:
-            console.warn('未知的搜索类型:', (item as any).type)
+            // 检查长度限制
+            const textLengthValid =
+              (query.length > (item.minLength || 0)) &&
+              (item.maxLength === undefined || query.length <= item.maxLength)
+            // 如果不满足长度限制，不匹配
+            if (!textLengthValid) {
+              matched = false
+            } else {
+              // 文本搜索类型：默认执行通用文本搜索
+              const textResult = performTextSearch(item)
+              matched = textResult.matched
+              score = textResult.score
+            }
             break
+          // console.warn('未知的搜索类型:', (item as any).type)
+          // break
         }
 
         // 应用 item 的权重（如果存在）
@@ -431,6 +490,7 @@ export const useSearchStore = defineStore('search', () => {
     initItems,
     deleteItem,
     addItem,
+    setItems,
     getItemModule,
 
     // 辅助方法

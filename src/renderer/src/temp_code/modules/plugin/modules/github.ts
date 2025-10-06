@@ -1,6 +1,6 @@
 import type { PluginConfig } from '@/typings/pluginTypes'
 import { BasePluginInstaller } from './base'
-import { PluginSourceType, type InstallOptions } from '@/temp_code/typings/plugin'
+import { PluginSourceType, type InstallOptions, type UninstallOptions } from '@/temp_code/typings/plugin'
 import { request } from '@/temp_code/utils/request'
 import { useCacheStore } from '@/temp_code/modules/cache'
 import { uniqueArrayByProperty } from '@/temp_code/utils/unique'
@@ -260,9 +260,9 @@ export class GithubPluginInstaller extends BasePluginInstaller {
   }
 
   /** 卸载 GitHub 插件 */
-  async uninstall(pluginId: string): Promise<boolean> {
+  async uninstall(pluginId: string, options?: UninstallOptions): Promise<boolean> {
     if (!this.localInstaller) throw new Error('本地安装器未初始化')
-    return await this.localInstaller.uninstall(pluginId)
+    return await this.localInstaller.uninstall(pluginId, options)
   }
 
   /** 加载更多插件 */

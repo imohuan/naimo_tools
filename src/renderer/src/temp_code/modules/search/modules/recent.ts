@@ -6,9 +6,16 @@ export class RecentModule implements SearchModule {
   name = "最近使用"
   isDragEnabled = true
   maxDisplayCount = 16
-
   async getItems() {
-    return await naimo.router.storeGet("recentApps") || []
+    const items = await naimo.router.storeGet("recentApps") || []
+    // 为每个 item 添加 __metadata
+    return items.map((item: AppItem) => ({
+      ...item,
+      __metadata: {
+        enableDelete: true,
+        enablePin: false
+      }
+    }))
   }
 
   async deleteItem(item: AppItem): Promise<void> {
@@ -17,5 +24,9 @@ export class RecentModule implements SearchModule {
 
   async addItem(item: AppItem): Promise<void> {
     storeUtils.addListItem("recentApps", item, { unique: true, uniqueField: "path", position: "start" })
+  }
+
+  async setItems(items: AppItem[]): Promise<void> {
+    await storeUtils.setListItems("recentApps", items)
   }
 }   

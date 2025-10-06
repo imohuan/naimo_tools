@@ -129,8 +129,6 @@ import IconMdiPlus from "~icons/mdi/plus";
 import IconMdiDelete from "~icons/mdi/delete";
 /** @ts-ignore */
 import IconMdiKeyboard from "~icons/mdi/keyboard";
-/** @ts-ignore */
-import IconMdiInformation from "~icons/mdi/information";
 import { HotkeyType } from "@/temp_code/typings/hotkey";
 import type { HotkeyConfig } from "@/temp_code/typings/hotkey";
 import { useApp } from "@/temp_code";
@@ -151,8 +149,6 @@ const { isListening, currentKeys, getListening } = useHotkeyListener();
 // 快捷键监听状态
 const currentListeningId = ref<string>("");
 const currentEditingHotkey = ref<HotkeyConfig | null>(null);
-
-// 移除重复的存储桥接器实例，使用 hotkeyManager 内置的存储功能
 
 // 添加自定义快捷键
 const addCustomHotkey = async () => {

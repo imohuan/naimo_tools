@@ -412,6 +412,11 @@ export const useHotkeyStore = defineStore("hotkey", () => {
   const _setupEventListeners = (): void => {
     // 监听主进程发送的全局快捷键触发事件
     naimo.event.onGlobalHotkeyTrigger((_event, data) => {
+      if (!silent.value) {
+        console.log("[HotkeyStore] 非静默模式，跳过全局快捷键触发");
+        return;
+      }
+
       console.log("[HotkeyStore] 收到全局快捷键触发:", data);
       const { hotkeyId } = data;
       const config = hotkeys.value.get(hotkeyId);
@@ -498,6 +503,11 @@ export const useHotkeyStore = defineStore("hotkey", () => {
    * @private
    */
   const _registerToModule = async (config: HotkeyConfig): Promise<void> => {
+    if (!silent.value) {
+      console.log("[HotkeyStore] 非静默模式，跳过注册快捷键到对应的子模块");
+      return;
+    }
+
     if (config.type === HotkeyType.GLOBAL) {
       await globalModule.register(config);
     } else {
@@ -510,6 +520,11 @@ export const useHotkeyStore = defineStore("hotkey", () => {
    * @private
    */
   const _unregisterFromModule = async (config: HotkeyConfig): Promise<void> => {
+    if (!silent.value) {
+      console.log("[HotkeyStore] 非静默模式，跳过注销快捷键到对应的子模块");
+      return;
+    }
+
     if (config.type === HotkeyType.GLOBAL) {
       await globalModule.unregister(config.id);
     } else {

@@ -1,6 +1,7 @@
 import type { AttachedFile } from '@/typings/composableTypes'
-import type { AppItem } from '@shared/typings'
-import type { SearchMode } from './searchTypes'
+import type { AppItem } from '@/temp_code/typings/search'
+import type { SettingConfig } from './settingTypes'
+
 /** 插件钩子 */
 export type PluginHook = (...args: any[]) => void | Promise<void>
 
@@ -8,18 +9,6 @@ export type CommandConfig = {
   name: string
   description: string
   handler: PluginHook
-}
-
-// JSON配置驱动生成组件
-export type SettingConfig = {
-  name: string
-  title: string
-  description: string
-  type: "input" | "select" | "checkbox" | "radio" | "textarea" | "number" | "date" | "time" | "datetime" | "file" | "image" | "video" | "audio" | "url" | "email" | "password" | "tel" | "search" | "range" | "color" | "hidden"
-  defaultValue?: () => any | any
-  required?: boolean
-  option?: any
-  children?: SettingConfig[]
 }
 
 /** 插件执行逻辑类型 */
@@ -132,53 +121,30 @@ export interface PluginConfig {
   icon?: string
   /** 插件分类 */
   category?: PluginCategoryType
-  /** 是否启用 */
-  enabled: boolean
   /** 插件项目列表 */
   items: PluginItem[]
   /** 插件配置选项 */
   options?: Record<string, any>
   /** 插件设置配置 */
   settings?: SettingConfig[]
-  /** 插件元数据 */
-  metadata?: {
-    /** 创建时间 */
-    createdAt: number
-    /** 更新时间 */
-    updatedAt: number
-    /** 安装时间 */
-    installedAt: number
-  }
+  /** 是否启用 */
+  enabled: boolean
 }
 
 
 
-/** 插件项目接口 */
-export interface PluginItem extends AppItem {
+/** 插件项目类型 - 基于新的搜索系统 AppItem */
+export type PluginItem = AppItem & {
   /** 插件ID */
   pluginId?: string
-  /** 插件描述 */
-  description?: string
   /** 开机启动 */
   autoStart?: boolean
-  /** 排序权重 */
-  weight?: number
   /** 生命周期类型 */
   lifecycleType?: import('./windowTypes').LifecycleType
-  /** 搜索回调（附件搜索模式使用） */
-  onSearch?: (text: string, files: AttachedFile[]) => boolean
-  /** 插件搜索回调（插件搜索模式使用） */
-  onPluginSearch?: (searchText: string, files: AttachedFile[]) => AppItem[]
   /** 进入回调 */
   onEnter?: (params: { files: AttachedFile[], searchText: string }, api: any) => void
   /** 安装回调 */
   onInstall?: (api: any) => void
-  /** 在哪些搜索模式下隐藏 */
-  hideInModes?: SearchMode[]
-  /** 在哪些搜索模式下显示 */
-  showInModes?: SearchMode[]
-  /** 匿名搜索字段列表（用于匿名搜索匹配） */
-  anonymousSearchFields?: string[]
 }
 
 /** 插件分类接口 */

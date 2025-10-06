@@ -1,6 +1,5 @@
 import type { PluginConfig } from '@/typings/pluginTypes'
-import { PluginExecuteType, PluginCategoryType } from '@/typings/pluginTypes'
-import { SearchMode } from '@/typings/searchTypes'
+import { PluginCategoryType } from '@/typings/pluginTypes'
 
 /**
  * 网页工具插件示例
@@ -19,18 +18,14 @@ export const baseToolsPlugin: PluginConfig = {
       name: '添加到文件列表',
       path: 'add-to-file-list',
       icon: null,
-      executeType: PluginExecuteType.CUSTOM_CODE,
-      notAddToRecent: true,
-      onSearch: (text, files) => {
-        return files.length > 0
-      },
+      type: "files",
+      fileType: "all",
+      notVisibleSearch: true,
       onEnter: async (options, api) => {
         for (const file of options.files) {
           await api.addPathToFileList(file.name, file.path)
         }
       },
-      showInModes: [SearchMode.ATTACHMENT],
-      hideInModes: [SearchMode.NORMAL],
       anonymousSearchFields: ['add-to-file-list']
     },
     // 截图
@@ -38,10 +33,8 @@ export const baseToolsPlugin: PluginConfig = {
       name: '截图并裁剪',
       path: 'screenshot-crop',
       icon: '📸',
-      pluginId: 'screenshot-tools',
-      executeType: PluginExecuteType.CUSTOM_CODE,
-      notAddToRecent: false,
-      onEnter: async (_options, api) => {
+      type: 'text' as const,
+      onEnter: async (_options, _api) => {
         try {
           // 调用截图功能
           const result = await naimo.router.screenCaptureCaptureAndGetFilePath({});
@@ -58,7 +51,6 @@ export const baseToolsPlugin: PluginConfig = {
           return false;
         }
       },
-      showInModes: [SearchMode.NORMAL],
       anonymousSearchFields: ['screenshot', '截图', '裁剪', 'crop']
     },
     // 插件安装
@@ -66,16 +58,10 @@ export const baseToolsPlugin: PluginConfig = {
       name: '插件安装',
       path: 'plugin-install',
       icon: null,
-      executeType: PluginExecuteType.CUSTOM_CODE,
-      notAddToRecent: true,
-      onSearch: (text, files) => {
-        return files.length === 1 && files[0].name.endsWith('.zip')
-      },
+      type: 'text' as const,
       onEnter: async (options, apis) => {
         await apis.plugin.installZip(options.files[0].path)
       },
-      showInModes: [SearchMode.ATTACHMENT],
-      hideInModes: [SearchMode.NORMAL],
       anonymousSearchFields: ['plugin-install']
     },
 

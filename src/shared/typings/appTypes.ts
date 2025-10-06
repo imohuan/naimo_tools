@@ -1,9 +1,14 @@
 // 共享类型定义
+import type { AppItem } from '@renderer/src/temp_code/typings/search'
+
 export interface AppConfig {
   /** 主题模式，支持 light 或 dark */
   theme: "light" | "dark";
   /** 语言设置 */
   language: string;
+  /** 日志级别 */
+  logLevel: "error" | "warn" | "info" | "debug";
+  /** UI常量配置 */
   /** 窗口尺寸 */
   windowSize: {
     /** 窗口宽度 */
@@ -11,9 +16,6 @@ export interface AppConfig {
     /** 窗口高度 */
     height: number;
   };
-  /** 日志级别 */
-  logLevel: "error" | "warn" | "info" | "debug";
-  /** UI常量配置 */
   uiConstants: {
     /** 头部高度 */
     headerHeight: number;
@@ -45,25 +47,6 @@ export interface AppConfig {
   customHotkeys?: any[];
   /** 插件设置存储 */
   pluginSettings?: Record<string, Record<string, any>>;
-}
-
-export interface AppItem {
-  /** 应用名称 */
-  name: string;
-  /** 应用路径 英文 */
-  path: string;
-  /** 应用图标，null 表示无图标 */
-  icon: string | null;
-  /** 最后一次使用时间（时间戳） */
-  lastUsed?: number;
-  /** 使用次数 */
-  usageCount?: number;
-  /** 应用描述 */
-  description?: string;
-  /** 不允许加入最近访问 */
-  notAddToRecent?: boolean
-  /** 是否在分类中显示 */
-  hidden?: boolean
 }
 
 export interface LogLevel {

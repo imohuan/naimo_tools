@@ -1,6 +1,6 @@
 import type { PluginConfig } from '@/typings/pluginTypes'
 import { BasePluginInstaller } from './base'
-import { PluginSourceType, type InstallOptions } from '@/temp_code/typings/plugin'
+import { PluginSourceType, type InstallOptions, type UninstallOptions } from '@/temp_code/typings/plugin'
 
 /**
  * 本地插件安装器
@@ -20,7 +20,7 @@ export class LocalPluginInstaller extends BasePluginInstaller {
       return hasPath && notUrl
     }
     // 检查插件类型标记（支持新旧两种标记方式）
-    return source?.options?.pluginType === this.pluginType
+    return [this.pluginType, 'github'].includes(source?.options?.pluginType)
   }
 
   /** 获取所有本地已安装的插件列表 */
@@ -91,7 +91,8 @@ export class LocalPluginInstaller extends BasePluginInstaller {
   }
 
   /** 卸载本地插件 */
-  async uninstall(pluginId: string): Promise<boolean> {
+  async uninstall(pluginId: string, options?: UninstallOptions): Promise<boolean> {
+    if (options?.skip) return true
     console.log(`🗑️ [本地插件] 卸载: ${pluginId}`)
     if (!await naimo.router.pluginUninstallPlugin(pluginId)) {
       console.error(`❌ 删除插件文件失败: ${pluginId}`)

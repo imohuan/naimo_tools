@@ -15,6 +15,8 @@ export interface AttachedFile {
   type: string
   /** 文件大小 */
   size: number
+  /** 原始文件 */
+  originalFile?: File
 }
 
 /**

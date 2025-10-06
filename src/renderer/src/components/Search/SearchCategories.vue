@@ -3,7 +3,9 @@
     <div v-for="category in categories" :key="category.id" class="category-section">
       <!-- 分类标题 -->
       <div class="flex items-center justify-between mb-1 px-1">
-        <h3 class="text-sm font-medium text-gray-700 transition-colors duration-200 hover:text-gray-900">
+        <h3
+          class="text-sm font-medium text-gray-700 transition-colors duration-200 hover:text-gray-900"
+        >
           {{ category.name }}
         </h3>
         <div class="flex items-center space-x-2">
@@ -12,9 +14,15 @@
             {{ category.items.length }}
           </span> -->
           <!-- 展开/收起按钮 -->
-          <button v-if="category.items.length > category.maxDisplayCount" @click="handleCategoryToggle(category.id)"
-            class="text-xs text-blue-600 hover:text-blue-800 transition-all duration-200 hover:bg-blue-50 px-2 py-1 rounded-md hover:scale-105 active:scale-95">
-            <span class="transition-all duration-200" :class="{ 'rotate-180': category.isExpanded }">
+          <button
+            v-if="category.items.length > category.maxDisplayCount"
+            @click="handleCategoryToggle(category.id)"
+            class="text-xs text-blue-600 hover:text-blue-800 transition-all duration-200 hover:bg-blue-50 px-2 py-1 rounded-md hover:scale-105 active:scale-95"
+          >
+            <span
+              class="transition-all duration-200"
+              :class="{ 'rotate-180': category.isExpanded }"
+            >
               {{
                 category.isExpanded
                   ? `收起(${category.items.length})`
@@ -26,21 +34,40 @@
       </div>
 
       <!-- 分类内容 -->
-      <div class="category-content overflow-hidden transition-all duration-300 ease-in-out">
-        <VueDraggable v-model="category.items" :disabled="!category.isDragEnabled" @end="() => onDragEnd(category.id)"
+      <div
+        class="category-content overflow-hidden transition-all duration-300 ease-in-out"
+      >
+        <VueDraggable
+          v-model="category.items"
+          :disabled="!category.isDragEnabled"
+          @end="() => onDragEnd(category.id)"
           item-key="path"
           class="grid grid-cols-6 sm:grid-cols-7 md:grid-cols-8 lg:grid-cols-9 gap-1 min-h-0 transition-all duration-300"
-          ghost-class="sortable-ghost" chosen-class="sortable-chosen" drag-class="sortable-drag">
-          <AppItem v-for="app in getDisplayItems(category)" :key="`${category.id}-${app.path}`" :app="app"
-            :category-id="category.id" :is-selected="isItemSelected(app, category.id)" @app-click="handleAppClick"
-            @context-menu="handleContextMenu" />
+          ghost-class="sortable-ghost"
+          chosen-class="sortable-chosen"
+          drag-class="sortable-drag"
+        >
+          <AppItemComponent
+            v-for="app in getDisplayItems(category)"
+            :key="`${category.id}-${app.path}`"
+            :app="app"
+            :category-id="category.id"
+            :is-selected="isItemSelected(app, category.id)"
+            @app-click="handleAppClick"
+            @context-menu="handleContextMenu"
+          />
         </VueDraggable>
       </div>
     </div>
 
     <!-- 右键菜单 -->
-    <ContextMenu :visible="contextMenuVisible" :x="contextMenuPosition.x" :y="contextMenuPosition.y"
-      :items="contextMenuItems" @close="closeContextMenu" />
+    <ContextMenu
+      :visible="contextMenuVisible"
+      :x="contextMenuPosition.x"
+      :y="contextMenuPosition.y"
+      :items="contextMenuItems"
+      @close="closeContextMenu"
+    />
   </div>
 </template>
 
@@ -48,35 +75,13 @@
 import { VueDraggable } from "vue-draggable-plus";
 import { ref, computed } from "vue";
 import ContextMenu, { type ContextMenuItem } from "@/components/ContextMenu/ContextMenu.vue";
-import AppItem from "./AppItem.vue";
+import AppItemComponent from "./AppItem.vue";
+import type { AppItem } from "@/temp_code/typings/search";
+import type { SearchCategory } from "@/typings/searchTypes";
 /** @ts-ignore */
 import IconMdiCog from "~icons/mdi/cog";
 /** @ts-ignore */
 import IconMdiApplication from "~icons/mdi/application";
-
-
-interface AppItem {
-  name: string;
-  path: string;
-  icon: string | null;
-}
-
-interface SearchCategory {
-  id: string;
-  name: string;
-  items: AppItem[];
-  isDragEnabled: boolean;
-  maxDisplayCount: number;
-  isExpanded: boolean;
-  customSearch?: (searchText: string, items: AppItem[]) => AppItem[];
-  // 是否禁用删除功能
-  disableDelete?: boolean;
-  // 右键菜单配置
-  contextMenu?: {
-    enableDelete?: boolean; // 是否启用删除功能
-    enablePin?: boolean; // 是否启用固定功能
-  };
-}
 
 interface Props {
   categories: SearchCategory[];
@@ -136,13 +141,10 @@ const onDragEnd = (categoryId: string) => {
 const contextMenuItems = computed((): ContextMenuItem[] => {
   if (!currentApp.value || !currentCategoryId.value) return [];
 
-  const category = props.categories.find(cat => cat.id === currentCategoryId.value);
-  if (!category) return [];
-
   const items: ContextMenuItem[] = [];
 
-  // 固定功能
-  if (category.contextMenu?.enablePin !== false) {
+  // 固定功能 - 基于 item 的 __metadata 配置
+  if (currentApp.value.__metadata?.enablePin === true && currentApp.value.type === "text") {
     items.push({
       key: 'pin',
       label: '固定到顶部',
@@ -151,8 +153,8 @@ const contextMenuItems = computed((): ContextMenuItem[] => {
     });
   }
 
-  // 删除功能
-  if (category.disableDelete !== true) {
+  // 删除功能 - 基于 item 的 __metadata 配置
+  if (currentApp.value.__metadata?.enableDelete === true) {
     items.push({
       key: 'delete',
       label: '删除',
@@ -294,7 +296,7 @@ const handleAppPin = (app: AppItem, categoryId: string) => {
 }
 
 /* 拖拽时的其他项目动画 */
-.sortable-chosen~.draggable-item {
+.sortable-chosen ~ .draggable-item {
   transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 

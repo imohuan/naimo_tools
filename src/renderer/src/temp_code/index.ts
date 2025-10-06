@@ -47,12 +47,12 @@ export const useApp = defineStore('app', () => {
   const initialize = async () => {
     console.log('🚀 开始初始化应用...')
     try {
+      // 初始化插件系统
+      await plugin.initialize()
       // 初始化搜索系统
       await search.initialize()
       // 初始化快捷键系统
       await hotkey.initialize()
-      // 初始化插件系统
-      await plugin.initialize()
       console.log('✅ 应用初始化完成')
     } catch (error) {
       console.error('❌ 应用初始化失败:', error)

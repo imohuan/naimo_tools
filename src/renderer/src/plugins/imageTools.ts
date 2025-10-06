@@ -1,6 +1,5 @@
 import type { PluginConfig } from '@/typings/pluginTypes'
-import { PluginExecuteType, PluginCategoryType } from '@/typings/pluginTypes'
-import { SearchMode } from '@/typings/searchTypes'
+import { PluginCategoryType } from '@/typings/pluginTypes'
 
 /**
  * 图片工具插件
@@ -20,14 +19,7 @@ export const imageToolsPlugin: PluginConfig = {
       name: '图片转Base64',
       path: 'image-to-base64',
       icon: '📷',
-      executeType: PluginExecuteType.CUSTOM_CODE,
-      notAddToRecent: false,
-      onSearch: (_text, files) => {
-        // 只在有图片文件时显示
-        return files.length > 0 && files.some(file =>
-          /\.(jpg|jpeg|png|gif|bmp|webp|svg)$/i.test(file.name)
-        )
-      },
+      type: 'text' as const,
       onEnter: async (options, _api) => {
         try {
           // 筛选出图片文件
@@ -63,21 +55,13 @@ export const imageToolsPlugin: PluginConfig = {
           return false
         }
       },
-      showInModes: [SearchMode.ATTACHMENT],
-      hideInModes: [SearchMode.NORMAL],
       anonymousSearchFields: ['image-to-base64', '图片转base64', 'image', 'base64']
     },
     {
       name: 'Base64转图片',
       path: 'base64-to-image',
       icon: '💾',
-      executeType: PluginExecuteType.CUSTOM_CODE,
-      notAddToRecent: false,
-      onSearch: (text, _files) => {
-        // 检查剪切板是否有Base64数据或搜索文本包含base64相关关键词
-        return text.includes('base64') || text.includes('data:image') ||
-          text.match(/^data:image\/[a-z]+;base64,/) !== null
-      },
+      type: 'text' as const,
       onEnter: async (_options, _api) => {
         try {
           // 首先尝试从剪切板获取内容
@@ -130,7 +114,6 @@ export const imageToolsPlugin: PluginConfig = {
           return false
         }
       },
-      showInModes: [SearchMode.NORMAL],
       anonymousSearchFields: ['base64-to-image', 'base64转图片', 'base64', '保存图片']
     },
   ]

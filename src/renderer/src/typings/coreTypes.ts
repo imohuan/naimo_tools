@@ -1,4 +1,4 @@
-import type { AppItem } from '@shared/typings'
+import type { AppItem } from '@/temp_code/typings/search'
 
 /** 搜索提供者接口 */
 export interface SearchProvider {

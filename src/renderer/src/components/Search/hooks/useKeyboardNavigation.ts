@@ -1,10 +1,10 @@
-import type { AppItem } from "@shared/typings";
+import type { AppItem } from "@/temp_code/typings/search";
 
 export function useKeyboardNavigation(
   flatItems: any,
   searchCategories: any,
   selectedIndex: any,
-  executeItem: (app: AppItem) => void
+  handlePrepareAction: (app: AppItem) => void
 ) {
   // 智能键盘导航处理
   const handleKeyNavigation = (event: KeyboardEvent) => {
@@ -134,7 +134,7 @@ export function useKeyboardNavigation(
       case "Enter":
         event.preventDefault();
         if (flatItems.value[selectedIndex.value]) {
-          executeItem(flatItems.value[selectedIndex.value]);
+          handlePrepareAction(flatItems.value[selectedIndex.value]);
         }
         break;
     }

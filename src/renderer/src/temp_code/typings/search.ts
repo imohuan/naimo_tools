@@ -1,3 +1,5 @@
+import type { AttachedFile as AttachedFileFromComposableTypes } from "@/typings/composableTypes";
+
 /**
  * 搜索分类接口
  */
@@ -63,7 +65,7 @@ export interface FileSearch {
   /** 类型 */
   type: "files";
   /** 文件类型 */
-  fileType: "file" | "directory";
+  fileType: "file" | "directory" | "all";
   /** 文件扩展名 */
   extensions?: string[];
   /** 正则匹配文件名称 */
@@ -90,7 +92,10 @@ export interface SearchModule {
   deleteItem: (item: AppItem) => Promise<void>;
   /** 添加项 */
   addItem: (item: AppItem) => Promise<void>;
+  /** 批量设置项 */
+  setItems: (items: AppItem[]) => Promise<void>;
 }
+
 
 export type AppItem = (RegexSearch | TextSearch | ImgSearch | FileSearch) & {
   /** 应用名称 */
@@ -111,22 +116,33 @@ export type AppItem = (RegexSearch | TextSearch | ImgSearch | FileSearch) & {
   notVisibleSearch?: boolean;
   /** 排序权重 */
   weight?: number;
+  /** (系统配置) 元数据配置 */
+  __metadata?: {
+    /** 是否启用删除功能 */
+    enableDelete?: boolean;
+    /** 是否启用固定功能 */
+    enablePin?: boolean;
+  };
 };
 
 export interface AttachedFile {
   type: "file";
-  data: File[];
+  data: AttachedFileFromComposableTypes[];
 }
 
 export interface AttachedText {
   type: "text";
   data: string;
+  /** 文件路径 */
+  path: string;
 }
 
 export interface AttachedImg {
   type: "img";
   /** base64 图片 */
   data: string;
+  /** 文件路径 */
+  path: string;
 }
 
 export interface AttachedPlugin {

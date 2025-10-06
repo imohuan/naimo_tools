@@ -35,9 +35,9 @@
         :search-categories="searchCategories"
         :selected-index="selectedIndex"
         :flat-items="flatItems"
-        :show-plugin-window="isWindowInterface"
+        :show-plugin-window="isPluginWindowOpen"
         :show-settings-background="isSettingsInterface"
-        @app-click="executeItem"
+        @app-click="handlePrepareAction"
         @category-toggle="handleCategoryToggle"
         @category-drag-end="handleCategoryDragEnd"
         @app-delete="handleAppDelete"
@@ -76,7 +76,11 @@ import { useAppActions } from "@/composables/useAppActions";
 import { HotkeyType, useApp, type HotkeyConfig } from "@/temp_code";
 
 // 类型导入
-import type { AppItem } from "@shared/typings";
+import type {
+  AppItem,
+  AttachedFile,
+  AttachedInfo,
+} from "@/temp_code/typings/search";
 
 // ==================== 初始化 ====================
 const app = useApp();
@@ -108,32 +112,6 @@ const loadUIConstants = async () => {
   }
 };
 
-/**
- * 应用初始化序列
- */
-const initializeApp = async () => {
-  console.log("🚀 开始应用初始化");
-
-  try {
-    // 1. 加载UI常量配置
-    await loadUIConstants();
-
-    // 2. 初始化快捷键（优先执行，确保全局快捷键可用）
-    await app.hotkey.initialize();
-
-    // 3. 初始化插件
-    await app.plugin.initialize();
-
-    // 4. 初始化搜索
-    await app.search.initialize();
-
-    console.log("🎉 应用初始化完成");
-  } catch (error) {
-    console.error("❌ 应用初始化失败:", error);
-    throw error;
-  }
-};
-
 // 组件引用
 const searchHeaderRef = ref<InstanceType<typeof SearchHeader>>();
 const contentAreaRef = ref<InstanceType<typeof ContentArea>>();
@@ -145,6 +123,8 @@ const {
   show: handleWindowShow,
   hide,
 } = useWindowManager();
+
+// 显示窗口并调整大小
 const show = () => {
   handleWindowShow();
   contentAreaRef.value?.handleResize();
@@ -156,38 +136,27 @@ const { attachedFiles, addFiles, clearAttachedFiles } = useFileHandler();
 // 搜索状态
 const selectedIndex = ref(0);
 const searchCategories = computed(() => app.search.categories);
+// 扁平化搜索结果
 const flatItems = computed(() => {
-  // 扁平化搜索结果，添加 categoryId
-  const items: any[] = [];
-  for (const category of searchCategories.value) {
-    const displayItems = category.isExpanded || category.items.length <= category.maxDisplayCount
-      ? category.items
-      : category.items.slice(0, category.maxDisplayCount);
-    items.push(...displayItems.map((item: any) => ({
+  return searchCategories.value.flatMap((category) => {
+    const displayItems =
+      category.isExpanded || category.items.length <= category.maxDisplayCount
+        ? category.items
+        : category.items.slice(0, category.maxDisplayCount);
+    return displayItems.map((item: any) => ({
       ...item,
-      categoryId: category.id
-    })));
-  }
-  return items;
+      categoryId: category.id,
+    }));
+  });
 });
 
 // 搜索和应用操作
-const updateStoreCategory = async () => {
-  await app.search.initItems();
-};
-
-const performSearchInternal = async (updateSearchState: boolean = false) => {
-  if (updateSearchState) {
-    await updateStoreCategory();
-  }
-};
-
 const {
-  executeItem,
+  handlePrepareAction,
   handleCategoryDragEnd,
   handleAppDelete,
   handleAppPin,
-} = useAppActions(performSearchInternal);
+} = useAppActions();
 
 const handleCategoryToggle = (categoryId: string) => {
   app.search.toggleCategory(categoryId);
@@ -201,7 +170,6 @@ const padding = computed(() => uiConstants.value.padding);
 
 // UI 状态（使用 useApp().ui）
 const isSettingsInterface = computed(() => app.ui.isSettingsInterface);
-const isWindowInterface = computed(() => app.ui.isWindowInterface);
 const isPluginWindowOpen = computed(() => app.ui.isWindowInterface);
 const contentAreaVisible = computed(() => app.ui.isContentVisible);
 const currentPluginItem = computed({
@@ -221,6 +189,7 @@ const handleSearch = async (value: string) => {
       searchText: value,
       attachedFilesCount: attachedFiles.value.length,
     });
+
     naimo.router.appForwardMessageToPluginView(
       currentPlugin.path,
       "plugin-search",
@@ -232,8 +201,48 @@ const handleSearch = async (value: string) => {
     return;
   }
 
+  // 处理附件信息
+  const attachedInfo = await processAttachedInfo();
+
   // 使用 app.search 执行搜索
-  await app.search.performSearch(value);
+  console.log("🔍 执行搜索:", value, attachedInfo);
+  await app.search.performSearch(value, attachedInfo);
+};
+
+/**
+ * 处理附件信息，根据文件类型生成对应的 AttachedInfo
+ */
+const processAttachedInfo = async (): Promise<AttachedInfo | undefined> => {
+  if (attachedFiles.value.length === 0) return undefined;
+
+  // 多个文件：统一作为文件列表处理
+  if (attachedFiles.value.length > 1) {
+    return { type: "file", data: toRaw(attachedFiles.value) as any };
+  }
+
+  // 单个文件：根据类型分别处理
+  const file = attachedFiles.value[0];
+
+  // 图片类型：使用已提取的 icon（base64）
+  if (file.type.startsWith("image/") && file.icon) {
+    return { type: "img", data: file.icon, path: file.path };
+  }
+
+  // 文本类型：读取文件内容
+  if (file.type.startsWith("text/")) {
+    try {
+      // 优先使用原始File对象读取（更快，不需要IPC）
+      const text = file.originalFile
+        ? await file.originalFile.text()
+        : await naimo.router.filesystemReadFileContent(file.path, "utf-8");
+      return { type: "text", data: text, path: file.path };
+    } catch (error) {
+      console.error("读取文本文件失败:", error);
+    }
+  }
+
+  // 其他类型或失败情况：作为普通文件处理
+  return { type: "file", data: toRaw(attachedFiles.value) as any };
 };
 
 // 防抖搜索
@@ -251,23 +260,18 @@ const handleSearchFocus = () => {
   });
 };
 
-// 容器点击处理
-const handleContainerClick = (event: MouseEvent) => {
-  const target = event.target as HTMLElement;
-  if (
-    target.tagName === "INPUT" ||
-    target.tagName === "BUTTON" ||
-    target.closest("input") ||
-    target.closest("button") ||
-    target.closest('[role="button"]') ||
-    target.classList.contains("no-drag")
-  ) {
-    return false;
-  }
-  return false;
+// 容器点击处理 - 始终返回 false（不需要额外逻辑）
+const handleContainerClick = () => false;
+
+// ==================== 工具函数 ====================
+// 清空搜索和插件状态
+const clearSearchAndPlugin = () => {
+  searchText.value = "";
+  app.ui.query = "";
+  currentPluginItem.value = null;
+  attachedFiles.value = [];
 };
 
-// ==================== 文件和插件处理 ====================
 // 清除插件
 const handleClearPlugin = async () => {
   currentPluginItem.value = null;
@@ -354,8 +358,7 @@ const handleEscAction = async () => {
   if (isPluginWindowOpen.value) {
     console.log("关闭插件窗口");
     closePluginWindow();
-    attachedFiles.value = [];
-    currentPluginItem.value = null;
+    clearSearchAndPlugin();
     return;
   }
 
@@ -366,6 +369,7 @@ const handleEscAction = async () => {
     return;
   }
 
+  // 如果有附件或插件，清空它们
   if (attachedFiles.value.length > 0 || currentPluginItem.value) {
     console.log("清空附加内容");
     attachedFiles.value = [];
@@ -373,8 +377,8 @@ const handleEscAction = async () => {
     return;
   }
 
-  // 如果当前是搜索页面
-  if (searchText.value.trim() !== "") {
+  // 如果有搜索内容，清空搜索框
+  if (searchText.value.trim()) {
     console.log("清空搜索框");
     searchText.value = "";
     app.ui.query = "";
@@ -391,7 +395,7 @@ const { handleKeyNavigation } = useKeyboardNavigation(
   searchCategories,
   selectedIndex,
   (app: AppItem) => {
-    executeItem(app);
+    handlePrepareAction(app);
     handleSearch("");
   }
 );
@@ -451,22 +455,25 @@ const onHotkeyTriggered = async (event: {
           return;
         }
 
+        // 设置搜索文本并搜索
         searchText.value = name;
         app.ui.query = name;
         await handleSearch(name);
         show();
 
-        const items = searchCategories.value.find(
-          (category) => category.id === "best-match"
+        // 尝试执行最佳匹配项
+        const bestMatchItems = searchCategories.value.find(
+          (c) => c.id === "best-match"
         )?.items;
-        if (items && items.length > 0) {
-          executeItem(items[0], true);
+        if (bestMatchItems?.length) {
+          handlePrepareAction(bestMatchItems[0], true);
         } else {
           console.log("没有搜索结果");
         }
 
-        console.log("搜索结果:", searchCategories.value, { items });
-        console.log("收到自定义全局快捷键触发事件:", name);
+        console.log("收到自定义全局快捷键触发事件:", name, {
+          items: bestMatchItems,
+        });
       }
       break;
   }
@@ -483,46 +490,33 @@ const handlePluginExecuted = async (event: {
   await pluginWindowManager.handlePluginExecuted(event, {
     openPluginWindowUI: (plugin) => app.ui.openPluginWindow(plugin),
     toggleInput: (value?: boolean) => {
-      shouldShowSearchBox.value =
-        value !== undefined ? value : !shouldShowSearchBox.value;
+      shouldShowSearchBox.value = value ?? !shouldShowSearchBox.value;
     },
     attachedFiles: attachedFiles.value,
     searchText: searchText.value,
-    updateStoreCategory,
+    updateStoreCategory: () => app.search.initItems(),
     handleSearch,
     pluginStore: {
-      installZip: async (zipPath: string) => {
-        try {
-          await app.plugin.install(zipPath);
-          return true;
-        } catch {
-          return false;
-        }
-      },
-      install: async (path: string) => {
-        try {
-          await app.plugin.install(path);
-          return true;
-        } catch {
-          return false;
-        }
-      },
-      uninstall: async (id: string) => {
-        try {
-          await app.plugin.uninstall(id);
-          return true;
-        } catch {
-          return false;
-        }
-      },
-      toggle: async (id: string, enabled: boolean) => {
-        try {
-          await app.plugin.toggle(id, enabled);
-          return true;
-        } catch {
-          return false;
-        }
-      },
+      installZip: (zipPath: string) =>
+        app.plugin
+          .install(zipPath)
+          .then(() => true)
+          .catch(() => false),
+      install: (path: string) =>
+        app.plugin
+          .install(path)
+          .then(() => true)
+          .catch(() => false),
+      uninstall: (id: string) =>
+        app.plugin
+          .uninstall(id)
+          .then(() => true)
+          .catch(() => false),
+      toggle: (id: string, enabled: boolean) =>
+        app.plugin
+          .toggle(id, enabled)
+          .then(() => true)
+          .catch(() => false),
     },
     setAttachedFiles: (files) => {
       attachedFiles.value = [...files];
@@ -530,12 +524,9 @@ const handlePluginExecuted = async (event: {
     setSearchText: (text) => {
       searchText.value = text;
     },
-    getInstalledPluginItem: (pluginId: string, path: string) => {
-      return app.plugin.getInstalledPluginItem(pluginId, path);
-    },
-    getPluginApi: async (pluginId: string) => {
-      return await app.plugin.getPluginApi(pluginId);
-    },
+    getInstalledPluginItem: (pluginId: string, path: string) =>
+      app.plugin.getInstalledPluginItem(pluginId, path),
+    getPluginApi: (pluginId: string) => app.plugin.getPluginApi(pluginId),
   });
 };
 
@@ -560,22 +551,16 @@ watchDebounced(
   { debounce: 100 }
 );
 
-// 监听附件文件变化
+// 监听附件文件变化 - 简化判断逻辑
 watch(
-  () => attachedFiles.value,
-  (newFiles, oldFiles) => {
-    if (
-      newFiles.length !== oldFiles?.length ||
-      (newFiles.length > 0 &&
-        oldFiles?.length > 0 &&
-        newFiles.some((file, index) => file.path !== oldFiles[index]?.path))
-    ) {
+  () => attachedFiles.value.length,
+  (newLength, oldLength) => {
+    if (newLength !== oldLength && newLength > 0) {
       console.log("📎 附件文件发生变化，自动执行搜索");
       app.ui.switchToSearch();
       handleSearch(searchText.value);
     }
-  },
-  { deep: true }
+  }
 );
 
 // 监听搜索框内容和界面状态
@@ -610,9 +595,26 @@ watch(
 );
 
 // ==================== 生命周期 ====================
+
+/**
+ * 应用初始化序列
+ */
+const initializeApp = async () => {
+  console.log("🚀 开始应用初始化");
+  try {
+    // 1. 加载UI常量配置
+    await loadUIConstants();
+    // 2. 初始化快捷键（优先执行，确保全局快捷键可用）
+    await app.initialize();
+    console.log("🎉 应用初始化完成");
+  } catch (error) {
+    console.error("❌ 应用初始化失败:", error);
+    throw error;
+  }
+};
+
 onMounted(async () => {
   console.log("🚀 App.vue onMounted - 开始应用初始化");
-
   // 初始化应用
   await initializeApp();
 
@@ -680,14 +682,12 @@ onMounted(async () => {
 
       console.log("✅ 找到插件配置:", pluginItem);
 
+      // 打开插件窗口并清空状态
       app.ui.openPluginWindow(pluginItem);
-
-      searchText.value = "";
-      app.ui.query = "";
-      attachedFiles.value = [];
-
+      clearSearchAndPlugin();
       await handleSearch("");
 
+      // 调整布局
       await nextTick();
       contentAreaRef.value?.handleResize();
 
@@ -710,6 +710,7 @@ onMounted(async () => {
   console.log("🔄 页面初始化，检查并关闭所有插件view");
   try {
     await naimo.router.windowClosePluginView();
+    await naimo.router.windowCloseSettingsView();
     console.log("✅ 所有插件view已关闭");
   } catch (error) {
     console.error("❌ 关闭插件view失败:", error);

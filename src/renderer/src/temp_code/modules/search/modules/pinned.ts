@@ -6,9 +6,16 @@ export class PinnedModule implements SearchModule {
   name = "已固定"
   isDragEnabled = true
   maxDisplayCount = 16
-
   async getItems() {
-    return await naimo.router.storeGet("pinnedApps") || []
+    const items = await naimo.router.storeGet("pinnedApps") || []
+    // 为每个 item 添加 __metadata
+    return items.map((item: AppItem) => ({
+      ...item,
+      __metadata: {
+        enableDelete: true,
+        enablePin: false
+      }
+    }))
   }
 
   async deleteItem(item: AppItem): Promise<void> {
@@ -17,5 +24,9 @@ export class PinnedModule implements SearchModule {
 
   async addItem(item: AppItem): Promise<void> {
     storeUtils.addListItem("pinnedApps", item, { unique: true, uniqueField: "path", position: "start" })
+  }
+
+  async setItems(items: AppItem[]): Promise<void> {
+    await storeUtils.setListItems("pinnedApps", items)
   }
 }   

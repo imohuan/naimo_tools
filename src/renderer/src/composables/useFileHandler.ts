@@ -1,5 +1,5 @@
 import { ref, computed, readonly, nextTick } from 'vue'
-import type { AppItem } from '@shared/typings'
+import type { AppItem } from '@/temp_code/typings/search'
 import type { AttachedFile } from '@/typings/composableTypes'
 
 /**
@@ -122,6 +122,7 @@ export function useFileHandler(options: FileHandlerOptions = {}) {
         path: naimo.webUtils.getPathForFile(file),
         type: file.type,
         size: file.size,
+        originalFile: file
       }
       processedFiles.push(attachedFile)
     }
@@ -226,8 +227,7 @@ export function useFileHandler(options: FileHandlerOptions = {}) {
       name: file.name,
       path: file.path,
       icon: file.icon || null,
-      lastUsed: Date.now(),
-      usageCount: 1,
+      type: 'text' as const,
     }))
   }
 

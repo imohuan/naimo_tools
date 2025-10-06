@@ -31,14 +31,6 @@
 
       <!-- 插件列表页面 -->
       <template v-else>
-        <!-- 加载状态提示 -->
-        <!-- <div v-if="pluginStore.loading" class="px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg shadow-sm mb-2">
-          <div class="flex items-center gap-3 text-blue-700">
-            <div class="animate-spin text-lg">⏳</div>
-            <span class="text-sm font-medium">正在加载插件列表...</span>
-          </div>
-        </div> -->
-
         <!-- 顶部区域：搜索框、分类列表、分页 -->
         <div class="px-3 py-2 bg-white border border-gray-200 rounded-lg shadow-sm">
           <div class="flex items-center justify-between gap-3">
@@ -116,7 +108,7 @@
         <div class="flex-1 pt-2 flex flex-col pb-2">
           <!-- 空状态 -->
           <div
-            v-if="filteredPlugins.length === 0 && !pluginStore.loading"
+            v-if="filteredPlugins.length === 0 && !pluginStore.listLoading"
             class="flex-1 flex items-center justify-center"
           >
             <div
@@ -147,7 +139,7 @@
 
           <!-- GitHub插件加载占位符 -->
           <div
-            v-if="pluginStore.loading"
+            v-if="pluginStore.listLoading"
             class="flex items-center justify-center w-full py-1 animate-fade-in"
           >
             <div class="w-full flex items-center justify-center">

@@ -76,6 +76,13 @@ export abstract class BasePluginInstaller implements PluginInstaller {
         })
       }
 
+      // 为每个 item 添加默认的 type 字段（如果没有的话）
+      items = items.map(item => ({
+        ...item,
+        type: item.type || 'text', // 默认为 text 类型
+        category: pluginData.id, // 添加插件 ID 作为分类
+      } as PluginItem))
+
       pluginData.items = items
     }
 
@@ -102,11 +109,6 @@ export abstract class BasePluginInstaller implements PluginInstaller {
     const plugin = {
       ...pluginData,
       enabled: pluginData.enabled !== false,
-      metadata: {
-        createdAt: pluginData.metadata?.createdAt || Date.now(),
-        installedAt: pluginData.metadata?.installedAt || Date.now(),
-        updatedAt: Date.now(),
-      }
     }
 
     // 6. 自动添加类型标记

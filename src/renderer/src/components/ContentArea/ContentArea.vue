@@ -91,7 +91,7 @@
 <script setup lang="ts">
 import { nextTick } from "vue";
 import SearchCategories from "@/components/Search/SearchCategories.vue";
-import type { AppItem } from "@shared/typings";
+import type { AppItem } from "@/temp_code/typings/search";
 import type { SearchCategory } from "@/typings/searchTypes";
 import { DEFAULT_WINDOW_LAYOUT } from "@shared/config/windowLayoutConfig";
 

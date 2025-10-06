@@ -4,7 +4,7 @@
     <div v-if="loading" class="flex-1 flex items-center justify-center">
       <div class="flex items-center gap-3 text-gray-600">
         <div class="animate-spin text-2xl">⏳</div>
-        <span>加载插件设置中...</span>
+        <span>加载设置中...</span>
       </div>
     </div>
 
@@ -34,28 +34,28 @@
         </button>
       </div>
 
-      <!-- 无插件设置提示 -->
+      <!-- 无设置提示 -->
       <div
-        v-if="pluginSettingsList.length === 0"
+        v-if="settingsList.length === 0"
         class="flex-1 flex items-center justify-center"
       >
         <div class="flex flex-col items-center justify-center text-center text-gray-500">
           <div class="text-6xl mb-4">⚙️</div>
-          <p class="text-lg mb-2">暂无插件设置</p>
-          <p class="text-sm mb-4">已安装的插件还没有提供可配置的设置项</p>
+          <p class="text-lg mb-2">暂无可配置项</p>
+          <p class="text-sm mb-4">没有可用的设置项</p>
         </div>
       </div>
 
       <!-- 顶部区域：操作按钮 -->
       <div
-        v-if="pluginSettingsList.length > 0"
+        v-if="settingsList.length > 0"
         class="px-3 py-2 bg-white border border-gray-200 rounded-lg"
       >
         <div class="flex items-center justify-between gap-3">
           <div class="flex items-center gap-2">
-            <span class="text-sm font-medium text-gray-700">插件设置管理</span>
+            <span class="text-sm font-medium text-gray-700">设置管理</span>
             <span class="text-xs text-gray-500"
-              >({{ pluginSettingsList.length }} 个插件)</span
+              >({{ settingsList.length }} 个设置组)</span
             >
           </div>
           <div class="flex items-center gap-2">
@@ -75,22 +75,22 @@
         </div>
       </div>
 
-      <!-- 插件设置列表 -->
-      <div v-if="pluginSettingsList.length > 0" class="flex-1 pt-2 flex flex-col pb-2">
+      <!-- 设置列表 -->
+      <div v-if="settingsList.length > 0" class="flex-1 pt-2 flex flex-col pb-2">
         <div class="grid grid-cols-1 gap-2">
           <div
-            v-for="pluginSetting in pluginSettingsList"
-            :key="pluginSetting.pluginId"
+            v-for="settingGroup in settingsList"
+            :key="settingGroup.id"
             class="bg-white rounded-lg border border-gray-200 p-2 transition-all duration-200"
           >
-            <!-- 插件头部信息 -->
+            <!-- 设置组头部信息 -->
             <div
               class="flex items-start gap-2 cursor-pointer hover:bg-gray-50 rounded-md p-2 -m-2 transition-colors"
-              @click="toggleCollapse(pluginSetting.pluginId)"
+              @click="toggleCollapse(settingGroup.id)"
             >
               <div class="w-8 h-8 flex-shrink-0">
                 <IconDisplay
-                  :src="pluginSetting.icon"
+                  :src="settingGroup.icon"
                   container-class="w-full h-full bg-gray-100 rounded"
                   fallback-class="w-full h-full flex items-center justify-center bg-gray-100 rounded"
                 >
@@ -103,8 +103,9 @@
                 <div class="flex items-center justify-between mb-2">
                   <div class="flex items-center gap-3">
                     <h3 class="text font-semibold text-gray-900">
-                      {{ pluginSetting.pluginName }}
+                      {{ settingGroup.name }}
                       <span
+                        v-if="settingGroup.type === 'plugin'"
                         class="bg-gray-100 px-2 py-1 rounded text-xs transform scale-75 origin-center-left inline-block"
                         >v1.0.0</span
                       >
@@ -115,7 +116,7 @@
                     <svg
                       :class="[
                         'w-4 h-4 transition-transform duration-200',
-                        isCollapsed(pluginSetting.pluginId) ? 'rotate-0' : 'rotate-180',
+                        isCollapsed(settingGroup.id) ? 'rotate-0' : 'rotate-180',
                       ]"
                       fill="none"
                       stroke="currentColor"
@@ -130,23 +131,26 @@
                     </svg>
                   </div>
                 </div>
+                <p v-if="settingGroup.description" class="text-xs text-gray-500">
+                  {{ settingGroup.description }}
+                </p>
               </div>
             </div>
 
             <!-- 设置项 -->
             <div
-              v-show="!isCollapsed(pluginSetting.pluginId)"
+              v-show="!isCollapsed(settingGroup.id)"
               class="overflow-hidden transition-all duration-300 ease-in-out px-2"
             >
               <div class="space-y-1">
-                <SettingItem
-                  v-for="setting in pluginSetting.settings"
+                <SettingItemComponent
+                  v-for="setting in settingGroup.settings"
                   :key="setting.name"
                   :setting="setting"
-                  :plugin-id="pluginSetting.pluginId"
-                  :value="settingValues[pluginSetting.pluginId][setting.name]"
+                  :setting-id="settingGroup.id"
+                  :value="settingValues[settingGroup.id][setting.name]"
                   @update:value="
-                    updateSettingValue(pluginSetting.pluginId, setting.name, $event)
+                    updateSettingValue(settingGroup.id, setting.name, $event)
                   "
                 />
               </div>
@@ -162,23 +166,16 @@
 import { ref, onMounted, toRaw } from "vue";
 import { useApp } from "@/temp_code";
 import { storeUtils } from "@/temp_code/utils/store";
-import type { SettingConfig } from "@/typings/pluginTypes";
-import SettingItem from "./SettingItem.vue";
+import type { SettingConfig, SettingItem } from "@/typings";
+import { appSettingsConfig } from "@/config/appSettings";
+import SettingItemComponent from "./SettingItem.vue";
 import IconDisplay from "@/components/Common/IconDisplay.vue";
 
 const app = useApp();
 
-// 插件设置项接口
-interface PluginSettingItem {
-  pluginId: string;
-  pluginName: string;
-  icon?: string;
-  settings: SettingConfig[];
-}
-
 // 响应式数据
 const loading = ref(true);
-const pluginSettingsList = ref<PluginSettingItem[]>([]);
+const settingsList = ref<SettingItem[]>([]);
 const settingValues = ref<Record<string, Record<string, any>>>({});
 
 // 保存反馈状态
@@ -193,70 +190,93 @@ const saveFeedback = ref<{
 });
 
 // 折叠状态管理
-const collapsedPlugins = ref<Set<string>>(new Set());
+const collapsedSettings = ref<Set<string>>(new Set());
 
 // 切换折叠状态
-const toggleCollapse = (pluginId: string) => {
-  if (collapsedPlugins.value.has(pluginId)) {
-    collapsedPlugins.value.delete(pluginId);
+const toggleCollapse = (id: string) => {
+  if (collapsedSettings.value.has(id)) {
+    collapsedSettings.value.delete(id);
   } else {
-    collapsedPlugins.value.add(pluginId);
+    collapsedSettings.value.add(id);
   }
 };
 
 // 检查是否折叠
-const isCollapsed = (pluginId: string) => {
-  return collapsedPlugins.value.has(pluginId);
+const isCollapsed = (id: string) => {
+  return collapsedSettings.value.has(id);
 };
 
 // 更新设置值
-const updateSettingValue = (pluginId: string, settingName: string, value: any) => {
-  if (!settingValues.value[pluginId]) {
-    settingValues.value[pluginId] = {};
+const updateSettingValue = (id: string, settingName: string, value: any) => {
+  if (!settingValues.value[id]) {
+    settingValues.value[id] = {};
   }
-  settingValues.value[pluginId][settingName] = value;
+  settingValues.value[id][settingName] = value;
 };
 
-// 获取插件设置列表
-const getPluginSettings = async () => {
+// 获取所有设置列表（应用设置 + 插件设置）
+const getAllSettings = async () => {
   try {
     loading.value = true;
-    const settingsList: PluginSettingItem[] = [];
+    const allSettings: SettingItem[] = [];
 
-    // 获取所有已安装的插件
+    // 1. 加载应用设置
+    console.log("🔍 加载应用设置配置...");
+    // for (const appSetting of appSettingsConfig) {
+    //   allSettings.push({
+    //     id: appSetting.id,
+    //     name: appSetting.name,
+    //     icon: appSetting.icon,
+    //     description: appSetting.description,
+    //     settings: appSetting.settings,
+    //     type: "app",
+    //   });
+    // }
+
+    // 初始化应用设置值 - 直接从 AppConfig 读取对应字段
+    for (const appSetting of appSettingsConfig) {
+      if (!settingValues.value[appSetting.id]) {
+        settingValues.value[appSetting.id] = {};
+      }
+
+      for (const setting of appSetting.settings) {
+        if (settingValues.value[appSetting.id][setting.name] === undefined) {
+          // 从 AppConfig 读取对应字段的值
+          const savedValue = await storeUtils.get(setting.name as any);
+
+          if (savedValue !== undefined) {
+            settingValues.value[appSetting.id][setting.name] = savedValue;
+          } else {
+            // 使用默认值
+            settingValues.value[appSetting.id][setting.name] = getDefaultValue(setting);
+          }
+        }
+      }
+    }
+
+    console.log("🔍 已加载的应用设置:", settingValues.value);
+
+    // 2. 加载插件设置
+    console.log("🔍 加载插件设置...");
     const installedPlugins = app.plugin.installedPlugins;
     console.log("🔍 已安装的插件数量:", installedPlugins.length);
-    console.log(
-      "🔍 已安装的插件列表:",
-      installedPlugins.map((p) => ({
-        id: p.id,
-        name: p.name,
-        hasSettings: !!p.settings,
-        settingsCount: p.settings?.length || 0,
-      }))
-    );
 
     // 从存储中加载已保存的插件设置
-    const savedSettings =
+    const savedPluginSettings =
       ((await storeUtils.get("pluginSettings")) as Record<string, Record<string, any>>) ||
       {};
-    console.log("🔍 已保存的插件设置:", savedSettings);
+    console.log("🔍 已保存的插件设置:", savedPluginSettings);
 
     for (const plugin of installedPlugins) {
-      console.log(`🔍 检查插件 ${plugin.id}:`, {
-        hasSettings: !!plugin.settings,
-        settingsCount: plugin.settings?.length || 0,
-        settings: plugin.settings,
-      });
-
       // 检查插件是否有设置项
       if (plugin.settings && plugin.settings.length > 0) {
         console.log(`✅ 插件 ${plugin.id} 有设置项，添加到列表`);
-        settingsList.push({
-          pluginId: plugin.id,
-          pluginName: plugin.name,
+        allSettings.push({
+          id: plugin.id,
+          name: plugin.name,
           icon: plugin.icon,
           settings: plugin.settings,
+          type: "plugin",
         });
 
         // 初始化设置值
@@ -269,29 +289,27 @@ const getPluginSettings = async () => {
           if (settingValues.value[plugin.id][setting.name] === undefined) {
             // 优先使用已保存的设置值
             if (
-              savedSettings[plugin.id] &&
-              savedSettings[plugin.id][setting.name] !== undefined
+              savedPluginSettings[plugin.id] &&
+              savedPluginSettings[plugin.id][setting.name] !== undefined
             ) {
               settingValues.value[plugin.id][setting.name] =
-                savedSettings[plugin.id][setting.name];
+                savedPluginSettings[plugin.id][setting.name];
             } else {
               // 使用默认值
               settingValues.value[plugin.id][setting.name] = getDefaultValue(setting);
             }
           }
         }
-      } else {
-        console.log(`❌ 插件 ${plugin.id} 没有设置项`);
       }
     }
 
-    console.log("🔍 最终设置列表:", settingsList);
-    pluginSettingsList.value = settingsList;
+    console.log("🔍 最终设置列表:", allSettings);
+    settingsList.value = allSettings;
 
     // 默认全部折叠
-    collapsedPlugins.value = new Set(settingsList.map((plugin) => plugin.pluginId));
+    collapsedSettings.value = new Set(allSettings.map((item) => item.id));
   } catch (error) {
-    console.error("获取插件设置失败:", error);
+    console.error("获取设置失败:", error);
   } finally {
     loading.value = false;
   }
@@ -339,70 +357,86 @@ const showSaveFeedback = (success: boolean, message: string) => {
 // 保存所有设置
 const saveAllSettings = async () => {
   try {
-    console.log("保存所有插件设置:", toRaw(settingValues.value));
+    console.log("保存所有设置:", toRaw(settingValues.value));
 
-    // 获取当前已保存的所有插件设置
-    const currentPluginSettings =
-      ((await storeUtils.get("pluginSettings")) as Record<string, Record<string, any>>) ||
-      {};
+    let appSettingsCount = 0;
+    let pluginSettingsSuccess = false;
 
-    // 更新所有插件的设置
-    for (const pluginId in settingValues.value) {
-      currentPluginSettings[pluginId] = toRaw(settingValues.value[pluginId]);
+    // 保存应用设置 - 直接设置到 AppConfig 对应字段
+    for (const settingGroup of settingsList.value) {
+      if (settingGroup.type === "app") {
+        for (const setting of settingGroup.settings) {
+          const value = settingValues.value[settingGroup.id][setting.name];
+          await storeUtils.set(setting.name as any, value);
+          appSettingsCount++;
+        }
+      }
     }
 
-    // 保存到存储
-    const success = await storeUtils.set("pluginSettings", toRaw(currentPluginSettings));
+    // 保存插件设置
+    const pluginSettings: Record<string, Record<string, any>> = {};
+    for (const settingGroup of settingsList.value) {
+      if (settingGroup.type === "plugin") {
+        pluginSettings[settingGroup.id] = toRaw(settingValues.value[settingGroup.id]);
+      }
+    }
 
-    if (success) {
-      console.log("✅ 所有插件设置保存成功");
+    if (Object.keys(pluginSettings).length > 0) {
+      pluginSettingsSuccess = await storeUtils.set("pluginSettings", pluginSettings);
+    } else {
+      pluginSettingsSuccess = true; // 没有插件设置时认为成功
+    }
+
+    if (pluginSettingsSuccess) {
+      console.log("✅ 所有设置保存成功");
       showSaveFeedback(
         true,
-        `所有插件设置保存成功 (${Object.keys(settingValues.value).length} 个插件)`
+        `所有设置保存成功 (${appSettingsCount} 项应用设置, ${
+          Object.keys(pluginSettings).length
+        } 个插件)`
       );
     } else {
-      console.error("❌ 保存所有插件设置失败");
-      showSaveFeedback(false, "保存所有插件设置失败");
+      console.error("❌ 保存设置失败");
+      showSaveFeedback(false, "保存设置失败");
     }
   } catch (error) {
-    console.error("❌ 保存所有插件设置失败:", error);
-    showSaveFeedback(false, `保存所有插件设置失败: ${error}`);
+    console.error("❌ 保存设置失败:", error);
+    showSaveFeedback(false, `保存设置失败: ${error}`);
   }
 };
 
 // 重置所有设置
 const resetAllSettings = async () => {
   try {
-    // 重置所有插件的设置为默认值
-    for (const pluginSetting of pluginSettingsList.value) {
-      const plugin = app.plugin.installedPlugins.find(
-        (p) => p.id === pluginSetting.pluginId
-      );
-      if (plugin && plugin.settings) {
-        for (const setting of plugin.settings) {
-          settingValues.value[pluginSetting.pluginId][setting.name] = getDefaultValue(
-            setting
-          );
+    // 重置所有设置为默认值
+    for (const settingGroup of settingsList.value) {
+      for (const setting of settingGroup.settings) {
+        const defaultValue = getDefaultValue(setting);
+        settingValues.value[settingGroup.id][setting.name] = defaultValue;
+
+        // 应用设置：直接删除 AppConfig 对应字段，让其恢复默认值
+        if (settingGroup.type === "app") {
+          await storeUtils.delete(setting.name as any);
         }
       }
     }
 
-    // 从存储中删除所有插件设置
+    // 清空插件设置存储
     await storeUtils.set("pluginSettings", {});
 
     showSaveFeedback(
       true,
-      `所有插件设置已重置为默认值 (${pluginSettingsList.value.length} 个插件)`
+      `所有设置已重置为默认值 (${settingsList.value.length} 个设置组)`
     );
   } catch (error) {
-    console.error("❌ 重置所有插件设置失败:", error);
-    showSaveFeedback(false, `重置所有插件设置失败: ${error}`);
+    console.error("❌ 重置所有设置失败:", error);
+    showSaveFeedback(false, `重置所有设置失败: ${error}`);
   }
 };
 
 // 组件挂载时获取设置
 onMounted(() => {
-  getPluginSettings();
+  getAllSettings();
 });
 </script>
 

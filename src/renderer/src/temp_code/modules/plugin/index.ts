@@ -6,7 +6,7 @@ import type {
   PluginItem,
   CommandConfig,
 } from "@/typings/pluginTypes";
-import type { PluginInstaller } from "@/temp_code/typings/plugin";
+import type { PluginInstaller, UninstallOptions } from "@/temp_code/typings/plugin";
 import { SystemPluginInstaller } from "./modules/system";
 import { LocalPluginInstaller } from "./modules/local";
 import { GithubPluginInstaller } from "./modules/github";
@@ -21,11 +21,14 @@ const modules = {
 modules.github.setLocalInstaller(modules.local);
 
 /**
- * 插件管理 Store（简化版）
+ * 插件管理 Store
+ * 安装和卸载 需要同步两个WebContentsView，所以一个需要发送同步信息给另一个View
+ * 执行安装都进行安装（设置忽略加载模块），执行卸载只在设置中，其他View对数据进行更新
  */
 export const usePluginStoreNew = defineStore("pluginNew", () => {
   // ==================== 工具实例 ====================
   const loading = useLoading();
+  const listLoading = useLoading();
   // ==================== 状态（单一数据源） ====================
   /** 已安装的插件列表 */
   const installedPlugins = shallowRef<PluginConfig[]>([]);
@@ -230,21 +233,19 @@ export const usePluginStoreNew = defineStore("pluginNew", () => {
     // 使用对应的安装器卸载
     const installer = findInstaller(plugin);
     if (!installer) throw new Error(`未找到支持的安装器: ${plugin.id}`);
-
-    if (!(await installer.uninstall(id))) {
-      throw new Error(`卸载插件失败: ${id}`);
-    }
+    if (!(await installer.uninstall(id, { skip: silent.value }))) throw new Error(`卸载插件失败: ${id}`);
 
     // 从列表移除
     installedPlugins.value = installedPlugins.value.filter((p) => p.id !== id);
-
     // 清除钩子和保存
     clearPluginHooks(id);
     await saveInstalledPluginIds();
-    if (!silent.value)
+    if (!silent.value) {
+      await updateAllLists();
       await naimo.router.appForwardMessageToMainView("plugin-uninstalled", {
         pluginId: id,
       });
+    }
     console.log(`✅ 卸载成功: ${id}`);
     return true;
   }, "卸载插件失败");
@@ -255,12 +256,6 @@ export const usePluginStoreNew = defineStore("pluginNew", () => {
     if (!plugin) throw new Error(`插件未安装: ${id}`);
 
     plugin.enabled = enabled !== undefined ? enabled : !plugin.enabled;
-    plugin.metadata = {
-      ...plugin.metadata,
-      createdAt: plugin.metadata?.createdAt || Date.now(),
-      installedAt: plugin.metadata?.installedAt || Date.now(),
-      updatedAt: Date.now(),
-    };
 
     console.log(`✅ 切换插件状态: ${id} -> ${plugin.enabled ? "启用" : "禁用"}`);
     return true;
@@ -269,7 +264,7 @@ export const usePluginStoreNew = defineStore("pluginNew", () => {
   // ==================== GitHub 插件相关 ====================
 
   /** 加载 GitHub 插件列表 */
-  const loadGithubPlugins = loading.withLoading(
+  const loadGithubPlugins = listLoading.withLoading(
     async (options?: { search?: string; page?: number }) => {
       const plugins = await modules.github.getList(options);
       mergePlugins(plugins);
@@ -279,7 +274,7 @@ export const usePluginStoreNew = defineStore("pluginNew", () => {
   );
 
   /** 加载更多 GitHub 插件 */
-  const loadMoreGithubPlugins = loading.withLoading(async () => {
+  const loadMoreGithubPlugins = listLoading.withLoading(async () => {
     const plugins = await modules.github.loadMore();
     mergePlugins(plugins);
     return plugins;
@@ -296,6 +291,32 @@ export const usePluginStoreNew = defineStore("pluginNew", () => {
     );
     availablePlugins.value = [...system, ...local, ...github];
   };
+
+  const getInstalledPluginItem = (pluginId: string, itemPath: string) => {
+    const plugin = enabledPlugins.value.find((p) => p.id === pluginId);
+    return (
+      (plugin?.items?.find((item) => item.path === itemPath)) || null
+    );
+  }
+
+  const getSerializedPluginItem = (app: PluginItem): PluginItem => {
+    const serialized: PluginItem = {
+      // 搜索类型字段（必需）
+      type: app.type || 'text',
+      // 应用相关字段
+      name: app.name,
+      path: app.path,
+      icon: app.icon,
+      ...(app.category && { category: app.category }),
+      ...(app.description && { description: app.description }),
+      ...(app.weight && { weight: app.weight }),
+      ...(app.anonymousSearchFields && { anonymousSearchFields: app.anonymousSearchFields }),
+      // 插件相关字段
+      ...(app.pluginId && { pluginId: app.pluginId }),
+    } as PluginItem;
+    return serialized;
+  }
+
 
   // ==================== 事件监听 ====================
   const _setupEventListeners = () => {
@@ -351,6 +372,7 @@ export const usePluginStoreNew = defineStore("pluginNew", () => {
   return {
     // 状态
     loading: loading.loading,
+    listLoading: listLoading.loading,
     error: loading.error,
     installedPlugins,
     availablePlugins,
@@ -369,6 +391,8 @@ export const usePluginStoreNew = defineStore("pluginNew", () => {
     uninstall,
     toggle,
     getPlugin,
+    getInstalledPluginItem,
+    getSerializedPluginItem,
     getPluginApi,
 
     // GitHub 相关
@@ -381,28 +405,7 @@ export const usePluginStoreNew = defineStore("pluginNew", () => {
     // 工具方法
     updateAllLists,
     isPluginItem: (app: PluginItem) => "pluginId" in app,
-    getInstalledPluginItem: (pluginId: string, itemPath: string) => {
-      const plugin = installedPlugins.value.find((p) => p.id === pluginId);
-      return (
-        (plugin?.enabled && plugin.items?.find((item) => item.path === itemPath)) || null
-      );
-    },
-    getSerializedPluginItem: (app: PluginItem): PluginItem => {
-      const serialized: PluginItem = {
-        // 应用相关字段
-        name: app.name,
-        path: app.path,
-        icon: app.icon,
-        ...(app.lastUsed && { lastUsed: app.lastUsed }),
-        ...(app.usageCount && { usageCount: app.usageCount }),
-        ...(app.description && { description: app.description }),
-        ...(app.notAddToRecent && { notAddToRecent: app.notAddToRecent }),
-        ...(app.hidden && { hidden: app.hidden }),
-        // 插件相关字段
-        ...(app.pluginId && { pluginId: app.pluginId }),
-      };
-      return serialized;
-    },
+
     clearError: loading.clearError,
     setSilent: (value: boolean) => {
       silent.value = value;

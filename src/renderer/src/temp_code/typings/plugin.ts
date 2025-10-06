@@ -46,7 +46,7 @@ export interface PluginInstaller {
    * 卸载插件
    * @param pluginId 插件ID
    */
-  uninstall(pluginId: string): Promise<boolean>
+  uninstall(pluginId: string, opitons?: UninstallOptions): Promise<boolean>
 
   /**
    * 更新插件列表缓存
@@ -64,6 +64,14 @@ export interface InstallOptions {
   force?: boolean
   /** 自定义资源路径解析器 */
   getResourcePath?: (...paths: string[]) => string
+}
+
+/**
+ * 卸载选项
+ */
+export interface UninstallOptions {
+  /** 是否跳过事件广播 */
+  skip?: boolean
 }
 
 /**

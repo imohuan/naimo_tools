@@ -4,35 +4,51 @@
     :class="{
       'selected-item': isSelected,
       'unselected-item': !isSelected,
-    }" :data-key="`${categoryId}-${app.path}`" @dblclick="handleAppClick" @contextmenu="handleContextMenu"
-    ref="itemRef">
+    }"
+    :data-key="`${categoryId}-${app.path}`"
+    @dblclick="handleAppClick"
+    @contextmenu="handleContextMenu"
+    ref="itemRef"
+  >
     <!-- 简洁背景和边框 -->
     <div
       class="absolute inset-0 bg-gray-200 rounded-lg border-2 border-transparent opacity-0 transition-all duration-300"
       :class="{
         'opacity-100 !border-gray-200': isSelected,
-      }"></div>
+      }"
+    ></div>
 
     <!-- 应用图标 -->
     <div
       class="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center mb-1 flex-shrink-0 relative z-10 transition-transform duration-200"
-      :class="{ 'scale-110': isSelected }">
-      <IconDisplay :src="app.icon" :alt="app.name"
-        :icon-class="`w-full h-full object-contain rounded transition-all duration-200 ${isSelected ? 'brightness-110 drop-shadow-md' : ''}`"
-        :fallback-class="`w-full h-full rounded flex items-center justify-center transition-all duration-200`">
+      :class="{ 'scale-110': isSelected }"
+    >
+      <IconDisplay
+        :src="app.icon"
+        :alt="app.name"
+        :icon-class="`w-full h-full object-contain rounded transition-all duration-200 ${
+          isSelected ? 'brightness-110 drop-shadow-md' : ''
+        }`"
+        :fallback-class="`w-full h-full rounded flex items-center justify-center transition-all duration-200`"
+      >
         <template #fallback>
-          <IconMdiApplication class="w-8 h-8 text-gray-600 transition-colors duration-200"
-            :class="{ 'text-gray-700': isSelected }" />
+          <IconMdiApplication
+            class="w-8 h-8 text-gray-600 transition-colors duration-200"
+            :class="{ 'text-gray-700': isSelected }"
+          />
         </template>
       </IconDisplay>
     </div>
 
     <!-- 应用名称 -->
     <div class="text-center w-full px-0.5 relative z-10">
-      <div class="text-xs leading-tight break-words overflow-hidden app-name transition-all duration-200" :class="{
-        'text-gray-700 font-medium': isSelected,
-        'text-gray-900': !isSelected,
-      }">
+      <div
+        class="text-xs leading-tight break-words overflow-hidden app-name transition-all duration-200"
+        :class="{
+          'text-gray-700 font-medium': isSelected,
+          'text-gray-900': !isSelected,
+        }"
+      >
         {{ app.name }}
       </div>
     </div>
@@ -42,14 +58,9 @@
 <script setup lang="ts">
 import { ref, watch, nextTick } from "vue";
 import IconDisplay from "@/components/Common/IconDisplay.vue";
+import type { AppItem } from "@/temp_code/typings/search";
 /** @ts-ignore */
 import IconMdiApplication from "~icons/mdi/application";
-
-interface AppItem {
-  name: string;
-  path: string;
-  icon: string | null;
-}
 
 interface Props {
   app: AppItem;

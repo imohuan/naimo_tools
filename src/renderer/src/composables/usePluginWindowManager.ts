@@ -41,8 +41,7 @@ export function usePluginWindowManager() {
         name: name,
         path: path,
         icon: null,
-        lastUsed: Date.now(),
-        usageCount: 1,
+        type: 'text',
       }, {
         position: 'start',
         unique: true,

@@ -6,7 +6,6 @@ export class AppModule implements SearchModule {
   name = "应用列表"
   isDragEnabled = false
   maxDisplayCount = 16
-
   // 缓存键
   private readonly CACHE_KEY = "app-search:applications"
   // 缓存过期时间：30分钟
@@ -26,7 +25,16 @@ export class AppModule implements SearchModule {
     console.log('🔄 从接口加载应用列表')
     const apps = await naimo.router.appSearchApps() || []
     const items = apps.map(({ icon, path, name }) => {
-      return { icon, path, name, type: "text" } as AppItem
+      return {
+        icon,
+        path,
+        name,
+        type: "text",
+        __metadata: {
+          enableDelete: false,
+          enablePin: true
+        }
+      } as AppItem
     })
 
     // 存入缓存
@@ -45,4 +53,5 @@ export class AppModule implements SearchModule {
 
   async deleteItem(_item: AppItem): Promise<void> { }
   async addItem(_item: AppItem): Promise<void> { }
+  async setItems(_items: AppItem[]): Promise<void> { }
 }

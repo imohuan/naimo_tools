@@ -1,5 +1,5 @@
 import type { PluginConfig } from '@/typings/pluginTypes'
-import { PluginExecuteType, PluginCategoryType } from '@/typings/pluginTypes'
+import { PluginCategoryType } from '@/typings/pluginTypes'
 
 /**
  * 网页工具插件示例
@@ -18,31 +18,28 @@ export const webToolsPlugin: PluginConfig = {
       name: 'GitHub',
       path: 'https://github.com',
       icon: null,
-      pluginId: 'web-tools',
-      executeType: PluginExecuteType.SHOW_WEBPAGE,
-      executeParams: {
-        url: 'https://github.com',
-      },
+      type: 'text' as const,
+      onEnter: async () => {
+        await naimo.router.appLaunchApp('https://github.com')
+      }
     },
     {
       name: 'Stack Overflow',
       path: 'https://stackoverflow.com',
       icon: null,
-      pluginId: 'web-tools',
-      executeType: PluginExecuteType.SHOW_WEBPAGE,
-      executeParams: {
-        url: 'https://stackoverflow.com'
-      },
+      type: 'text' as const,
+      onEnter: async () => {
+        await naimo.router.appLaunchApp('https://stackoverflow.com')
+      }
     },
     {
       name: 'MDN Web Docs',
       path: 'https://developer.mozilla.org',
       icon: null,
-      pluginId: 'web-tools',
-      executeType: PluginExecuteType.SHOW_WEBPAGE,
-      executeParams: {
-        url: 'https://developer.mozilla.org',
-      },
+      type: 'text' as const,
+      onEnter: async () => {
+        await naimo.router.appLaunchApp('https://developer.mozilla.org')
+      }
     }
   ],
 }

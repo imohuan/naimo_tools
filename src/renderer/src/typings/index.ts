@@ -20,3 +20,6 @@ export * from './windowTypes'
 
 // Composable 相关类型
 export * from './composableTypes'
+
+// 设置相关类型
+export * from './settingTypes'
