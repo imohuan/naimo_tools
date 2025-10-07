@@ -90,6 +90,13 @@ export interface EventsConfig {
     timestamp: number
   }
 
+  'plugin-message': {
+    fullPath: string  // 插件路径
+    viewId: string
+    data: any  // 任意类型的数据
+    timestamp: number
+  }
+
   // 快捷键相关事件
   'hotkey-updated': {
     hotkeyId: string

@@ -73,6 +73,7 @@ import { HotkeyType, useApp, type HotkeyConfig } from "@/temp_code";
 
 // 类型导入
 import type { AppItem, AttachedInfo } from "@/temp_code/typings/search";
+import { LifecycleType } from "./typings";
 
 // ==================== 初始化 ====================
 // 应用状态管理
@@ -599,8 +600,19 @@ onMounted(async () => {
         name: plugin.name,
         main: plugin.main,
         preload: plugin.preload,
-        featurePath: pluginItem.path,
+        fullPath: pluginItem.fullPath,
       });
+
+      // 打开插件窗口并更新 UI 状态
+      app.ui.openPluginWindow(pluginItem);
+
+      // 传递给插件的参数
+      const data = {
+        files: attachedFiles.value.map((m) => {
+          return { name: m.name, path: m.path, size: m.size, type: m.type };
+        }),
+        searchText: app.ui.searchText,
+      };
 
       // 懒加载架构：打开插件窗口（后台会判断，没有 main 则打开空白页作为后台窗口）
       try {
@@ -609,25 +621,26 @@ onMounted(async () => {
           fullPath: pluginItem.fullPath!, // 完整路径（如 translate-plugin:text-translate）
           title: pluginItem.name,
           url: plugin?.main || "", // 使用插件级别的 main（可选，没有则后台加载 about:blank）
-          lifecycleType: pluginItem.lifecycleType || "reuse",
+          lifecycleType: pluginItem.lifecycleType || LifecycleType.FOREGROUND,
           preload: plugin.preload, // 使用插件级别的 preload
           singleton: pluginItem.singleton ?? true,
+          data,
         });
 
         if (result.success) {
           console.log("✅ 插件窗口已打开:", result.viewId);
-          // 打开插件窗口并更新 UI 状态
-          app.ui.openPluginWindow(pluginItem);
-          // 清空搜索和附件
-          attachedFiles.value = [];
-          app.ui.searchText = "";
-          await handleSearch("");
         } else {
+          app.ui.closePluginWindow();
           console.error("❌ 打开插件窗口失败:", result.error);
         }
       } catch (error) {
+        app.ui.closePluginWindow();
         console.error("❌ 打开插件窗口异常:", error);
       }
+
+      // 清空搜索和附件
+      attachedFiles.value = [];
+      app.ui.searchText = "";
     }
   );
 

@@ -37,7 +37,7 @@ for (const path in moduleFiles) {
         const oldGetItems = instance.getItems.bind(instance)
         instance.getItems = async () => {
           const items = await oldGetItems()
-          const newItems = items.map(item => ({ ...item, category: moduleName })).filter(item => item.fullPath)
+          const newItems = items.map(item => ({ ...item, category: moduleName }))
           return newItems
         }
         modules[moduleName] = instance

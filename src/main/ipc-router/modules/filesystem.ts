@@ -177,3 +177,45 @@ export async function writeFileFromBase64(event: Electron.IpcMainInvokeEvent, fi
   }
 }
 
+/**
+ * 保存剪贴板/内存中的图片到临时文件
+ * @param event IPC事件对象
+ * @param file 文件对象的信息（name, type, base64Data）
+ * @returns 保存后的文件路径
+ */
+export async function saveClipboardImageToTemp(
+  event: Electron.IpcMainInvokeEvent,
+  fileInfo: { name: string; type: string; base64Data: string }
+): Promise<string> {
+  try {
+    const { tmpdir } = await import('os');
+    const { resolve: pathResolve } = await import('path');
+    const { existsSync, mkdirSync } = await import('fs');
+
+    // 创建临时目录
+    const tempDir = pathResolve(tmpdir(), 'naimo');
+    if (!existsSync(tempDir)) {
+      mkdirSync(tempDir, { recursive: true });
+    }
+
+    // 生成随机文件名
+    const timestamp = Date.now();
+    const ext = fileInfo.name.split('.').pop() || fileInfo.type.split('/').pop() || 'png';
+    const fileName = `image-save-${timestamp}.${ext}`;
+
+    const filePath = pathResolve(tempDir, fileName);
+
+    // 移除Base64数据URL前缀（如果存在）
+    const cleanBase64 = fileInfo.base64Data.replace(/^data:image\/[a-z]+;base64,/, '');
+    const buffer = Buffer.from(cleanBase64, 'base64');
+
+    await writeFile(filePath, buffer);
+    log.info('保存剪贴板图片到临时文件成功:', filePath);
+
+    return filePath;
+  } catch (error) {
+    log.error('保存剪贴板图片到临时文件失败:', error);
+    throw error;
+  }
+}
+

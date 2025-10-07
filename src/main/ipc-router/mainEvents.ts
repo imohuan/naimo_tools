@@ -195,6 +195,23 @@ export function sendPluginSearch(
 }
 
 /**
+ * 发送 plugin-message 事件
+ * @param webContents 目标 WebContents
+ * @param data 事件数据
+ */
+export function sendPluginMessage(
+  webContents: WebContents,
+  data: EventData<'plugin-message'>
+): void {
+  if (webContents && !webContents.isDestroyed()) {
+    webContents.send('plugin-message', data)
+    log.debug(`事件已发送: plugin-message`, { data })
+  } else {
+    log.warn(`无法发送事件: WebContents已销毁 - plugin-message`)
+  }
+}
+
+/**
  * 发送 hotkey-updated 事件
  * @param webContents 目标 WebContents
  * @param data 事件数据
@@ -377,6 +394,7 @@ export const mainEvents = {
   pluginInstalled: sendPluginInstalled,
   pluginUninstalled: sendPluginUninstalled,
   pluginSearch: sendPluginSearch,
+  pluginMessage: sendPluginMessage,
   hotkeyUpdated: sendHotkeyUpdated,
   windowAllBlur: sendWindowAllBlur,
   windowMainHide: sendWindowMainHide,

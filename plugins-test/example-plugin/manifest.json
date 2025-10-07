@@ -21,12 +21,12 @@
       "singleton": true
     },
     {
-      "path": "text-processor",
-      "name": "文本处理器",
+      "path": "img-processor",
+      "name": "图片处理器",
       "icon": "📝",
-      "description": "处理搜索文本",
+      "description": "处理搜索图片",
       "weight": 90,
-      "type": "text",
+      "type": "img",
       "lifecycleType": "new",
       "singleton": false
     },

@@ -102,6 +102,18 @@ export function useFileHandler(options: FileHandlerOptions = {}) {
   }
 
   /**
+   * 将File转换为Base64
+   */
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => resolve(reader.result as string)
+      reader.onerror = reject
+      reader.readAsDataURL(file)
+    })
+  }
+
+  /**
    * 处理文件列表
    */
   const processFiles = async (files: FileList | File[]): Promise<AttachedFile[]> => {
@@ -117,9 +129,35 @@ export function useFileHandler(options: FileHandlerOptions = {}) {
         continue
       }
 
+      // 尝试获取文件路径
+      let filePath = naimo.webUtils.getPathForFile(file)
+
+      // 如果是图片且没有路径（剪贴板截图），保存到临时文件
+      if ((!filePath || filePath.trim() === '') && imageTypes.includes(file.type)) {
+        try {
+          console.log('检测到剪贴板图片（无路径），正在保存到临时文件...')
+
+          // 转换为base64
+          const base64Data = await fileToBase64(file)
+
+          // 调用IPC保存到临时文件
+          filePath = await naimo.router.filesystemSaveClipboardImageToTemp({
+            name: file.name,
+            type: file.type,
+            base64Data
+          })
+
+          console.log('剪贴板图片已保存到:', filePath)
+        } catch (error) {
+          console.error('保存剪贴板图片失败:', error)
+          errors.push(`保存剪贴板图片失败: ${file.name}`)
+          continue
+        }
+      }
+
       const attachedFile: AttachedFile = {
         name: file.name,
-        path: naimo.webUtils.getPathForFile(file),
+        path: filePath,
         type: file.type,
         size: file.size,
         originalFile: file

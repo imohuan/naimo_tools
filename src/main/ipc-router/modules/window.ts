@@ -831,13 +831,11 @@ export async function createPluginView(event: Electron.IpcMainInvokeEvent, param
   url: string  // 可选：没有则后台加载 about:blank（用于无 UI 的后台插件）
   preload: string
   singleton?: boolean
+  data?: any  // 传递给插件的任意参数
 }): Promise<{ success: boolean; viewId?: string; error?: string }> {
   try {
     const manager = NewWindowManager.getInstance()
-
-    // 懒加载架构：直接使用 fullPath
     const result = await manager.createPluginView(params)
-
     if (result.success && result.viewId) {
       log.info(`✅ 插件视图创建成功: ${result.viewId}, fullPath: ${params.fullPath}`)
       return { success: true, viewId: result.viewId }

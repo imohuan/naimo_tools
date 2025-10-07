@@ -1,8 +1,11 @@
 import { contextBridge, ipcRenderer } from "electron";
 import log from "electron-log/renderer";
 import { RendererErrorHandler } from "@libs/unhandled/renderer";
+import { ipcRouter } from "@shared/utils/ipcRouterClient";
+import { eventRouter } from "@shared/utils/eventRouterClient";
 
-const prefix = "[webpagePreload] ";
+// @ts-ignore
+const prefix = `${__METADATA__['fullPath']?.split(':')?.[0] || __METADATA__['title']}`;
 
 const naimo = {
   log: {
@@ -17,3 +20,15 @@ const naimo = {
 }
 
 contextBridge.exposeInMainWorld("naimo", naimo);
+
+eventRouter.onPluginMessage((event, data) => {
+  try {
+    const targetKey = data.fullPath.split(":").slice(1).join(":")
+    const targetFunc = module.exports[targetKey]
+    if (targetFunc && targetFunc?.onEnter) return targetFunc.onEnter(data.data)
+    console.log('PRELOAD 收到主进程传递的参数失败:', { fullPath: data.fullPath, modules: module.exports, targetKey, targetFunc });
+  } catch (error) {
+    console.log(error, { fullPath: data.fullPath, modules: module.exports });
+    log.error("PRELOAD 收到主进程传递的参数失败:", error);
+  }
+});

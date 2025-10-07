@@ -35,6 +35,7 @@ export function useFilePaste() {
 
     if (files.length > 0) {
       event.preventDefault()
+      // 文件路径处理逻辑已移至 useFileHandler.ts 中的 processFiles 函数
       await addFiles(files)
     } else if (hasTextContent) {
       event.preventDefault()

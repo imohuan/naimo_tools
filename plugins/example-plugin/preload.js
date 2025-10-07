@@ -3,7 +3,7 @@
  * 展示懒加载架构的完整用法
  */
 
-const { contextBridge } = require('electron');
+const { contextBridge, ipcRenderer } = require('electron');
 
 // ==================== 工具函数 ====================
 
@@ -41,6 +41,26 @@ contextBridge.exposeInMainWorld('examplePluginAPI', {
   // 工具方法
   getTimestamp: () => Date.now(),
   formatDate: (timestamp) => new Date(timestamp).toLocaleString('zh-CN')
+});
+
+// ==================== 暴露 Electron API（用于接收主进程消息）====================
+
+contextBridge.exposeInMainWorld('electronAPI', {
+  // 监听事件
+  on: (channel, callback) => {
+    const validChannels = ['plugin-message'];
+    if (validChannels.includes(channel)) {
+      ipcRenderer.on(channel, callback);
+    }
+  },
+
+  // 移除事件监听
+  off: (channel, callback) => {
+    const validChannels = ['plugin-message'];
+    if (validChannels.includes(channel)) {
+      ipcRenderer.off(channel, callback);
+    }
+  }
 });
 
 // ==================== 懒加载架构：功能处理器导出 ====================

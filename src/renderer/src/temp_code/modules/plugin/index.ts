@@ -408,7 +408,7 @@ export const usePluginStoreNew = defineStore("pluginNew", () => {
 
     // 工具方法
     updateAllLists,
-    isPluginItem: (app: PluginItem) => "pluginId" in app,
+    isPluginItem: (app: PluginItem) => "pluginId" in app && "fullPath" in app,
 
     clearError: loading.clearError,
     setSilent: (value: boolean) => {

@@ -304,7 +304,7 @@ export class CoreService implements Service {
    */
   private cleanupTempDirectory(): void {
     try {
-      const tempDir = resolve(tmpdir(), 'naimo-preloads')
+      const tempDir = resolve(tmpdir(), 'naimo')
       if (existsSync(tempDir)) {
         rmSync(tempDir, { recursive: true, force: true })
         log.info(`已清空临时目录: ${tempDir}`)

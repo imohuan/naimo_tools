@@ -1,6 +1,6 @@
 /**
  * 自动生成的事件类型定义
- * 生成时间: 2025-10-07T11:00:45.864Z
+ * 生成时间: 2025-10-07T13:34:42.163Z
  * 请勿手动修改此文件
  */
 
@@ -62,6 +62,11 @@ interface EventInterface {
   "plugin-search": (handler: (event: any, data: EventData<'plugin-search'>) => void) => () => void;
   /** 监听 plugin-search 事件 */
   "onPluginSearch": (handler: (event: any, data: EventData<'plugin-search'>) => void) => () => void;
+
+  /** 监听 plugin-message 事件 */
+  "plugin-message": (handler: (event: any, data: EventData<'plugin-message'>) => void) => () => void;
+  /** 监听 plugin-message 事件 */
+  "onPluginMessage": (handler: (event: any, data: EventData<'plugin-message'>) => void) => () => void;
 
   /** 监听 hotkey-updated 事件 */
   "hotkey-updated": (handler: (event: any, data: EventData<'hotkey-updated'>) => void) => () => void;
@@ -169,6 +174,11 @@ export const EVENT_INFO = [
     name: "plugin-search",
     comment: "监听 plugin-search 事件",
     method: "onPluginSearch"
+  },
+  {
+    name: "plugin-message",
+    comment: "监听 plugin-message 事件",
+    method: "onPluginMessage"
   },
   {
     name: "hotkey-updated",

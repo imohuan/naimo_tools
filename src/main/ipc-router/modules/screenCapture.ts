@@ -7,11 +7,12 @@ import { isDevelopment } from "@shared/utils";
 import { getRendererUrl } from "@main/utils/windowConfig";
 import { NewWindowManager } from "@main/window/NewWindowManager";
 
+import { sendWindowMainShow } from "@main/ipc-router/mainEvents";
+
 
 function getCurrentDirname(metaUrl: string): string {
   return dirname(fileURLToPath(metaUrl));
 }
-
 
 /**
  * 获取屏幕源列表
@@ -83,8 +84,11 @@ export async function captureAndGetFilePath(event: Electron.IpcMainInvokeEvent, 
     return { success: false, error: (error as Error).message };
   } finally {
     // 恢复主窗口的显示状态
-    if (mainWindow) {
-      mainWindow.webContents.send("window-main-show");
+    const windowManager = NewWindowManager.getInstance()
+    const viewManager = windowManager.getViewManager();
+    const mainViewInfo = viewManager.getViewInfo('main-view');
+    if (mainViewInfo) {
+      sendWindowMainShow(mainViewInfo.view.webContents, { timestamp: Date.now(), windowId: mainViewInfo.parentWindowId })
     }
   }
 }
@@ -218,7 +222,7 @@ async function showCropWindow(screenInfo: {
     const saveToTempHandler = async (event: any, imageData: string) => {
       try {
         // 创建临时目录
-        const tempDir = pathResolve(tmpdir(), 'naimo-screenshots');
+        const tempDir = pathResolve(tmpdir(), 'naimo');
         if (!existsSync(tempDir)) {
           mkdirSync(tempDir, { recursive: true });
         }

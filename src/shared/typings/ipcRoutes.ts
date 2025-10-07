@@ -1,6 +1,6 @@
 /**
  * 自动生成的 IPC 类型定义
- * 生成时间: 2025-10-07T11:00:46.382Z
+ * 生成时间: 2025-10-07T13:35:43.122Z
  * 请勿手动修改此文件
  */
 
@@ -404,6 +404,21 @@ interface filesystemInterface {
  * @returns 是否写入成功
  */
   "filesystemWriteFileFromBase64": (filePath: string, base64Data: string) => Promise<boolean>;
+
+  /**
+ * 保存剪贴板/内存中的图片到临时文件
+ * @param IPC事件对象
+ * @param 文件对象的信息（name, type, base64Data）
+ * @returns 保存后的文件路径
+ */
+  "filesystem-save-clipboard-image-to-temp": (fileInfo: { name: string; type: string; base64Data: string }) => Promise<string>;
+  /**
+ * 保存剪贴板/内存中的图片到临时文件
+ * @param IPC事件对象
+ * @param 文件对象的信息（name, type, base64Data）
+ * @returns 保存后的文件路径
+ */
+  "filesystemSaveClipboardImageToTemp": (fileInfo: { name: string; type: string; base64Data: string }) => Promise<string>;
 }
 
 interface hotkeyInterface {
@@ -894,6 +909,7 @@ interface windowInterface {
   url: string  // 可选：没有则后台加载 about:blank（用于无 UI 的后台插件）
   preload: string
   singleton?: boolean
+  data?: any  // 传递给插件的任意参数
 }) => Promise<{ success: boolean; viewId?: string; error?: string }>;
   /** 创建插件视图（新架构专用 - 懒加载架构） */
   "windowCreatePluginView": (params: {
@@ -903,6 +919,7 @@ interface windowInterface {
   url: string  // 可选：没有则后台加载 about:blank（用于无 UI 的后台插件）
   preload: string
   singleton?: boolean
+  data?: any  // 传递给插件的任意参数
 }) => Promise<{ success: boolean; viewId?: string; error?: string }>;
 
   /**
@@ -1198,6 +1215,12 @@ export const ROUTE_INFO: RouteInfo[] = [
     comment: "从Base64写入文件",
     module: "filesystem",
     function: "writeFileFromBase64"
+  },
+  {
+    route: "filesystem-save-clipboard-image-to-temp",
+    comment: "保存剪贴板/内存中的图片到临时文件",
+    module: "filesystem",
+    function: "saveClipboardImageToTemp"
   },
   {
     route: "hotkey-register-global-hotkey",

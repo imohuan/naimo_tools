@@ -71,7 +71,7 @@ ${customPreloadContent ? `
 `;
 
     // 创建临时文件
-    const tempDir = join(tmpdir(), 'naimo-preloads');
+    const tempDir = join(tmpdir(), 'naimo');
     mkdirSync(tempDir, { recursive: true });
 
     const tempFilePath = join(tempDir, `combined-preload-${Date.now()}.js`);

@@ -4,10 +4,10 @@
  * 提供统一的窗口管理接口，支持 BaseWindow + WebContentsView 架构
  */
 
-import { BaseWindow, app } from 'electron'
+import { BaseWindow, WebContents, app } from 'electron'
 import { resolve } from 'path'
 import log from 'electron-log'
-import { sendPluginViewOpened, sendPluginViewClosed } from '@main/ipc-router/mainEvents'
+import { sendPluginViewOpened, sendPluginViewClosed, sendPluginMessage } from '@main/ipc-router/mainEvents'
 import { emitEvent } from '@main/core/ProcessEvent'
 import { processEventCoordinator } from '@main/core/ProcessEventCoordinator'
 import { DEFAULT_WINDOW_LAYOUT } from '@shared/constants'
@@ -1349,12 +1349,37 @@ export class NewWindowManager {
     lifecycleType: LifecycleType
     preload: string
     singleton?: boolean // 单例模式，默认为 true
+    data?: any // 传递给插件的任意参数
   }): Promise<ViewOperationResult> {
     try {
       if (!this.mainWindow) throw new Error('主窗口未创建')
 
       // 默认单例模式为 true
       const isSingleton = params.singleton !== false
+
+      const sendPluginMessageData = (webContents: WebContents, viewId: string) => {
+        // 准备消息数据
+        const messageData = {
+          fullPath: params.fullPath,
+          viewId,
+          data: params.data,
+          timestamp: Date.now()
+        }
+
+        // 如果页面已经加载完成，直接发送
+        if (!webContents.isLoading()) {
+          sendPluginMessage(webContents, messageData)
+          log.debug(`已向分离的插件视图发送数据（页面已加载）: ${viewId}`, params.data)
+        } else {
+          // 否则等待页面加载完成
+          webContents.once('did-finish-load', () => {
+            if (!webContents.isDestroyed()) {
+              sendPluginMessage(webContents, messageData)
+              log.debug(`已向分离的插件视图发送数据（等待加载完成）: ${viewId}`, params.data)
+            }
+          })
+        }
+      }
 
       // 如果是单例模式，检查视图是否已存在或已分离
       if (isSingleton) {
@@ -1370,6 +1395,13 @@ export class NewWindowManager {
               // 视图已分离，聚焦分离窗口
               log.info(`插件视图已分离到独立窗口，聚焦窗口: ${viewId} -> 窗口ID ${detachedWindowId}`)
               detachedWindowInfo.window.focus()
+
+              // 发送参数给分离窗口的插件视图
+              // 分离的视图通常已经加载完成，但为了保险起见也检查一下
+              const detachedView = detachedWindowInfo.view
+              if (detachedView && detachedView.webContents && !detachedView.webContents.isDestroyed()) {
+                sendPluginMessageData(detachedView.webContents, viewId)
+              }
 
               return {
                 success: true,
@@ -1408,7 +1440,7 @@ export class NewWindowManager {
       }
 
       // 处理 preload 脚本合并 - 无论是否有自定义 preload 都创建合并脚本
-      const defaultPreloadPath = resolve(getDirname(import.meta.url), './preloads/basic.js')
+      const defaultPreloadPath = resolve(getDirname(import.meta.url), './preloads/webpagePreload.js')
       let finalPreloadPath: string = defaultPreloadPath
 
       try {
@@ -1469,6 +1501,15 @@ const __METADATA__ = {
               timestamp: Date.now()
             })
             log.debug(`已通知主渲染进程插件视图打开: ${result.viewId}`)
+          }
+        }
+
+        // 等待页面加载完成后发送参数给插件视图
+        if (result.viewId) {
+          const pluginViewInfo = this.viewManager.getViewInfo(result.viewId)
+          if (pluginViewInfo && pluginViewInfo.view && !pluginViewInfo.view.webContents.isDestroyed()) {
+            const webContents = pluginViewInfo.view.webContents
+            sendPluginMessageData(webContents, result.viewId)
           }
         }
       }

@@ -3,7 +3,7 @@
  * 展示懒加载架构的完整用法
  */
 
-const { contextBridge } = require('electron');
+const { contextBridge, } = require('electron');
 
 // ==================== 工具函数 ====================
 
@@ -51,21 +51,21 @@ module.exports = {
    * 最简单的示例：只打开 UI，不执行额外逻辑
    */
   'hello-world': {
-    onEnter: async (params, api) => {
-      console.log('🎯 [示例插件] Hello World 功能被触发');
-      console.log('参数:', params);
+    onEnter: async (data) => {
+      console.log('🎯 [示例插件] Hello World 功能被触发', data);
+      // console.log('参数:', params);
 
-      // manifest.json 配置了 main，窗口会自动打开
-      // 这里可以做一些初始化工作
+      // // manifest.json 配置了 main，窗口会自动打开
+      // // 这里可以做一些初始化工作
 
-      // 获取插件设置
-      const settings = await api.getSettingValue();
-      console.log('当前设置:', settings);
+      // // 获取插件设置
+      // const settings = await api.getSettingValue();
+      // console.log('当前设置:', settings);
 
-      // 如果启用了通知
-      if (settings.enableNotification) {
-        showNotification('示例插件', 'Hello World 功能已启动！');
-      }
+      // // 如果启用了通知
+      // if (settings.enableNotification) {
+      //   showNotification('示例插件', 'Hello World 功能已启动！');
+      // }
     }
   },
 
@@ -73,32 +73,10 @@ module.exports = {
    * 文本处理器功能
    * 演示如何处理搜索文本
    */
-  'text-processor': {
-    onEnter: async (params, api) => {
-      console.log('📝 [示例插件] 文本处理器被触发');
-
-      const { searchText } = params;
-
-      if (!searchText || !searchText.trim()) {
-        console.log('没有输入文本');
-        showNotification('文本处理器', '请输入要处理的文本');
-        return;
-      }
-
-      // 处理文本
-      const result = processText(searchText);
-      console.log('处理结果:', result);
-
-      // 获取设置
-      const settings = await api.getSettingValue();
-
-      // 显示结果通知
-      if (settings.enableNotification) {
-        showNotification(
-          '文本处理完成',
-          `字符数: ${result.length}, 单词数: ${result.words}, 行数: ${result.lines}`
-        );
-      }
+  'img-processor': {
+    onEnter: async (data) => {
+      console.log('📝 [示例插件] 图片处理器被触发');
+      console.log('参数:', data);
     }
   },
 
