@@ -1,10 +1,11 @@
 /**
  * 自动生成的 IPC 类型定义
- * 生成时间: 2025-10-06T15:41:57.408Z
+ * 生成时间: 2025-10-07T08:47:15.242Z
  * 请勿手动修改此文件
  */
 
 import { AppPath } from '@libs/app-search';
+import { DebugInfo } from '@main/services/DebugService';
 import { AppConfig } from '@shared/typings/appTypes';
 import { ViewType, LifecycleType } from '@renderer/src/typings/windowTypes';
 import { PluginItem } from '@renderer/src/typings/pluginTypes';
@@ -256,6 +257,38 @@ interface clipboardInterface {
  * @returns 是否写入成功
  */
   "clipboardWriteImage": (imageData: string) => Promise<boolean>;
+}
+
+interface debugInterface {
+  /** 切换调试窗口展开状态 */
+  "debug-toggle-debug-window": () => Promise<boolean>;
+  /** 切换调试窗口展开状态 */
+  "debugToggleDebugWindow": () => Promise<boolean>;
+
+  /** 显示调试窗口 */
+  "debug-show-debug-window": () => Promise<boolean>;
+  /** 显示调试窗口 */
+  "debugShowDebugWindow": () => Promise<boolean>;
+
+  /** 隐藏调试窗口 */
+  "debug-hide-debug-window": () => Promise<boolean>;
+  /** 隐藏调试窗口 */
+  "debugHideDebugWindow": () => Promise<boolean>;
+
+  /** 获取调试信息（手动请求） */
+  "debug-get-debug-info": () => Promise<DebugInfo | null>;
+  /** 获取调试信息（手动请求） */
+  "debugGetDebugInfo": () => Promise<DebugInfo | null>;
+
+  /** 获取调试窗口展开状态 */
+  "debug-get-debug-window-state": () => Promise<{ isExpanded: boolean } | null>;
+  /** 获取调试窗口展开状态 */
+  "debugGetDebugWindowState": () => Promise<{ isExpanded: boolean } | null>;
+
+  /** 移动调试窗口 */
+  "debug-move-debug-window": (deltaX: number, deltaY: number) => Promise<boolean>;
+  /** 移动调试窗口 */
+  "debugMoveDebugWindow": (deltaX: number, deltaY: number) => Promise<boolean>;
 }
 
 interface filesystemInterface {
@@ -859,7 +892,8 @@ interface windowInterface {
   title: string
   url: string
   lifecycleType: LifecycleType
-  preload: string
+  preload?: string
+  singleton?: boolean
 }) => Promise<{ success: boolean; viewId?: string; error?: string }>;
   /** 创建插件视图（新架构专用） */
   "windowCreatePluginView": (params: {
@@ -867,7 +901,8 @@ interface windowInterface {
   title: string
   url: string
   lifecycleType: LifecycleType
-  preload: string
+  preload?: string
+  singleton?: boolean
 }) => Promise<{ success: boolean; viewId?: string; error?: string }>;
 
   /**
@@ -930,7 +965,7 @@ interface windowInterface {
 }
 
 // 合并所有 IPC 路由类型
-export interface AllIpcRouter extends appInterface, clipboardInterface, filesystemInterface, hotkeyInterface, logInterface, pluginInterface, screenCaptureInterface, storeInterface, windowInterface {}
+export interface AllIpcRouter extends appInterface, clipboardInterface, debugInterface, filesystemInterface, hotkeyInterface, logInterface, pluginInterface, screenCaptureInterface, storeInterface, windowInterface {}
 
 // 路由信息类型
 export interface RouteInfo {
@@ -1085,6 +1120,42 @@ export const ROUTE_INFO: RouteInfo[] = [
     comment: "写入图片到剪切板",
     module: "clipboard",
     function: "writeImage"
+  },
+  {
+    route: "debug-toggle-debug-window",
+    comment: "切换调试窗口展开状态",
+    module: "debug",
+    function: "toggleDebugWindow"
+  },
+  {
+    route: "debug-show-debug-window",
+    comment: "显示调试窗口",
+    module: "debug",
+    function: "showDebugWindow"
+  },
+  {
+    route: "debug-hide-debug-window",
+    comment: "隐藏调试窗口",
+    module: "debug",
+    function: "hideDebugWindow"
+  },
+  {
+    route: "debug-get-debug-info",
+    comment: "获取调试信息（手动请求）",
+    module: "debug",
+    function: "getDebugInfo"
+  },
+  {
+    route: "debug-get-debug-window-state",
+    comment: "获取调试窗口展开状态",
+    module: "debug",
+    function: "getDebugWindowState"
+  },
+  {
+    route: "debug-move-debug-window",
+    comment: "移动调试窗口",
+    module: "debug",
+    function: "moveDebugWindow"
   },
   {
     route: "filesystem-select-file",
@@ -1304,7 +1375,7 @@ export const ROUTE_INFO: RouteInfo[] = [
   },
   {
     route: "window-adjust-height",
-    comment: "动态调整窗口高度 , 使用前端传递的高度直接设置窗口大小",
+    comment: "动态调整窗口高度, 使用前端传递的高度直接设置窗口大小",
     module: "window",
     function: "adjustHeight"
   },
@@ -1322,13 +1393,13 @@ export const ROUTE_INFO: RouteInfo[] = [
   },
   {
     route: "window-show",
-    comment: "显示主窗口 , 通过ViewManager获取main-view的父窗口并显示",
+    comment: "显示主窗口, 通过ViewManager获取main-view的父窗口并显示",
     module: "window",
     function: "show"
   },
   {
     route: "window-hide",
-    comment: "隐藏主窗口 , 通过ViewManager获取main-view的父窗口并隐藏",
+    comment: "隐藏主窗口, 通过ViewManager获取main-view的父窗口并隐藏",
     module: "window",
     function: "hide"
   },
@@ -1418,7 +1489,7 @@ export const ROUTE_INFO: RouteInfo[] = [
   },
   {
     route: "window-close-plugin-view",
-    comment: "关闭插件视图（新架构专用） , 关闭所有不支持后台运行的插件视图",
+    comment: "关闭插件视图（新架构专用）, 关闭所有不支持后台运行的插件视图",
     module: "window",
     function: "closePluginView"
   },
@@ -1436,7 +1507,7 @@ export const ROUTE_INFO: RouteInfo[] = [
   },
   {
     route: "window-get-current-view-info",
-    comment: "获取当前WebContentsView的完整信息 , 通过webContents查找对应的WebContentsViewInfo，并返回序列化后的信息",
+    comment: "获取当前WebContentsView的完整信息, 通过webContents查找对应的WebContentsViewInfo，并返回序列化后的信息",
     module: "window",
     function: "getCurrentViewInfo"
   }

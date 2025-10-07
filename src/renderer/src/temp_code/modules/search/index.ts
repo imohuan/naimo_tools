@@ -319,6 +319,8 @@ export const useSearchStore = defineStore('search', () => {
     // 过滤并评分搜索项
     const scoredResults = searchItems.value
       .map(item => {
+        if (['pinned', 'recent'].includes(item?.category || "")) return { item, score: 0, matched: false }
+
         let score = 0
         let matched = false
 

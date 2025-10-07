@@ -1,6 +1,6 @@
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
-import { readFileSync, mkdirSync, writeFileSync } from "fs";
+import { readFileSync, mkdirSync, writeFileSync, existsSync } from "fs";
 import { tmpdir } from "os";
 import log from "electron-log";
 
@@ -30,24 +30,44 @@ export function debounce<T extends (...args: any[]) => void>(func: T, wait: numb
 /**
  * 创建组合的 preload 脚本
  * 将内置 preload 和用户自定义 preload 合并
+ * @param customScript 自定义脚本代码（如元数据等）
+ * @param defaultPreloadPath 默认 preload 脚本路径
+ * @param customPreloadPath 用户自定义 preload 脚本路径（可选）
  */
-export async function createCombinedPreloadScript(customPreloadPath: string, defaultPreloadPath: string): Promise<string> {
+export async function createCombinedPreloadScript(
+  customScript: string,
+  defaultPreloadPath: string,
+  customPreloadPath?: string
+): Promise<string> {
   try {
     // 读取内置 preload 脚本
     const builtinPreloadContent = readFileSync(defaultPreloadPath, 'utf-8');
 
-    // 读取用户自定义 preload 脚本
-    const customPreloadContent = readFileSync(customPreloadPath, 'utf-8');
+    // 读取用户自定义 preload 脚本（如果存在）
+    let customPreloadContent = '';
+    if (customPreloadPath && existsSync(customPreloadPath)) {
+      try {
+        customPreloadContent = readFileSync(customPreloadPath, 'utf-8');
+        log.debug(`读取用户自定义 preload 脚本: ${customPreloadPath}`);
+      } catch (error) {
+        log.warn(`读取用户自定义 preload 脚本失败，将忽略: ${customPreloadPath}`, error);
+      }
+    }
 
     // 创建组合脚本内容
     const combinedContent = `
+// 元数据和自定义脚本
+${customScript}
+
 // 内置 preload 脚本
 ${builtinPreloadContent}
 
+${customPreloadContent ? `
 (() => {
   // 用户自定义 preload 脚本
   ${customPreloadContent}
 })()
+` : ''}
 `;
 
     // 创建临时文件

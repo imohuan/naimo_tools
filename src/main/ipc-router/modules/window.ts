@@ -829,12 +829,12 @@ export async function createPluginView(event: Electron.IpcMainInvokeEvent, param
   title: string
   url: string
   lifecycleType: LifecycleType
-  preload: string
+  preload?: string
+  singleton?: boolean
 }): Promise<{ success: boolean; viewId?: string; error?: string }> {
   try {
     const manager = NewWindowManager.getInstance()
     const result = await manager.createPluginView(params)
-
     if (result.success && result.viewId) {
       return { success: true, viewId: result.viewId }
     } else {

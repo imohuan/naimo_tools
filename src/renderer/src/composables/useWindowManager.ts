@@ -64,8 +64,13 @@ export interface WindowManagerOptions {
  * 插件窗口打开选项
  */
 export interface PluginWindowOptions {
-  url: string
-  preload: string
+  url?: string
+  main?: string
+  preload?: string
+  path?: string
+  title?: string
+  lifecycleType?: LifecycleType
+  singleton?: boolean
 }
 
 /**
@@ -356,12 +361,55 @@ export function useWindowManager(
 
   // ==================== 插件窗口管理 ====================
 
+
+  /**
+   * 打开插件窗口
+   */
+  const openPluginWindow = async (
+    pluginItem: PluginItem,
+    options: PluginWindowOptions = {}
+  ) => {
+    try {
+      // 打开插件窗口UI
+      app.ui.openPluginWindow(pluginItem)
+
+      // 确保窗口高度调整到最大高度
+      dependencies.handleResize?.()
+      await nextTick()
+
+      // 合并选项（options 可以覆盖 pluginItem 的默认值）
+      const finalLifecycleType = options.lifecycleType || pluginItem.lifecycleType || LifecycleType.FOREGROUND
+      const lifecycleTypeStr = finalLifecycleType === LifecycleType.BACKGROUND ? 'background' : 'foreground'
+
+      // 直接创建插件视图
+      const result = await naimo.router.windowCreatePluginView({
+        path: options.path || pluginItem.path,
+        title: options.title || pluginItem.name || '插件',
+        url: options.main || pluginItem.main || '',
+        lifecycleType: lifecycleTypeStr,
+        preload: options.preload || '',
+        singleton: options.singleton !== undefined ? options.singleton : (pluginItem.singleton !== false)
+      })
+
+      if (result.success) {
+        console.log(`✅ 插件视图创建成功: ${result.viewId} (${options.title || pluginItem.name})`)
+      } else {
+        console.error('❌ 插件窗口创建失败:', result.error)
+      }
+
+      return result
+    } catch (error) {
+      console.error('❌ 打开插件窗口失败:', error)
+      return { success: false, error: String(error) }
+    }
+  }
+
   /**
    * 生成插件API
    */
   const generatePluginApi = async (
     pluginItem: PluginItem,
-    hotkeyEmit = false
+    _hotkeyEmit = false // 保留参数以兼容调用，但当前未使用
   ): Promise<any> => {
     // 获取插件基础 API
     const pluginApi = await app.plugin.getPluginApi(pluginItem.pluginId as string)
@@ -380,46 +428,6 @@ export function useWindowManager(
       })
     }
 
-    // 创建网页窗口
-    const openWebPageWindow = async (url: string, windowOptions: any = {}) => {
-      // 获取当前视图信息
-      const currentViewInfo = await naimo.router.windowGetCurrentViewInfo()
-      if (!currentViewInfo) {
-        console.warn('⚠️ 无法获取当前视图信息，跳过插件窗口创建')
-        return
-      }
-
-      // 合并选项
-      const finalOptions = {
-        path: windowOptions.path || pluginItem.path,
-        pluginId: pluginItem.pluginId,
-        name: pluginItem.name,
-        title: windowOptions.title || pluginItem.name,
-        url,
-        lifecycleType: windowOptions.lifecycleType || pluginItem.lifecycleType,
-        preload: windowOptions.preload,
-        hotkeyEmit: hotkeyEmit || false,
-        ...windowOptions
-      }
-
-      // 直接创建插件视图
-      const result = await naimo.router.windowCreatePluginView({
-        path: finalOptions.path,
-        title: finalOptions.name || '插件',
-        url: url || '',
-        lifecycleType: finalOptions.lifecycleType === LifecycleType.BACKGROUND ? 'background' : 'foreground',
-        preload: finalOptions.preload || ''
-      })
-
-      if (result.success) {
-        // 通知主应用打开插件窗口
-        await openPluginWindow(pluginItem, { url: '', preload: '' })
-        console.log(`✅ 插件视图创建成功: ${result.viewId} (${pluginItem.name})`)
-      }
-
-      return result
-    }
-
     // 组装完整的 API 对象
     return {
       ...pluginApi,
@@ -427,49 +435,13 @@ export function useWindowManager(
         // 可以通过依赖注入或直接操作
         console.log('toggleInput:', value)
       },
-      openPluginWindow: () => openPluginWindow(pluginItem, { url: '', preload: '' }),
+      openPluginWindow: () => openPluginWindow(pluginItem, {}),
       addPathToFileList,
       plugin: {
-        installZip: (zipPath: string) => app.plugin.install(zipPath).then(() => true).catch(() => false),
         install: (path: string) => app.plugin.install(path).then(() => true).catch(() => false),
         uninstall: (id: string) => app.plugin.uninstall(id).then(() => true).catch(() => false),
         toggle: (id: string, enabled: boolean) => app.plugin.toggle(id, enabled).then(() => true).catch(() => false),
       },
-      openWebPageWindow
-    }
-  }
-
-  /**
-   * 打开插件窗口
-   */
-  const openPluginWindow = async (
-    pluginItem: PluginItem,
-    options: PluginWindowOptions
-  ) => {
-    try {
-      // 打开插件窗口UI
-      app.ui.openPluginWindow(pluginItem)
-
-      // 确保窗口高度调整到最大高度
-      dependencies.handleResize?.()
-      await nextTick()
-
-      // 直接创建插件视图
-      const result = await naimo.router.windowCreatePluginView({
-        path: pluginItem.path,
-        title: pluginItem.name || '插件',
-        url: options.url || '',
-        lifecycleType: pluginItem.lifecycleType || LifecycleType.FOREGROUND,
-        preload: options.preload || ''
-      })
-
-      if (result.success) {
-        console.log(`✅ 插件视图创建成功: ${result.viewId} (${pluginItem.name})`)
-      } else {
-        console.error('❌ 插件窗口创建失败:', result.error)
-      }
-    } catch (error) {
-      console.error('❌ 打开插件窗口失败:', error)
     }
   }
 

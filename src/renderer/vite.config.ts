@@ -52,6 +52,8 @@ function customHtmlOutputPlugin() {
             newFileName = 'settings.html';
           } else if (fileName.includes('detached-window')) {
             newFileName = 'detached-window.html';
+          } else if (fileName.includes('debug-window')) {
+            newFileName = 'debug-window.html';
           } else {
             // 其他文件只保留文件名部分
             newFileName = fileName.split('/').pop() || fileName;
@@ -146,6 +148,7 @@ export default defineConfig({
         'crop-window': resolve(__dirname, 'src/pages/crop-window/index.html'),
         'settings': resolve(__dirname, 'src/pages/settings/index.html'),
         'detached-window': resolve(__dirname, 'src/pages/detached-window/index.html'),
+        'debug-window': resolve(__dirname, 'src/pages/debug-window/index.html'),
         'log-viewer': resolve(__dirname, 'public/log-viewer.html')
       },
       output: {

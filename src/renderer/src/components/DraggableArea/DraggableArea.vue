@@ -1,5 +1,10 @@
 <template>
-  <div ref="draggableElement" class="draggable-area" @mousedown="handleMouseDown">
+  <div
+    ref="draggableElement"
+    class="draggable-area"
+    @mousedown="handleMouseDown"
+    @dblclick="(event) => $emit('dblclick', event)"
+  >
     <slot />
   </div>
 </template>
@@ -11,16 +16,31 @@ interface Props {
    * @default 100
    */
   clickThreshold?: number;
+  /**
+   * 窗口类型：view（WebContentsView）或 window（BrowserWindow）
+   * @default 'view'
+   */
+  windowType?: "view" | "window";
+  /**
+   * 手动指定窗口 ID（可选，如果不指定则自动获取）
+   */
+  windowId?: number;
 }
 
-const props = withDefaults(defineProps<Props>(), { clickThreshold: 100 });
+const props = withDefaults(defineProps<Props>(), {
+  clickThreshold: 100,
+  windowType: "view",
+});
+
 const emit = defineEmits<{
   click: [event: MouseEvent];
+  dblclick: [event: MouseEvent];
 }>();
 
 // 响应式数据
 const draggableElement = ref<HTMLElement>();
-let windowId = 1
+let isView = true; // 是否是 View 类型
+let parentWindowId = 1; // View 所在的父窗口 ID（仅在 isView=true 时使用）
 
 // --- 修正后的拖拽状态变量 ---
 // 我们需要在 mousedown 时捕获窗口和鼠标的初始位置
@@ -53,15 +73,25 @@ const move = (event: MouseEvent) => {
   const newY = initialWindowPos.y + deltaY;
 
   // 3. 将计算出的新位置发送给主进程
-  // 注意：宽度和高度在拖拽时不应改变，所以直接使用初始值
-
-  naimo.sendTo.windowMove(
-    windowId,
-    Math.round(newX),
-    Math.round(newY),
-    initialWindowPos.width,
-    initialWindowPos.height
-  );
+  // 根据窗口类型选择不同的移动方法
+  if (isView) {
+    // View 类型：使用 view-move，需要传递 parentWindowId
+    naimo.sendTo.viewMove(
+      parentWindowId,
+      Math.round(newX),
+      Math.round(newY),
+      initialWindowPos.width,
+      initialWindowPos.height
+    );
+  } else {
+    // BrowserWindow 类型：使用 window-move，主进程会从 event.sender 中自动获取
+    naimo.sendTo.windowMove(
+      Math.round(newX),
+      Math.round(newY),
+      initialWindowPos.width,
+      initialWindowPos.height
+    );
+  }
 };
 
 // --- 修正后的鼠标按下事件 ---
@@ -110,9 +140,27 @@ const handleMouseUp = (event: MouseEvent) => {
   moveIng = false;
 };
 
-naimo.router.windowGetCurrentViewInfo().then(res => {
-  if (!res) return;
-  windowId = res.parentWindowId;
+// 初始化窗口类型和 ID
+onMounted(() => {
+  isView = props.windowType === "view";
+
+  // 如果是 View 类型，需要获取 parentWindowId（用于频繁的拖拽事件）
+  if (isView) {
+    if (props.windowId !== undefined) {
+      // 如果手动指定了窗口 ID，直接使用
+      parentWindowId = props.windowId;
+    } else {
+      // 通过 IPC 获取当前 View 的 parentWindowId
+      naimo.router.windowGetCurrentViewInfo().then((res: any) => {
+        if (res && res.parentWindowId) {
+          parentWindowId = res.parentWindowId;
+        } else {
+          console.warn("[DraggableArea] 无法获取 View 的 parentWindowId");
+        }
+      });
+    }
+  }
+  // BrowserWindow 类型不需要预先获取 ID，主进程会从 event.sender 获取
 });
 </script>
 

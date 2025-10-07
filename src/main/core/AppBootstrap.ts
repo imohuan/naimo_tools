@@ -9,6 +9,7 @@ import { ErrorService } from '../services/ErrorService'
 import { UpdateService } from '../services/UpdateService'
 import { WindowService } from '../services/WindowService'
 import { TrayService } from '../services/TrayService'
+import { DebugService } from '../services/DebugService'
 import { AppConfigManager } from '../config/appConfig'
 
 /**
@@ -41,6 +42,14 @@ export interface AppBootstrapConfig {
   tray?: {
     enabled?: boolean
     iconPath?: string
+  }
+  debug?: {
+    enabled?: boolean
+    updateInterval?: number
+    position?: {
+      offsetX?: number
+      offsetY?: number
+    }
   }
 }
 
@@ -86,6 +95,15 @@ export class AppBootstrap {
       tray: {
         enabled: true,
         ...config.tray
+      },
+      debug: {
+        enabled: false, // 默认禁用，生产环境建议禁用
+        updateInterval: 1000,
+        position: {
+          offsetX: 20,
+          offsetY: 20
+        },
+        ...config.debug
       }
     }
 
@@ -145,6 +163,13 @@ export class AppBootstrap {
       singleton: true
     })
 
+    // 注册调试服务
+    this.serviceContainer.register({
+      name: 'debugService',
+      factory: () => new DebugService(this.config.debug),
+      singleton: true
+    })
+
     log.info('所有服务注册完成')
   }
 
@@ -185,6 +210,7 @@ export class AppBootstrap {
       'errorService',    // 错误服务 - 尽早初始化以捕获错误
       'updateService',   // 更新服务 - 在核心功能之后
       'windowService',   // 窗口服务
+      'debugService',    // 调试服务 - 在窗口服务之后
       'trayService'      // 托盘服务 - 最后初始化
     ]
 
@@ -195,6 +221,16 @@ export class AppBootstrap {
 
         if (service && typeof service.initialize === 'function') {
           await service.initialize()
+        }
+
+        // 特殊处理：调试服务初始化后，设置窗口管理器引用
+        if (serviceName === 'debugService' && this.serviceContainer.has('windowService')) {
+          const windowService = this.serviceContainer.get('windowService')
+          const windowManager = windowService?.getWindowManager()
+          if (windowManager && service && typeof service.setWindowManager === 'function') {
+            service.setWindowManager(windowManager)
+            log.info('调试服务已设置窗口管理器引用')
+          }
         }
 
         log.info(`${serviceName} 初始化完成`)
@@ -267,6 +303,13 @@ export class AppBootstrap {
         const trayService = this.serviceContainer.get('trayService')
         if (trayService && typeof trayService.updateConfig === 'function') {
           trayService.updateConfig(config.tray)
+        }
+      }
+
+      if (config.debug && this.serviceContainer.has('debugService')) {
+        const debugService = this.serviceContainer.get('debugService')
+        if (debugService && typeof debugService.updateConfig === 'function') {
+          debugService.updateConfig(config.debug)
         }
       }
     } catch (error) {

@@ -140,8 +140,14 @@ export type PluginItem = AppItem & {
   autoStart?: boolean
   /** 生命周期类型 */
   lifecycleType?: LifecycleType
+  /** 单例 默认 true */
+  singleton?: boolean
   /** 推荐 */
   recommend?: boolean
+  /** preload 脚本 */
+  preload?: string
+  /** url */
+  main?: string
   /** 进入回调 */
   onEnter?: (params: { files: AttachedFile[], searchText: string }, api: any) => void
   /** 安装回调 */

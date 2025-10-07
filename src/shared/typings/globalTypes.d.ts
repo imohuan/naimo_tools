@@ -28,7 +28,8 @@ interface ElectronAPI {
     throw_error: (error: any, options?: { title?: string }) => void;
   };
   sendTo: {
-    windowMove: (id: number, x: number, y: number, width: number, height: number) => void;
+    windowMove: (x: number, y: number, width: number, height: number) => void;
+    viewMove: (id: number, x: number, y: number, width: number, height: number) => void;
   };
   router: AllIpcRouter;
   webUtils: WebUtils;

@@ -111,8 +111,11 @@ const electronAPI = {
     },
   },
   sendTo: {
-    windowMove: (id: number, x: number, y: number, width: number, height: number) => {
-      ipcRenderer.send("window-move", id, x, y, width, height);
+    windowMove: (x: number, y: number, width: number, height: number) => {
+      ipcRenderer.send("window-move", x, y, width, height);
+    },
+    viewMove: (id: number, x: number, y: number, width: number, height: number) => {
+      ipcRenderer.send("view-move", id, x, y, width, height);
     },
   },
   router: ipcRouter,

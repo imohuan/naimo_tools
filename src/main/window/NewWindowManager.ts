@@ -1348,44 +1348,103 @@ export class NewWindowManager {
     url: string
     lifecycleType: LifecycleType
     preload?: string
+    singleton?: boolean // 单例模式，默认为 true
   }): Promise<ViewOperationResult> {
     try {
       if (!this.mainWindow) throw new Error('主窗口未创建')
+
+      // 默认单例模式为 true
+      const isSingleton = params.singleton !== false
+
+      // 如果是单例模式，检查视图是否已存在或已分离
+      if (isSingleton) {
+        // 生成视图ID（与 generateViewId 方法保持一致）
+        const viewId = this.generateViewId(ViewType.PLUGIN, params.path)
+
+        // 检查视图是否已被分离
+        if (this.detachManager.isViewDetached(viewId)) {
+          const detachedWindowId = this.detachManager.getDetachedWindowId(viewId)
+          if (detachedWindowId) {
+            const detachedWindowInfo = this.detachManager.getDetachedWindowInfo(detachedWindowId)
+            if (detachedWindowInfo && !detachedWindowInfo.window.isDestroyed()) {
+              // 视图已分离，聚焦分离窗口
+              log.info(`插件视图已分离到独立窗口，聚焦窗口: ${viewId} -> 窗口ID ${detachedWindowId}`)
+              detachedWindowInfo.window.focus()
+
+              return {
+                success: true,
+                viewId,
+                data: {
+                  detached: true,
+                  detachedWindowId,
+                  focused: true,
+                  message: '插件已在独立窗口中运行，已聚焦该窗口'
+                }
+              }
+            } else {
+              // 分离窗口已销毁，清理映射（虽然 DetachManager 应该自动处理，但这里做个保险）
+              log.warn(`分离窗口已销毁，将创建新视图: ${viewId}`)
+            }
+          }
+        }
+      }
 
       // 构建插件项目信息
       const pluginItem: PluginItem = {
         path: params.path,
         name: params.title,
         icon: null,
-        lifecycleType: params.lifecycleType
+        lifecycleType: params.lifecycleType,
+        singleton: isSingleton
       }
 
       // 确定生命周期类型
       const lifecycleType = params.lifecycleType
 
-      // 处理 preload 脚本合并
+      // 处理 URL：如果没有传入 URL，则使用空白页（用于后台窗口）
+      const finalUrl = params.url || 'about:blank'
+      if (!params.url) {
+        log.info(`插件未指定 URL，将加载空白页作为后台窗口: ${params.path}`)
+      }
+
+      // 处理 preload 脚本合并 - 无论是否有自定义 preload 都创建合并脚本
       const defaultPreloadPath = resolve(getDirname(import.meta.url), './preloads/basic.js')
       let finalPreloadPath: string = defaultPreloadPath
-      if (params.preload) {
-        try {
-          // 创建合并的 preload 脚本
-          finalPreloadPath = await createCombinedPreloadScript(params.preload, defaultPreloadPath)
-          log.info(`插件 preload 脚本已合并: ${params.path} -> ${finalPreloadPath}`)
-        } catch (error) {
-          log.warn(`合并插件 preload 脚本失败，使用默认脚本: ${params.path}`, error)
-          finalPreloadPath = defaultPreloadPath
-        }
+
+      try {
+        // 创建元数据脚本
+        const customScript = `
+// 插件元数据
+const __METADATA__ = {
+  path: '${params.path}',
+  title: '${params.title}',
+  url: '${finalUrl}',
+  lifecycleType: '${params.lifecycleType}',
+  preload: '${params.preload || ''}',
+  singleton: ${isSingleton}
+};
+`
+        // 调用合并脚本函数，第三个参数（用户自定义 preload）可选
+        finalPreloadPath = await createCombinedPreloadScript(
+          customScript,
+          defaultPreloadPath,
+          params.preload // 可选参数，可能为 undefined
+        )
+        log.info(`插件 preload 脚本已创建: ${params.path} -> ${finalPreloadPath}`)
+      } catch (error) {
+        log.warn(`创建插件 preload 脚本失败，使用默认脚本: ${params.path}`, error)
+        finalPreloadPath = defaultPreloadPath
       }
 
       const result = await this.showView({
         type: ViewType.PLUGIN,
         config: {
-          url: params.url,
+          url: finalUrl,
           path: params.path,
           preload: finalPreloadPath
         },
         pluginItem,
-        forceNew: false,
+        forceNew: false, // 单例模式下不强制创建新视图
         category: ViewCategory.MAIN_WINDOW,
         lifecycleStrategy: {
           type: lifecycleType,

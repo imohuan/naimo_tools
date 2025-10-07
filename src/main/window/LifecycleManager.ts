@@ -574,7 +574,7 @@ export class LifecycleManager {
   /**
    * 更新性能指标
    */
-  private updatePerformanceMetrics(): void {
+  updatePerformanceMetrics(): void {
     const startTime = performance.now()
 
     try {

@@ -48,6 +48,9 @@ const appBootstrap = new AppBootstrap({
   },
   tray: {
     enabled: true
+  },
+  debug: {
+    enabled: !isProduction() // 开发环境启用调试窗口
   }
 });
 
@@ -106,5 +109,6 @@ export const appService = {
   getConfigManager: () => appBootstrap.getService('configManager'),
   getDownloadWindow: () => appBootstrap.getService('windowService')?.getDownloadWindow(),
   getTrayService: () => appBootstrap.getService('trayService'),
+  getDebugService: () => appBootstrap.getService('debugService'),
   cleanup: () => appBootstrap.cleanup()
 };
