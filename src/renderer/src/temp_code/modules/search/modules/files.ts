@@ -17,14 +17,17 @@ export class FilesModule implements SearchModule {
       },
     }));
   }
+
   async deleteItem(item: AppItem): Promise<void> {
-    storeUtils.removeListItem("fileList", item.path, "path");
+    // 使用 fullPath 作为唯一标识，如果没有则 fallback 到 path
+    storeUtils.removeListItem("fileList", item.fullPath || item.path, "fullPath");
   }
 
   async addItem(item: AppItem): Promise<void> {
+    // 使用 fullPath 作为唯一标识
     storeUtils.addListItem("fileList", item, {
       unique: true,
-      uniqueField: "path",
+      uniqueField: "fullPath",
       position: "start",
     });
   }

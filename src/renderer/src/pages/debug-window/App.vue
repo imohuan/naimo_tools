@@ -62,7 +62,7 @@
       <div class="flex-1 overflow-hidden">
         <div class="h-full py-3 pl-3 pr-3 overflow-y-auto flex flex-col gap-3">
           <!-- 性能指标 -->
-          <section class="bg-white/5 rounded-lg p-2.5">
+          <section class="bg-white/5 rounded-lg p-2.5 flex-shrink-0">
             <h4 class="m-0 mb-2 text-[13px] font-semibold text-white/90">
               性能指标
             </h4>
@@ -95,13 +95,13 @@
           </section>
 
           <!-- 窗口结构（含视图） -->
-          <section class="bg-white/5 rounded-lg p-2.5">
+          <section class="bg-white/5 rounded-lg p-2.5 flex-shrink-0">
             <h4 class="m-0 mb-2 text-[13px] font-semibold text-white/90">
               窗口结构 ({{ debugInfo.windows.length }} 窗口,
               {{ debugInfo.views.length }} 视图)
             </h4>
             <div
-              class="flex flex-col gap-1.5 max-h-[200px] overflow-y-auto scrollbar-container"
+              class="flex flex-col gap-1.5 max-h-[280px] overflow-y-auto scrollbar-container"
             >
               <div
                 v-for="window in debugInfo.windows"
@@ -112,32 +112,29 @@
                 <div
                   class="p-2 flex flex-col gap-1 transition-colors"
                   :class="
-                    window.viewIds && window.viewIds.length > 0
-                      ? 'cursor-pointer hover:bg-white/10'
-                      : ''
+                    hasViews(window) ? 'cursor-pointer hover:bg-white/10' : ''
                   "
                   @click="
-                    window.viewIds && window.viewIds.length > 0
-                      ? toggleWindowExpand(window.id)
-                      : null
+                    hasViews(window) ? toggleWindowExpand(window.id) : null
                   "
                 >
                   <div class="flex justify-between items-center">
                     <div class="flex items-center gap-1.5">
                       <span
-                        v-if="window.viewIds && window.viewIds.length > 0"
-                        class="text-[10px] text-white/60 w-3"
+                        v-if="hasViews(window)"
+                        class="text-[10px] text-white/60 w-3 flex-shrink-0"
                       >
                         {{ expandedWindows.has(window.id) ? "▼" : "▶" }}
                       </span>
+                      <span v-else class="w-3 flex-shrink-0"></span>
                       <span class="text-[11px] font-semibold text-white">{{
                         formatWindowType(window.type)
                       }}</span>
                       <span
-                        v-if="window.viewIds && window.viewIds.length > 0"
-                        class="text-[9px] text-indigo-400"
+                        v-if="hasViews(window)"
+                        class="text-[9px] text-indigo-400 font-semibold"
                       >
-                        {{ window.viewIds.length }}个视图
+                        {{ window.viewIds?.length || 0 }}个视图
                       </span>
                     </div>
                     <span class="text-[9px] text-white/60"
@@ -165,34 +162,39 @@
 
                 <!-- 展开的视图列表 -->
                 <div
-                  v-if="
-                    expandedWindows.has(window.id) &&
-                    window.viewIds &&
-                    window.viewIds.length > 0
-                  "
+                  v-if="expandedWindows.has(window.id) && hasViews(window)"
                   class="bg-white/5 border-t border-white/10"
                 >
                   <div
                     v-for="viewId in window.viewIds"
                     :key="viewId"
-                    class="p-2 pl-8 flex justify-between items-center hover:bg-white/8 transition-colors border-b border-white/5 last:border-b-0"
+                    class="p-2 pl-6 flex justify-between items-center hover:bg-white/8 transition-colors border-b border-white/5 last:border-b-0"
                   >
-                    <div class="flex flex-col min-w-0">
+                    <div class="flex flex-col min-w-0 flex-1">
                       <div
                         class="text-[10px] font-medium text-white/90 truncate"
+                        :title="viewId"
                       >
-                        📄 {{ getViewById(viewId)?.id || viewId }}
+                        📄 {{ viewId }}
                       </div>
-                      <span class="text-[9px] text-white/50">{{
-                        getViewById(viewId)?.category || "unknown"
-                      }}</span>
+                      <div class="flex gap-1.5 items-center">
+                        <span class="text-[9px] text-white/50">{{
+                          getViewById(viewId)?.category || "unknown"
+                        }}</span>
+                        <span class="text-[9px] text-white/40">|</span>
+                        <span class="text-[9px] text-white/50">{{
+                          getViewById(viewId)?.type || "unknown"
+                        }}</span>
+                      </div>
                     </div>
-                    <div class="flex gap-1.5 items-center flex-shrink-0">
+                    <div class="flex gap-1.5 items-center flex-shrink-0 ml-2">
                       <span
                         class="text-[9px] px-1.5 py-0.5 rounded bg-white/10 text-white/70"
                         :class="{
                           '!bg-orange-500/30 !text-orange-500':
                             getViewById(viewId)?.isPaused,
+                          '!bg-green-500/30 !text-green-500':
+                            !getViewById(viewId)?.isPaused,
                         }"
                       >
                         {{ getViewById(viewId)?.isPaused ? "暂停" : "活跃" }}
@@ -209,7 +211,7 @@
           </section>
 
           <!-- 其他进程 -->
-          <section class="bg-white/5 rounded-lg p-2.5">
+          <section class="bg-white/5 rounded-lg p-2.5 flex-shrink-0">
             <h4 class="m-0 mb-2 text-[13px] font-semibold text-white/90">
               其他进程 ({{ debugInfo.otherProcesses.length }})
             </h4>
@@ -331,7 +333,7 @@
           </section>
 
           <!-- 生命周期统计 -->
-          <section class="bg-white/5 rounded-lg p-2.5">
+          <section class="bg-white/5 rounded-lg p-2.5 flex-shrink-0">
             <h4 class="m-0 mb-2 text-[13px] font-semibold text-white/90">
               生命周期统计
             </h4>
@@ -372,7 +374,7 @@
           </section>
 
           <!-- 系统信息 -->
-          <section class="bg-white/5 rounded-lg p-2.5">
+          <section class="bg-white/5 rounded-lg p-2.5 flex-shrink-0">
             <h4 class="m-0 mb-2 text-[13px] font-semibold text-white/90">
               系统信息
             </h4>
@@ -558,6 +560,11 @@ const toggleWindowExpand = (windowId: number) => {
   expandedWindows.value = new Set(expandedWindows.value);
 };
 
+// 检查窗口是否有视图
+const hasViews = (window: DebugInfo["windows"][0]): boolean => {
+  return !!(window.viewIds && window.viewIds.length > 0);
+};
+
 // 根据 ID 获取视图信息
 const getViewById = (viewId: string) => {
   return debugInfo.value.views.find((v) => v.id === viewId);
@@ -605,6 +612,22 @@ const formatUptime = (seconds: number): string => {
 // 监听调试信息更新
 const handleDebugUpdate = (_event: any, data: DebugInfo) => {
   console.log("[Debug Window] 收到调试信息:", data);
+
+  // 打印窗口-视图关联信息
+  console.log("[Debug Window] 窗口-视图关联:");
+  data.windows.forEach((window) => {
+    const viewCount = window.viewIds?.length || 0;
+    console.log(
+      `  ${window.type}(ID:${window.id}): ${viewCount} 个视图`,
+      window.viewIds || []
+    );
+  });
+
+  console.log(
+    "[Debug Window] 所有视图:",
+    data.views.map((v) => v.id)
+  );
+
   debugInfo.value = data;
 };
 

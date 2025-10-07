@@ -546,6 +546,7 @@ export class DebugService implements Service {
         // 获取所有视图信息
         const allViews = this.windowManager.getViewManager().getAllViews()
         log.debug(`开始收集 ${allViews.length} 个视图的信息`)
+        log.debug(`当前窗口列表:`, debugInfo.windows.map(w => `${w.type}(ID:${w.id})`).join(', '))
 
         for (const viewInfo of allViews) {
           const lifecycleState = lifecycleManager?.getViewState(viewInfo.id)
@@ -575,6 +576,7 @@ export class DebugService implements Service {
             log.debug(`✗ 视图 ${viewInfo.id} - 获取内存失败:`, error)
           }
 
+          // 将视图添加到 views 数组
           debugInfo.views.push({
             id: viewInfo.id,
             type: viewInfo.config.type || 'unknown',
@@ -587,18 +589,38 @@ export class DebugService implements Service {
 
           // 将 viewId 添加到对应的 BaseWindow 的 viewIds 列表中
           const parentWindowId = viewInfo.parentWindowId
+          log.debug(`  视图 ${viewInfo.id}: parentWindowId=${parentWindowId}`)
+
           if (parentWindowId) {
             const parentWindow = debugInfo.windows.find(w => w.id === parentWindowId)
-            if (parentWindow && parentWindow.viewIds) {
+            if (parentWindow) {
+              if (!parentWindow.viewIds) {
+                parentWindow.viewIds = []
+              }
               parentWindow.viewIds.push(viewInfo.id)
-              log.debug(`  → 已将视图 ${viewInfo.id} 添加到窗口 ${parentWindowId} (${parentWindow.type})`)
+              log.debug(`  → ✓ 已将视图 ${viewInfo.id} 添加到窗口 ${parentWindowId} (${parentWindow.type}), 当前该窗口有 ${parentWindow.viewIds.length} 个视图`)
             } else {
-              log.warn(`  ⚠️ 未找到父窗口 ${parentWindowId} 用于视图 ${viewInfo.id}`)
+              log.warn(`  → ⚠️ 未找到父窗口 ${parentWindowId} 用于视图 ${viewInfo.id}`)
+              log.warn(`     可用窗口: ${debugInfo.windows.map(w => `${w.type}(${w.id})`).join(', ')}`)
             }
           } else {
-            log.warn(`  ⚠️ 视图 ${viewInfo.id} 没有 parentWindowId`)
+            log.warn(`  → ⚠️ 视图 ${viewInfo.id} 没有 parentWindowId`)
           }
         }
+
+        // 打印每个窗口包含的视图列表
+        log.debug(``)
+        log.debug(`窗口-视图关联总结:`)
+        for (const window of debugInfo.windows) {
+          const viewCount = window.viewIds?.length || 0
+          if (viewCount > 0) {
+            log.debug(`  ${window.type}(ID:${window.id}): ${viewCount} 个视图 - [${window.viewIds?.join(', ')}]`)
+          } else {
+            log.debug(`  ${window.type}(ID:${window.id}): 0 个视图`)
+          }
+        }
+        log.debug(``)
+
 
         // BaseWindow 保持 memoryUsage = 0（它们是容器，实际内存在其包含的 view 中）
 
@@ -820,4 +842,5 @@ export class DebugService implements Service {
     log.info('调试服务清理完成')
   }
 }
+
 

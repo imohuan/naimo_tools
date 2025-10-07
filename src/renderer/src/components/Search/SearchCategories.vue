@@ -1,6 +1,10 @@
 <template>
   <div class="w-full h-full overflow-y-auto p-2 space-y-2">
-    <div v-for="category in categories" :key="category.id" class="category-section">
+    <div
+      v-for="category in categories"
+      :key="category.id"
+      class="category-section"
+    >
       <!-- 分类标题 -->
       <div class="flex items-center justify-between mb-1 px-1">
         <h3
@@ -41,7 +45,7 @@
           v-model="category.items"
           :disabled="!category.isDragEnabled"
           @end="() => onDragEnd(category.id)"
-          item-key="path"
+          item-key="fullPath"
           class="grid grid-cols-6 sm:grid-cols-7 md:grid-cols-8 lg:grid-cols-9 gap-1 min-h-0 transition-all duration-300"
           ghost-class="sortable-ghost"
           chosen-class="sortable-chosen"
@@ -49,7 +53,7 @@
         >
           <AppItemComponent
             v-for="app in getDisplayItems(category)"
-            :key="`${category.id}-${app.path}`"
+            :key="`${category.id}-${app.fullPath || app.path}`"
             :app="app"
             :category-id="category.id"
             :is-selected="isItemSelected(app, category.id)"
@@ -74,7 +78,9 @@
 <script setup lang="ts">
 import { VueDraggable } from "vue-draggable-plus";
 import { ref, computed } from "vue";
-import ContextMenu, { type ContextMenuItem } from "@/components/ContextMenu/ContextMenu.vue";
+import ContextMenu, {
+  type ContextMenuItem,
+} from "@/components/ContextMenu/ContextMenu.vue";
 import AppItemComponent from "./AppItem.vue";
 import type { AppItem } from "@/temp_code/typings/search";
 import type { SearchCategory } from "@/typings/searchTypes";
@@ -104,7 +110,13 @@ const emit = defineEmits<Emits>();
 const isItemSelected = (app: AppItem, categoryId: string): boolean => {
   // 只有当前选中的索引对应的项目才被选中，并且要匹配分类
   const selectedItem = props.flatItems[props.selectedIndex];
-  return selectedItem?.path === app.path && selectedItem?.categoryId === categoryId;
+  // 使用 fullPath 作为唯一标识，如果没有则 fallback 到 path
+  const appIdentifier = app.fullPath || app.path;
+  const selectedIdentifier = selectedItem?.fullPath || selectedItem?.path;
+  return (
+    selectedIdentifier === appIdentifier &&
+    selectedItem?.categoryId === categoryId
+  );
 };
 
 // 右键菜单状态
@@ -115,7 +127,10 @@ const currentCategoryId = ref<string>("");
 
 // 获取分类中应该显示的项目（考虑展开/收起状态）
 const getDisplayItems = (category: SearchCategory): AppItem[] => {
-  if (category.isExpanded || category.items.length <= category.maxDisplayCount) {
+  if (
+    category.isExpanded ||
+    category.items.length <= category.maxDisplayCount
+  ) {
     return category.items;
   }
   return category.items.slice(0, category.maxDisplayCount);
@@ -144,23 +159,26 @@ const contextMenuItems = computed((): ContextMenuItem[] => {
   const items: ContextMenuItem[] = [];
 
   // 固定功能 - 基于 item 的 __metadata 配置
-  if (currentApp.value.__metadata?.enablePin === true && currentApp.value.type === "text") {
+  if (
+    currentApp.value.__metadata?.enablePin === true &&
+    currentApp.value.type === "text"
+  ) {
     items.push({
-      key: 'pin',
-      label: '固定到顶部',
+      key: "pin",
+      label: "固定到顶部",
       icon: IconMdiCog, // 使用导入的图标组件
-      action: () => handleAppPin(currentApp.value!, currentCategoryId.value)
+      action: () => handleAppPin(currentApp.value!, currentCategoryId.value),
     });
   }
 
   // 删除功能 - 基于 item 的 __metadata 配置
   if (currentApp.value.__metadata?.enableDelete === true) {
     items.push({
-      key: 'delete',
-      label: '删除',
+      key: "delete",
+      label: "删除",
       icon: IconMdiApplication, // 使用导入的图标组件
       danger: true,
-      action: () => handleAppDelete(currentApp.value!, currentCategoryId.value)
+      action: () => handleAppDelete(currentApp.value!, currentCategoryId.value),
     });
   }
 
@@ -168,7 +186,11 @@ const contextMenuItems = computed((): ContextMenuItem[] => {
 });
 
 // 处理右键菜单
-const handleContextMenu = (event: MouseEvent, app: AppItem, categoryId: string) => {
+const handleContextMenu = (
+  event: MouseEvent,
+  app: AppItem,
+  categoryId: string
+) => {
   event.preventDefault();
   event.stopPropagation();
 
@@ -277,7 +299,9 @@ const handleAppPin = (app: AppItem, categoryId: string) => {
   background: rgba(243, 244, 246, 0.9) !important;
   border: 2px solid rgba(156, 163, 175, 0.8) !important;
   transform: scale(1.02) translateY(-1px) !important;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15), 0 0 0 2px rgba(156, 163, 175, 0.1) !important;
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.15),
+    0 0 0 2px rgba(156, 163, 175, 0.1) !important;
   border-radius: 8px !important;
   z-index: 1000 !important;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
@@ -289,7 +313,9 @@ const handleAppPin = (app: AppItem, categoryId: string) => {
   border: 2px solid rgba(156, 163, 175, 0.9) !important;
   transform: rotate(2deg) scale(1.05) translateY(-2px) !important;
   z-index: 1001 !important;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2), 0 0 0 3px rgba(156, 163, 175, 0.15) !important;
+  box-shadow:
+    0 8px 20px rgba(0, 0, 0, 0.2),
+    0 0 0 3px rgba(156, 163, 175, 0.15) !important;
   border-radius: 8px !important;
   transition: none !important;
   filter: brightness(1.05) !important;

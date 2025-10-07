@@ -12,8 +12,8 @@ export class SystemPluginInstaller extends BasePluginInstaller {
   readonly weight = 1
   readonly pluginType = 'system'
 
-  /** 插件模块缓存 */
-  private pluginModules = import.meta.glob('@/plugins/*.ts', { eager: true })
+  /** 插件模块缓存（排除 _ 开头的文件） */
+  private pluginModules = import.meta.glob('@/plugins/[!_]*.ts', { eager: true })
   /** 插件列表缓存 */
   private pluginsCache: PluginConfig[] | null = null
 

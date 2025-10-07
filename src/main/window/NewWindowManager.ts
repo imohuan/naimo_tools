@@ -1145,14 +1145,14 @@ export class NewWindowManager {
     // 添加插件元数据
     if (params.pluginItem) {
       config.pluginMetadata = {
-        path: params.pluginItem.path,
+        fullPath: params.pluginItem.fullPath || `${params.pluginItem.pluginId}:${params.pluginItem.path}`,
         name: params.pluginItem.name
       }
 
       log.debug(`准备视图配置，设置插件元数据:`, {
         viewId,
         pluginItemName: params.pluginItem.name,
-        pluginItemPath: params.pluginItem.path,
+        pluginItemFullPath: params.pluginItem.fullPath,
         viewType: params.type
       })
     }
@@ -1343,11 +1343,11 @@ export class NewWindowManager {
    * 这是一个为插件系统优化的便利函数
    */
   public async createPluginView(params: {
-    path: string
+    fullPath: string
     title: string
     url: string
     lifecycleType: LifecycleType
-    preload?: string
+    preload: string
     singleton?: boolean // 单例模式，默认为 true
   }): Promise<ViewOperationResult> {
     try {
@@ -1359,7 +1359,7 @@ export class NewWindowManager {
       // 如果是单例模式，检查视图是否已存在或已分离
       if (isSingleton) {
         // 生成视图ID（与 generateViewId 方法保持一致）
-        const viewId = this.generateViewId(ViewType.PLUGIN, params.path)
+        const viewId = this.generateViewId(ViewType.PLUGIN, params.fullPath)
 
         // 检查视图是否已被分离
         if (this.detachManager.isViewDetached(viewId)) {
@@ -1391,7 +1391,7 @@ export class NewWindowManager {
 
       // 构建插件项目信息
       const pluginItem: PluginItem = {
-        path: params.path,
+        fullPath: params.fullPath,
         name: params.title,
         icon: null,
         lifecycleType: params.lifecycleType,
@@ -1402,9 +1402,9 @@ export class NewWindowManager {
       const lifecycleType = params.lifecycleType
 
       // 处理 URL：如果没有传入 URL，则使用空白页（用于后台窗口）
-      const finalUrl = params.url || 'about:blank'
+      const finalUrl = params.url.trim() || 'about:blank'
       if (!params.url) {
-        log.info(`插件未指定 URL，将加载空白页作为后台窗口: ${params.path}`)
+        log.info(`插件未指定 URL，将加载空白页作为后台窗口: ${params.fullPath}`)
       }
 
       // 处理 preload 脚本合并 - 无论是否有自定义 preload 都创建合并脚本
@@ -1416,7 +1416,7 @@ export class NewWindowManager {
         const customScript = `
 // 插件元数据
 const __METADATA__ = {
-  path: '${params.path}',
+  path: '${params.fullPath}',
   title: '${params.title}',
   url: '${finalUrl}',
   lifecycleType: '${params.lifecycleType}',
@@ -1430,9 +1430,9 @@ const __METADATA__ = {
           defaultPreloadPath,
           params.preload // 可选参数，可能为 undefined
         )
-        log.info(`插件 preload 脚本已创建: ${params.path} -> ${finalPreloadPath}`)
+        log.info(`插件 preload 脚本已创建: ${params.preload} -> ${finalPreloadPath}`)
       } catch (error) {
-        log.warn(`创建插件 preload 脚本失败，使用默认脚本: ${params.path}`, error)
+        log.warn(`创建插件 preload 脚本失败，使用默认脚本: ${defaultPreloadPath}`, error)
         finalPreloadPath = defaultPreloadPath
       }
 
@@ -1440,7 +1440,7 @@ const __METADATA__ = {
         type: ViewType.PLUGIN,
         config: {
           url: finalUrl,
-          path: params.path,
+          path: params.fullPath,
           preload: finalPreloadPath
         },
         pluginItem,
@@ -1463,7 +1463,7 @@ const __METADATA__ = {
           const mainViewInfo = this.viewManager.getViewInfo('main-view')
           if (mainViewInfo) {
             sendPluginViewOpened(mainViewInfo.view.webContents, {
-              pluginId: params.path,
+              fullPath: params.fullPath,
               viewId: result.viewId!,
               windowId: this.mainWindow!.id,
               timestamp: Date.now()
@@ -1499,7 +1499,7 @@ const __METADATA__ = {
           const mainViewInfo = this.viewManager.getViewInfo('main-view')
           if (mainViewInfo) {
             sendPluginViewClosed(mainViewInfo.view.webContents, {
-              pluginId: '', // 需要从视图信息中获取
+              fullPath: mainViewInfo?.config?.pluginMetadata?.fullPath || '',
               viewId,
               windowId: this.mainWindow!.id,
               timestamp: Date.now()

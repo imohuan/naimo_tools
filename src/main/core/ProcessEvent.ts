@@ -29,9 +29,8 @@ export interface EmitEvents {
     toWindowId: number
     timestamp: number
     pluginInfo?: {
-      pluginId?: string
+      fullPath?: string  // 格式: "pluginId:path"
       name?: string
-      path?: string
       version?: string
     }
   }
@@ -46,9 +45,8 @@ export interface EmitEvents {
     detachedWindowId?: number
     timestamp: number
     pluginInfo?: {
-      pluginId?: string
+      fullPath?: string  // 格式: "pluginId:path"
       name?: string
-      path?: string
       version?: string
     }
   }

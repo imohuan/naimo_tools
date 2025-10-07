@@ -79,8 +79,7 @@ export interface WebContentsViewConfig {
   }
   /** 插件相关元数据 */
   pluginMetadata?: {
-    pluginId?: string
-    path?: string
+    fullPath?: string  // 格式: "pluginId:path"
     name?: string
     version?: string
     [key: string]: any
@@ -184,9 +183,8 @@ export interface DetachedWindowMetadata {
   showControlBar: boolean
   /** 插件信息 */
   pluginInfo?: {
-    pluginId: string
+    fullPath: string  // 格式: "pluginId:path"
     name: string
-    path: string
     version?: string
   }
   /** 原始配置 */

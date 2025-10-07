@@ -1,6 +1,6 @@
 /**
  * 自动生成的 IPC 类型定义
- * 生成时间: 2025-10-07T08:47:15.242Z
+ * 生成时间: 2025-10-07T11:00:46.382Z
  * 请勿手动修改此文件
  */
 
@@ -886,22 +886,22 @@ interface windowInterface {
   /** 销毁窗口管理器（新架构） */
   "windowDestroyNewWindowManager": () => Promise<{ success: boolean; error?: string }>;
 
-  /** 创建插件视图（新架构专用） */
+  /** 创建插件视图（新架构专用 - 懒加载架构） */
   "window-create-plugin-view": (params: {
-  path: string
+  fullPath: string
   title: string
-  url: string
   lifecycleType: LifecycleType
-  preload?: string
+  url: string  // 可选：没有则后台加载 about:blank（用于无 UI 的后台插件）
+  preload: string
   singleton?: boolean
 }) => Promise<{ success: boolean; viewId?: string; error?: string }>;
-  /** 创建插件视图（新架构专用） */
+  /** 创建插件视图（新架构专用 - 懒加载架构） */
   "windowCreatePluginView": (params: {
-  path: string
+  fullPath: string
   title: string
-  url: string
   lifecycleType: LifecycleType
-  preload?: string
+  url: string  // 可选：没有则后台加载 about:blank（用于无 UI 的后台插件）
+  preload: string
   singleton?: boolean
 }) => Promise<{ success: boolean; viewId?: string; error?: string }>;
 
@@ -1483,7 +1483,7 @@ export const ROUTE_INFO: RouteInfo[] = [
   },
   {
     route: "window-create-plugin-view",
-    comment: "创建插件视图（新架构专用）",
+    comment: "创建插件视图（新架构专用 - 懒加载架构）",
     module: "window",
     function: "createPluginView"
   },

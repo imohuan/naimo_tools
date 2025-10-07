@@ -266,6 +266,83 @@ if (Notification.permission !== 'granted' && Notification.permission !== 'denied
   Notification.requestPermission();
 }
 
+// ===== 懒加载架构：功能处理器导出 =====
+// 导出对象，key 为 feature 的 path，value 为处理器
+module.exports = {
+  // 文本翻译功能
+  'text-translate': {
+    /**
+     * 功能入口函数
+     * @param {Object} params - 参数
+     * @param {AttachedFile[]} params.files - 附件文件
+     * @param {string} params.searchText - 搜索文本
+     * @param {Object} api - 插件 API
+     */
+    onEnter: async (params, api) => {
+      console.log('打开文本翻译界面', params);
+      // manifest.json 配置了 main，窗口会自动打开
+      // 这里可以做一些初始化工作
+    }
+  },
+
+  // 快速翻译功能
+  'quick-translate': {
+    onEnter: async (params, api) => {
+      console.log('执行快速翻译', params);
+
+      const settings = await api.getSettingValue();
+      if (!settings.secretId || !settings.secretKey) {
+        console.error('请先配置腾讯云API密钥');
+        return;
+      }
+
+      // 获取要翻译的文本
+      let textToTranslate = params.searchText || '';
+
+      if (params.files && params.files.length > 0) {
+        // 如果有文件，读取文件内容
+        const textFiles = params.files.filter(file =>
+          /\.(txt|md|log|csv)$/i.test(file.name)
+        );
+
+        if (textFiles.length > 0) {
+          try {
+            const fileContent = await naimo.router.filesystemReadFileContent(
+              textFiles[0].path,
+              'utf-8'
+            );
+            textToTranslate = fileContent.substring(0, 1000); // 限制文本长度
+          } catch (error) {
+            console.error('读取文件失败:', error);
+          }
+        }
+      }
+
+      if (textToTranslate.trim()) {
+        // 执行翻译
+        const result = await translateText({
+          sourceText: textToTranslate,
+          source: 'auto',
+          target: 'zh',
+          settings
+        });
+
+        if (result.success) {
+          console.log('翻译结果:', result.translatedText);
+          // 可以通过通知显示结果
+          if (Notification.permission === 'granted') {
+            new Notification('翻译完成', {
+              body: result.translatedText.substring(0, 100)
+            });
+          }
+        } else {
+          console.error('翻译失败:', result.error);
+        }
+      }
+    }
+  }
+};
+
 // 页面加载完成后的初始化
 window.addEventListener('DOMContentLoaded', () => {
   // 添加快捷键支持
@@ -287,13 +364,6 @@ window.addEventListener('DOMContentLoaded', () => {
   document.addEventListener('contextmenu', (e) => {
     e.preventDefault();
   });
-
-  // 禁用选择文本（可选，根据需要开启）
-  // document.addEventListener('selectstart', (e) => {
-  //   if (e.target.tagName !== 'TEXTAREA' && e.target.tagName !== 'INPUT') {
-  //     e.preventDefault();
-  //   }
-  // });
 
   console.log('翻译插件预加载脚本已初始化');
 });

@@ -3,10 +3,9 @@
  * 处理插件的安装、卸载、目录管理等功能
  */
 
-import { app } from 'electron';
 import log from 'electron-log';
 import { readdir, readFile, stat, mkdir, rmdir, rename, copyFile } from 'fs/promises';
-import { join, basename, extname } from 'path';
+import { join, resolve, basename, extname } from 'path';
 import { createReadStream, createWriteStream, read } from 'fs';
 // @ts-ignore
 import unzipper from 'unzipper';
@@ -17,7 +16,8 @@ import archiver from 'archiver';
  * 获取插件目录路径
  */
 export function getPluginsDirectory(event: Electron.IpcMainInvokeEvent): string {
-  return join(app.getPath('userData'), 'plugins');
+  // return join(app.getPath('userData'), 'plugins');
+  return resolve("E:/Code/Git/naimo_tools/plugins-test");
 }
 
 /**

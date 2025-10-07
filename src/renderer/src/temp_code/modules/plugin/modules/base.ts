@@ -1,6 +1,6 @@
-import type { PluginConfig, PluginItem } from '@/typings/pluginTypes'
+import type { PluginConfig } from '@/typings/pluginTypes'
 import type { PluginInstaller, PluginSourceType, InstallOptions } from '@/temp_code/typings/plugin'
-import { isFunction } from '@shared/utils'
+// import { isFunction } from '@shared/utils' // 已移除，懒加载架构不再需要
 
 /**
  * 插件安装器基类
@@ -26,16 +26,23 @@ export abstract class BasePluginInstaller implements PluginInstaller {
     if (!pluginData.id) return false
     if (!pluginData.name) return false
     if (!pluginData.version) return false
-    if (!pluginData.author) return false
-    if (!pluginData.icon) return false
-    if (!pluginData.category) return false
-    if (!pluginData.items || pluginData.items.length === 0) return false
+    // 以下字段改为可选
+    // if (!pluginData.author) return false
+    // if (!pluginData.icon) return false
+    // if (!pluginData.category) return false
+
+    // 验证 feature 字段（替代原 items）
+    if (!pluginData.feature || pluginData.feature.length === 0) return false
+
+    // 懒加载架构：不需要验证 preload，可以在执行时再加载
+    // preload 字段是可选的，在插件配置了 main 时才需要
+
     return true
   }
 
   /**
-   * 统一处理插件的完整流程
-   * 包括：验证、预处理、资源处理、设置项、创建配置
+   * 统一处理插件的完整流程（懒加载架构）
+   * 包括：验证、资源处理、设置 feature、创建配置
    * @param pluginData 插件配置
    * @param options 安装选项
    * @returns 处理完成的插件配置
@@ -46,14 +53,14 @@ export abstract class BasePluginInstaller implements PluginInstaller {
       throw new Error(`插件配置无效: ${pluginData.id}`)
     }
 
-    // 2. 预处理 - 加载插件主文件
-    await this.loadPluginItems(pluginData, options)
+    // 2. 懒加载架构：不加载 config.js，只读取 manifest.json
+    //    移除了 loadPluginItems 步骤
 
     // 3. 处理资源路径
     this.resolveResourcePaths(pluginData, options)
 
-    // 4. 设置插件项
-    this.setupPluginItems(pluginData)
+    // 4. 设置 feature（替代原来的 setupPluginItems）
+    this.setupPluginFeatures(pluginData)
 
     // 5. 创建完整配置并添加类型标记
     const plugin = this.createPluginConfig(pluginData)
@@ -64,68 +71,45 @@ export abstract class BasePluginInstaller implements PluginInstaller {
     return plugin
   }
 
-  /** 加载插件主文件和 items */
-  async loadPluginItems(pluginData: PluginConfig, options?: InstallOptions): Promise<void> {
-    const hasItems = pluginData?.items && pluginData.items?.length > 0
-    const firstItemHasOnEnter = hasItems &&
-      pluginData.items?.[0]?.onEnter &&
-      typeof pluginData.items?.[0]?.onEnter === 'function'
-
-    // 如果已经有有效的 items，跳过加载
-    if ((!firstItemHasOnEnter || !hasItems) && !options?.skipLoad) {
-      if (!pluginData?.main) {
-        throw new Error(`❌ 插件主文件不存在: ${pluginData.id}`)
-      }
-
-      const getResourcePath = (pluginData as any)?.getResourcePath
-      pluginData.main = getResourcePath ? getResourcePath(pluginData.main) : pluginData.main
-
-      // 加载配置文件
-      let items: PluginItem[] = []
-      const module: any = await naimo.webUtils.loadPluginConfig(pluginData.main as string)
-
-      if (module?.items && module?.items?.length > 0) {
-        items = module.items
-      } else if (Array.isArray(module)) {
-        items = module
-      } else if (module && typeof module === 'object') {
-        Object.keys(module).forEach(key => {
-          if (isFunction(module[key])) return
-          items.push({ ...module[key], path: key })
-        })
-      }
-
-      // 为每个 item 添加默认的 type 字段（如果没有的话）
-      items = items.map(item => ({
-        ...item,
-        type: item.type || 'text', // 默认为 text 类型
-        category: pluginData.id, // 添加插件 ID 作为分类
-      } as PluginItem))
-
-      pluginData.items = items
-    }
-  }
+  // ===== 懒加载架构：移除 loadPluginItems 方法 =====
+  // 不再加载 config.js，只读取 manifest.json
+  // onEnter 等函数移到 preload.js 中，执行时才加载
 
   /** 处理资源路径 */
   resolveResourcePaths(pluginData: PluginConfig, options?: InstallOptions): void {
     const resolver = options?.getResourcePath || (pluginData as any)?.getResourcePath
     if (resolver) {
+      // 处理插件图标
       if (pluginData.icon) {
         pluginData.icon = resolver(pluginData.icon)
       }
-      pluginData.items?.forEach(item => {
+      // 处理 feature 的图标
+      pluginData.feature?.forEach(item => {
         if (item.icon) {
           item.icon = resolver(item.icon)
         }
       })
+      // 处理插件级别的 main 和 preload 路径
+      if (pluginData.main) {
+        pluginData.main = resolver(pluginData.main)
+      }
+      if (pluginData.preload) {
+        pluginData.preload = resolver(pluginData.preload)
+      }
     }
   }
 
-  /** 设置插件项 */
-  setupPluginItems(pluginData: PluginConfig): void {
-    pluginData.items?.forEach(item => {
+  /** 设置插件 feature（替代原来的 setupPluginItems） */
+  setupPluginFeatures(pluginData: PluginConfig): void {
+    pluginData.feature?.forEach(item => {
+      // 为每个 feature 添加 pluginId
       item.pluginId = pluginData.id
-      item.path = item.pluginId + ':' + item.path
+      // 为每个 feature 添加默认的 type 字段（如果没有的话）
+      item.type = item.type || 'text'
+      // 为每个 feature 的 path 添加插件ID前缀（如 translate-plugin:text-translate）
+      item.fullPath = item.pluginId + ':' + item.path
+      // 添加插件 ID 作为分类
+      item.category = pluginData.id
     })
   }
 

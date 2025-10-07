@@ -7,14 +7,14 @@ import type {
   CommandConfig,
 } from "@/typings/pluginTypes";
 import type { PluginInstaller, } from "@/temp_code/typings/plugin";
-import { SystemPluginInstaller } from "./modules/system";
+// import { SystemPluginInstaller } from "./modules/_system"; // 已禁用系统插件
 import { LocalPluginInstaller } from "./modules/local";
 import { GithubPluginInstaller } from "./modules/github";
 import { useLoading } from "@/temp_code/hooks/useLoading";
 import { storeUtils } from "@/temp_code/utils/store";
 
 const modules = {
-  system: new SystemPluginInstaller(),
+  // system: new SystemPluginInstaller(), // 已禁用：所有插件统一放在 plugins/ 目录
   local: new LocalPluginInstaller(),
   github: new GithubPluginInstaller(),
 };
@@ -45,9 +45,9 @@ export const usePluginStoreNew = defineStore("pluginNew", () => {
 
   // ==================== 计算属性 ====================
   const enabledPlugins = computed(() => installedPlugins.value.filter((p) => p.enabled));
-  const systemPlugins = computed(() =>
-    availablePlugins.value.filter((p) => p.options?.pluginType === "system")
-  );
+  // const systemPlugins = computed(() =>
+  //   availablePlugins.value.filter((p) => p.options?.pluginType === "system")
+  // ); // 已禁用系统插件
   const localPlugins = computed(() =>
     availablePlugins.value.filter((p) => p.options?.pluginType === "local")
   );
@@ -64,7 +64,7 @@ export const usePluginStoreNew = defineStore("pluginNew", () => {
     const oldGetList = installer.getList.bind(installer);
     installer.getList = async (options?: any) => {
       const list = await oldGetList(options);
-      list.forEach((p) => installer.setupPluginItems(p));
+      list.forEach((p) => installer.setupPluginFeatures(p));
       return list
     }
     installers.set(installer.type, installer);
@@ -173,14 +173,11 @@ export const usePluginStoreNew = defineStore("pluginNew", () => {
   const initialize = loading.withLoading(async () => {
     console.log("🚀 [插件系统] 开始初始化");
 
-    // 1. 并行加载所有可用插件（使用包装后的安装器）
-    const [system, local] = await Promise.all([
-      modules.system.getList(),
-      modules.local.getList(),
-    ]);
+    // 1. 加载所有本地插件（系统插件已禁用，所有插件统一放在 plugins/ 目录）
+    const local = await modules.local.getList();
 
-    availablePlugins.value = [...system, ...local];
-    console.log(`📋 加载了 ${system.length} 个系统插件，${local.length} 个本地插件`);
+    availablePlugins.value = [...local];
+    console.log(`📋 加载了 ${local.length} 个本地插件`);
 
     // 2. 加载已安装的插件
     const installedIds = await getInstalledPluginIds();
@@ -290,20 +287,28 @@ export const usePluginStoreNew = defineStore("pluginNew", () => {
 
   /** 更新所有插件列表 */
   const updateAllLists = async () => {
-    const [system, local] = await Promise.all([
-      modules.system.getList(),
-      modules.local.getList(),
-    ]);
+    // 只加载本地插件（系统插件已禁用）
+    const local = await modules.local.getList();
     const github = availablePlugins.value.filter(
       (p) => p.options?.pluginType === "github"
     );
-    availablePlugins.value = [...system, ...local, ...github];
+    availablePlugins.value = [...local, ...github];
   };
 
-  const getInstalledPluginItem = (pluginId: string, itemPath: string) => {
+  const getInstalledPluginItem = (fullPath: string) => {
+    // fullPath 格式: "pluginId:path"
+    const parts = fullPath.split(':');
+    if (parts.length < 2) {
+      console.warn('getInstalledPluginItem: fullPath 格式错误，应为 "pluginId:path"');
+      return null;
+    }
+
+    const pluginId = parts[0];
+    const path = parts.slice(1).join(':'); // 支持 path 中包含冒号
+
     const plugin = enabledPlugins.value.find((p) => p.id === pluginId);
     return (
-      (plugin?.items?.find((item) => item.path === itemPath)) || null
+      (plugin?.feature?.find((item) => item.path === path)) || null
     );
   }
 
@@ -315,6 +320,7 @@ export const usePluginStoreNew = defineStore("pluginNew", () => {
       name: app.name,
       path: app.path,
       icon: app.icon,
+      ...(app.fullPath && { fullPath: app.fullPath }), // 包含 fullPath 作为唯一标识
       ...(app.category && { category: app.category }),
       ...(app.description && { description: app.description }),
       ...(app.weight && { weight: app.weight }),
@@ -377,7 +383,7 @@ export const usePluginStoreNew = defineStore("pluginNew", () => {
 
     // 计算属性
     enabledPlugins,
-    systemPlugins,
+    // systemPlugins, // 已禁用系统插件
     localPlugins,
     githubPlugins,
     pluginCount,

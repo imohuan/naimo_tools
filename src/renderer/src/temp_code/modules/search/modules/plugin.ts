@@ -8,7 +8,8 @@ export class PinnedModule implements SearchModule {
   maxDisplayCount = 16
   async getItems() {
     const plugins = usePluginStoreNew()
-    const items = plugins.installedPlugins.flatMap(plugin => plugin.enabled ? plugin.items : []) as AppItem[]
+    // 使用 feature 替代 items（懒加载架构）
+    const items = plugins.installedPlugins.flatMap(plugin => plugin.enabled ? plugin.feature : []) as AppItem[]
     // 为每个 item 添加 __metadata
     return items.map((item: AppItem) => ({
       ...item,

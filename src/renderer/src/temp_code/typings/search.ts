@@ -102,6 +102,8 @@ export type AppItem = (RegexSearch | TextSearch | ImgSearch | FileSearch) & {
   name: string;
   /** 应用路径 英文 */
   path: string;
+  /** 应用完整路径(包含插件ID前缀)*/
+  fullPath?: string;
   /** 应用图标，null 表示无图标 */
   icon: string | null;
   /** 分类 */

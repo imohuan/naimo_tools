@@ -17,8 +17,7 @@ export interface AppEvents {
 
   // 插件相关事件
   "plugin:executed": {
-    pluginId: string;
-    path: string;
+    fullPath: string;
     hotkeyEmit: boolean;
   };
 

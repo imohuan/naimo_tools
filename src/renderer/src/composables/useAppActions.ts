@@ -15,12 +15,10 @@ export function useAppActions() {
       const pickPluginItem = appItem as PluginItem
       if (app.plugin.isPluginItem(pickPluginItem)) {
         console.log("🔌 检测到插件项目，使用插件执行逻辑:", appItem.name);
+        const fullPath = pickPluginItem.fullPath || `${pickPluginItem.pluginId}:${pickPluginItem.path}`
 
         /** 完整的 PluginItem 类型 */
-        const pluginItem = app.plugin.getInstalledPluginItem(
-          pickPluginItem.pluginId as string,
-          pickPluginItem.path as string
-        );
+        const pluginItem = app.plugin.getInstalledPluginItem(fullPath);
 
         if (!pluginItem) {
           console.error("❌ 未找到插件项目:", appItem.name);
@@ -28,11 +26,7 @@ export function useAppActions() {
         }
 
         // 发送全局事件通知插件执行完成
-        appEventManager.emit("plugin:executed", {
-          pluginId: pluginItem.pluginId!,
-          path: appItem.path,
-          hotkeyEmit,
-        });
+        appEventManager.emit("plugin:executed", { fullPath: fullPath, hotkeyEmit, });
 
         // 更新使用统计
         await updateRecentApps(pluginItem);

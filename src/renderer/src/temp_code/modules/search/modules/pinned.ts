@@ -19,11 +19,13 @@ export class PinnedModule implements SearchModule {
   }
 
   async deleteItem(item: AppItem): Promise<void> {
-    storeUtils.removeListItem("pinnedApps", item.path, "path")
+    // 使用 fullPath 作为唯一标识，如果没有则 fallback 到 path
+    storeUtils.removeListItem("pinnedApps", item.fullPath || item.path, "fullPath")
   }
 
   async addItem(item: AppItem): Promise<void> {
-    storeUtils.addListItem("pinnedApps", item, { unique: true, uniqueField: "path", position: "start" })
+    // 使用 fullPath 作为唯一标识
+    storeUtils.addListItem("pinnedApps", item, { unique: true, uniqueField: "fullPath", position: "start" })
   }
 
   async setItems(items: AppItem[]): Promise<void> {

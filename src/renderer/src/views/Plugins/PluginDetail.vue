@@ -4,7 +4,9 @@
       class="bg-white rounded-lg shadow-sm border border-gray-200 h-full overflow-hidden"
     >
       <!-- 详情页面头部 -->
-      <div class="flex items-center justify-between p-4 border-b border-gray-200">
+      <div
+        class="flex items-center justify-between p-4 border-b border-gray-200"
+      >
         <div class="flex items-center gap-2">
           <div class="w-10 h-10">
             <IconDisplay
@@ -19,9 +21,13 @@
             </IconDisplay>
           </div>
           <div>
-            <h2 class="text-lg font-semibold text-gray-900">{{ plugin.name }}</h2>
+            <h2 class="text-lg font-semibold text-gray-900">
+              {{ plugin.name }}
+            </h2>
             <div class="flex items-center gap-2 mt-0.5">
-              <span class="bg-gray-100 px-1.5 py-0.5 rounded text-xs text-gray-600">
+              <span
+                class="bg-gray-100 px-1.5 py-0.5 rounded text-xs text-gray-600"
+              >
                 v{{ plugin.version }}
               </span>
               <span v-if="plugin.author" class="text-xs text-gray-500">
@@ -49,18 +55,22 @@
           </p>
         </div>
 
-        <!-- 插件项目列表 -->
-        <div v-if="plugin.items && plugin.items.length > 0" class="mb-4">
+        <!-- 插件项目列表（feature）-->
+        <div v-if="plugin.feature && plugin.feature.length > 0" class="mb-4">
           <h3 class="text-base font-medium text-gray-900 mb-2">功能项目</h3>
           <div class="space-y-1.5">
             <div
-              v-for="(item, index) in plugin.items"
+              v-for="(item, index) in plugin.feature"
               :key="index"
               class="bg-gray-50 rounded-md p-2.5"
             >
               <div class="flex items-center justify-between mb-1">
-                <span class="text-sm font-medium text-gray-900">{{ item.name }}</span>
-                <span class="text-xs text-gray-500">{{ item.path || "无路径" }}</span>
+                <span class="text-sm font-medium text-gray-900">{{
+                  item.name
+                }}</span>
+                <span class="text-xs text-gray-500">{{
+                  item.path || "无路径"
+                }}</span>
               </div>
               <p v-if="item.description" class="text-xs text-gray-600 mt-1">
                 {{ item.description }}
@@ -121,7 +131,9 @@
                           stroke-width="2"
                           fill="none"
                           stroke-dasharray="31.416"
-                          :stroke-dashoffset="31.416 * (1 - (installProgress || 0) / 100)"
+                          :stroke-dashoffset="
+                            31.416 * (1 - (installProgress || 0) / 100)
+                          "
                           class="transition-all duration-300"
                         />
                       </svg>

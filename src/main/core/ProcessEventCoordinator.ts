@@ -185,7 +185,7 @@ export class ProcessEventCoordinator {
         config: {
           action: 'reattached',
           pluginInfo: pluginInfo || {},
-          path: pluginInfo?.path || ''
+          fullPath: pluginInfo?.fullPath || ''
         },
         timestamp: data.timestamp
       })

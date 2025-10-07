@@ -3,9 +3,8 @@
  * 整合了基础窗口管理、插件窗口管理、设置页面管理功能
  */
 
-import { ref, computed, readonly, nextTick, toRaw } from 'vue'
+import { ref, computed, readonly, nextTick } from 'vue'
 import { useApp } from '@/temp_code'
-import { storeUtils } from '@/temp_code/utils/store'
 import { LifecycleType } from '@/typings/windowTypes'
 import type { PluginItem } from '@/typings/pluginTypes'
 import type { AttachedFile } from '@/typings/composableTypes'
@@ -383,9 +382,9 @@ export function useWindowManager(
 
       // 直接创建插件视图
       const result = await naimo.router.windowCreatePluginView({
-        path: options.path || pluginItem.path,
+        fullPath: pluginItem.fullPath || `${pluginItem.pluginId}:${pluginItem.path}`,
         title: options.title || pluginItem.name || '插件',
-        url: options.main || pluginItem.main || '',
+        url: options.main || '',
         lifecycleType: lifecycleTypeStr,
         preload: options.preload || '',
         singleton: options.singleton !== undefined ? options.singleton : (pluginItem.singleton !== false)
@@ -405,47 +404,6 @@ export function useWindowManager(
   }
 
   /**
-   * 生成插件API
-   */
-  const generatePluginApi = async (
-    pluginItem: PluginItem,
-    _hotkeyEmit = false // 保留参数以兼容调用，但当前未使用
-  ): Promise<any> => {
-    // 获取插件基础 API
-    const pluginApi = await app.plugin.getPluginApi(pluginItem.pluginId as string)
-
-    // 文件列表管理
-    const addPathToFileList = async (name: string, path: string) => {
-      await storeUtils.addListItem("fileList", {
-        name: name,
-        path: path,
-        icon: null,
-        type: 'text',
-      }, {
-        position: 'start',
-        unique: true,
-        uniqueField: 'path'
-      })
-    }
-
-    // 组装完整的 API 对象
-    return {
-      ...pluginApi,
-      toggleInput: (value?: boolean) => {
-        // 可以通过依赖注入或直接操作
-        console.log('toggleInput:', value)
-      },
-      openPluginWindow: () => openPluginWindow(pluginItem, {}),
-      addPathToFileList,
-      plugin: {
-        install: (path: string) => app.plugin.install(path).then(() => true).catch(() => false),
-        uninstall: (id: string) => app.plugin.uninstall(id).then(() => true).catch(() => false),
-        toggle: (id: string, enabled: boolean) => app.plugin.toggle(id, enabled).then(() => true).catch(() => false),
-      },
-    }
-  }
-
-  /**
    * 关闭插件窗口
    */
   const closePlugin = async () => {
@@ -461,61 +419,12 @@ export function useWindowManager(
     }
   }
 
-  /**
-   * 处理插件执行完成事件
-   * 简化版本 - 直接使用 app 和少量外部依赖
-   */
-  const onPluginExecuted = async (
-    event: { pluginId: string; path: string; hotkeyEmit: boolean },
-    externalDeps?: {
-      toggleInput?: (value?: boolean) => void
-      handleSearch?: (text: string) => Promise<void>
-    }
-  ) => {
-    const { pluginId, path, hotkeyEmit } = event
-    const pluginItem = app.plugin.getInstalledPluginItem(pluginId, path)
-
-    if (!pluginItem) {
-      console.warn(`⚠️ 未找到插件: ${pluginId}, path: ${path}`)
-      return
-    }
-
-    const genApi = await generatePluginApi(pluginItem, hotkeyEmit)
-    // 隐藏搜索框
-    externalDeps?.toggleInput?.(false)
-    // 执行插件
-    if (pluginItem.pluginId && pluginItem.onEnter) {
-      await pluginItem.onEnter?.(
-        {
-          files: toRaw(dependencies.attachedFiles?.() || []),
-          searchText: dependencies.searchText?.() || ''
-        },
-        genApi
-      )
-    } else {
-      console.log('🔍 收到插件执行完成事件，插件项目信息:', {
-        name: pluginItem.name,
-        lifecycleType: pluginItem.lifecycleType
-      })
-    }
-
-    // 更新并清理状态
-    await app.search.initItems()
-
-    // 清空搜索和附件
-    if (externalDeps?.handleSearch) {
-      await externalDeps.handleSearch("")
-    }
-
-    // 重新显示搜索框
-    externalDeps?.toggleInput?.(true)
-  }
 
   /**
    * 处理插件窗口关闭事件
    */
   const onPluginClosed = async (
-    event: { windowId: number; title: string; path?: string },
+    event: { windowId: number; title: string; fullPath: string },
     externalDeps?: {
       recoverSearchState?: (clearPlugin?: boolean) => void
     }
@@ -617,7 +526,6 @@ export function useWindowManager(
     // 插件窗口管理
     openPlugin: openPluginWindow,
     closePlugin,
-    onPluginExecuted,
     onPluginClosed,
 
     // 设置页面管理

@@ -1,4 +1,3 @@
-import type { AttachedFile } from '@/typings/composableTypes'
 import type { AppItem } from '@/temp_code/typings/search'
 import type { SettingConfig } from './settingTypes'
 import type { LifecycleType } from './windowTypes'
@@ -108,22 +107,28 @@ export interface PluginConfig {
   id: string
   /** 插件名称 */
   name: string
-  /** 插件主文件 */
-  main?: string
-  /** 插件下载地址 */
-  downloadUrl?: string
-  /** 插件描述 */
-  description?: string
   /** 插件版本 */
   version: string
   /** 插件作者 */
   author?: string
   /** 插件图标 */
   icon?: string
+  /** 插件描述 */
+  description?: string
   /** 插件分类 */
   category?: PluginCategoryType
-  /** 插件项目列表 */
-  items: PluginItem[]
+  /** 插件下载地址 */
+  downloadUrl?: string
+
+  // ===== 插件级别配置（所有 feature 共用） =====
+  /** UI 页面路径（可选，如 ./index.html） */
+  main?: string
+  /** preload 脚本路径（必填，如 ./preload.js） */
+  preload: string
+
+  /** 功能列表（替代原 items 字段） */
+  feature: PluginItem[]
+
   /** 插件配置选项 */
   options?: Record<string, any>
   /** 插件设置配置 */
@@ -144,12 +149,4 @@ export type PluginItem = AppItem & {
   singleton?: boolean
   /** 推荐 */
   recommend?: boolean
-  /** preload 脚本 */
-  preload?: string
-  /** url */
-  main?: string
-  /** 进入回调 */
-  onEnter?: (params: { files: AttachedFile[], searchText: string }, api: any) => void
-  /** 安装回调 */
-  onInstall?: (api: any) => void
 }

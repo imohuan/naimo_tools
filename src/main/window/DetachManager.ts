@@ -52,8 +52,8 @@ export interface DetachedWindowInfo {
   hasControlBar: boolean
   /** 插件信息 */
   pluginInfo?: {
+    fullPath: string  // 格式: "pluginId:path"
     name: string
-    path: string
   }
 }
 
@@ -602,7 +602,7 @@ export class DetachManager {
       showControlBar: this.config.autoShowControlBar,
       parentWindowId: sourceView.parentWindowId,
       metadata: {
-        path: pluginInfo?.path,
+        fullPath: pluginInfo?.fullPath,
         name: pluginInfo?.name,
         originalConfig: sourceView.config,
         detachedAt: Date.now()
@@ -832,10 +832,10 @@ export class DetachManager {
    */
   private extractPluginInfo(viewInfo: WebContentsViewInfo): DetachedWindowInfo['pluginInfo'] | undefined {
     const metadata = viewInfo.config.pluginMetadata
-    if (metadata?.path) {
+    if (metadata?.fullPath) {
       return {
+        fullPath: metadata.fullPath,
         name: metadata.name || '',
-        path: metadata.path || '',
       }
     }
     return undefined

@@ -68,7 +68,6 @@ export class LocalPluginInstaller extends BasePluginInstaller {
     }
 
     console.log(`📦 [本地插件] 安装: ${pluginData.id}`)
-
     // 统一处理插件（自动添加类型标记）
     const plugin = await this.processPlugin(pluginData, options)
 
@@ -93,12 +92,14 @@ export class LocalPluginInstaller extends BasePluginInstaller {
   /** 卸载本地插件 */
   async uninstall(pluginId: string, options?: UninstallOptions): Promise<boolean> {
     if (options?.skip) return true
-    console.log(`🗑️ [本地插件] 卸载: ${pluginId}`)
-    if (!await naimo.router.pluginUninstallPlugin(pluginId)) {
-      console.error(`❌ 删除插件文件失败: ${pluginId}`)
-      return false
-    }
-    console.log(`✅ [本地插件] 卸载成功: ${pluginId}`)
+    // 最先的插件设计，不需要卸载
+    // console.log(`🗑️ [本地插件] 卸载: ${pluginId}`)
+    // if (!await naimo.router.pluginUninstallPlugin(pluginId)) {
+    //   console.error(`❌ 删除插件文件失败: ${pluginId}`)
+    //   return false
+    // }
+    // console.log(`✅ [本地插件] 卸载成功: ${pluginId}`)
+    // return true
     return true
   }
 }

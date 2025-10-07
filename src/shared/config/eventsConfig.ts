@@ -55,21 +55,21 @@ export interface EventsConfig {
 
   // 插件相关事件
   'plugin-window-closed': {
-    pluginId: string
+    fullPath: string  // 格式: "pluginId:path"
     windowId: number
     viewId: string
     timestamp: number
   }
 
   'plugin-view-opened': {
-    pluginId: string
+    fullPath: string  // 格式: "pluginId:path"
     viewId: string
     windowId: number
     timestamp: number
   }
 
   'plugin-view-closed': {
-    pluginId: string
+    fullPath: string  // 格式: "pluginId:path"
     viewId: string
     windowId: number
     timestamp: number

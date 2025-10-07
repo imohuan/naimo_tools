@@ -441,14 +441,14 @@ onMounted(async () => {
   naimo.event.onPluginWindowClosed(async (_event, data) => {
     console.log("收到主进程插件窗口关闭消息:", data);
     // 转换数据格式以匹配 onPluginClosed 的类型要求
-    const event = {
-      windowId: data.windowId,
-      title: data.pluginId || "",
-      path: data.pluginId,
-    };
-    await windowManager.onPluginClosed(event, {
-      recoverSearchState,
-    });
+    await windowManager.onPluginClosed(
+      {
+        windowId: data.windowId,
+        title: data.fullPath || "",
+        fullPath: data.fullPath,
+      },
+      { recoverSearchState }
+    );
   });
 
   naimo.event.onWindowMainHide((_event, data) => {
@@ -487,8 +487,7 @@ onMounted(async () => {
 
     try {
       const pluginItem = app.plugin.getInstalledPluginItem(
-        config.pluginInfo.path.split(":")[0],
-        config.pluginInfo.path || config.path
+        config.pluginInfo.fullPath
       );
 
       if (!pluginItem) {
@@ -578,17 +577,57 @@ onMounted(async () => {
 
   app.event.on(
     "plugin:executed",
-    async (event: { pluginId: string; path: string; hotkeyEmit: boolean }) => {
-      await windowManager.onPluginExecuted(event, {
-        toggleInput: (value?: boolean) => {
-          app.ui.toggleSearchBoxVisibility(value);
-        },
-        handleSearch: async (text: string) => {
-          attachedFiles.value = [];
-          app.ui.searchText = text;
-          await handleSearch(text);
-        },
+    async (event: { fullPath: string; hotkeyEmit: boolean }) => {
+      console.log("🔌 收到插件执行事件:", event);
+
+      const { fullPath } = event;
+      const pluginItem = app.plugin.getInstalledPluginItem(fullPath);
+
+      if (!pluginItem) {
+        console.error(`❌ 未找到插件项: ${fullPath}`);
+        return;
+      }
+
+      // 获取插件配置（包含顶层的 main 和 preload）
+      const plugin = app.plugin.getPlugin(pluginItem.pluginId!);
+      if (!plugin) {
+        console.error(`❌ 未找到插件: ${pluginItem.pluginId}`);
+        return;
+      }
+
+      console.log("📦 插件配置:", {
+        name: plugin.name,
+        main: plugin.main,
+        preload: plugin.preload,
+        featurePath: pluginItem.path,
       });
+
+      // 懒加载架构：打开插件窗口（后台会判断，没有 main 则打开空白页作为后台窗口）
+      try {
+        // 打开插件窗口并传递 featurePath
+        const result = await naimo.router.windowCreatePluginView({
+          fullPath: pluginItem.fullPath!, // 完整路径（如 translate-plugin:text-translate）
+          title: pluginItem.name,
+          url: plugin?.main || "", // 使用插件级别的 main（可选，没有则后台加载 about:blank）
+          lifecycleType: pluginItem.lifecycleType || "reuse",
+          preload: plugin.preload, // 使用插件级别的 preload
+          singleton: pluginItem.singleton ?? true,
+        });
+
+        if (result.success) {
+          console.log("✅ 插件窗口已打开:", result.viewId);
+          // 打开插件窗口并更新 UI 状态
+          app.ui.openPluginWindow(pluginItem);
+          // 清空搜索和附件
+          attachedFiles.value = [];
+          app.ui.searchText = "";
+          await handleSearch("");
+        } else {
+          console.error("❌ 打开插件窗口失败:", result.error);
+        }
+      } catch (error) {
+        console.error("❌ 打开插件窗口异常:", error);
+      }
     }
   );
 

@@ -37,7 +37,7 @@ for (const path in moduleFiles) {
         const oldGetItems = instance.getItems.bind(instance)
         instance.getItems = async () => {
           const items = await oldGetItems()
-          const newItems = items.map(item => ({ ...item, category: moduleName }))
+          const newItems = items.map(item => ({ ...item, category: moduleName })).filter(item => item.fullPath)
           return newItems
         }
         modules[moduleName] = instance
@@ -554,7 +554,7 @@ export const useSearchStore = defineStore('search', () => {
         if (plugin.isPluginItem(item)) {
           const pluginId = (item as PluginItem).pluginId
           // 如果插件ID存在，并且插件不存在，则删除这个插件在搜索列表中的项
-          if (pluginId && !plugin.getInstalledPluginItem(pluginId, item.path)) {
+          if (pluginId && !plugin.getInstalledPluginItem(item.fullPath || `${pluginId}:${item.path}`)) {
             deleteItem(item)
           }
         }

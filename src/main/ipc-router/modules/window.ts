@@ -822,20 +822,24 @@ export function destroyNewWindowManager(event: Electron.IpcMainInvokeEvent): { s
 }
 
 /**
- * 创建插件视图（新架构专用）
+ * 创建插件视图（新架构专用 - 懒加载架构）
  */
 export async function createPluginView(event: Electron.IpcMainInvokeEvent, params: {
-  path: string
+  fullPath: string
   title: string
-  url: string
   lifecycleType: LifecycleType
-  preload?: string
+  url: string  // 可选：没有则后台加载 about:blank（用于无 UI 的后台插件）
+  preload: string
   singleton?: boolean
 }): Promise<{ success: boolean; viewId?: string; error?: string }> {
   try {
     const manager = NewWindowManager.getInstance()
+
+    // 懒加载架构：直接使用 fullPath
     const result = await manager.createPluginView(params)
+
     if (result.success && result.viewId) {
+      log.info(`✅ 插件视图创建成功: ${result.viewId}, fullPath: ${params.fullPath}`)
       return { success: true, viewId: result.viewId }
     } else {
       return { success: false, error: result.error }
