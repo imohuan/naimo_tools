@@ -32,6 +32,7 @@ declare module 'vue' {
     IconMdiWindowRestore: typeof import('~icons/mdi/window-restore')['default']
     LoadingSpinner: typeof import('./../src/components/Common/LoadingSpinner.vue')['default']
     PluginInfoDisplay: typeof import('./../src/components/SearchHeader/PluginInfoDisplay.vue')['default']
+    PluginSettingsButton: typeof import('./../src/components/Common/PluginSettingsButton.vue')['default']
     PluginWindowPlaceholder: typeof import('./../src/components/ContentArea/PluginWindowPlaceholder.vue')['default']
     ProgressBar: typeof import('./../src/components/Common/ProgressBar.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']

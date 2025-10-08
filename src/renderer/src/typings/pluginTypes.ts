@@ -135,6 +135,8 @@ export interface PluginConfig {
   settings?: SettingConfig[]
   /** 是否启用 */
   enabled: boolean
+  /** 单例 默认 true */
+  singleton?: boolean
 }
 
 /** 插件项目类型 - 基于新的搜索系统 AppItem */

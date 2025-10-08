@@ -110,6 +110,8 @@ export abstract class BasePluginInstaller implements PluginInstaller {
       item.fullPath = item.pluginId + ':' + item.path
       // 添加插件 ID 作为分类
       item.category = pluginData.id
+      // 为每个 feature 添加 singleton 字段
+      item.singleton = pluginData.singleton !== false
     })
   }
 

@@ -27,6 +27,7 @@ import { getDirname } from '@main/utils'
 import { emitEvent } from '@main/core/ProcessEvent'
 import { DEFAULT_WINDOW_LAYOUT, calculateDetachedControlBarBounds, calculateDetachedContentBounds } from '@shared/config/windowLayoutConfig'
 import { isProduction } from '@shared/utils'
+import type { ViewManager } from './ViewManager'
 
 /**
  * 分离窗口信息
@@ -99,7 +100,7 @@ export class DetachManager {
   private detachedWindows: Map<number, DetachedWindowInfo> = new Map()
   private sourceViewMapping: Map<string, number> = new Map() // 源视图ID -> 分离窗口ID
   private baseWindowController: BaseWindowController
-  private viewManager?: any // 避免循环依赖，延迟设置
+  private viewManager?: ViewManager // 避免循环依赖，延迟设置
 
   private constructor(config?: Partial<DetachManagerConfig>) {
     this.config = {
@@ -726,7 +727,7 @@ export class DetachManager {
       const loadTimeout = 10000 // 10秒超时
       let loadPromise: Promise<void>
 
-      // 构建URL参数
+      // 提取插件信息，用于后续IPC发送
       const pluginInfo = this.extractPluginInfo(sourceView)
       const pluginName = pluginInfo?.name || sourceView.config.type || '分离窗口'
 
@@ -738,15 +739,9 @@ export class DetachManager {
         metadata: sourceView.config.pluginMetadata
       })
 
-      const urlParams = new URLSearchParams({
-        windowId: detachedWindowId.toString(),
-        viewId: sourceView.id,
-        pluginName: encodeURIComponent(pluginName)
-      })
-
-      // 加载控制栏页面
+      // 加载控制栏页面（不带URL参数）
       if (process.env.NODE_ENV === 'development') {
-        const controlBarURL = `http://localhost:5173/src/pages/detached-window/index.html?${urlParams.toString()}`
+        const controlBarURL = `http://localhost:5173/src/pages/detached-window/index.html`
         log.debug(`加载开发环境控制栏页面: ${controlBarURL}`)
         loadPromise = controlBarView.webContents.loadURL(controlBarURL)
       } else {
@@ -754,7 +749,6 @@ export class DetachManager {
           getDirname(import.meta.url),
           '../renderer/pages/detached-window/index.html'
         )
-        // 对于文件路径，我们需要在页面加载后通过IPC发送参数
         log.debug(`加载生产环境控制栏页面: ${controlBarPath}`)
         loadPromise = controlBarView.webContents.loadFile(controlBarPath)
       }
@@ -775,13 +769,22 @@ export class DetachManager {
           return
         }
 
-        // 控制栏初始化通过 URL 参数完成，不需要额外的 IPC 事件
-        log.info('控制栏已通过 URL 参数初始化', {
+        // 通过 IPC 发送初始化数据
+        const initData = {
           windowId: detachedWindowId,
           viewId: sourceView.id,
-          title: this.extractPluginInfo(sourceView)?.name || sourceView.config.type || '分离窗口'
-        })
+          pluginId: pluginInfo?.fullPath?.split(':')[0] || '',
+          pluginName: pluginName,
+          pluginVersion: sourceView.config.pluginMetadata?.version || '',
+          timestamp: Date.now()
+        }
+
+        controlBarView.webContents.send('detached-window-init', initData)
+
+        log.info('控制栏初始化数据已通过 IPC 发送', initData)
       }
+
+      controlBarView.webContents.on('did-finish-load', initializeData)
 
       // 等待页面加载完成后发送初始化数据
       if (!controlBarView.webContents.isLoading()) {
@@ -789,15 +792,7 @@ export class DetachManager {
         setTimeout(initializeData, 100)
       } else {
         // 页面正在加载，等待完成
-        controlBarView.webContents.once('did-finish-load', initializeData)
-
-        // 添加超时保护，如果页面长时间未加载完成，也发送数据
-        setTimeout(() => {
-          // 严格检查状态（避免访问已销毁或undefined的对象）
-          if (controlBarView && controlBarView.webContents && !controlBarView.webContents.isDestroyed()) {
-            initializeData()
-          }
-        }, 3000)
+        // setTimeout(initializeData, 100)
       }
 
       const initTime = performance.now() - initStartTime

@@ -9,7 +9,9 @@
     <div
       class="w-full bg-transparent relative overflow-hidden h-full transition-all duration-200 flex flex-col"
       :class="{ 'rounded-xl': !isFullscreen }"
-      :style="isFullscreen ? {} : { boxShadow: '0 1px 3px 0 rgba(60, 72, 120, 0.48)' }"
+      :style="
+        isFullscreen ? {} : { boxShadow: '0 1px 3px 0 rgba(60, 72, 120, 0.48)' }
+      "
     >
       <!-- 窗口控制栏 - 作为顶部固定区域 -->
       <WindowControlBar
@@ -19,6 +21,8 @@
         :window-id="windowId"
         :view-id="viewId"
         :is-fullscreen="isFullscreen"
+        :plugin-name="pluginName"
+        :plugin-id="pluginId"
         @reattach="handleReattach"
         @minimize="handleMinimize"
         @maximize="handleMaximize"
@@ -54,7 +58,9 @@
           >
         </div>
         <div class="flex items-center gap-2">
-          <IconMdiWindowOpenVariant class="w-3 h-3 text-slate-500 dark:text-slate-400" />
+          <IconMdiWindowOpenVariant
+            class="w-3 h-3 text-slate-500 dark:text-slate-400"
+          />
           <span class="font-mono text-slate-500 dark:text-slate-400"
             >窗口ID: {{ windowId }} | 视图ID: {{ viewId }}</span
           >
@@ -80,11 +86,15 @@ const windowTitle = ref<string>("分离窗口");
 const windowIcon = ref<string>("");
 
 // 插件信息
+const pluginId = ref<string>("");
 const pluginName = ref<string>("");
 const pluginVersion = ref<string>("");
 
 // UI配置
 const showStatusBar = ref(false);
+
+// IPC监听器取消订阅函数
+let unsubscribeInit: (() => void) | null = null;
 
 // 计算属性
 const effectiveTitle = computed(() => {
@@ -96,38 +106,52 @@ const effectiveTitle = computed(() => {
 
 /**
  * 初始化窗口信息
+ * 监听来自主进程的初始化数据
  */
 const initializeWindow = async (): Promise<void> => {
   try {
     console.log("🔧 初始化分离窗口控制栏...");
 
-    // 从URL参数获取窗口信息
-    const urlParams = new URLSearchParams(window.location.search);
+    // 监听主进程发送的初始化数据
+    const naimo = (window as any).naimo;
+    if (!naimo?.onDetachedWindowInit) {
+      console.error("❌ naimo.onDetachedWindowInit 方法不可用");
+      showNotification("窗口初始化失败，缺少必要的API", "error");
+      return;
+    }
 
-    windowId.value = parseInt(urlParams.get("windowId") || "0");
-    viewId.value = urlParams.get("viewId") || "";
-    pluginName.value = decodeURIComponent(urlParams.get("pluginName") || "");
+    // 设置IPC监听器
+    unsubscribeInit = naimo.onDetachedWindowInit((data: any) => {
+      console.log("📨 收到分离窗口初始化数据:", data);
 
-    // 更新窗口标题
-    windowTitle.value = effectiveTitle.value;
-    document.title = windowTitle.value;
+      // 更新窗口信息
+      windowId.value = data.windowId || 0;
+      viewId.value = data.viewId || "";
+      pluginId.value = data.pluginId || "";
+      pluginName.value = data.pluginName || "";
+      pluginVersion.value = data.pluginVersion || "";
 
-    console.log("✅ 控制栏初始化完成:", {
-      windowId: windowId.value,
-      viewId: viewId.value,
-      pluginName: pluginName.value,
-      pluginNameRaw: urlParams.get("pluginName"),
-      effectiveTitle: effectiveTitle.value,
-      windowTitle: windowTitle.value,
-      urlSearch: window.location.search,
-      allParams: Object.fromEntries(urlParams.entries()),
+      // 更新窗口标题
+      windowTitle.value = effectiveTitle.value;
+      document.title = windowTitle.value;
+
+      console.log("✅ 控制栏初始化完成:", {
+        windowId: windowId.value,
+        viewId: viewId.value,
+        pluginName: pluginName.value,
+        pluginVersion: pluginVersion.value,
+        effectiveTitle: effectiveTitle.value,
+        windowTitle: windowTitle.value,
+      });
+
+      // 验证窗口ID是否有效
+      if (windowId.value <= 0) {
+        console.warn("⚠️ 窗口ID无效:", windowId.value);
+        showNotification("窗口ID无效，控制按钮可能无法正常工作", "warning");
+      }
     });
 
-    // 验证窗口ID是否有效
-    if (windowId.value <= 0) {
-      console.warn("⚠️ 窗口ID无效:", windowId.value);
-      showNotification("窗口ID无效，控制按钮可能无法正常工作", "warning");
-    }
+    console.log("✅ IPC监听器已设置，等待初始化数据...");
   } catch (error) {
     console.error("❌ 初始化控制栏失败:", error);
   }
@@ -261,6 +285,12 @@ onMounted(async () => {
 });
 
 onUnmounted(() => {
+  // 清理IPC监听器
+  if (unsubscribeInit) {
+    unsubscribeInit();
+    console.log("✅ IPC监听器已取消");
+  }
+
   // 清理事件监听器
   window.removeEventListener("resize", checkFullscreenState);
 

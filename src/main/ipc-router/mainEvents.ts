@@ -93,6 +93,23 @@ export function sendDetachedWindowClosed(
 }
 
 /**
+ * 发送 detached-window-init 事件
+ * @param webContents 目标 WebContents
+ * @param data 事件数据
+ */
+export function sendDetachedWindowInit(
+  webContents: WebContents,
+  data: EventData<'detached-window-init'>
+): void {
+  if (webContents && !webContents.isDestroyed()) {
+    webContents.send('detached-window-init', data)
+    log.debug(`事件已发送: detached-window-init`, { data })
+  } else {
+    log.warn(`无法发送事件: WebContents已销毁 - detached-window-init`)
+  }
+}
+
+/**
  * 发送 plugin-window-closed 事件
  * @param webContents 目标 WebContents
  * @param data 事件数据
@@ -405,6 +422,7 @@ export const mainEvents = {
   viewRestoreRequested: sendViewRestoreRequested,
   viewReattached: sendViewReattached,
   detachedWindowClosed: sendDetachedWindowClosed,
+  detachedWindowInit: sendDetachedWindowInit,
   pluginWindowClosed: sendPluginWindowClosed,
   pluginViewOpened: sendPluginViewOpened,
   pluginViewClosed: sendPluginViewClosed,

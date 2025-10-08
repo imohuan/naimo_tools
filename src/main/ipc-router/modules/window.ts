@@ -3,11 +3,12 @@
  * 展示新的 IPC 路由系统使用方式
  */
 
-import { app, BrowserWindow } from "electron";
+import { app, BrowserWindow, Menu } from "electron";
 import { resolve } from "path";
 import log from "electron-log";
 import { NewWindowManager } from "@main/window/NewWindowManager";
 import { BaseWindowController } from "@main/window/BaseWindowController";
+import { AppConfigManager } from "@main/config/appConfig";
 
 /**
  * 最小化窗口 - 基于视图类别的智能控制
@@ -596,6 +597,22 @@ export async function showNewView(event: Electron.IpcMainInvokeEvent, params: {
 }): Promise<{ success: boolean; viewId?: string; error?: string }> {
   try {
     const manager = NewWindowManager.getInstance()
+    const configManager = AppConfigManager.getInstance()
+
+    // 确定最终使用的 lifecycleType
+    let finalLifecycleType = params.lifecycleType
+
+    // 如果是插件视图，优先使用 pluginSetting.backgroundRun
+    if (params.pluginItem && params.pluginItem.fullPath) {
+      const pluginId = params.pluginItem.fullPath.split(':')[0]
+      const pluginSettings = configManager.get('pluginSetting') || {}
+      const pluginSetting = pluginSettings[pluginId]
+
+      if (pluginSetting && typeof pluginSetting.backgroundRun === 'boolean') {
+        finalLifecycleType = pluginSetting.backgroundRun ? LifecycleType.BACKGROUND : LifecycleType.FOREGROUND
+        log.info(`插件 ${pluginId} (showNewView) 使用 pluginSetting.backgroundRun 设置: ${pluginSetting.backgroundRun}`)
+      }
+    }
 
     const viewParams = {
       type: params.type,
@@ -605,9 +622,9 @@ export async function showNewView(event: Electron.IpcMainInvokeEvent, params: {
       },
       pluginItem: params.pluginItem,
       forceNew: params.forceNew || false,
-      lifecycleStrategy: params.lifecycleType ? {
-        type: params.lifecycleType,
-        persistOnClose: params.lifecycleType === LifecycleType.BACKGROUND,
+      lifecycleStrategy: finalLifecycleType ? {
+        type: finalLifecycleType,
+        persistOnClose: finalLifecycleType === LifecycleType.BACKGROUND,
         maxIdleTime: 5 * 60 * 1000,
         memoryThreshold: 100
       } : undefined
@@ -911,13 +928,73 @@ export async function createPluginView(event: Electron.IpcMainInvokeEvent, param
   url: string  // 可选：没有则后台加载 about:blank（用于无 UI 的后台插件）
   preload: string
   singleton?: boolean
+  noSwitch?: boolean  // 是否不切换到该视图（静默创建，用于自启动插件）
   data?: any  // 传递给插件的任意参数
-}): Promise<{ success: boolean; viewId?: string; error?: string }> {
+}): Promise<{ success: boolean; viewId?: string; error?: string; detached?: boolean }> {
   try {
     const manager = NewWindowManager.getInstance()
-    const result = await manager.createPluginView(params)
+    const configManager = AppConfigManager.getInstance()
+
+    // 从 fullPath 中提取插件ID（格式通常是 "pluginId" 或 "pluginId:path"）
+    const pluginId = params.fullPath.split(':')[0]
+
+    // 获取插件设置
+    const pluginSettings = configManager.get('pluginSetting') || {}
+    const pluginSetting = pluginSettings[pluginId]
+
+    // 确定最终使用的 lifecycleType
+    // 优先使用 pluginSetting.backgroundRun，其次才使用传入的 lifecycleType 参数
+    let finalLifecycleType = params.lifecycleType
+    if (pluginSetting && typeof pluginSetting.backgroundRun === 'boolean') {
+      // 根据 backgroundRun 设置确定生命周期类型
+      finalLifecycleType = pluginSetting.backgroundRun ? LifecycleType.BACKGROUND : LifecycleType.FOREGROUND
+      log.info(`插件 ${pluginId} 使用 pluginSetting.backgroundRun 设置: ${pluginSetting.backgroundRun}, lifecycleType: ${finalLifecycleType}`)
+    } else {
+      log.info(`插件 ${pluginId} 未配置 backgroundRun，使用传入的 lifecycleType: ${finalLifecycleType}`)
+    }
+
+    // 使用最终确定的 lifecycleType 创建视图
+    const result = await manager.createPluginView({
+      ...params,
+      lifecycleType: finalLifecycleType
+    })
     if (result.success && result.viewId) {
       log.info(`✅ 插件视图创建成功: ${result.viewId}, fullPath: ${params.fullPath}`)
+
+      // 检查插件配置，判断是否需要自动分离窗口
+      try {
+        // 从 fullPath 中提取插件ID（格式通常是 "pluginId" 或 "pluginId:path"）
+        const pluginId = params.fullPath.split(':')[0]
+
+        // 获取配置管理器
+        const configManager = AppConfigManager.getInstance()
+        const pluginSettings = configManager.get('pluginSetting')
+
+        // 检查该插件是否配置了自动分离
+        if (pluginSettings && pluginSettings[pluginId]?.autoSeparate === true && params?.noSwitch !== true) {
+          log.info(`插件 ${pluginId} 配置了自动分离窗口，正在分离...`)
+
+          // 延迟一小段时间确保视图完全加载，然后执行分离
+          setTimeout(async () => {
+            try {
+              const detachResult = await manager.detachView(result.viewId!)
+              if (detachResult.success) {
+                log.info(`✅ 插件视图已自动分离到独立窗口: ${result.viewId}`)
+              } else {
+                log.warn(`⚠️ 自动分离插件视图失败: ${result.viewId}, 错误: ${detachResult.error}`)
+              }
+            } catch (detachError) {
+              log.error('自动分离插件视图时出错:', detachError)
+            }
+          }, 200) // 延迟200ms确保视图完全准备好
+
+          return { success: true, viewId: result.viewId, detached: true }
+        }
+      } catch (error) {
+        log.error('检查插件自动分离配置时出错:', error)
+        // 不影响插件视图的创建，只是记录错误
+      }
+
       return { success: true, viewId: result.viewId }
     } else {
       return { success: false, error: result.error }
@@ -939,9 +1016,14 @@ export async function closePluginView(event: Electron.IpcMainInvokeEvent): Promi
   try {
     const manager = NewWindowManager.getInstance()
     const lifecycleManager = manager.getLifecycleManager()
+    const detachManager = manager.getDetachManager()
+    const configManager = AppConfigManager.getInstance()
 
     // 获取所有视图
     const allViews = manager.getAllViews()
+
+    // 获取插件设置
+    const pluginSettings = configManager.get('pluginSetting') || {}
 
     // 筛选出不支持后台运行的插件视图
     const nonBackgroundPluginViews = allViews.filter(viewInfo => {
@@ -950,7 +1032,24 @@ export async function closePluginView(event: Electron.IpcMainInvokeEvent): Promi
         return false
       }
 
-      // 获取视图的生命周期状态
+      // 排除已分离的视图
+      if (detachManager.isViewDetached(viewInfo.id)) {
+        return false
+      }
+
+      // 从 viewInfo.id 中提取插件 ID（格式：plugin:pluginId 或 plugin:pluginId:path）
+      const pluginId = viewInfo.id.replace(/^plugin:/, '').split(':')[0]
+
+      // 优先使用 pluginSetting 中的 backgroundRun 设置
+      const pluginSetting = pluginSettings[pluginId]
+      if (pluginSetting && typeof pluginSetting.backgroundRun === 'boolean') {
+        // 如果配置了 backgroundRun，以此为准
+        // backgroundRun 为 true 表示支持后台运行，不应该关闭（返回 false）
+        // backgroundRun 为 false 表示不支持后台运行，应该关闭（返回 true）
+        return !pluginSetting.backgroundRun
+      }
+
+      // 备选方案：使用生命周期状态判断
       const lifecycleState = lifecycleManager.getViewState(viewInfo.id)
       if (!lifecycleState) {
         // 如果没有生命周期状态，默认关闭
@@ -1086,4 +1185,63 @@ export function getCurrentViewInfo(event: Electron.IpcMainInvokeEvent): {
     log.error('获取当前视图信息时发生错误:', error)
     return null
   }
+}
+
+/**
+ * 显示系统弹出菜单
+ * @param event IPC事件对象
+ * @param options 菜单选项
+ * @returns 用户点击的菜单项索引，取消则返回null
+ */
+export async function showPopupMenu(
+  event: Electron.IpcMainInvokeEvent,
+  options: {
+    items: Array<{
+      label: string;
+      checked?: boolean;
+      enabled?: boolean;
+    }>;
+    x?: number;
+    y?: number;
+  }
+): Promise<number | null> {
+  return new Promise((resolve) => {
+    try {
+      // 获取发送请求的窗口
+      const window = BrowserWindow.fromWebContents(event.sender);
+      if (!window) {
+        log.error('显示弹出菜单失败：无法找到窗口');
+        resolve(null);
+        return;
+      }
+
+      // 构建菜单模板
+      const menuTemplate = options.items.map((item, index) => ({
+        label: item.label,
+        type: 'checkbox' as const,
+        checked: item.checked || false,
+        enabled: item.enabled !== false,
+        click: () => {
+          resolve(index);
+        }
+      }));
+
+      // 创建菜单
+      const menu = Menu.buildFromTemplate(menuTemplate);
+
+      // 显示菜单
+      menu.popup({
+        window,
+        x: options.x,
+        y: options.y,
+        callback: () => {
+          // 菜单关闭但没有选择任何项
+          resolve(null);
+        }
+      });
+    } catch (error) {
+      log.error('显示弹出菜单时发生错误:', error);
+      resolve(null);
+    }
+  });
 }

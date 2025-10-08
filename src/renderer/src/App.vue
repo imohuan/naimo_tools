@@ -467,6 +467,11 @@ onMounted(async () => {
     recoverSearchState(true);
   });
 
+  naimo.event.onPluginViewClosed((_event, data) => {
+    console.log("收到插件视图关闭事件:", data);
+    recoverSearchState(true);
+  });
+
   naimo.event.onViewRestoreRequested((_event, data) => {
     console.log("收到视图恢复请求:", data);
     const { reason } = data;
@@ -616,12 +621,35 @@ onMounted(async () => {
 
       // 懒加载架构：打开插件窗口（后台会判断，没有 main 则打开空白页作为后台窗口）
       try {
+        // 确定生命周期类型：优先使用 pluginSetting.backgroundRun，其次使用 pluginItem.lifecycleType
+        let lifecycleType =
+          pluginItem.lifecycleType || LifecycleType.FOREGROUND;
+        try {
+          const allPluginSettings = (await naimo.router.storeGet(
+            "pluginSetting"
+          )) as Record<string, any> | null;
+          const pluginSetting = allPluginSettings?.[pluginItem.pluginId!];
+          if (
+            pluginSetting &&
+            typeof pluginSetting.backgroundRun === "boolean"
+          ) {
+            lifecycleType = pluginSetting.backgroundRun
+              ? LifecycleType.BACKGROUND
+              : LifecycleType.FOREGROUND;
+            console.log(
+              `🔄 插件 ${pluginItem.pluginId} 使用 pluginSetting.backgroundRun: ${pluginSetting.backgroundRun}, lifecycleType: ${lifecycleType}`
+            );
+          }
+        } catch (error) {
+          console.warn("获取插件设置失败，使用默认 lifecycleType:", error);
+        }
+
         // 打开插件窗口并传递 featurePath
         const result = await naimo.router.windowCreatePluginView({
           fullPath: pluginItem.fullPath!, // 完整路径（如 translate-plugin:text-translate）
           title: pluginItem.name,
           url: plugin?.main || "", // 使用插件级别的 main（可选，没有则后台加载 about:blank）
-          lifecycleType: pluginItem.lifecycleType || LifecycleType.FOREGROUND,
+          lifecycleType,
           preload: plugin.preload, // 使用插件级别的 preload
           singleton: pluginItem.singleton ?? true,
           data,

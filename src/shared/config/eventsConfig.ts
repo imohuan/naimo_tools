@@ -52,6 +52,15 @@ export interface EventsConfig {
     timestamp: number
   }
 
+  // 分离窗口初始化事件
+  'detached-window-init': {
+    windowId: number
+    viewId: string
+    pluginId?: string
+    pluginName?: string
+    pluginVersion?: string
+    timestamp: number
+  }
 
   // 插件相关事件
   'plugin-window-closed': {

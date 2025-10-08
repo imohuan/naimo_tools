@@ -1,3 +1,4 @@
+import { ipcRouter } from "@shared/utils/ipcRouterClient";
 import { contextBridge, ipcRenderer } from "electron";
 import log from "electron-log/renderer";
 
@@ -10,6 +11,8 @@ async function invokeWindowRoute<T = any>(route: string, ...args: any[]): Promis
     throw error
   }
 }
+
+const { storeSet, storeGet, windowShowPopupMenu } = ipcRouter
 
 const windowControl = {
   minimize: () => invokeWindowRoute<boolean>("minimize"),
@@ -42,6 +45,22 @@ const windowControl = {
   isMaximized: () => invokeWindowRoute<boolean>("is-maximized"),
   setAlwaysOnTop: (alwaysOnTop: boolean) => invokeWindowRoute<boolean>("set-always-on-top", alwaysOnTop),
   isAlwaysOnTop: () => invokeWindowRoute<boolean>("is-always-on-top"),
+
+  router: {
+    storeSet, storeGet, windowShowPopupMenu
+  },
+
+  // 监听分离窗口初始化事件
+  onDetachedWindowInit: (callback: (data: any) => void) => {
+    const channel = "detached-window-init"
+    const listener = (_event: any, data: any) => callback(data)
+    ipcRenderer.on(channel, listener)
+
+    // 返回取消监听的函数
+    return () => {
+      ipcRenderer.removeListener(channel, listener)
+    }
+  },
 }
 
 contextBridge.exposeInMainWorld("naimo", windowControl)

@@ -1,6 +1,6 @@
 /**
  * 自动生成的 IPC 类型定义
- * 生成时间: 2025-10-08T10:08:39.967Z
+ * 生成时间: 2025-10-08T12:51:30.661Z
  * 请勿手动修改此文件
  */
 
@@ -1423,8 +1423,9 @@ interface windowInterface {
   url: string  // 可选：没有则后台加载 about:blank（用于无 UI 的后台插件）
   preload: string
   singleton?: boolean
+  noSwitch?: boolean  // 是否不切换到该视图（静默创建，用于自启动插件）
   data?: any  // 传递给插件的任意参数
-}) => Promise<{ success: boolean; viewId?: string; error?: string }>;
+}) => Promise<{ success: boolean; viewId?: string; error?: string; detached?: boolean }>;
   /** 创建插件视图（新架构专用 - 懒加载架构） */
   "windowCreatePluginView": (params: {
   fullPath: string
@@ -1433,8 +1434,9 @@ interface windowInterface {
   url: string  // 可选：没有则后台加载 about:blank（用于无 UI 的后台插件）
   preload: string
   singleton?: boolean
+  noSwitch?: boolean  // 是否不切换到该视图（静默创建，用于自启动插件）
   data?: any  // 传递给插件的任意参数
-}) => Promise<{ success: boolean; viewId?: string; error?: string }>;
+}) => Promise<{ success: boolean; viewId?: string; error?: string; detached?: boolean }>;
 
   /**
  * 关闭插件视图（新架构专用）
@@ -1493,6 +1495,37 @@ interface windowInterface {
   };
   createdAt: string; // 序列化为ISO字符串
 } | null>;
+
+  /**
+ * 显示系统弹出菜单
+ * @param IPC事件对象
+ * @param 菜单选项
+ * @returns 用户点击的菜单项索引，取消则返回null
+ */
+  "window-show-popup-menu": (options: {
+    items: Array<{
+      label: string;
+      checked?: boolean;
+      enabled?: boolean;
+    }>;
+    x?: number;
+    y?: number;
+  }) => Promise<number | null>;
+  /**
+ * 显示系统弹出菜单
+ * @param IPC事件对象
+ * @param 菜单选项
+ * @returns 用户点击的菜单项索引，取消则返回null
+ */
+  "windowShowPopupMenu": (options: {
+    items: Array<{
+      label: string;
+      checked?: boolean;
+      enabled?: boolean;
+    }>;
+    x?: number;
+    y?: number;
+  }) => Promise<number | null>;
 }
 
 // 合并所有 IPC 路由类型
@@ -2245,6 +2278,12 @@ export const ROUTE_INFO: RouteInfo[] = [
     comment: "获取当前WebContentsView的完整信息, 通过webContents查找对应的WebContentsViewInfo，并返回序列化后的信息",
     module: "window",
     function: "getCurrentViewInfo"
+  },
+  {
+    route: "window-show-popup-menu",
+    comment: "显示系统弹出菜单",
+    module: "window",
+    function: "showPopupMenu"
   }
 ];
 

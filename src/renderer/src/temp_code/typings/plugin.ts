@@ -12,6 +12,15 @@ export enum PluginSourceType {
   REMOTE = 'remote'
 }
 
+export interface PluginSetting {
+  /** 自动分离 */
+  autoSeparate: boolean
+  /** 后台运行 */
+  backgroundRun: boolean
+  /** 跟随主程序同时启动 */
+  followMainProgram: boolean
+}
+
 /**
  * 插件安装器接口
  */

@@ -6,7 +6,7 @@ import type {
   PluginItem,
   CommandConfig,
 } from "@/typings/pluginTypes";
-import type { PluginInstaller, } from "@/temp_code/typings/plugin";
+import type { PluginInstaller, PluginSetting, } from "@/temp_code/typings/plugin";
 // import { SystemPluginInstaller } from "./modules/_system"; // 已禁用系统插件
 import { LocalPluginInstaller } from "./modules/local";
 import { GithubPluginInstaller } from "./modules/github";
@@ -42,6 +42,8 @@ export const usePluginStoreNew = defineStore("pluginNew", () => {
   const installers = shallowReactive<Map<string, PluginInstaller>>(new Map());
   /** 是否静默 （是否不进行通讯） */
   const silent = ref(true);
+
+  const pluginSettings = shallowRef<Map<string, PluginSetting>>(new Map());
 
   // ==================== 计算属性 ====================
   const enabledPlugins = computed(() => installedPlugins.value.filter((p) => p.enabled));
@@ -110,61 +112,80 @@ export const usePluginStoreNew = defineStore("pluginNew", () => {
       .forEach((h) => hooks.delete(h));
   };
 
-  // ==================== 插件 API ====================
+  const getPluginSettings = (pluginId: string) => {
+    return pluginSettings.value.get(pluginId) || {};
+  };
 
-  /** 获取插件API */
-  const getPluginApi = async (pluginId: string) => {
-    const plugin = getPlugin(pluginId);
-    if (!plugin) {
-      console.warn(`⚠️ 插件未找到: ${pluginId}`);
-      return null;
+  const setPluginSettings = async (pluginId: string, settings: PluginSetting) => {
+    const oldSettings = getPluginSettings(pluginId);
+    const newSettings = { ...oldSettings, ...settings };
+    pluginSettings.value.set(pluginId, newSettings);
+
+    // 将所有插件设置转换为对象格式并保存到本地存储
+    const allSettings: Record<string, PluginSetting> = {};
+    pluginSettings.value.forEach((value, key) => {
+      allSettings[key] = value;
+    });
+
+    await storeUtils.set("pluginSetting", allSettings);
+    console.log(`💾 已保存插件设置到本地存储: ${pluginId}`, newSettings);
+  };
+
+  /**
+   * 初始化自启动插件
+   * 根据插件设置中的 followMainProgram 配置，自动创建插件视图
+   */
+  const initAutoStartPlugins = async () => {
+    console.log("🔍 检查自启动插件配置...");
+
+    for (const plugin of installedPlugins.value) {
+      const settings = getPluginSettings(plugin.id);
+      // 检查插件是否配置了跟随主程序启动
+      if (settings && (settings as any).followMainProgram === true) {
+        console.log(`🚀 自启动插件: ${plugin.name} (${plugin.id})`);
+        try {
+          // 构建插件视图参数
+          const fullPath = `${plugin.id}`;
+          const url = plugin.main || '';
+          const preloadPath = plugin.preload || '';
+
+          // 如果没有 URL，跳过（避免创建空白视图）
+          if (!url && !preloadPath) {
+            console.warn(`⚠️ 插件 ${plugin.name} 没有 main 或 preload，跳过自启动`);
+            continue;
+          }
+
+          // 确定生命周期类型：优先使用 pluginSetting.backgroundRun
+          let lifecycleType: 'FOREGROUND' | 'BACKGROUND' = 'FOREGROUND';
+          if (settings && typeof (settings as any).backgroundRun === 'boolean') {
+            lifecycleType = (settings as any).backgroundRun ? 'BACKGROUND' : 'FOREGROUND';
+            console.log(`🔄 自启动插件 ${plugin.id} 使用 backgroundRun: ${(settings as any).backgroundRun}, lifecycleType: ${lifecycleType}`);
+          }
+
+          // 调用 IPC 创建插件视图（静默模式）
+          const result = await naimo.router.windowCreatePluginView({
+            fullPath,
+            title: plugin.name,
+            url: url || 'about:blank',
+            lifecycleType,
+            preload: preloadPath,
+            singleton: plugin.singleton !== false,
+            noSwitch: true, // 静默创建，不切换视图
+            data: { autoStart: true } // 标记为自启动
+          });
+
+          if (result.success) {
+            console.log(`✅ 自启动插件视图创建成功: ${fullPath} -> ${result.viewId}`);
+          } else {
+            console.warn(`⚠️ 自启动插件视图创建失败: ${fullPath}`, result.error);
+          }
+        } catch (error) {
+          console.error(`❌ 创建自启动插件视图时出错: ${plugin.id}`, error);
+        }
+      }
     }
 
-    return {
-      getResourcePath: (...paths: string[]) => {
-        const resolver = (plugin as any).getResourcePath;
-        return resolver ? resolver(...paths) : paths.join("/");
-      },
-      getSettingValue: async (settingName?: string) => {
-        const allSettings =
-          ((await storeUtils.get("pluginSettings")) as Record<string, any>) || {};
-        const pluginSettings = allSettings[pluginId] || {};
-        return settingName ? pluginSettings[settingName] : pluginSettings;
-      },
-      setSettingValue: async (settingName: string, value: any) => {
-        const allSettings =
-          ((await storeUtils.get("pluginSettings")) as Record<string, any>) || {};
-        allSettings[pluginId] = { ...allSettings[pluginId], [settingName]: value };
-        return await storeUtils.set("pluginSettings", allSettings);
-      },
-      onCommand: (event: string, description: string, handler: PluginHook) => {
-        commands.set(`${event}__${pluginId}`, {
-          name: `${event}__${pluginId}`,
-          handler,
-          description,
-        });
-      },
-      emitCommand: async (event: string, ...args: any[]) => {
-        const command = commands.get(event);
-        return command ? await command.handler(...args) : null;
-      },
-      onHook: (event: string, handler: PluginHook) => {
-        const hookName = `${event}__${pluginId}`;
-        hooks.set(hookName, [...(hooks.get(hookName) || []), handler]);
-      },
-      emitHook: async (event: string, ...args: any[]) => {
-        for (const hookName of Array.from(hooks.keys()).filter((h) =>
-          h.startsWith(`${event}__`)
-        )) {
-          const hookList = hooks.get(hookName);
-          if (hookList) {
-            for (const hook of hookList) {
-              await hook(...args);
-            }
-          }
-        }
-      },
-    };
+    console.log("✅ 自启动插件检查完成");
   };
 
   // ==================== 核心方法 ====================
@@ -184,10 +205,18 @@ export const usePluginStoreNew = defineStore("pluginNew", () => {
 
     // 3. 安装已安装的插件
     if (silent.value) {
+      // 加载插件设置
+      const pluginSetting = (await storeUtils.get("pluginSetting")) || {};
+      pluginSettings.value = new Map(Object.entries(pluginSetting as Record<string, PluginSetting>));
+      console.log(`📋 加载了 ${pluginSettings.value.size} 个插件的设置`);
+
       // 实际安装和安装监听事件
       const waitInstalls = availablePlugins.value.filter((p) => installedIds.includes(p.id))
       await Promise.all(waitInstalls.map((p) => install(p)));
       _setupEventListeners();
+
+      // 初始化自启动插件（后台静默创建，不切换到该插件窗口）
+      await initAutoStartPlugins();
     } else {
       // 数据上的变化
       installedPlugins.value = availablePlugins.value.filter((p) =>
@@ -397,7 +426,8 @@ export const usePluginStoreNew = defineStore("pluginNew", () => {
     getPlugin,
     getInstalledPluginItem,
     getSerializedPluginItem,
-    getPluginApi,
+    getPluginSettings,
+    setPluginSettings,
 
     // GitHub 相关
     loadGithubPlugins,

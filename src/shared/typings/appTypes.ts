@@ -1,4 +1,5 @@
 // 共享类型定义
+import { PluginSetting, } from '@renderer/src/temp_code/typings/plugin';
 import type { AppItem } from '@renderer/src/temp_code/typings/search'
 
 export interface AppConfig {
@@ -47,6 +48,8 @@ export interface AppConfig {
   customHotkeys?: any[];
   /** 插件设置存储 */
   pluginSettings?: Record<string, Record<string, any>>;
+  /** 插件设置，自启动，自分离，后台运行 */
+  pluginSetting?: Record<string, PluginSetting>;
 }
 
 export interface LogLevel {

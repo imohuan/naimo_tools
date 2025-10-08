@@ -53,6 +53,23 @@
       <button
         tabindex="-1"
         class="group flex items-center justify-center w-9 h-9 rounded-lg transition-all duration-200 hover:bg-green-50 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent focus:outline-none"
+        @click="handleShowPluginMenu"
+      >
+        <!-- 插件设置按钮 -->
+        <PluginSettingsButton
+          ref="pluginSettingsButton"
+          v-if="props.pluginId"
+          :plugin-id="props.pluginId"
+          :plugin-name="props.pluginName"
+          icon-type="menu"
+          class="pointer-events-none"
+        />
+      </button>
+
+      <!-- 重新附加按钮 -->
+      <button
+        tabindex="-1"
+        class="group flex items-center justify-center w-9 h-9 rounded-lg transition-all duration-200 hover:bg-green-50 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent focus:outline-none"
         @click="handleReattach"
         :disabled="isOperating"
         title="重新附加到主窗口 (Ctrl+Shift+A)"
@@ -134,6 +151,7 @@ import { ref, onMounted, onUnmounted, computed } from "vue";
 import { DetachedWindowAction } from "@/typings/windowTypes";
 import type { WindowControlAPI } from "../types/winControl";
 import { DEFAULT_WINDOW_LAYOUT } from "@shared/config/windowLayoutConfig";
+import PluginSettingsButton from "@/components/Common/PluginSettingsButton.vue";
 
 /** 组件属性 */
 interface Props {
@@ -149,6 +167,10 @@ interface Props {
   viewId?: string;
   /** 是否全屏 */
   isFullscreen?: boolean;
+  /** 插件ID */
+  pluginId?: string;
+  /** 插件名称 */
+  pluginName?: string;
 }
 
 /** 组件事件 */
@@ -165,12 +187,15 @@ interface Emits {
   (e: "control-action", action: DetachedWindowAction): void;
 }
 const winControl = (window as any).naimo as Partial<WindowControlAPI>;
+const pluginSettingsButton = ref<InstanceType<typeof PluginSettingsButton>>();
 
-withDefaults(defineProps<Props>(), {
+const props = withDefaults(defineProps<Props>(), {
   windowTitle: "分离窗口",
   windowIcon: "",
   isLoading: false,
   isFullscreen: false,
+  pluginId: "",
+  pluginName: "",
 });
 
 const emit = defineEmits<Emits>();
@@ -187,6 +212,12 @@ const controlBarHeight = computed(
 
 // 计算属性（暂未使用）
 // const effectiveTitle = computed(() => props.windowTitle || '分离窗口')
+
+const handleShowPluginMenu = (event: MouseEvent) => {
+  event.preventDefault();
+  event.stopPropagation();
+  pluginSettingsButton.value?.showPluginMenu();
+};
 
 /**
  * 处理重新附加操作

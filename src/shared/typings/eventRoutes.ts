@@ -1,6 +1,6 @@
 /**
  * 自动生成的事件类型定义
- * 生成时间: 2025-10-08T10:05:34.117Z
+ * 生成时间: 2025-10-08T12:47:15.470Z
  * 请勿手动修改此文件
  */
 
@@ -32,6 +32,11 @@ interface EventInterface {
   "detached-window-closed": (handler: (event: any, data: EventData<'detached-window-closed'>) => void) => () => void;
   /** 监听 detached-window-closed 事件 */
   "onDetachedWindowClosed": (handler: (event: any, data: EventData<'detached-window-closed'>) => void) => () => void;
+
+  /** 监听 detached-window-init 事件 */
+  "detached-window-init": (handler: (event: any, data: EventData<'detached-window-init'>) => void) => () => void;
+  /** 监听 detached-window-init 事件 */
+  "onDetachedWindowInit": (handler: (event: any, data: EventData<'detached-window-init'>) => void) => () => void;
 
   /** 监听 plugin-window-closed 事件 */
   "plugin-window-closed": (handler: (event: any, data: EventData<'plugin-window-closed'>) => void) => () => void;
@@ -149,6 +154,11 @@ export const EVENT_INFO = [
     name: "detached-window-closed",
     comment: "监听 detached-window-closed 事件",
     method: "onDetachedWindowClosed"
+  },
+  {
+    name: "detached-window-init",
+    comment: "监听 detached-window-init 事件",
+    method: "onDetachedWindowInit"
   },
   {
     name: "plugin-window-closed",

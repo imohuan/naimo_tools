@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer } from "electron";
 import log from "electron-log/renderer";
+import { readFile } from 'fs/promises'
 import { RendererErrorHandler } from "@libs/unhandled/renderer";
 import { ipcRouter } from "@shared/utils/ipcRouterClient";
 import { eventRouter } from "@shared/utils/eventRouterClient";
@@ -149,8 +150,8 @@ const naimo = {
     ipcRenderer.invoke(channel, ...args)
   ),
 
-  // ========== 即时执行浏览器 (instantBrowser) ==========
-  instantBrowser: createInstantUBrowser((channel: string, ...args: any[]) =>
+  // ========== 即时执行浏览器 (ibrowser) ==========
+  ibrowser: createInstantUBrowser((channel: string, ...args: any[]) =>
     ipcRenderer.invoke(channel, ...args)
   ),
 
@@ -162,6 +163,49 @@ const naimo = {
   onExit: (callback: () => void) => {
     hooks.exit.push(callback);
   },
+
+  getFeatures: async (codes: string[]) => {
+    try {
+      // 获取所有已安装的插件
+      const plugins = await ipcRouter.pluginGetAllInstalledPlugins();
+
+      // 读取所有插件的配置文件
+      const configContents = await Promise.all(
+        plugins.map(plugin => readFile(plugin.configPath, 'utf-8'))
+      );
+
+      // 解析配置文件并提取所有 features
+      const allFeatures = configContents
+        .map(content => {
+          try {
+            const config = JSON.parse(content);
+            if (config.feature) {
+              config.feature.map((feature: any) => ({
+                ...feature,
+                fullPath: config.id + ':' + feature.path,
+              }));
+            }
+            return config;
+          } catch (error) {
+            console.error('Failed to parse plugin config:', error);
+            return null;
+          }
+        })
+        .filter(config => config && config.feature) // 过滤掉解析失败或没有 feature 的配置
+        .flatMap(config => config.feature); // 展平所有 features
+
+      // 如果没有提供 codes 参数或为空数组，返回所有 features
+      if (!codes || codes.length === 0) {
+        return allFeatures;
+      }
+
+      // 根据 codes 过滤匹配的 features
+      return allFeatures.filter(feature => codes.includes(feature.path));
+    } catch (error) {
+      console.error('Failed to get features:', error);
+      return [];
+    }
+  }
 };
 
 contextBridge.exposeInMainWorld("naimo", naimo);

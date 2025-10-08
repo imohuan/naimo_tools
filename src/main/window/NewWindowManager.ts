@@ -79,6 +79,8 @@ export interface ViewOperationParams {
   forceNew?: boolean
   /** 自定义生命周期策略 */
   lifecycleStrategy?: LifecycleStrategy
+  /** 是否不切换到该视图（静默创建） */
+  noSwitch?: boolean
 }
 
 /**
@@ -341,11 +343,22 @@ export class NewWindowManager {
       let viewInfo = this.viewManager.getViewInfo(viewId)
 
       if (viewInfo && !params.forceNew) {
-        // 视图已存在，切换到该视图
-        const switchResult = this.viewManager.switchToView(this.mainWindow.id, viewId)
-        if (switchResult.success) {
-          await this.handleViewActivated(viewId)
+        // 视图已存在
+        if (!params.noSwitch) {
+          // 切换到该视图
+          const switchResult = this.viewManager.switchToView(this.mainWindow.id, viewId)
+          if (switchResult.success) {
+            await this.handleViewActivated(viewId)
+          }
           return switchResult
+        } else {
+          // 静默模式：不切换，只返回成功
+          log.info(`视图已存在（静默模式，不切换）: ${viewId}`)
+          return {
+            success: true,
+            viewId,
+            data: { created: false, switched: false, silent: true }
+          }
         }
       }
 
@@ -365,10 +378,15 @@ export class NewWindowManager {
         this.lifecycleManager.setLifecycleStrategy(viewId, lifecycleStrategy, params.pluginItem)
       }
 
-      // 切换到新创建的视图
-      const switchResult = this.viewManager.switchToView(this.mainWindow.id, viewId)
-      if (switchResult.success) {
-        await this.handleViewActivated(viewId)
+      // 根据 noSwitch 参数决定是否切换到新创建的视图
+      let switchResult: ViewOperationResult = { success: false }
+      if (!params.noSwitch) {
+        switchResult = this.viewManager.switchToView(this.mainWindow.id, viewId)
+        if (switchResult.success) {
+          await this.handleViewActivated(viewId)
+        }
+      } else {
+        log.info(`视图已创建（静默模式，不切换）: ${viewId}`)
       }
 
       log.info(`视图显示成功: ${viewId}`)
@@ -376,7 +394,7 @@ export class NewWindowManager {
       return {
         success: true,
         viewId,
-        data: { created: true, switched: switchResult.success }
+        data: { created: true, switched: params.noSwitch ? false : switchResult.success, silent: params.noSwitch || false }
       }
     } catch (error) {
       log.error('显示视图失败:', error)
@@ -1349,6 +1367,7 @@ export class NewWindowManager {
     lifecycleType: LifecycleType
     preload: string
     singleton?: boolean // 单例模式，默认为 true
+    noSwitch?: boolean // 是否不切换到该视图（静默创建，用于自启动插件）
     data?: any // 传递给插件的任意参数
   }): Promise<ViewOperationResult> {
     try {
@@ -1401,6 +1420,20 @@ export class NewWindowManager {
               const detachedView = detachedWindowInfo.view
               if (detachedView && detachedView.webContents && !detachedView.webContents.isDestroyed()) {
                 sendPluginMessageData(detachedView.webContents, viewId)
+              }
+
+              // 通知主窗口前端关闭插件视图，切换回搜索界面
+              if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+                const mainViewInfo = this.viewManager.getViewInfo('main-view')
+                if (mainViewInfo && !mainViewInfo.view.webContents.isDestroyed()) {
+                  sendPluginViewClosed(mainViewInfo.view.webContents, {
+                    fullPath: params.fullPath,
+                    viewId,
+                    windowId: this.mainWindow.id,
+                    timestamp: Date.now()
+                  })
+                  log.debug(`已通知主窗口前端关闭插件视图（插件已在分离窗口）: ${viewId}`)
+                }
               }
 
               return {
@@ -1475,6 +1508,7 @@ const __METADATA__ = {
         },
         pluginItem,
         forceNew: false, // 单例模式下不强制创建新视图
+        noSwitch: params.noSwitch, // 传递静默创建参数
         category: ViewCategory.MAIN_WINDOW,
         lifecycleStrategy: {
           type: lifecycleType,
