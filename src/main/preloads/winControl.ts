@@ -37,7 +37,11 @@ const windowControl = {
       log.warn("[winControl] 获取视图信息失败", error)
       return null
     }
-  }
+  },
+
+  isMaximized: () => invokeWindowRoute<boolean>("is-maximized"),
+  setAlwaysOnTop: (alwaysOnTop: boolean) => invokeWindowRoute<boolean>("set-always-on-top", alwaysOnTop),
+  isAlwaysOnTop: () => invokeWindowRoute<boolean>("is-always-on-top"),
 }
 
 contextBridge.exposeInMainWorld("naimo", windowControl)

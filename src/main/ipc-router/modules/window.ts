@@ -270,6 +270,86 @@ export async function isFullscreen(event: Electron.IpcMainInvokeEvent): Promise<
 }
 
 /**
+ * 设置窗口置顶状态 - 基于视图类别的智能控制
+ * @param alwaysOnTop 是否置顶
+ */
+export async function setAlwaysOnTop(event: Electron.IpcMainInvokeEvent, alwaysOnTop: boolean): Promise<boolean> {
+  try {
+    const manager = NewWindowManager.getInstance();
+    const viewManager = manager.getViewManager();
+
+    // 获取当前视图信息
+    const currentViewInfo = viewManager.getCurrentViewInfo(event.sender);
+
+    if (!currentViewInfo) {
+      log.warn('设置窗口置顶失败：无法获取当前视图信息');
+      return false;
+    }
+
+    // 根据视图类别决定控制行为
+    if (currentViewInfo.config.category === ViewCategory.MAIN_WINDOW) {
+      log.debug('置顶操作被禁止：主窗口视图不支持窗口置顶控制');
+      return false;
+    }
+
+    if (currentViewInfo.config.category === ViewCategory.DETACHED_WINDOW) {
+      // 分离窗口视图允许置顶
+      const controller = BaseWindowController.getInstance();
+      const callingWindow = controller.getWindow(currentViewInfo.parentWindowId);
+
+      if (callingWindow && !callingWindow.isDestroyed()) {
+        callingWindow.setAlwaysOnTop(alwaysOnTop);
+        log.debug(`分离窗口置顶状态已设置，ID: ${callingWindow.id}, 置顶: ${alwaysOnTop}`);
+        return true;
+      }
+    }
+
+    log.warn('设置窗口置顶失败：无法找到调用窗口或不支持的视图类别');
+    return false;
+  } catch (error) {
+    log.error('设置窗口置顶失败:', error);
+    return false;
+  }
+}
+
+/**
+ * 检查窗口是否置顶
+ * @returns 窗口是否置顶
+ */
+export async function isAlwaysOnTop(event: Electron.IpcMainInvokeEvent): Promise<boolean> {
+  try {
+    const manager = NewWindowManager.getInstance();
+    const mainWindow = manager.getMainWindow();
+    const viewManager = manager.getViewManager();
+
+    // 获取当前视图信息来判断是主窗口还是分离窗口
+    const currentViewInfo = viewManager.getCurrentViewInfo(event.sender);
+
+    if (!currentViewInfo) {
+      return false;
+    }
+
+    // 如果是主窗口的视图调用，始终返回false（主窗口不支持置顶）
+    if (mainWindow && currentViewInfo.parentWindowId === mainWindow.id) {
+      return false;
+    }
+
+    // 如果是分离窗口调用，检查实际状态
+    const controller = BaseWindowController.getInstance();
+    const callingWindow = controller.getWindow(currentViewInfo.parentWindowId);
+
+    if (callingWindow && !callingWindow.isDestroyed()) {
+      return callingWindow.isAlwaysOnTop();
+    }
+
+    return false;
+  } catch (error) {
+    log.error('检查窗口是否置顶失败:', error);
+    return false;
+  }
+}
+
+/**
  * 检查窗口是否显示
  * @param id 窗口ID
  * @returns 窗口是否显示

@@ -89,3 +89,38 @@ export function clear(event: Electron.IpcMainInvokeEvent): boolean {
     throw error;
   }
 }
+
+/**
+ * 获取指定前缀下的所有存储项
+ * @param event IPC事件对象
+ * @param prefix 前缀，如 "pluginSettings.my-plugin"
+ * @returns 所有匹配的键值对
+ */
+export function getAllByPrefix(event: Electron.IpcMainInvokeEvent, prefix: string): Record<string, any> {
+  try {
+    const manager = getConfigManager();
+    const fullConfig = manager.getConfig();
+    const result: Record<string, any> = {};
+
+    // 递归获取嵌套对象中的值
+    function getNestedValue(obj: any, path: string[]): any {
+      if (path.length === 0) return obj;
+      const [first, ...rest] = path;
+      return obj && obj[first] ? getNestedValue(obj[first], rest) : undefined;
+    }
+
+    // 解析前缀路径
+    const prefixParts = prefix.split('.');
+    const targetObj = getNestedValue(fullConfig, prefixParts);
+
+    if (targetObj && typeof targetObj === 'object') {
+      // 返回目标对象下的所有键值对
+      return targetObj;
+    }
+
+    return result;
+  } catch (error) {
+    log.error('获取前缀存储数据失败:', error);
+    return {};
+  }
+}

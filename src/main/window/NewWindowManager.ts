@@ -1448,11 +1448,9 @@ export class NewWindowManager {
         const customScript = `
 // 插件元数据
 const __METADATA__ = {
-  path: '${params.fullPath}',
+  fullPath: '${params.fullPath}',
   title: '${params.title}',
-  url: '${finalUrl}',
   lifecycleType: '${params.lifecycleType}',
-  preload: '${params.preload || ''}',
   singleton: ${isSingleton}
 };
 `

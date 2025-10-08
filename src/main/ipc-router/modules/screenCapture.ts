@@ -108,8 +108,8 @@ async function captureScreen(sourceId: string): Promise<string> {
     const sources = await desktopCapturer.getSources({
       types: ['screen'],
       thumbnailSize: {
-        width: Math.min(width * 2, 4096),  // 限制最大宽度
-        height: Math.min(height * 2, 4096) // 限制最大高度
+        width: Math.min(width * 2, 2048),  // 限制最大宽度
+        height: Math.min(height * 2, 2048) // 限制最大高度
       }
     });
 

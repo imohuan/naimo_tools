@@ -1,10 +1,11 @@
 /**
  * 自动生成的 IPC 类型定义
- * 生成时间: 2025-10-07T13:35:43.122Z
+ * 生成时间: 2025-10-08T03:41:22.957Z
  * 请勿手动修改此文件
  */
 
 import { AppPath } from '@libs/app-search';
+import { DbDoc, DbResult, OpenDialogOptions, SaveDialogOptions, MessageBoxOptions, Display, SystemPathName } from '@shared/typings/naimoApiTypes';
 import { DebugInfo } from '@main/services/DebugService';
 import { AppConfig } from '@shared/typings/appTypes';
 import { ViewType, LifecycleType } from '@renderer/src/typings/windowTypes';
@@ -259,6 +260,131 @@ interface clipboardInterface {
   "clipboardWriteImage": (imageData: string) => Promise<boolean>;
 }
 
+interface dbInterface {
+  /**
+ * 存储文档
+ * @param IPC事件对象
+ * @param 要存储的文档
+ * @param 插件名称（可选，从 webpagePreload 传递）
+ * @returns 存储结果
+ */
+  "db-put": (doc: DbDoc, pluginName?: string) => Promise<DbResult>;
+  /**
+ * 存储文档
+ * @param IPC事件对象
+ * @param 要存储的文档
+ * @param 插件名称（可选，从 webpagePreload 传递）
+ * @returns 存储结果
+ */
+  "dbPut": (doc: DbDoc, pluginName?: string) => Promise<DbResult>;
+
+  /**
+ * 获取文档
+ * @param IPC事件对象
+ * @param 文档ID
+ * @param 插件名称（可选）
+ * @returns 文档内容，不存在则返回null
+ */
+  "db-get": (id: string, pluginName?: string) => Promise<DbDoc | null>;
+  /**
+ * 获取文档
+ * @param IPC事件对象
+ * @param 文档ID
+ * @param 插件名称（可选）
+ * @returns 文档内容，不存在则返回null
+ */
+  "dbGet": (id: string, pluginName?: string) => Promise<DbDoc | null>;
+
+  /**
+ * 删除文档
+ * @param IPC事件对象
+ * @param 文档ID
+ * @param 插件名称（可选）
+ * @returns 删除结果
+ */
+  "db-remove": (id: string, pluginName?: string) => Promise<DbResult>;
+  /**
+ * 删除文档
+ * @param IPC事件对象
+ * @param 文档ID
+ * @param 插件名称（可选）
+ * @returns 删除结果
+ */
+  "dbRemove": (id: string, pluginName?: string) => Promise<DbResult>;
+
+  /**
+ * 获取所有文档
+ * @param IPC事件对象
+ * @param 可选的ID前缀过滤
+ * @param 插件名称（可选）
+ * @returns 文档数组
+ */
+  "db-all-docs": (docPrefix?: string, pluginName?: string) => Promise<DbDoc[]>;
+  /**
+ * 获取所有文档
+ * @param IPC事件对象
+ * @param 可选的ID前缀过滤
+ * @param 插件名称（可选）
+ * @returns 文档数组
+ */
+  "dbAllDocs": (docPrefix?: string, pluginName?: string) => Promise<DbDoc[]>;
+
+  /**
+ * 批量存储文档
+ * @param IPC事件对象
+ * @param 文档数组
+ * @param 插件名称（可选）
+ * @returns 存储结果数组
+ */
+  "db-bulk-docs": (docs: DbDoc[], pluginName?: string) => Promise<DbResult[]>;
+  /**
+ * 批量存储文档
+ * @param IPC事件对象
+ * @param 文档数组
+ * @param 插件名称（可选）
+ * @returns 存储结果数组
+ */
+  "dbBulkDocs": (docs: DbDoc[], pluginName?: string) => Promise<DbResult[]>;
+
+  /**
+ * 存储附件
+ * @param IPC事件对象
+ * @param 文档ID
+ * @param 附件数据（Buffer）
+ * @param 附件类型
+ * @param 插件名称（可选）
+ * @returns 存储结果
+ */
+  "db-put-attachment": (id: string, data: Buffer, type: string, pluginName?: string) => Promise<DbResult>;
+  /**
+ * 存储附件
+ * @param IPC事件对象
+ * @param 文档ID
+ * @param 附件数据（Buffer）
+ * @param 附件类型
+ * @param 插件名称（可选）
+ * @returns 存储结果
+ */
+  "dbPutAttachment": (id: string, data: Buffer, type: string, pluginName?: string) => Promise<DbResult>;
+
+  /**
+ * 获取附件
+ * @param IPC事件对象
+ * @param 文档ID
+ * @param 插件名称（可选）
+ * @returns 附件数据，不存在则返回null
+ */
+  "db-get-attachment": (id: string, pluginName?: string) => Promise<{ data: Buffer; type: string } | null>;
+  /**
+ * 获取附件
+ * @param IPC事件对象
+ * @param 文档ID
+ * @param 插件名称（可选）
+ * @returns 附件数据，不存在则返回null
+ */
+  "dbGetAttachment": (id: string, pluginName?: string) => Promise<{ data: Buffer; type: string } | null>;
+}
+
 interface debugInterface {
   /** 切换调试窗口展开状态 */
   "debug-toggle-debug-window": () => Promise<boolean>;
@@ -289,6 +415,156 @@ interface debugInterface {
   "debug-move-debug-window": (deltaX: number, deltaY: number) => Promise<boolean>;
   /** 移动调试窗口 */
   "debugMoveDebugWindow": (deltaX: number, deltaY: number) => Promise<boolean>;
+}
+
+interface dialogInterface {
+  /**
+ * 显示打开文件/文件夹对话框
+ * @param IPC事件对象
+ * @param 对话框选项
+ * @returns 选择的文件路径数组，取消则返回undefined
+ */
+  "dialog-show-open-dialog": (options: OpenDialogOptions) => Promise<string[] | undefined>;
+  /**
+ * 显示打开文件/文件夹对话框
+ * @param IPC事件对象
+ * @param 对话框选项
+ * @returns 选择的文件路径数组，取消则返回undefined
+ */
+  "dialogShowOpenDialog": (options: OpenDialogOptions) => Promise<string[] | undefined>;
+
+  /**
+ * 显示保存文件对话框
+ * @param IPC事件对象
+ * @param 对话框选项
+ * @returns 保存的文件路径，取消则返回undefined
+ */
+  "dialog-show-save-dialog": (options: SaveDialogOptions) => Promise<string | undefined>;
+  /**
+ * 显示保存文件对话框
+ * @param IPC事件对象
+ * @param 对话框选项
+ * @returns 保存的文件路径，取消则返回undefined
+ */
+  "dialogShowSaveDialog": (options: SaveDialogOptions) => Promise<string | undefined>;
+
+  /**
+ * 显示消息框
+ * @param IPC事件对象
+ * @param 消息框选项
+ * @returns 用户点击的按钮索引等信息
+ */
+  "dialog-show-message-box": (options: MessageBoxOptions) => Promise<Electron.MessageBoxReturnValue>;
+  /**
+ * 显示消息框
+ * @param IPC事件对象
+ * @param 消息框选项
+ * @returns 用户点击的按钮索引等信息
+ */
+  "dialogShowMessageBox": (options: MessageBoxOptions) => Promise<Electron.MessageBoxReturnValue>;
+
+  /**
+ * 显示错误对话框
+ * @param IPC事件对象
+ * @param 标题
+ * @param 内容
+ */
+  "dialog-show-error-box": (title: string, content: string) => Promise<void>;
+  /**
+ * 显示错误对话框
+ * @param IPC事件对象
+ * @param 标题
+ * @param 内容
+ */
+  "dialogShowErrorBox": (title: string, content: string) => Promise<void>;
+}
+
+interface displayInterface {
+  /**
+ * 获取主显示器信息
+ * @param IPC事件对象
+ * @returns 主显示器信息
+ */
+  "display-get-primary-display": () => Promise<Display>;
+  /**
+ * 获取主显示器信息
+ * @param IPC事件对象
+ * @returns 主显示器信息
+ */
+  "displayGetPrimaryDisplay": () => Promise<Display>;
+
+  /**
+ * 获取所有显示器信息
+ * @param IPC事件对象
+ * @returns 所有显示器信息数组
+ */
+  "display-get-all-displays": () => Promise<Display[]>;
+  /**
+ * 获取所有显示器信息
+ * @param IPC事件对象
+ * @returns 所有显示器信息数组
+ */
+  "displayGetAllDisplays": () => Promise<Display[]>;
+
+  /**
+ * 获取鼠标当前位置
+ * @param IPC事件对象
+ * @returns 鼠标坐标 {x, y}
+ */
+  "display-get-cursor-position": () => Promise<{ x: number; y: number }>;
+  /**
+ * 获取鼠标当前位置
+ * @param IPC事件对象
+ * @returns 鼠标坐标 {x, y}
+ */
+  "displayGetCursorPosition": () => Promise<{ x: number; y: number }>;
+
+  /**
+ * 根据屏幕坐标获取所在的显示器
+ * @param IPC事件对象
+ * @param 屏幕坐标
+ * @returns 显示器信息
+ */
+  "display-get-display-nearest-point": (point: { x: number; y: number }) => Promise<Display>;
+  /**
+ * 根据屏幕坐标获取所在的显示器
+ * @param IPC事件对象
+ * @param 屏幕坐标
+ * @returns 显示器信息
+ */
+  "displayGetDisplayNearestPoint": (point: { x: number; y: number }) => Promise<Display>;
+
+  /**
+ * 将屏幕坐标转换为 DIP 坐标
+DIP (Device Independent Pixels): 设备独立像素
+ * @param IPC事件对象
+ * @param 屏幕坐标
+ * @returns DIP 坐标
+ */
+  "display-screen-to-dip-point": (point: { x: number; y: number }) => Promise<{ x: number; y: number }>;
+  /**
+ * 将屏幕坐标转换为 DIP 坐标
+DIP (Device Independent Pixels): 设备独立像素
+ * @param IPC事件对象
+ * @param 屏幕坐标
+ * @returns DIP 坐标
+ */
+  "displayScreenToDipPoint": (point: { x: number; y: number }) => Promise<{ x: number; y: number }>;
+
+  /**
+ * 将 DIP 坐标转换为屏幕坐标
+ * @param IPC事件对象
+ * @param DIP 坐标
+ * @returns 屏幕坐标
+ */
+  "display-dip-to-screen-point": (point: { x: number; y: number }) => Promise<{ x: number; y: number }>;
+  /**
+ * 将 DIP 坐标转换为屏幕坐标
+ * @param IPC事件对象
+ * @param DIP 坐标
+ * @returns 屏幕坐标
+ */
+  "displayDipToScreenPoint": (point: { x: number; y: number }) => Promise<{ x: number; y: number }>;
 }
 
 interface filesystemInterface {
@@ -454,6 +730,91 @@ interface hotkeyInterface {
 }>>;
 }
 
+interface inputInterface {
+  /**
+ * 模拟粘贴文本
+将文本复制到剪贴板，然后模拟 Ctrl+V 或 Cmd+V
+ * @param IPC事件对象
+ * @param 要粘贴的文本
+ * @returns 是否操作成功
+ */
+  "input-paste-text": (text: string) => Promise<boolean>;
+  /**
+ * 模拟粘贴文本
+将文本复制到剪贴板，然后模拟 Ctrl+V 或 Cmd+V
+ * @param IPC事件对象
+ * @param 要粘贴的文本
+ * @returns 是否操作成功
+ */
+  "inputPasteText": (text: string) => Promise<boolean>;
+
+  /**
+ * 模拟粘贴图片
+将图片复制到剪贴板，然后模拟 Ctrl+V 或 Cmd+V
+ * @param IPC事件对象
+ * @param base64格式的图片数据或Buffer
+ * @returns 是否操作成功
+ */
+  "input-paste-image": (imageData: string | Buffer) => Promise<boolean>;
+  /**
+ * 模拟粘贴图片
+将图片复制到剪贴板，然后模拟 Ctrl+V 或 Cmd+V
+ * @param IPC事件对象
+ * @param base64格式的图片数据或Buffer
+ * @returns 是否操作成功
+ */
+  "inputPasteImage": (imageData: string | Buffer) => Promise<boolean>;
+
+  /**
+ * 模拟粘贴文件
+将文件路径复制到剪贴板，然后模拟 Ctrl+V 或 Cmd+V
+ * @param IPC事件对象
+ * @param 文件路径（单个或多个）
+ * @returns 是否操作成功
+ */
+  "input-paste-file": (filePath: string | string[]) => Promise<boolean>;
+  /**
+ * 模拟粘贴文件
+将文件路径复制到剪贴板，然后模拟 Ctrl+V 或 Cmd+V
+ * @param IPC事件对象
+ * @param 文件路径（单个或多个）
+ * @returns 是否操作成功
+ */
+  "inputPasteFile": (filePath: string | string[]) => Promise<boolean>;
+
+  /**
+ * 模拟按键
+ * @param IPC事件对象
+ * @param 按键名称（如 "ctrl+v", "enter", "esc" 等）
+ * @returns 是否模拟成功
+ */
+  "input-simulate-key-press": (key: string) => Promise<boolean>;
+  /**
+ * 模拟按键
+ * @param IPC事件对象
+ * @param 按键名称（如 "ctrl+v", "enter", "esc" 等）
+ * @returns 是否模拟成功
+ */
+  "inputSimulateKeyPress": (key: string) => Promise<boolean>;
+
+  /**
+ * 模拟组合键
+ * @param IPC事件对象
+ * @param 修饰键数组（如 ["ctrl", "shift"]）
+ * @param 主键（如 "v"）
+ * @returns 是否模拟成功
+ */
+  "input-simulate-hotkey": (modifiers: string[], key: string) => Promise<boolean>;
+  /**
+ * 模拟组合键
+ * @param IPC事件对象
+ * @param 修饰键数组（如 ["ctrl", "shift"]）
+ * @param 主键（如 "v"）
+ * @returns 是否模拟成功
+ */
+  "inputSimulateHotkey": (modifiers: string[], key: string) => Promise<boolean>;
+}
+
 interface logInterface {
   /**
  * 获取日志数据
@@ -604,6 +965,122 @@ interface screenCaptureInterface {
   "screenCaptureCaptureAndGetFilePath": (options: { sourceId?: string; }) => Promise<{ success: boolean; filePath?: string; error?: string }>;
 }
 
+interface shellInterface {
+  /**
+ * 打开文件或文件夹
+ * @param IPC事件对象
+ * @param 文件或文件夹路径
+ * @returns 是否打开成功
+ */
+  "shell-open-path": (path: string) => Promise<boolean>;
+  /**
+ * 打开文件或文件夹
+ * @param IPC事件对象
+ * @param 文件或文件夹路径
+ * @returns 是否打开成功
+ */
+  "shellOpenPath": (path: string) => Promise<boolean>;
+
+  /**
+ * 打开外部链接
+ * @param IPC事件对象
+ * @param URL地址
+ * @returns 是否打开成功
+ */
+  "shell-open-url": (url: string) => Promise<boolean>;
+  /**
+ * 打开外部链接
+ * @param IPC事件对象
+ * @param URL地址
+ * @returns 是否打开成功
+ */
+  "shellOpenUrl": (url: string) => Promise<boolean>;
+
+  /**
+ * 在文件管理器中显示文件
+ * @param IPC事件对象
+ * @param 文件路径
+ */
+  "shell-show-in-folder": (path: string) => Promise<void>;
+  /**
+ * 在文件管理器中显示文件
+ * @param IPC事件对象
+ * @param 文件路径
+ */
+  "shellShowInFolder": (path: string) => Promise<void>;
+
+  /**
+ * 移动文件到回收站
+ * @param IPC事件对象
+ * @param 文件路径
+ * @returns 是否移动成功
+ */
+  "shell-move-to-trash": (path: string) => Promise<boolean>;
+  /**
+ * 移动文件到回收站
+ * @param IPC事件对象
+ * @param 文件路径
+ * @returns 是否移动成功
+ */
+  "shellMoveToTrash": (path: string) => Promise<boolean>;
+
+  /**
+ * 播放系统提示音
+ * @param IPC事件对象
+ */
+  "shell-beep": () => Promise<void>;
+  /**
+ * 播放系统提示音
+ * @param IPC事件对象
+ */
+  "shellBeep": () => Promise<void>;
+
+  /**
+ * 显示系统通知
+ * @param IPC事件对象
+ * @param 通知内容
+ * @param 通知标题（可选）
+ */
+  "shell-show-notification": (message: string, title?: string) => Promise<void>;
+  /**
+ * 显示系统通知
+ * @param IPC事件对象
+ * @param 通知内容
+ * @param 通知标题（可选）
+ */
+  "shellShowNotification": (message: string, title?: string) => Promise<void>;
+
+  /**
+ * 获取系统路径
+ * @param IPC事件对象
+ * @param 路径名称
+ * @returns 路径字符串
+ */
+  "shell-get-path": (name: SystemPathName) => Promise<string>;
+  /**
+ * 获取系统路径
+ * @param IPC事件对象
+ * @param 路径名称
+ * @returns 路径字符串
+ */
+  "shellGetPath": (name: SystemPathName) => Promise<string>;
+
+  /**
+ * 获取设备唯一标识
+基于机器的 MAC 地址和主机名生成
+ * @param IPC事件对象
+ * @returns 设备ID
+ */
+  "shell-get-device-id": () => Promise<string>;
+  /**
+ * 获取设备唯一标识
+基于机器的 MAC 地址和主机名生成
+ * @param IPC事件对象
+ * @returns 设备ID
+ */
+  "shellGetDeviceId": () => Promise<string>;
+}
+
 interface storeInterface {
   /**
  * 获取存储数据
@@ -662,6 +1139,21 @@ interface storeInterface {
  * @returns 是否清空成功
  */
   "storeClear": () => Promise<boolean>;
+
+  /**
+ * 获取指定前缀下的所有存储项
+ * @param IPC事件对象
+ * @param 前缀，如 "pluginSettings.my-plugin"
+ * @returns 所有匹配的键值对
+ */
+  "store-get-all-by-prefix": (prefix: string) => Promise<Record<string, any>>;
+  /**
+ * 获取指定前缀下的所有存储项
+ * @param IPC事件对象
+ * @param 前缀，如 "pluginSettings.my-plugin"
+ * @returns 所有匹配的键值对
+ */
+  "storeGetAllByPrefix": (prefix: string) => Promise<Record<string, any>>;
 }
 
 interface windowInterface {
@@ -712,6 +1204,28 @@ interface windowInterface {
  * @returns 窗口是否处于全屏或最大化状态
  */
   "windowIsFullscreen": () => Promise<boolean>;
+
+  /**
+ * 设置窗口置顶状态 - 基于视图类别的智能控制
+ * @param 是否置顶
+ */
+  "window-set-always-on-top": (alwaysOnTop: boolean) => Promise<boolean>;
+  /**
+ * 设置窗口置顶状态 - 基于视图类别的智能控制
+ * @param 是否置顶
+ */
+  "windowSetAlwaysOnTop": (alwaysOnTop: boolean) => Promise<boolean>;
+
+  /**
+ * 检查窗口是否置顶
+ * @returns 窗口是否置顶
+ */
+  "window-is-always-on-top": () => Promise<boolean>;
+  /**
+ * 检查窗口是否置顶
+ * @returns 窗口是否置顶
+ */
+  "windowIsAlwaysOnTop": () => Promise<boolean>;
 
   /**
  * 检查窗口是否显示
@@ -982,7 +1496,7 @@ interface windowInterface {
 }
 
 // 合并所有 IPC 路由类型
-export interface AllIpcRouter extends appInterface, clipboardInterface, debugInterface, filesystemInterface, hotkeyInterface, logInterface, pluginInterface, screenCaptureInterface, storeInterface, windowInterface {}
+export interface AllIpcRouter extends appInterface, clipboardInterface, dbInterface, debugInterface, dialogInterface, displayInterface, filesystemInterface, hotkeyInterface, inputInterface, logInterface, pluginInterface, screenCaptureInterface, shellInterface, storeInterface, windowInterface {}
 
 // 路由信息类型
 export interface RouteInfo {
@@ -1139,6 +1653,48 @@ export const ROUTE_INFO: RouteInfo[] = [
     function: "writeImage"
   },
   {
+    route: "db-put",
+    comment: "存储文档",
+    module: "db",
+    function: "put"
+  },
+  {
+    route: "db-get",
+    comment: "获取文档",
+    module: "db",
+    function: "get"
+  },
+  {
+    route: "db-remove",
+    comment: "删除文档",
+    module: "db",
+    function: "remove"
+  },
+  {
+    route: "db-all-docs",
+    comment: "获取所有文档",
+    module: "db",
+    function: "allDocs"
+  },
+  {
+    route: "db-bulk-docs",
+    comment: "批量存储文档",
+    module: "db",
+    function: "bulkDocs"
+  },
+  {
+    route: "db-put-attachment",
+    comment: "存储附件",
+    module: "db",
+    function: "putAttachment"
+  },
+  {
+    route: "db-get-attachment",
+    comment: "获取附件",
+    module: "db",
+    function: "getAttachment"
+  },
+  {
     route: "debug-toggle-debug-window",
     comment: "切换调试窗口展开状态",
     module: "debug",
@@ -1173,6 +1729,66 @@ export const ROUTE_INFO: RouteInfo[] = [
     comment: "移动调试窗口",
     module: "debug",
     function: "moveDebugWindow"
+  },
+  {
+    route: "dialog-show-open-dialog",
+    comment: "显示打开文件/文件夹对话框",
+    module: "dialog",
+    function: "showOpenDialog"
+  },
+  {
+    route: "dialog-show-save-dialog",
+    comment: "显示保存文件对话框",
+    module: "dialog",
+    function: "showSaveDialog"
+  },
+  {
+    route: "dialog-show-message-box",
+    comment: "显示消息框",
+    module: "dialog",
+    function: "showMessageBox"
+  },
+  {
+    route: "dialog-show-error-box",
+    comment: "显示错误对话框",
+    module: "dialog",
+    function: "showErrorBox"
+  },
+  {
+    route: "display-get-primary-display",
+    comment: "获取主显示器信息",
+    module: "display",
+    function: "getPrimaryDisplay"
+  },
+  {
+    route: "display-get-all-displays",
+    comment: "获取所有显示器信息",
+    module: "display",
+    function: "getAllDisplays"
+  },
+  {
+    route: "display-get-cursor-position",
+    comment: "获取鼠标当前位置",
+    module: "display",
+    function: "getCursorPosition"
+  },
+  {
+    route: "display-get-display-nearest-point",
+    comment: "根据屏幕坐标获取所在的显示器",
+    module: "display",
+    function: "getDisplayNearestPoint"
+  },
+  {
+    route: "display-screen-to-dip-point",
+    comment: "将屏幕坐标转换为 DIP 坐标 , DIP (Device Independent Pixels): 设备独立像素",
+    module: "display",
+    function: "screenToDipPoint"
+  },
+  {
+    route: "display-dip-to-screen-point",
+    comment: "将 DIP 坐标转换为屏幕坐标",
+    module: "display",
+    function: "dipToScreenPoint"
   },
   {
     route: "filesystem-select-file",
@@ -1253,6 +1869,36 @@ export const ROUTE_INFO: RouteInfo[] = [
     function: "getAllRegisteredGlobalHotkeys"
   },
   {
+    route: "input-paste-text",
+    comment: "模拟粘贴文本 , 将文本复制到剪贴板，然后模拟 Ctrl+V 或 Cmd+V",
+    module: "input",
+    function: "pasteText"
+  },
+  {
+    route: "input-paste-image",
+    comment: "模拟粘贴图片 , 将图片复制到剪贴板，然后模拟 Ctrl+V 或 Cmd+V",
+    module: "input",
+    function: "pasteImage"
+  },
+  {
+    route: "input-paste-file",
+    comment: "模拟粘贴文件 , 将文件路径复制到剪贴板，然后模拟 Ctrl+V 或 Cmd+V",
+    module: "input",
+    function: "pasteFile"
+  },
+  {
+    route: "input-simulate-key-press",
+    comment: "模拟按键",
+    module: "input",
+    function: "simulateKeyPress"
+  },
+  {
+    route: "input-simulate-hotkey",
+    comment: "模拟组合键",
+    module: "input",
+    function: "simulateHotkey"
+  },
+  {
     route: "log-get-logs",
     comment: "获取日志数据",
     module: "log",
@@ -1325,6 +1971,54 @@ export const ROUTE_INFO: RouteInfo[] = [
     function: "captureAndGetFilePath"
   },
   {
+    route: "shell-open-path",
+    comment: "打开文件或文件夹",
+    module: "shell",
+    function: "openPath"
+  },
+  {
+    route: "shell-open-url",
+    comment: "打开外部链接",
+    module: "shell",
+    function: "openUrl"
+  },
+  {
+    route: "shell-show-in-folder",
+    comment: "在文件管理器中显示文件",
+    module: "shell",
+    function: "showInFolder"
+  },
+  {
+    route: "shell-move-to-trash",
+    comment: "移动文件到回收站",
+    module: "shell",
+    function: "moveToTrash"
+  },
+  {
+    route: "shell-beep",
+    comment: "播放系统提示音",
+    module: "shell",
+    function: "beep"
+  },
+  {
+    route: "shell-show-notification",
+    comment: "显示系统通知",
+    module: "shell",
+    function: "showNotification"
+  },
+  {
+    route: "shell-get-path",
+    comment: "获取系统路径",
+    module: "shell",
+    function: "getPath"
+  },
+  {
+    route: "shell-get-device-id",
+    comment: "获取设备唯一标识 , 基于机器的 MAC 地址和主机名生成",
+    module: "shell",
+    function: "getDeviceId"
+  },
+  {
     route: "store-get",
     comment: "获取存储数据",
     module: "store",
@@ -1347,6 +2041,12 @@ export const ROUTE_INFO: RouteInfo[] = [
     comment: "清空存储数据",
     module: "store",
     function: "clear"
+  },
+  {
+    route: "store-get-all-by-prefix",
+    comment: "获取指定前缀下的所有存储项",
+    module: "store",
+    function: "getAllByPrefix"
   },
   {
     route: "window-minimize",
@@ -1383,6 +2083,18 @@ export const ROUTE_INFO: RouteInfo[] = [
     comment: "检查窗口是否全屏或最大化",
     module: "window",
     function: "isFullscreen"
+  },
+  {
+    route: "window-set-always-on-top",
+    comment: "设置窗口置顶状态 - 基于视图类别的智能控制",
+    module: "window",
+    function: "setAlwaysOnTop"
+  },
+  {
+    route: "window-is-always-on-top",
+    comment: "检查窗口是否置顶",
+    module: "window",
+    function: "isAlwaysOnTop"
   },
   {
     route: "window-is-window-visible",

@@ -62,6 +62,26 @@
         />
       </button>
 
+      <!-- 窗口置顶按钮 -->
+      <button
+        tabindex="-1"
+        class="group flex items-center justify-center w-9 h-9 rounded-lg transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent focus:outline-none"
+        :class="
+          isAlwaysOnTop
+            ? 'bg-purple-50 hover:bg-purple-100'
+            : 'hover:bg-gray-100'
+        "
+        @click="handleToggleAlwaysOnTop"
+        :disabled="isOperating"
+        :title="isAlwaysOnTop ? '取消置顶' : '窗口置顶'"
+      >
+        <IconMdiPinOutline
+          v-if="!isAlwaysOnTop"
+          class="w-5 h-5 text-gray-600 group-hover:text-purple-600 transition-colors"
+        />
+        <IconMdiPin v-else class="w-5 h-5 text-purple-600 transition-colors" />
+      </button>
+
       <!-- 最小化按钮 -->
       <button
         tabindex="-1"
@@ -158,6 +178,7 @@ const emit = defineEmits<Emits>();
 // 响应式状态
 const isOperating = ref(false);
 const isMaximized = ref(false);
+const isAlwaysOnTop = ref(false);
 
 // 从配置文件读取控制栏高度
 const controlBarHeight = computed(
@@ -322,6 +343,40 @@ const handleClose = async (): Promise<void> => {
 };
 
 /**
+ * 处理窗口置顶操作
+ */
+const handleToggleAlwaysOnTop = async (): Promise<void> => {
+  if (isOperating.value) return;
+
+  try {
+    isOperating.value = true;
+    const newState = !isAlwaysOnTop.value;
+    console.log(`📌 执行窗口置顶操作: ${newState ? "置顶" : "取消置顶"}`);
+
+    // 通过IPC调用主进程的置顶功能
+    if (!winControl?.setAlwaysOnTop) {
+      console.warn("⚠️ 未找到置顶API (naimo.setAlwaysOnTop)");
+      showNotification("未找到置顶能力", "warning");
+    } else {
+      try {
+        await winControl.setAlwaysOnTop(newState);
+        isAlwaysOnTop.value = newState;
+        console.log(`✅ 窗口置顶状态已更新: ${newState}`);
+      } catch (error) {
+        console.error("❌ 置顶操作失败:", error);
+        showNotification("置顶操作失败", "error");
+      }
+    }
+  } catch (error) {
+    console.error("❌ 置顶操作失败:", error);
+  } finally {
+    setTimeout(() => {
+      isOperating.value = false;
+    }, 200);
+  }
+};
+
+/**
  * 发送控制事件
  */
 const emitControlEvent = (action: DetachedWindowAction): void => {
@@ -351,7 +406,10 @@ const handleKeydown = (event: KeyboardEvent): void => {
   }
 
   // Alt+F4 或 Ctrl+W: 关闭窗口
-  if ((event.altKey && event.key === "F4") || (event.ctrlKey && event.key === "w")) {
+  if (
+    (event.altKey && event.key === "F4") ||
+    (event.ctrlKey && event.key === "w")
+  ) {
     event.preventDefault();
     handleClose();
     return;
@@ -371,6 +429,23 @@ const checkMaximizedState = async (): Promise<void> => {
   }
 };
 
+/**
+ * 检查窗口置顶状态
+ */
+const checkAlwaysOnTopState = async (): Promise<void> => {
+  try {
+    if (!winControl?.isAlwaysOnTop) {
+      console.warn("⚠️ 未找到检查置顶状态API (naimo.isAlwaysOnTop)");
+      return;
+    }
+
+    isAlwaysOnTop.value = await winControl.isAlwaysOnTop();
+    console.log("🔍 窗口置顶状态已初始化:", isAlwaysOnTop.value);
+  } catch (error) {
+    console.warn("⚠️ 检查窗口置顶状态失败:", error);
+  }
+};
+
 // 生命周期钩子
 onMounted(() => {
   // 监听键盘事件
@@ -378,6 +453,7 @@ onMounted(() => {
 
   // 检查初始窗口状态
   checkMaximizedState();
+  checkAlwaysOnTopState();
 
   console.log("🎛️ 窗口控制栏已挂载");
 });

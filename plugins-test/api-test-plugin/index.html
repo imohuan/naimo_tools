@@ -1,0 +1,891 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Naimo API 测试面板</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+        "Helvetica Neue", Arial, "Microsoft YaHei", sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 20px;
+      min-height: 100vh;
+    }
+
+    body {
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .container {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+      padding: 30px;
+      max-width: 1200px;
+      margin: 0 auto;
+      height: 100%;
+      overflow: auto;
+    }
+
+    h1 {
+      color: #333;
+      margin-bottom: 10px;
+      font-size: 28px;
+    }
+
+    .subtitle {
+      color: #666;
+      margin-bottom: 30px;
+      font-size: 14px;
+    }
+
+    .api-section {
+      margin-bottom: 30px;
+      padding: 20px;
+      background: #f8f9fa;
+      border-radius: 12px;
+      border-left: 4px solid #667eea;
+    }
+
+    .api-section h2 {
+      color: #333;
+      margin-bottom: 15px;
+      font-size: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .api-section h2 .icon {
+      font-size: 24px;
+    }
+
+    .button-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+
+    button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      background: #667eea;
+      color: white;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+
+    button:hover {
+      background: #5568d3;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    button.secondary {
+      background: #6c757d;
+    }
+
+    button.secondary:hover {
+      background: #5a6268;
+    }
+
+    button.danger {
+      background: #dc3545;
+    }
+
+    button.danger:hover {
+      background: #c82333;
+    }
+
+    .input-group {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 15px;
+      align-items: center;
+    }
+
+    input[type="text"],
+    input[type="number"],
+    textarea {
+      flex: 1;
+      padding: 8px 12px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 13px;
+      font-family: inherit;
+    }
+
+    textarea {
+      min-height: 60px;
+      resize: vertical;
+    }
+
+    .output {
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 15px;
+      margin-top: 10px;
+      font-family: "Courier New", monospace;
+      font-size: 12px;
+      max-height: 200px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    .output.success {
+      border-color: #28a745;
+      background: #f0fff4;
+    }
+
+    .output.error {
+      border-color: #dc3545;
+      background: #fff5f5;
+      color: #dc3545;
+    }
+
+    .divider {
+      height: 1px;
+      background: #ddd;
+      margin: 20px 0;
+    }
+
+    .info-box {
+      background: #e7f3ff;
+      border-left: 4px solid #2196f3;
+      padding: 12px;
+      border-radius: 6px;
+      margin-bottom: 15px;
+      font-size: 13px;
+      color: #0066cc;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h1>🧪 Naimo API 测试面板</h1>
+    <p class="subtitle">测试所有可用的 Naimo API 功能</p>
+
+    <!-- ========== 日志 API ========== -->
+    <div class="api-section">
+      <h2><span class="icon">📝</span>日志系统 (log)</h2>
+      <div class="button-group">
+        <button onclick="testLogError()">log.error</button>
+        <button onclick="testLogWarn()">log.warn</button>
+        <button onclick="testLogInfo()">log.info</button>
+        <button onclick="testLogDebug()">log.debug</button>
+        <button onclick="testLogThrowError()">log.throw_error</button>
+      </div>
+      <div id="logOutput" class="output"></div>
+    </div>
+
+    <!-- ========== 窗口管理 API ========== -->
+    <div class="api-section">
+      <h2><span class="icon">🪟</span>窗口管理 (window)</h2>
+      <div class="button-group">
+        <button onclick="testWindowHide()">hide</button>
+        <button onclick="testWindowShow()">show</button>
+        <button onclick="testWindowMinimize()">minimize</button>
+        <button onclick="testWindowMaximize()">maximize</button>
+        <button class="danger" onclick="testWindowClose()">close</button>
+      </div>
+      <div class="input-group">
+        <input type="number" id="windowHeight" placeholder="高度 (px)" value="600" />
+        <button onclick="testWindowSetHeight()">设置高度</button>
+      </div>
+      <div class="input-group">
+        <input type="number" id="windowWidth" placeholder="宽度 (px)" value="800" />
+        <input type="number" id="windowHeightForSize" placeholder="高度 (px)" value="600" />
+        <button onclick="testWindowSetSize()">设置尺寸</button>
+      </div>
+      <div id="windowOutput" class="output"></div>
+    </div>
+
+    <!-- ========== 数据库 API ========== -->
+    <div class="api-section">
+      <h2><span class="icon">💾</span>文档数据库 (db)</h2>
+      <div class="info-box">
+        💡 提示：每次 put 使用不同的 _id 会添加新文档，相同 _id 会更新现有文档
+      </div>
+      <div class="input-group">
+        <input type="text" id="dbDocId" placeholder="文档 ID" value="test_doc_1" />
+        <textarea id="dbDocContent" placeholder="文档内容 (JSON)">{"name": "测试文档", "value": 123}</textarea>
+      </div>
+      <div class="button-group">
+        <button onclick="testDbPut()">put (保存)</button>
+        <button onclick="testDbPutRandom()" style="background: #28a745;">put (随机ID)</button>
+        <button onclick="testDbGet()">get (读取)</button>
+        <button onclick="testDbRemove()">remove (删除)</button>
+        <button onclick="testDbAllDocs()">allDocs (全部)</button>
+        <button class="danger" onclick="testDbClearAll()">清空所有</button>
+      </div>
+      <div id="dbOutput" class="output"></div>
+    </div>
+
+    <!-- ========== 键值存储 API ========== -->
+    <div class="api-section">
+      <h2><span class="icon">🗄️</span>键值存储 (storage)</h2>
+      <div class="input-group">
+        <input type="text" id="storageKey" placeholder="键名" value="test_key" />
+        <input type="text" id="storageValue" placeholder="值" value="测试数据" />
+      </div>
+      <div class="button-group">
+        <button onclick="testStorageSet()">setItem (保存)</button>
+        <button onclick="testStorageGet()">getItem (读取)</button>
+        <button onclick="testStorageGetAll()">getAllItems (全部)</button>
+        <button onclick="testStorageRemove()">removeItem (删除)</button>
+        <button class="danger" onclick="testStorageClear()">clear (清空)</button>
+      </div>
+      <div id="storageOutput" class="output"></div>
+    </div>
+
+    <!-- ========== 剪贴板 API ========== -->
+    <div class="api-section">
+      <h2><span class="icon">📋</span>剪贴板 (clipboard)</h2>
+      <div class="input-group">
+        <input type="text" id="clipboardText" placeholder="要复制的文本" value="Hello Naimo!" />
+        <button onclick="testClipboardWriteText()">写入文本</button>
+        <button onclick="testClipboardReadText()">读取文本</button>
+      </div>
+      <div class="button-group">
+        <button onclick="testClipboardHasText()">hasText (检查文本)</button>
+        <button onclick="testClipboardHasImage()">hasImage (检查图片)</button>
+        <button onclick="testClipboardReadImage()">readImage (读取图片)</button>
+        <button class="danger" onclick="testClipboardClear()">clear (清空)</button>
+      </div>
+      <div id="clipboardOutput" class="output"></div>
+    </div>
+
+    <!-- ========== Shell 操作 API ========== -->
+    <div class="api-section">
+      <h2><span class="icon">🐚</span>Shell 操作 (shell)</h2>
+      <div class="input-group">
+        <input type="text" id="shellPath" placeholder="文件路径" value="C:\\" />
+      </div>
+      <div class="button-group">
+        <button onclick="testShellOpenPath()">openPath (打开路径)</button>
+        <button onclick="testShellShowInFolder()">showInFolder (在文件夹中显示)</button>
+        <button onclick="testShellOpenUrl()">openUrl (打开网址)</button>
+        <button onclick="testShellBeep()">beep (播放提示音)</button>
+      </div>
+      <div id="shellOutput" class="output"></div>
+    </div>
+
+    <!-- ========== 系统信息 API ========== -->
+    <div class="api-section">
+      <h2><span class="icon">💻</span>系统信息 (system)</h2>
+      <div class="input-group">
+        <input type="text" id="notifyMessage" placeholder="通知消息" value="测试通知" />
+        <input type="text" id="notifyTitle" placeholder="通知标题" value="Naimo" />
+        <button onclick="testSystemNotify()">发送通知</button>
+      </div>
+      <div class="button-group">
+        <button onclick="testSystemGetVersion()">getVersion (版本)</button>
+        <button onclick="testSystemGetName()">getName (应用名)</button>
+        <button onclick="testSystemGetDeviceId()">getDeviceId (设备ID)</button>
+        <button onclick="testSystemIsMac()">isMac</button>
+        <button onclick="testSystemIsWindows()">isWindows</button>
+        <button onclick="testSystemIsLinux()">isLinux</button>
+        <button onclick="testSystemGetPath()">getPath (系统路径)</button>
+      </div>
+      <div id="systemOutput" class="output"></div>
+    </div>
+
+    <!-- ========== 屏幕与显示器 API ========== -->
+    <div class="api-section">
+      <h2><span class="icon">🖥️</span>屏幕与显示器 (screen)</h2>
+      <div class="button-group">
+        <button onclick="testScreenGetSources()">getSources (获取源)</button>
+        <button onclick="testScreenGetCursorPosition()">getCursorPosition (光标位置)</button>
+        <button onclick="testScreenGetPrimaryDisplay()">getPrimaryDisplay (主显示器)</button>
+        <button onclick="testScreenGetAllDisplays()">getAllDisplays (所有显示器)</button>
+        <button onclick="testScreenCapture()">capture (截图)</button>
+      </div>
+      <div id="screenOutput" class="output"></div>
+    </div>
+
+    <!-- ========== 对话框 API ========== -->
+    <div class="api-section">
+      <h2><span class="icon">💬</span>对话框 (dialog)</h2>
+      <div class="button-group">
+        <button onclick="testDialogShowOpen()">showOpen (打开文件)</button>
+        <button onclick="testDialogShowSave()">showSave (保存文件)</button>
+        <button onclick="testDialogShowMessage()">showMessage (消息框)</button>
+        <button onclick="testDialogShowError()">showError (错误框)</button>
+      </div>
+      <div id="dialogOutput" class="output"></div>
+    </div>
+
+    <!-- ========== 输入模拟 API ========== -->
+    <div class="api-section">
+      <h2><span class="icon">⌨️</span>输入模拟 (input)</h2>
+      <div class="info-box">
+        ⚠️ 注意：输入模拟功能需要窗口失去焦点后才能生效
+      </div>
+      <div class="input-group">
+        <input type="text" id="inputText" placeholder="要粘贴的文本" value="Hello from Naimo!" />
+        <button onclick="testInputPasteText()">pasteText (粘贴文本)</button>
+      </div>
+      <div class="input-group">
+        <input type="text" id="inputKey" placeholder="按键 (如: a, Enter)" value="a" />
+        <button onclick="testInputSimulateKeyPress()">simulateKeyPress (模拟按键)</button>
+      </div>
+      <div id="inputOutput" class="output"></div>
+    </div>
+  </div>
+
+  <script>
+    // ==================== 工具函数 ====================
+    function displayResult(elementId, result, isError = false) {
+      const output = document.getElementById(elementId);
+      output.className = `output ${isError ? "error" : "success"}`;
+      output.textContent =
+        typeof result === "object"
+          ? JSON.stringify(result, null, 2)
+          : String(result);
+    }
+
+    function displayError(elementId, error) {
+      displayResult(elementId, `错误: ${error.message || error}`, true);
+    }
+
+    // ==================== 日志 API 测试 ====================
+    function testLogError() {
+      window.naimo.log.error("这是一条错误日志", { detail: "错误详情" });
+      displayResult("logOutput", "已记录错误日志，请查看控制台");
+    }
+
+    function testLogWarn() {
+      window.naimo.log.warn("这是一条警告日志");
+      displayResult("logOutput", "已记录警告日志，请查看控制台");
+    }
+
+    function testLogInfo() {
+      window.naimo.log.info("这是一条信息日志");
+      displayResult("logOutput", "已记录信息日志，请查看控制台");
+    }
+
+    function testLogDebug() {
+      window.naimo.log.debug("这是一条调试日志");
+      displayResult("logOutput", "已记录调试日志，请查看控制台");
+    }
+
+    function testLogThrowError() {
+      try {
+        window.naimo.log.throw_error(new Error("测试错误"), {
+          title: "测试错误对话框",
+        });
+        displayResult("logOutput", "已触发错误对话框");
+      } catch (error) {
+        displayError("logOutput", error);
+      }
+    }
+
+    // ==================== 窗口管理 API 测试 ====================
+    function testWindowHide() {
+      window.naimo.window.hide();
+      displayResult("windowOutput", "窗口已隐藏（3秒后自动显示）");
+      setTimeout(() => window.naimo.window.show(), 3000);
+    }
+
+    function testWindowShow() {
+      window.naimo.window.show();
+      displayResult("windowOutput", "窗口已显示");
+    }
+
+    function testWindowMinimize() {
+      window.naimo.window.minimize();
+      displayResult("windowOutput", "窗口已最小化");
+    }
+
+    function testWindowMaximize() {
+      window.naimo.window.maximize();
+      displayResult("windowOutput", "窗口已最大化/还原");
+    }
+
+    function testWindowClose() {
+      if (confirm("确定要关闭窗口吗？")) {
+        window.naimo.window.close();
+      }
+    }
+
+    function testWindowSetHeight() {
+      const height = parseInt(document.getElementById("windowHeight").value);
+      window.naimo.window.setHeight(height);
+      displayResult("windowOutput", `窗口高度已设置为 ${height}px`);
+    }
+
+    function testWindowSetSize() {
+      const width = parseInt(document.getElementById("windowWidth").value);
+      const height = parseInt(
+        document.getElementById("windowHeightForSize").value
+      );
+      window.naimo.window.setSize(width, height);
+      displayResult(
+        "windowOutput",
+        `窗口尺寸已设置为 ${width}x${height}px`
+      );
+    }
+
+    // ==================== 数据库 API 测试 ====================
+    async function testDbPut() {
+      try {
+        const id = document.getElementById("dbDocId").value;
+        const content = JSON.parse(
+          document.getElementById("dbDocContent").value
+        );
+        const doc = { _id: id, ...content };
+        const result = await window.naimo.db.put(doc);
+        displayResult("dbOutput", result);
+      } catch (error) {
+        displayError("dbOutput", error);
+      }
+    }
+
+    async function testDbPutRandom() {
+      try {
+        const content = JSON.parse(
+          document.getElementById("dbDocContent").value
+        );
+        // 生成随机 ID
+        const randomId = `test_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        const doc = { _id: randomId, ...content };
+        const result = await window.naimo.db.put(doc);
+        displayResult("dbOutput", `已添加新文档: ${randomId}\n${JSON.stringify(result, null, 2)}`);
+      } catch (error) {
+        displayError("dbOutput", error);
+      }
+    }
+
+    async function testDbClearAll() {
+      try {
+        if (confirm("确定要清空所有测试数据吗？")) {
+          const docs = await window.naimo.db.allDocs("test_");
+          for (const doc of docs) {
+            await window.naimo.db.remove(doc._id);
+          }
+          displayResult("dbOutput", `已清空 ${docs.length} 条数据`);
+        }
+      } catch (error) {
+        displayError("dbOutput", error);
+      }
+    }
+
+    async function testDbGet() {
+      try {
+        const id = document.getElementById("dbDocId").value;
+        const result = await window.naimo.db.get(id);
+        displayResult("dbOutput", result);
+      } catch (error) {
+        displayError("dbOutput", error);
+      }
+    }
+
+    async function testDbRemove() {
+      try {
+        const id = document.getElementById("dbDocId").value;
+        const result = await window.naimo.db.remove(id);
+        displayResult("dbOutput", result);
+      } catch (error) {
+        displayError("dbOutput", error);
+      }
+    }
+
+    async function testDbAllDocs() {
+      try {
+        const result = await window.naimo.db.allDocs("test_");
+        displayResult("dbOutput", result);
+      } catch (error) {
+        displayError("dbOutput", error);
+      }
+    }
+
+    // ==================== 键值存储 API 测试 ====================
+    async function testStorageSet() {
+      try {
+        const key = document.getElementById("storageKey").value;
+        const value = document.getElementById("storageValue").value;
+        await window.naimo.storage.setItem(key, value);
+        displayResult("storageOutput", `已保存: ${key} = ${value}`);
+      } catch (error) {
+        displayError("storageOutput", error);
+      }
+    }
+
+    async function testStorageGet() {
+      try {
+        const key = document.getElementById("storageKey").value;
+        const result = await window.naimo.storage.getItem(key);
+        displayResult("storageOutput", result || "未找到该键");
+      } catch (error) {
+        displayError("storageOutput", error);
+      }
+    }
+
+    async function testStorageGetAll() {
+      try {
+        const result = await window.naimo.storage.getAllItems();
+        displayResult("storageOutput", result);
+      } catch (error) {
+        displayError("storageOutput", error);
+      }
+    }
+
+    async function testStorageRemove() {
+      try {
+        const key = document.getElementById("storageKey").value;
+        await window.naimo.storage.removeItem(key);
+        displayResult("storageOutput", `已删除: ${key}`);
+      } catch (error) {
+        displayError("storageOutput", error);
+      }
+    }
+
+    async function testStorageClear() {
+      try {
+        if (confirm("确定要清空所有存储吗？")) {
+          await window.naimo.storage.clear();
+          displayResult("storageOutput", "已清空所有存储");
+        }
+      } catch (error) {
+        displayError("storageOutput", error);
+      }
+    }
+
+    // ==================== 剪贴板 API 测试 ====================
+    async function testClipboardWriteText() {
+      try {
+        const text = document.getElementById("clipboardText").value;
+        await window.naimo.clipboard.writeText(text);
+        displayResult("clipboardOutput", `已写入剪贴板: ${text}`);
+      } catch (error) {
+        displayError("clipboardOutput", error);
+      }
+    }
+
+    async function testClipboardReadText() {
+      try {
+        const result = await window.naimo.clipboard.readText();
+        displayResult("clipboardOutput", result || "剪贴板为空");
+      } catch (error) {
+        displayError("clipboardOutput", error);
+      }
+    }
+
+    async function testClipboardHasText() {
+      try {
+        const result = await window.naimo.clipboard.hasText();
+        displayResult(
+          "clipboardOutput",
+          `剪贴板${result ? "有" : "没有"}文本`
+        );
+      } catch (error) {
+        displayError("clipboardOutput", error);
+      }
+    }
+
+    async function testClipboardHasImage() {
+      try {
+        const result = await window.naimo.clipboard.hasImage();
+        displayResult(
+          "clipboardOutput",
+          `剪贴板${result ? "有" : "没有"}图片`
+        );
+      } catch (error) {
+        displayError("clipboardOutput", error);
+      }
+    }
+
+    async function testClipboardReadImage() {
+      try {
+        const result = await window.naimo.clipboard.readImage();
+        if (result) {
+          displayResult(
+            "clipboardOutput",
+            `已读取图片 (${result.substring(0, 50)}...)`
+          );
+        } else {
+          displayResult("clipboardOutput", "剪贴板中没有图片");
+        }
+      } catch (error) {
+        displayError("clipboardOutput", error);
+      }
+    }
+
+    async function testClipboardClear() {
+      try {
+        await window.naimo.clipboard.clear();
+        displayResult("clipboardOutput", "已清空剪贴板");
+      } catch (error) {
+        displayError("clipboardOutput", error);
+      }
+    }
+
+    // ==================== Shell 操作 API 测试 ====================
+    async function testShellOpenPath() {
+      try {
+        const path = document.getElementById("shellPath").value;
+        await window.naimo.shell.openPath(path);
+        displayResult("shellOutput", `已打开路径: ${path}`);
+      } catch (error) {
+        displayError("shellOutput", error);
+      }
+    }
+
+    async function testShellShowInFolder() {
+      try {
+        const path = document.getElementById("shellPath").value;
+        await window.naimo.shell.showInFolder(path);
+        displayResult("shellOutput", `已在文件夹中显示: ${path}`);
+      } catch (error) {
+        displayError("shellOutput", error);
+      }
+    }
+
+    async function testShellOpenUrl() {
+      try {
+        await window.naimo.shell.openUrl("https://github.com");
+        displayResult("shellOutput", "已在浏览器中打开 GitHub");
+      } catch (error) {
+        displayError("shellOutput", error);
+      }
+    }
+
+    async function testShellBeep() {
+      try {
+        await window.naimo.shell.beep();
+        displayResult("shellOutput", "已播放系统提示音");
+      } catch (error) {
+        displayError("shellOutput", error);
+      }
+    }
+
+    // ==================== 系统信息 API 测试 ====================
+    async function testSystemNotify() {
+      try {
+        const message = document.getElementById("notifyMessage").value;
+        const title = document.getElementById("notifyTitle").value;
+        await window.naimo.system.notify(message, title);
+        displayResult("systemOutput", "已发送系统通知");
+      } catch (error) {
+        displayError("systemOutput", error);
+      }
+    }
+
+    async function testSystemGetVersion() {
+      try {
+        const result = await window.naimo.system.getVersion();
+        displayResult("systemOutput", `应用版本: ${result}`);
+      } catch (error) {
+        displayError("systemOutput", error);
+      }
+    }
+
+    async function testSystemGetName() {
+      try {
+        const result = await window.naimo.system.getName();
+        displayResult("systemOutput", `应用名称: ${result}`);
+      } catch (error) {
+        displayError("systemOutput", error);
+      }
+    }
+
+    async function testSystemGetDeviceId() {
+      try {
+        const result = await window.naimo.system.getDeviceId();
+        displayResult("systemOutput", `设备ID: ${result}`);
+      } catch (error) {
+        displayError("systemOutput", error);
+      }
+    }
+
+    async function testSystemIsMac() {
+      try {
+        const result = await window.naimo.system.isMac();
+        displayResult("systemOutput", `是否为 Mac: ${result}`);
+      } catch (error) {
+        displayError("systemOutput", error);
+      }
+    }
+
+    async function testSystemIsWindows() {
+      try {
+        const result = await window.naimo.system.isWindows();
+        displayResult("systemOutput", `是否为 Windows: ${result}`);
+      } catch (error) {
+        displayError("systemOutput", error);
+      }
+    }
+
+    async function testSystemIsLinux() {
+      try {
+        const result = await window.naimo.system.isLinux();
+        displayResult("systemOutput", `是否为 Linux: ${result}`);
+      } catch (error) {
+        displayError("systemOutput", error);
+      }
+    }
+
+    async function testSystemGetPath() {
+      try {
+        const paths = {
+          home: await window.naimo.system.getPath("home"),
+          temp: await window.naimo.system.getPath("temp"),
+          desktop: await window.naimo.system.getPath("desktop"),
+        };
+        displayResult("systemOutput", paths);
+      } catch (error) {
+        displayError("systemOutput", error);
+      }
+    }
+
+    // ==================== 屏幕与显示器 API 测试 ====================
+    async function testScreenGetSources() {
+      try {
+        const result = await window.naimo.screen.getSources({
+          types: ["screen", "window"],
+          thumbnailSize: { width: 150, height: 150 },
+        });
+        displayResult("screenOutput", `找到 ${result.length} 个源`);
+      } catch (error) {
+        displayError("screenOutput", error);
+      }
+    }
+
+    async function testScreenGetCursorPosition() {
+      try {
+        const result = await window.naimo.screen.getCursorPosition();
+        displayResult("screenOutput", result);
+      } catch (error) {
+        displayError("screenOutput", error);
+      }
+    }
+
+    async function testScreenGetPrimaryDisplay() {
+      try {
+        const result = await window.naimo.screen.getPrimaryDisplay();
+        displayResult("screenOutput", result);
+      } catch (error) {
+        displayError("screenOutput", error);
+      }
+    }
+
+    async function testScreenGetAllDisplays() {
+      try {
+        const result = await window.naimo.screen.getAllDisplays();
+        displayResult("screenOutput", result);
+      } catch (error) {
+        displayError("screenOutput", error);
+      }
+    }
+
+    async function testScreenCapture() {
+      try {
+        const result = await window.naimo.screen.capture();
+        displayResult("screenOutput", `截图已保存: ${result}`);
+      } catch (error) {
+        displayError("screenOutput", error);
+      }
+    }
+
+    // ==================== 对话框 API 测试 ====================
+    async function testDialogShowOpen() {
+      try {
+        const result = await window.naimo.dialog.showOpen({
+          title: "选择文件",
+          properties: ["openFile", "multiSelections"],
+        });
+        displayResult("dialogOutput", result);
+      } catch (error) {
+        displayError("dialogOutput", error);
+      }
+    }
+
+    async function testDialogShowSave() {
+      try {
+        const result = await window.naimo.dialog.showSave({
+          title: "保存文件",
+          defaultPath: "test.txt",
+        });
+        displayResult("dialogOutput", result);
+      } catch (error) {
+        displayError("dialogOutput", error);
+      }
+    }
+
+    async function testDialogShowMessage() {
+      try {
+        const result = await window.naimo.dialog.showMessage({
+          type: "info",
+          title: "测试消息",
+          message: "这是一个测试消息框",
+          buttons: ["确定", "取消"],
+        });
+        displayResult("dialogOutput", result);
+      } catch (error) {
+        displayError("dialogOutput", error);
+      }
+    }
+
+    async function testDialogShowError() {
+      try {
+        await window.naimo.dialog.showError("错误标题", "这是一个错误消息");
+        displayResult("dialogOutput", "已显示错误对话框");
+      } catch (error) {
+        displayError("dialogOutput", error);
+      }
+    }
+
+    // ==================== 输入模拟 API 测试 ====================
+    async function testInputPasteText() {
+      try {
+        const text = document.getElementById("inputText").value;
+        await window.naimo.input.pasteText(text);
+        displayResult(
+          "inputOutput",
+          "文本已粘贴（请将焦点移到其他应用查看效果）"
+        );
+      } catch (error) {
+        displayError("inputOutput", error);
+      }
+    }
+
+    async function testInputSimulateKeyPress() {
+      try {
+        const key = document.getElementById("inputKey").value;
+        await window.naimo.input.simulateKeyPress(key);
+        displayResult("inputOutput", `已模拟按键: ${key}`);
+      } catch (error) {
+        displayError("inputOutput", error);
+      }
+    }
+
+    // ==================== 初始化 ====================
+    window.addEventListener("DOMContentLoaded", () => {
+      console.log("API 测试面板已加载");
+      window.naimo.log.info("API 测试面板已初始化");
+    });
+  </script>
+</body>
+
+</html>

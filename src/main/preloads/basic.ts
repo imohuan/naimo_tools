@@ -249,7 +249,7 @@ const electronAPI = {
         };
       }
     }
-  }
+  },
 }
 
 const naimo = electronAPI

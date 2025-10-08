@@ -1,0 +1,32 @@
+{
+  "$schema": "../../plugins-doc/manifest-schema.json",
+  "id": "api-test-plugin",
+  "name": "Naimo API 测试插件",
+  "version": "1.0.0",
+  "author": "Naimo Tools Team",
+  "icon": "🧪",
+  "description": "用于测试所有 Naimo API 的调试插件",
+  "category": "developer_essentials",
+  "enabled": true,
+  "main": "./index.html",
+  "preload": "./preload.js",
+  "feature": [
+    {
+      "path": "api-test",
+      "name": "API 测试面板",
+      "icon": "🧪",
+      "description": "测试所有 Naimo API 功能",
+      "type": "text",
+      "weight": 100,
+      "lifecycleType": "reuse",
+      "singleton": true,
+      "anonymousSearchFields": [
+        "api",
+        "test",
+        "测试",
+        "调试",
+        "debug"
+      ]
+    }
+  ]
+}
