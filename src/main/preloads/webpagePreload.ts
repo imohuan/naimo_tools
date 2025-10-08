@@ -4,6 +4,7 @@ import { RendererErrorHandler } from "@libs/unhandled/renderer";
 import { ipcRouter } from "@shared/utils/ipcRouterClient";
 import { eventRouter } from "@shared/utils/eventRouterClient";
 import { isFunction } from "@shared/utils/common/typeUtils";
+import { automateWithJson, fetchHTML, fetchJSON, parseHtmlByConfig, createRendererUBrowser, createInstantUBrowser } from "@libs/auto-puppeteer/renderer";
 
 // @ts-ignore
 const prefix = `${__METADATA__['fullPath']?.split(':')?.[0] || __METADATA__['title']}`;
@@ -135,6 +136,24 @@ const naimo = {
       ipcRouter.inputSimulateHotkey(modifiers, key),
   },
 
+  // ========== 网页自动化 (auto-puppeteer) ==========
+  automation: {
+    automateWithJson: (config: any) => automateWithJson(config),
+    parseHtmlByConfig: (config: any, html: string) => parseHtmlByConfig(config, html),
+    fetchHTML: (url: string, asyncConfig: any = null) => fetchHTML(url, asyncConfig),
+    fetchJSON: (url: string) => fetchJSON(url),
+  },
+
+  // ========== 可编程浏览器 (ubrowser) ==========
+  ubrowser: createRendererUBrowser((channel: string, ...args: any[]) =>
+    ipcRenderer.invoke(channel, ...args)
+  ),
+
+  // ========== 即时执行浏览器 (instantBrowser) ==========
+  instantBrowser: createInstantUBrowser((channel: string, ...args: any[]) =>
+    ipcRenderer.invoke(channel, ...args)
+  ),
+
   // ========== 事件系统 ==========
   onEnter: (callback: (params: any) => void) => {
     hooks.enter.push(callback);
@@ -167,5 +186,3 @@ eventRouter.onPluginMessage((event, data) => {
     log.error("PRELOAD 收到主进程传递的参数失败:", error);
   }
 });
-
-// eventRouter.onPlugin

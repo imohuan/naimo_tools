@@ -10,7 +10,6 @@ import type { Service } from '../core/ServiceContainer'
 import type { NewWindowManager } from '../window/NewWindowManager'
 import { getDirname } from '@main/utils'
 import { readFileSync } from 'fs'
-import { LifecycleManager } from '@main/window/LifecycleManager'
 
 /**
  * 调试服务配置

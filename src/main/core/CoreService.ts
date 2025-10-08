@@ -13,6 +13,7 @@ import { existsSync, rmSync } from 'fs'
 import { getDirname } from '../utils'
 import { processEventCoordinator } from './ProcessEventCoordinator'
 import type { Service, ServiceContainer } from './ServiceContainer'
+import { autoPuppeteerMain } from '@libs/auto-puppeteer/main'
 
 /**
  * 核心服务配置接口
@@ -60,6 +61,9 @@ export class CoreService implements Service {
     try {
       // 初始化日志系统
       this.initializeLogging()
+
+      // 初始化 auto-puppeteer
+      autoPuppeteerMain.setLog(log)
 
       // 设置应用事件监听器
       this.setupAppEvents()

@@ -86,7 +86,7 @@ export async function clearLogs(event: Electron.IpcMainInvokeEvent): Promise<voi
  */
 export async function exportLogs(event: Electron.IpcMainInvokeEvent, format: 'txt' | 'json' = 'txt'): Promise<string> {
   try {
-    const logs = await getLogs();
+    const logs = await getLogs(event);
 
     if (format === 'json') {
       return JSON.stringify(logs, null, 2);

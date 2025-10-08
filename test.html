@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>自动化测试页面 - Naimo Tools</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 16px;
+      padding: 40px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    }
+
+    h1 {
+      color: #333;
+      margin-bottom: 10px;
+      font-size: 32px;
+      text-align: center;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: #666;
+      margin-bottom: 40px;
+      font-size: 14px;
+    }
+
+    .section {
+      margin-bottom: 30px;
+      padding: 20px;
+      background: #f8f9fa;
+      border-radius: 12px;
+      border-left: 4px solid #667eea;
+    }
+
+    .section h2 {
+      color: #333;
+      margin-bottom: 15px;
+      font-size: 20px;
+    }
+
+    .form-group {
+      margin-bottom: 15px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 5px;
+      color: #555;
+      font-weight: 600;
+    }
+
+    input[type="text"],
+    input[type="email"],
+    input[type="password"],
+    input[type="number"],
+    textarea,
+    select {
+      width: 100%;
+      padding: 10px 12px;
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      font-size: 14px;
+      transition: border-color 0.3s;
+    }
+
+    input:focus,
+    textarea:focus,
+    select:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+
+    textarea {
+      min-height: 100px;
+      resize: vertical;
+    }
+
+    button {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      background: #667eea;
+      color: white;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    button:hover {
+      background: #5568d3;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    .checkbox-group {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    .checkbox-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .checkbox-item input[type="checkbox"] {
+      width: auto;
+      cursor: pointer;
+    }
+
+    .result-box {
+      margin-top: 20px;
+      padding: 15px;
+      background: #e7f3ff;
+      border-left: 4px solid #2196f3;
+      border-radius: 6px;
+      font-family: monospace;
+      font-size: 13px;
+      display: none;
+    }
+
+    .result-box.show {
+      display: block;
+    }
+
+    .data-list {
+      list-style: none;
+      padding: 0;
+    }
+
+    .data-list li {
+      padding: 10px;
+      margin-bottom: 8px;
+      background: white;
+      border-radius: 6px;
+      border: 1px solid #ddd;
+    }
+
+    .data-list li:hover {
+      border-color: #667eea;
+      background: #f8f9ff;
+    }
+
+    #clock {
+      text-align: center;
+      font-size: 48px;
+      font-weight: bold;
+      color: #667eea;
+      margin: 20px 0;
+      font-family: 'Courier New', monospace;
+    }
+
+    .api-info {
+      background: #fff3cd;
+      border-left: 4px solid #ffc107;
+      padding: 15px;
+      border-radius: 6px;
+      margin-top: 20px;
+      color: #856404;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h1>🤖 自动化测试页面</h1>
+    <p class="subtitle">用于测试 Naimo 自动化功能的示例页面</p>
+
+    <!-- 时钟显示 -->
+    <div id="clock">--:--:--</div>
+
+    <!-- 登录表单 -->
+    <div class="section">
+      <h2>📝 登录表单</h2>
+      <form id="loginForm">
+        <div class="form-group">
+          <label for="username">用户名：</label>
+          <input type="text" id="username" name="username" placeholder="请输入用户名">
+        </div>
+        <div class="form-group">
+          <label for="password">密码：</label>
+          <input type="password" id="password" name="password" placeholder="请输入密码">
+        </div>
+        <div class="form-group">
+          <label>
+            <input type="checkbox" id="remember" name="remember">
+            记住我
+          </label>
+        </div>
+        <button type="submit">登录</button>
+      </form>
+      <div id="loginResult" class="result-box"></div>
+    </div>
+
+    <!-- 搜索功能 -->
+    <div class="section">
+      <h2>🔍 搜索功能</h2>
+      <div class="form-group">
+        <label for="searchInput">搜索关键词：</label>
+        <input type="text" id="searchInput" placeholder="输入关键词搜索">
+      </div>
+      <button id="searchBtn">搜索</button>
+      <div id="searchResult" class="result-box"></div>
+      <ul id="searchList" class="data-list"></ul>
+    </div>
+
+    <!-- 数据表单 -->
+    <div class="section">
+      <h2>📋 数据表单</h2>
+      <form id="dataForm">
+        <div class="form-group">
+          <label for="name">姓名：</label>
+          <input type="text" id="name" name="name" placeholder="请输入姓名">
+        </div>
+        <div class="form-group">
+          <label for="email">邮箱：</label>
+          <input type="email" id="email" name="email" placeholder="请输入邮箱">
+        </div>
+        <div class="form-group">
+          <label for="age">年龄：</label>
+          <input type="number" id="age" name="age" placeholder="请输入年龄">
+        </div>
+        <div class="form-group">
+          <label for="city">城市：</label>
+          <select id="city" name="city">
+            <option value="">请选择城市</option>
+            <option value="beijing">北京</option>
+            <option value="shanghai">上海</option>
+            <option value="guangzhou">广州</option>
+            <option value="shenzhen">深圳</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>兴趣爱好：</label>
+          <div class="checkbox-group">
+            <div class="checkbox-item">
+              <input type="checkbox" id="hobby1" name="hobby" value="reading">
+              <label for="hobby1">阅读</label>
+            </div>
+            <div class="checkbox-item">
+              <input type="checkbox" id="hobby2" name="hobby" value="sports">
+              <label for="hobby2">运动</label>
+            </div>
+            <div class="checkbox-item">
+              <input type="checkbox" id="hobby3" name="hobby" value="music">
+              <label for="hobby3">音乐</label>
+            </div>
+            <div class="checkbox-item">
+              <input type="checkbox" id="hobby4" name="hobby" value="travel">
+              <label for="hobby4">旅行</label>
+            </div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="comment">备注：</label>
+          <textarea id="comment" name="comment" placeholder="请输入备注信息"></textarea>
+        </div>
+        <button type="submit">提交</button>
+      </form>
+      <div id="dataResult" class="result-box"></div>
+    </div>
+
+    <!-- 交互按钮 -->
+    <div class="section">
+      <h2>🎯 交互测试</h2>
+      <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+        <button id="clickBtn">点击我</button>
+        <button id="hoverBtn">悬停测试</button>
+        <button id="focusBtn">焦点测试</button>
+        <button id="scrollBtn">滚动到底部</button>
+      </div>
+      <div id="interactionResult" class="result-box"></div>
+    </div>
+
+    <!-- API 测试信息 -->
+    <div class="api-info">
+      <strong>💡 自动化测试说明：</strong><br>
+      本页面提供了多种可交互元素，用于测试 Naimo 的自动化功能：<br>
+      • 登录表单 - 测试输入、checkbox、表单提交<br>
+      • 搜索功能 - 测试输入、点击、数据显示<br>
+      • 数据表单 - 测试各种表单元素（文本、数字、选择、多选、文本域）<br>
+      • 交互按钮 - 测试点击、悬停、焦点、滚动等操作<br><br>
+      <strong>🌐 访问地址：</strong>http://localhost:8000/test.html
+    </div>
+  </div>
+
+  <script>
+    // 更新时钟
+    function updateClock() {
+      const now = new Date();
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      const seconds = String(now.getSeconds()).padStart(2, '0');
+      document.getElementById('clock').textContent = `${hours}:${minutes}:${seconds}`;
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    // 登录表单提交
+    document.getElementById('loginForm').addEventListener('submit', function (e) {
+      e.preventDefault();
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+      const remember = document.getElementById('remember').checked;
+
+      const result = document.getElementById('loginResult');
+      result.textContent = `登录成功！\n用户名: ${username}\n记住我: ${remember ? '是' : '否'}`;
+      result.classList.add('show');
+    });
+
+    // 搜索功能
+    document.getElementById('searchBtn').addEventListener('click', function () {
+      const keyword = document.getElementById('searchInput').value;
+      if (!keyword) {
+        alert('请输入搜索关键词');
+        return;
+      }
+
+      const result = document.getElementById('searchResult');
+      result.textContent = `搜索关键词: ${keyword}\n正在搜索...`;
+      result.classList.add('show');
+
+      // 模拟搜索结果
+      setTimeout(() => {
+        const results = [
+          `${keyword} - 搜索结果 1`,
+          `${keyword} - 搜索结果 2`,
+          `${keyword} - 搜索结果 3`,
+          `${keyword} - 搜索结果 4`,
+          `${keyword} - 搜索结果 5`
+        ];
+
+        const list = document.getElementById('searchList');
+        list.innerHTML = '';
+        results.forEach(item => {
+          const li = document.createElement('li');
+          li.textContent = item;
+          list.appendChild(li);
+        });
+
+        result.textContent = `找到 ${results.length} 条结果`;
+      }, 500);
+    });
+
+    // 数据表单提交
+    document.getElementById('dataForm').addEventListener('submit', function (e) {
+      e.preventDefault();
+      const formData = new FormData(this);
+      const data = {};
+      formData.forEach((value, key) => {
+        if (key === 'hobby') {
+          if (!data.hobbies) data.hobbies = [];
+          data.hobbies.push(value);
+        } else {
+          data[key] = value;
+        }
+      });
+
+      const result = document.getElementById('dataResult');
+      result.textContent = '提交成功！\n' + JSON.stringify(data, null, 2);
+      result.classList.add('show');
+    });
+
+    // 交互按钮
+    document.getElementById('clickBtn').addEventListener('click', function () {
+      const result = document.getElementById('interactionResult');
+      result.textContent = '按钮被点击了！时间: ' + new Date().toLocaleTimeString();
+      result.classList.add('show');
+    });
+
+    document.getElementById('hoverBtn').addEventListener('mouseenter', function () {
+      this.style.background = '#28a745';
+      this.textContent = '悬停中...';
+    });
+
+    document.getElementById('hoverBtn').addEventListener('mouseleave', function () {
+      this.style.background = '#667eea';
+      this.textContent = '悬停测试';
+    });
+
+    document.getElementById('focusBtn').addEventListener('focus', function () {
+      const result = document.getElementById('interactionResult');
+      result.textContent = '焦点已获得！';
+      result.classList.add('show');
+    });
+
+    document.getElementById('scrollBtn').addEventListener('click', function () {
+      window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+      const result = document.getElementById('interactionResult');
+      result.textContent = '正在滚动到底部...';
+      result.classList.add('show');
+    });
+  </script>
+</body>
+
+</html>
