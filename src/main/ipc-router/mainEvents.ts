@@ -212,6 +212,23 @@ export function sendPluginMessage(
 }
 
 /**
+ * 发送 plugin-exit 事件
+ * @param webContents 目标 WebContents
+ * @param data 事件数据
+ */
+export function sendPluginExit(
+  webContents: WebContents,
+  data: EventData<'plugin-exit'>
+): void {
+  if (webContents && !webContents.isDestroyed()) {
+    webContents.send('plugin-exit', data)
+    log.debug(`事件已发送: plugin-exit`, { data })
+  } else {
+    log.warn(`无法发送事件: WebContents已销毁 - plugin-exit`)
+  }
+}
+
+/**
  * 发送 hotkey-updated 事件
  * @param webContents 目标 WebContents
  * @param data 事件数据
@@ -395,6 +412,7 @@ export const mainEvents = {
   pluginUninstalled: sendPluginUninstalled,
   pluginSearch: sendPluginSearch,
   pluginMessage: sendPluginMessage,
+  pluginExit: sendPluginExit,
   hotkeyUpdated: sendHotkeyUpdated,
   windowAllBlur: sendWindowAllBlur,
   windowMainHide: sendWindowMainHide,

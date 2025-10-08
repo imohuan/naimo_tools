@@ -184,7 +184,42 @@
 <body>
   <div class="container">
     <h1>🧪 Naimo API 测试面板</h1>
-    <p class="subtitle">测试所有可用的 Naimo API 功能</p>
+    <p class="subtitle">测试所有可用的 Naimo API 功能 - P0 核心 API 已全部实现</p>
+
+    <!-- 综合使用说明 -->
+    <div class="api-section" style="background: linear-gradient(135deg, #667eea22 0%, #764ba222 100%);">
+      <h2><span class="icon">📘</span>API 使用指南</h2>
+      <div class="info-box">
+        <strong>🎯 第二阶段（P0核心API）已完成：</strong><br>
+        ✅ 窗口管理 (window) - 隐藏/显示/关闭窗口<br>
+        ✅ 文档数据库 (db) - 基于 lowdb 的文档存储，支持版本控制<br>
+        ✅ 键值存储 (storage) - 简单的配置存储<br>
+        ✅ 剪贴板 (clipboard) - 读写文本和图片<br>
+        ✅ Shell操作 (shell) - 打开文件/URL/文件夹<br>
+        ✅ 系统信息 (system) - 获取版本、路径、设备ID等<br>
+        ✅ 屏幕显示 (screen) - 截图、显示器信息<br>
+        ✅ 对话框 (dialog) - 文件选择、保存对话框<br>
+        ✅ 输入模拟 (input) - 粘贴文本/图片/文件
+      </div>
+      <div class="info-box" style="background: #e7f3ff; border-color: #2196f3;">
+        <strong>💡 快速开始：</strong><br>
+        1️⃣ 点击各模块的按钮测试基础功能<br>
+        2️⃣ 查看带有 <span style="color: #28a745;">绿色</span>/<span style="color: #17a2b8;">蓝色</span>/<span
+          style="color: #6f42c1;">紫色</span> 按钮的实用案例<br>
+        3️⃣ 在控制台查看详细的API调用日志<br>
+        4️⃣ 参考实用案例的源代码了解最佳实践
+      </div>
+      <div class="button-group">
+        <button onclick="runComprehensiveExample()"
+          style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); font-size: 15px; padding: 12px 24px;">
+          🚀 运行综合示例
+        </button>
+        <button onclick="showApiDocs()" style="background: #17a2b8; font-size: 15px; padding: 12px 24px;">
+          📚 查看API文档
+        </button>
+      </div>
+      <div id="comprehensiveOutput" class="output" style="display: none;"></div>
+    </div>
 
     <!-- ========== 日志 API ========== -->
     <div class="api-section">
@@ -239,6 +274,16 @@
         <button onclick="testDbAllDocs()">allDocs (全部)</button>
         <button class="danger" onclick="testDbClearAll()">清空所有</button>
       </div>
+      <div class="divider"></div>
+      <div class="info-box" style="background: #fff3cd; border-color: #ffc107; color: #856404;">
+        📚 实用案例：用户设置保存
+      </div>
+      <div class="button-group">
+        <button onclick="testDbUseCaseUserSettings()" style="background: #28a745;">保存用户设置</button>
+        <button onclick="testDbUseCaseLoadSettings()">读取用户设置</button>
+        <button onclick="testDbUseCaseSearchHistory()" style="background: #17a2b8;">保存搜索历史</button>
+        <button onclick="testDbUseCaseBulkSave()" style="background: #6f42c1;">批量保存数据</button>
+      </div>
       <div id="dbOutput" class="output"></div>
     </div>
 
@@ -273,6 +318,16 @@
         <button onclick="testClipboardReadImage()">readImage (读取图片)</button>
         <button class="danger" onclick="testClipboardClear()">clear (清空)</button>
       </div>
+      <div class="divider"></div>
+      <div class="info-box" style="background: #fff3cd; border-color: #ffc107; color: #856404;">
+        📚 实用案例：剪贴板操作
+      </div>
+      <div class="button-group">
+        <button onclick="testClipboardUseCaseCopyJson()" style="background: #28a745;">复制JSON数据</button>
+        <button onclick="testClipboardUseCaseCopyLink()">复制链接</button>
+        <button onclick="testClipboardUseCaseFormatText()" style="background: #17a2b8;">格式化并复制</button>
+        <button onclick="testClipboardUseCaseMonitor()" style="background: #6f42c1;">监听剪贴板</button>
+      </div>
       <div id="clipboardOutput" class="output"></div>
     </div>
 
@@ -287,6 +342,16 @@
         <button onclick="testShellShowInFolder()">showInFolder (在文件夹中显示)</button>
         <button onclick="testShellOpenUrl()">openUrl (打开网址)</button>
         <button onclick="testShellBeep()">beep (播放提示音)</button>
+      </div>
+      <div class="divider"></div>
+      <div class="info-box" style="background: #fff3cd; border-color: #ffc107; color: #856404;">
+        📚 实用案例：快速访问常用路径
+      </div>
+      <div class="button-group">
+        <button onclick="testShellUseCaseOpenDesktop()" style="background: #28a745;">打开桌面</button>
+        <button onclick="testShellUseCaseOpenDownloads()">打开下载</button>
+        <button onclick="testShellUseCaseOpenDocs()" style="background: #17a2b8;">打开文档</button>
+        <button onclick="testShellUseCaseQuickSearch()" style="background: #6f42c1;">快速搜索GitHub</button>
       </div>
       <div id="shellOutput" class="output"></div>
     </div>
@@ -332,6 +397,16 @@
         <button onclick="testDialogShowSave()">showSave (保存文件)</button>
         <button onclick="testDialogShowMessage()">showMessage (消息框)</button>
         <button onclick="testDialogShowError()">showError (错误框)</button>
+      </div>
+      <div class="divider"></div>
+      <div class="info-box" style="background: #fff3cd; border-color: #ffc107; color: #856404;">
+        📚 实用案例：文件选择与保存
+      </div>
+      <div class="button-group">
+        <button onclick="testDialogUseCaseSelectImage()" style="background: #28a745;">选择图片</button>
+        <button onclick="testDialogUseCaseSelectMultiFiles()">选择多个文件</button>
+        <button onclick="testDialogUseCaseExportJson()" style="background: #17a2b8;">导出JSON配置</button>
+        <button onclick="testDialogUseCaseConfirm()" style="background: #6f42c1;">确认对话框</button>
       </div>
       <div id="dialogOutput" class="output"></div>
     </div>
@@ -520,6 +595,91 @@
       }
     }
 
+    // ==================== 数据库实用案例 ====================
+
+    // 案例1: 保存用户设置（主题、语言、字体大小等）
+    async function testDbUseCaseUserSettings() {
+      try {
+        const userSettings = {
+          _id: "user_settings",
+          theme: "dark",
+          language: "zh-CN",
+          fontSize: 14,
+          autoSave: true,
+          lastModified: new Date().toISOString()
+        };
+        const result = await window.naimo.db.put(userSettings);
+        displayResult(
+          "dbOutput",
+          `✅ 用户设置已保存:\n${JSON.stringify(userSettings, null, 2)}\n\n保存结果:\n${JSON.stringify(result, null, 2)}`
+        );
+      } catch (error) {
+        displayError("dbOutput", error);
+      }
+    }
+
+    // 案例2: 读取用户设置
+    async function testDbUseCaseLoadSettings() {
+      try {
+        const settings = await window.naimo.db.get("user_settings");
+        if (settings) {
+          displayResult(
+            "dbOutput",
+            `✅ 用户设置读取成功:\n${JSON.stringify(settings, null, 2)}`
+          );
+        } else {
+          displayResult("dbOutput", "⚠️ 未找到用户设置，请先保存设置");
+        }
+      } catch (error) {
+        displayError("dbOutput", error);
+      }
+    }
+
+    // 案例3: 保存搜索历史（带时间戳）
+    async function testDbUseCaseSearchHistory() {
+      try {
+        const timestamp = Date.now();
+        const searchRecord = {
+          _id: `search_history_${timestamp}`,
+          keyword: "Electron API",
+          timestamp: timestamp,
+          type: "web_search",
+          results: 42
+        };
+
+        await window.naimo.db.put(searchRecord);
+
+        // 读取所有搜索历史
+        const allHistory = await window.naimo.db.allDocs("search_history_");
+        displayResult(
+          "dbOutput",
+          `✅ 搜索历史已保存\n\n当前共有 ${allHistory.length} 条搜索记录:\n${JSON.stringify(allHistory.slice(-5), null, 2)}`
+        );
+      } catch (error) {
+        displayError("dbOutput", error);
+      }
+    }
+
+    // 案例4: 批量保存数据
+    async function testDbUseCaseBulkSave() {
+      try {
+        const bookmarks = [
+          { _id: "bookmark_1", title: "GitHub", url: "https://github.com", category: "dev" },
+          { _id: "bookmark_2", title: "Stack Overflow", url: "https://stackoverflow.com", category: "dev" },
+          { _id: "bookmark_3", title: "MDN", url: "https://developer.mozilla.org", category: "docs" }
+        ];
+
+        const results = await window.naimo.db.bulkDocs(bookmarks);
+
+        displayResult(
+          "dbOutput",
+          `✅ 批量保存了 ${bookmarks.length} 个书签:\n${JSON.stringify(results, null, 2)}`
+        );
+      } catch (error) {
+        displayError("dbOutput", error);
+      }
+    }
+
     // ==================== 键值存储 API 测试 ====================
     async function testStorageSet() {
       try {
@@ -641,6 +801,96 @@
       }
     }
 
+    // ==================== 剪贴板实用案例 ====================
+
+    // 案例1: 复制JSON数据（格式化）
+    async function testClipboardUseCaseCopyJson() {
+      try {
+        const data = {
+          name: "Naimo Tools",
+          version: "1.0.0",
+          features: ["快速启动", "插件系统", "数据存储"],
+          config: {
+            theme: "dark",
+            language: "zh-CN"
+          }
+        };
+        const jsonString = JSON.stringify(data, null, 2);
+        await window.naimo.clipboard.writeText(jsonString);
+        displayResult(
+          "clipboardOutput",
+          `✅ JSON数据已复制到剪贴板:\n${jsonString}`
+        );
+      } catch (error) {
+        displayError("clipboardOutput", error);
+      }
+    }
+
+    // 案例2: 复制Markdown链接
+    async function testClipboardUseCaseCopyLink() {
+      try {
+        const title = "Naimo Tools - GitHub";
+        const url = "https://github.com/imohuan/naimo_tools";
+        const markdownLink = `[${title}](${url})`;
+        await window.naimo.clipboard.writeText(markdownLink);
+        displayResult(
+          "clipboardOutput",
+          `✅ Markdown链接已复制:\n${markdownLink}`
+        );
+      } catch (error) {
+        displayError("clipboardOutput", error);
+      }
+    }
+
+    // 案例3: 格式化文本并复制
+    async function testClipboardUseCaseFormatText() {
+      try {
+        const rawText = await window.naimo.clipboard.readText();
+        if (!rawText) {
+          displayResult("clipboardOutput", "⚠️ 剪贴板为空");
+          return;
+        }
+        // 移除多余空白并格式化
+        const formatted = rawText.trim().replace(/\s+/g, " ");
+        await window.naimo.clipboard.writeText(formatted);
+        displayResult(
+          "clipboardOutput",
+          `✅ 文本已格式化并复制:\n原文: ${rawText.substring(0, 50)}...\n格式化后: ${formatted.substring(0, 50)}...`
+        );
+      } catch (error) {
+        displayError("clipboardOutput", error);
+      }
+    }
+
+    // 案例4: 监听剪贴板变化（演示）
+    let clipboardMonitorInterval;
+    async function testClipboardUseCaseMonitor() {
+      try {
+        if (clipboardMonitorInterval) {
+          clearInterval(clipboardMonitorInterval);
+          clipboardMonitorInterval = null;
+          displayResult("clipboardOutput", "❌ 已停止监听剪贴板");
+          return;
+        }
+
+        let lastText = await window.naimo.clipboard.readText();
+        displayResult("clipboardOutput", "✅ 开始监听剪贴板变化（再次点击停止）\n当前内容: " + (lastText || "空"));
+
+        clipboardMonitorInterval = setInterval(async () => {
+          const currentText = await window.naimo.clipboard.readText();
+          if (currentText !== lastText) {
+            lastText = currentText;
+            displayResult(
+              "clipboardOutput",
+              `🔔 检测到剪贴板变化:\n${currentText?.substring(0, 100) || "空"}...`
+            );
+          }
+        }, 1000);
+      } catch (error) {
+        displayError("clipboardOutput", error);
+      }
+    }
+
     // ==================== Shell 操作 API 测试 ====================
     async function testShellOpenPath() {
       try {
@@ -675,6 +925,53 @@
       try {
         await window.naimo.shell.beep();
         displayResult("shellOutput", "已播放系统提示音");
+      } catch (error) {
+        displayError("shellOutput", error);
+      }
+    }
+
+    // ==================== Shell 实用案例 ====================
+
+    // 案例1: 快速打开桌面文件夹
+    async function testShellUseCaseOpenDesktop() {
+      try {
+        const desktopPath = await window.naimo.system.getPath("desktop");
+        await window.naimo.shell.openPath(desktopPath);
+        displayResult("shellOutput", `✅ 已打开桌面文件夹:\n${desktopPath}`);
+      } catch (error) {
+        displayError("shellOutput", error);
+      }
+    }
+
+    // 案例2: 快速打开下载文件夹
+    async function testShellUseCaseOpenDownloads() {
+      try {
+        const downloadsPath = await window.naimo.system.getPath("downloads");
+        await window.naimo.shell.openPath(downloadsPath);
+        displayResult("shellOutput", `✅ 已打开下载文件夹:\n${downloadsPath}`);
+      } catch (error) {
+        displayError("shellOutput", error);
+      }
+    }
+
+    // 案例3: 快速打开文档文件夹
+    async function testShellUseCaseOpenDocs() {
+      try {
+        const docsPath = await window.naimo.system.getPath("documents");
+        await window.naimo.shell.openPath(docsPath);
+        displayResult("shellOutput", `✅ 已打开文档文件夹:\n${docsPath}`);
+      } catch (error) {
+        displayError("shellOutput", error);
+      }
+    }
+
+    // 案例4: 快速搜索（打开GitHub）
+    async function testShellUseCaseQuickSearch() {
+      try {
+        const keyword = "electron";
+        const searchUrl = `https://github.com/search?q=${encodeURIComponent(keyword)}`;
+        await window.naimo.shell.openUrl(searchUrl);
+        displayResult("shellOutput", `✅ 已在浏览器中搜索:\n关键词: ${keyword}\nURL: ${searchUrl}`);
       } catch (error) {
         displayError("shellOutput", error);
       }
@@ -856,6 +1153,118 @@
       }
     }
 
+    // ==================== 对话框实用案例 ====================
+
+    // 案例1: 选择图片文件
+    async function testDialogUseCaseSelectImage() {
+      try {
+        const result = await window.naimo.dialog.showOpen({
+          title: "选择图片",
+          filters: [
+            { name: "图片文件", extensions: ["png", "jpg", "jpeg", "gif", "webp"] },
+            { name: "所有文件", extensions: ["*"] }
+          ],
+          properties: ["openFile"]
+        });
+
+        if (result && result.length > 0) {
+          displayResult(
+            "dialogOutput",
+            `✅ 已选择图片:\n${result[0]}`
+          );
+        } else {
+          displayResult("dialogOutput", "⚠️ 未选择文件");
+        }
+      } catch (error) {
+        displayError("dialogOutput", error);
+      }
+    }
+
+    // 案例2: 选择多个文件
+    async function testDialogUseCaseSelectMultiFiles() {
+      try {
+        const result = await window.naimo.dialog.showOpen({
+          title: "选择多个文件",
+          properties: ["openFile", "multiSelections"]
+        });
+
+        if (result && result.length > 0) {
+          displayResult(
+            "dialogOutput",
+            `✅ 已选择 ${result.length} 个文件:\n${result.map((f, i) => `${i + 1}. ${f}`).join("\n")}`
+          );
+        } else {
+          displayResult("dialogOutput", "⚠️ 未选择文件");
+        }
+      } catch (error) {
+        displayError("dialogOutput", error);
+      }
+    }
+
+    // 案例3: 导出JSON配置文件
+    async function testDialogUseCaseExportJson() {
+      try {
+        const result = await window.naimo.dialog.showSave({
+          title: "导出配置文件",
+          defaultPath: "naimo_config.json",
+          filters: [
+            { name: "JSON文件", extensions: ["json"] },
+            { name: "所有文件", extensions: ["*"] }
+          ]
+        });
+
+        if (result) {
+          // 这里可以保存文件
+          const config = {
+            version: "1.0.0",
+            settings: {
+              theme: "dark",
+              language: "zh-CN"
+            },
+            exportTime: new Date().toISOString()
+          };
+
+          displayResult(
+            "dialogOutput",
+            `✅ 选择保存路径:\n${result}\n\n配置内容:\n${JSON.stringify(config, null, 2)}\n\n💡 提示：实际使用时可配合文件系统API保存`
+          );
+        } else {
+          displayResult("dialogOutput", "⚠️ 取消保存");
+        }
+      } catch (error) {
+        displayError("dialogOutput", error);
+      }
+    }
+
+    // 案例4: 确认对话框
+    async function testDialogUseCaseConfirm() {
+      try {
+        const result = await window.naimo.dialog.showMessage({
+          type: "question",
+          title: "确认操作",
+          message: "是否要删除所有测试数据？",
+          detail: "此操作不可撤销，请谨慎选择",
+          buttons: ["取消", "确定"],
+          defaultId: 0,
+          cancelId: 0
+        });
+
+        if (result.response === 1) {
+          displayResult(
+            "dialogOutput",
+            "✅ 用户点击了【确定】\n可以继续执行删除操作"
+          );
+        } else {
+          displayResult(
+            "dialogOutput",
+            "❌ 用户点击了【取消】\n操作已取消"
+          );
+        }
+      } catch (error) {
+        displayError("dialogOutput", error);
+      }
+    }
+
     // ==================== 输入模拟 API 测试 ====================
     async function testInputPasteText() {
       try {
@@ -878,6 +1287,247 @@
       } catch (error) {
         displayError("inputOutput", error);
       }
+    }
+
+    // ==================== 综合示例 ====================
+
+    // 运行综合示例：演示多个API的组合使用
+    async function runComprehensiveExample() {
+      const output = document.getElementById("comprehensiveOutput");
+      output.style.display = "block";
+      output.className = "output success";
+
+      let log = "🚀 开始运行综合示例...\n\n";
+
+      try {
+        // 1. 获取系统信息
+        log += "📍 步骤 1: 获取系统信息\n";
+        const version = await window.naimo.system.getVersion();
+        const isWindows = await window.naimo.system.isWindows();
+        const deviceId = await window.naimo.system.getDeviceId();
+        log += `  ✓ 应用版本: ${version}\n`;
+        log += `  ✓ 操作系统: ${isWindows ? "Windows" : "其他"}\n`;
+        log += `  ✓ 设备ID: ${deviceId}\n\n`;
+
+        // 2. 保存用户配置到数据库
+        log += "📍 步骤 2: 保存用户配置到数据库\n";
+        const userConfig = {
+          _id: "demo_user_config",
+          username: "demo_user",
+          preferences: {
+            theme: "dark",
+            language: "zh-CN",
+            notifications: true
+          },
+          deviceId: deviceId,
+          lastLogin: new Date().toISOString()
+        };
+        const dbResult = await window.naimo.db.put(userConfig);
+        log += `  ✓ 配置已保存: ${dbResult.id}\n`;
+        log += `  ✓ 版本号: ${dbResult.rev}\n\n`;
+
+        // 3. 保存简单配置到键值存储
+        log += "📍 步骤 3: 保存快捷键到键值存储\n";
+        await window.naimo.storage.setItem("last_opened", new Date().toISOString());
+        await window.naimo.storage.setItem("launch_count", "1");
+        log += `  ✓ 启动时间已记录\n\n`;
+
+        // 4. 复制配置信息到剪贴板
+        log += "📍 步骤 4: 复制配置信息到剪贴板\n";
+        const configText = JSON.stringify(userConfig, null, 2);
+        await window.naimo.clipboard.writeText(configText);
+        log += `  ✓ 配置已复制到剪贴板\n\n`;
+
+        // 5. 发送成功通知
+        log += "📍 步骤 5: 发送系统通知\n";
+        await window.naimo.system.notify(
+          "综合示例执行成功！配置已保存并复制到剪贴板。",
+          "Naimo Tools"
+        );
+        log += `  ✓ 通知已发送\n\n`;
+
+        // 6. 获取保存的配置并验证
+        log += "📍 步骤 6: 验证保存的配置\n";
+        const savedConfig = await window.naimo.db.get("demo_user_config");
+        const lastOpened = await window.naimo.storage.getItem("last_opened");
+        log += `  ✓ 数据库配置验证: ${savedConfig ? "成功" : "失败"}\n`;
+        log += `  ✓ 键值存储验证: ${lastOpened ? "成功" : "失败"}\n\n`;
+
+        log += "✅ 综合示例执行完成！\n\n";
+        log += "💡 提示：\n";
+        log += "  • 配置已保存到数据库（文档ID: demo_user_config）\n";
+        log += "  • 启动时间已保存到键值存储\n";
+        log += "  • 配置信息已复制到剪贴板（可直接粘贴）\n";
+        log += "  • 系统通知已发送\n";
+
+        output.textContent = log;
+
+      } catch (error) {
+        log += `\n❌ 执行失败: ${error.message}`;
+        output.className = "output error";
+        output.textContent = log;
+      }
+    }
+
+    // 显示API文档
+    function showApiDocs() {
+      const output = document.getElementById("comprehensiveOutput");
+      output.style.display = "block";
+      output.className = "output";
+
+      const docs = `
+📚 Naimo API 文档
+
+═══════════════════════════════════════════════════
+
+🪟 窗口管理 (naimo.window)
+────────────────────────────────────────────────
+• hide()                    - 隐藏当前窗口
+• show()                    - 显示当前窗口
+• close()                   - 关闭当前窗口
+• minimize()                - 最小化窗口
+• maximize()                - 最大化/还原窗口
+• setHeight(height)         - 设置窗口高度
+• setSize(width, height)    - 设置窗口尺寸
+• create(url, options)      - 创建新窗口
+
+═══════════════════════════════════════════════════
+
+💾 文档数据库 (naimo.db) - 基于 lowdb
+────────────────────────────────────────────────
+• put(doc)                  - 保存/更新文档（需要 _id）
+• get(id)                   - 获取文档
+• remove(id)                - 删除文档
+• allDocs(prefix?)          - 获取所有文档（可按前缀过滤）
+• bulkDocs(docs[])          - 批量保存文档
+• putAttachment(id, data, type) - 保存附件
+• getAttachment(id)         - 获取附件
+
+💡 特点：支持 _rev 版本控制，每个插件独立数据库
+
+═══════════════════════════════════════════════════
+
+🗄️ 键值存储 (naimo.storage) - 兼容 localStorage
+────────────────────────────────────────────────
+• setItem(key, value)       - 保存键值对
+• getItem(key)              - 获取值
+• removeItem(key)           - 删除键
+• clear()                   - 清空所有
+• getAllItems()             - 获取所有配置
+
+💡 适用于：简单配置、缓存数据
+
+═══════════════════════════════════════════════════
+
+📋 剪贴板 (naimo.clipboard)
+────────────────────────────────────────────────
+• readText()                - 读取文本
+• writeText(text)           - 写入文本
+• readImage()               - 读取图片（base64）
+• writeImage(imageData)     - 写入图片
+• hasText()                 - 检查是否有文本
+• hasImage()                - 检查是否有图片
+• clear()                   - 清空剪贴板
+
+═══════════════════════════════════════════════════
+
+🐚 Shell 操作 (naimo.shell)
+────────────────────────────────────────────────
+• openPath(path)            - 打开文件或文件夹
+• openUrl(url)              - 在浏览器中打开URL
+• showInFolder(path)        - 在文件管理器中显示
+• moveToTrash(path)         - 移动到回收站
+• beep()                    - 播放系统提示音
+
+═══════════════════════════════════════════════════
+
+💻 系统信息 (naimo.system)
+────────────────────────────────────────────────
+• notify(message, title?)   - 发送系统通知
+• getPath(name)             - 获取系统路径
+  可用路径: home, desktop, documents, downloads,
+           temp, appData, userData, logs
+• getDeviceId()             - 获取设备唯一ID
+• getVersion()              - 获取应用版本
+• getName()                 - 获取应用名称
+• getFileIcon(path)         - 获取文件图标
+• isMac()                   - 是否Mac系统
+• isWindows()               - 是否Windows系统
+• isLinux()                 - 是否Linux系统
+
+═══════════════════════════════════════════════════
+
+🖥️ 屏幕与显示器 (naimo.screen)
+────────────────────────────────────────────────
+• capture(options?)         - 截图并保存
+• getSources(options)       - 获取屏幕和窗口源
+• getCursorPosition()       - 获取鼠标位置
+• getPrimaryDisplay()       - 获取主显示器信息
+• getAllDisplays()          - 获取所有显示器
+• getDisplayNearestPoint(point) - 获取指定坐标的显示器
+• screenToDipPoint(point)   - 屏幕坐标转DIP
+• dipToScreenPoint(point)   - DIP坐标转屏幕
+
+═══════════════════════════════════════════════════
+
+💬 对话框 (naimo.dialog)
+────────────────────────────────────────────────
+• showOpen(options)         - 显示打开文件对话框
+• showSave(options)         - 显示保存文件对话框
+• showMessage(options)      - 显示消息框
+• showError(title, content) - 显示错误对话框
+
+═══════════════════════════════════════════════════
+
+⌨️ 输入模拟 (naimo.input)
+────────────────────────────────────────────────
+• pasteText(text)           - 模拟粘贴文本
+• pasteImage(imageData)     - 模拟粘贴图片
+• pasteFile(filePath)       - 模拟粘贴文件
+• simulateKeyPress(key)     - 模拟按键
+• simulateHotkey(modifiers, key) - 模拟组合键
+
+⚠️ 注意：输入模拟需要窗口失去焦点
+
+═══════════════════════════════════════════════════
+
+📝 日志系统 (naimo.log)
+────────────────────────────────────────────────
+• error(message, ...args)   - 记录错误
+• warn(message, ...args)    - 记录警告
+• info(message, ...args)    - 记录信息
+• debug(message, ...args)   - 记录调试信息
+• throw_error(error, options?) - 抛出错误并显示对话框
+
+═══════════════════════════════════════════════════
+
+📌 最佳实践：
+
+1️⃣ 数据存储选择：
+   • 复杂数据、需要查询 → 使用 db（文档数据库）
+   • 简单配置、键值对    → 使用 storage（键值存储）
+
+2️⃣ 错误处理：
+   • 所有 API 调用都应该使用 try-catch
+   • 使用 naimo.log.error 记录错误日志
+
+3️⃣ 数据隔离：
+   • 每个插件的数据库是独立的
+   • 使用有意义的 _id 前缀组织数据
+
+4️⃣ 性能优化：
+   • 批量操作使用 bulkDocs
+   • 避免频繁的 allDocs 调用
+   • 使用前缀过滤减少数据传输
+
+═══════════════════════════════════════════════════
+
+🔗 相关资源：
+   • GitHub: https://github.com/imohuan/naimo_tools
+   • 文档: plugins-doc/uTools-API兼容层实施方案.md
+`;
+
+      output.textContent = docs;
     }
 
     // ==================== 初始化 ====================

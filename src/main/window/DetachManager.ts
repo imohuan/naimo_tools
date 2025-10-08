@@ -564,27 +564,36 @@ export class DetachManager {
     sourceView: WebContentsViewInfo,
     userConfig?: Partial<DetachedWindowConfig>
   ): DetachedWindowConfig {
-    // 获取当前鼠标位置作为新窗口位置参考
+    // 获取当前鼠标所在屏幕
     const mousePosition = screen.getCursorScreenPoint()
-
-    // 计算默认窗口位置
-    const defaultBounds: Rectangle = {
-      x: mousePosition.x + this.config.windowOffset.x,
-      y: mousePosition.y + this.config.windowOffset.y,
-      width: Math.max(
-        sourceView.config.bounds.width,
-        this.config.defaultWindowSize.width
-      ),
-      height: Math.max(
-        sourceView.config.bounds.height,
-        this.config.defaultWindowSize.height
-      )
-    }
-
-    // 确保窗口在屏幕范围内
     const display = screen.getDisplayNearestPoint(mousePosition)
     const workArea = display.workArea
 
+    // 计算窗口尺寸
+    const windowWidth = Math.max(
+      sourceView.config.bounds.width,
+      this.config.defaultWindowSize.width
+    )
+    const windowHeight = Math.max(
+      sourceView.config.bounds.height,
+      this.config.defaultWindowSize.height
+    )
+
+    // 居中计算窗口位置
+    const defaultBounds: Rectangle = {
+      x: workArea.x + Math.floor((workArea.width - windowWidth) / 2),
+      y: workArea.y + Math.floor((workArea.height - windowHeight) / 2),
+      width: windowWidth,
+      height: windowHeight
+    }
+
+    // 确保窗口完全在屏幕范围内
+    if (defaultBounds.x < workArea.x) {
+      defaultBounds.x = workArea.x
+    }
+    if (defaultBounds.y < workArea.y) {
+      defaultBounds.y = workArea.y
+    }
     if (defaultBounds.x + defaultBounds.width > workArea.x + workArea.width) {
       defaultBounds.x = workArea.x + workArea.width - defaultBounds.width
     }
@@ -760,9 +769,9 @@ export class DetachManager {
 
       // 等待页面加载完成后发送初始化数据
       const initializeData = () => {
-        // 再次检查状态
-        if (controlBarView.webContents.isDestroyed()) {
-          log.warn('控制栏webContents已销毁，跳过初始化数据发送')
+        // 严格检查状态（避免访问已销毁或undefined的对象）
+        if (!controlBarView || !controlBarView.webContents || controlBarView.webContents.isDestroyed()) {
+          log.warn('控制栏webContents已销毁或无效，跳过初始化数据发送')
           return
         }
 
@@ -784,7 +793,8 @@ export class DetachManager {
 
         // 添加超时保护，如果页面长时间未加载完成，也发送数据
         setTimeout(() => {
-          if (!controlBarView.webContents.isDestroyed()) {
+          // 严格检查状态（避免访问已销毁或undefined的对象）
+          if (controlBarView && controlBarView.webContents && !controlBarView.webContents.isDestroyed()) {
             initializeData()
           }
         }, 3000)
@@ -872,7 +882,12 @@ export class DetachManager {
 
     // 窗口大小调整事件 - 实时更新视图边界
     const updateLayout = () => {
-      if (controlBarView && !this.isInvalid(window) && !this.isInvalid(view) && !this.isInvalid(controlBarView)) {
+      // 严格检查所有对象是否有效（避免访问已销毁或undefined的对象）
+      if (!window || !view || !controlBarView) {
+        return
+      }
+
+      if (!this.isInvalid(window) && !this.isInvalid(view) && !this.isInvalid(controlBarView)) {
         try {
           this.updateViewBounds(window, view, controlBarView)
           log.debug(`分离窗口大小调整，视图边界已更新: 窗口ID=${windowId}`)
@@ -909,17 +924,99 @@ export class DetachManager {
     if (detachedWindowInfo) {
       log.info(`分离窗口已关闭: ${windowId}`)
 
-      // 清理映射关系
+      const { window, view: originalView, controlBarView } = detachedWindowInfo
+
+      // 1. 先从窗口中移除所有视图（避免访问已销毁的视图）
+      if (window && !window.isDestroyed()) {
+        try {
+          const contentView = window.contentView
+          if (contentView) {
+            // 移除控制栏视图
+            if (controlBarView && !controlBarView.webContents.isDestroyed()) {
+              contentView.removeChildView(controlBarView)
+              log.debug(`已从窗口移除控制栏视图`)
+            }
+            // 移除原始插件视图
+            if (originalView && !originalView.webContents.isDestroyed()) {
+              contentView.removeChildView(originalView)
+              log.debug(`已从窗口移除插件视图: ${detachedWindowInfo.sourceViewId}`)
+            }
+          }
+        } catch (error) {
+          log.warn('从窗口移除视图时出错:', error)
+        }
+      }
+
+      // 2. 清理窗口事件监听器
+      if (window && !window.isDestroyed()) {
+        try {
+          window.removeAllListeners('resize')
+          window.removeAllListeners('resized')
+          window.removeAllListeners('focus')
+          window.removeAllListeners('blur')
+          log.debug(`已清理窗口事件监听器: ${windowId}`)
+        } catch (error) {
+          log.warn('清理窗口事件监听器时出错:', error)
+        }
+      }
+
+      // 3. 清理视图事件监听器
+      if (originalView && !originalView.webContents.isDestroyed()) {
+        try {
+          originalView.webContents.removeAllListeners('before-input-event')
+          originalView.webContents.removeAllListeners('did-finish-load')
+          log.debug(`已清理视图事件监听器`)
+        } catch (error) {
+          log.warn('清理视图事件监听器时出错:', error)
+        }
+      }
+
+      // 4. 销毁原始插件视图（通过 ViewManager）
+      if (originalView && !originalView.webContents.isDestroyed()) {
+        try {
+          log.info(`销毁分离窗口的插件视图: ${detachedWindowInfo.sourceViewId}`)
+
+          // 通过 ViewManager 移除视图（会自动清理 webContents）
+          if (this.viewManager && typeof this.viewManager.removeView === 'function') {
+            const removeResult = this.viewManager.removeView(detachedWindowInfo.sourceViewId)
+            if (removeResult.success) {
+              log.info(`插件视图已成功销毁: ${detachedWindowInfo.sourceViewId}`)
+            } else {
+              log.warn(`插件视图销毁失败: ${removeResult.error}`)
+            }
+          } else {
+            // 如果 ViewManager 不可用，直接关闭 webContents
+            log.warn('ViewManager 不可用，直接关闭 webContents')
+            originalView.webContents.close()
+          }
+        } catch (error) {
+          log.error(`销毁插件视图时出错: ${detachedWindowInfo.sourceViewId}`, error)
+        }
+      }
+
+      // 5. 销毁控制栏视图
+      if (controlBarView && !controlBarView.webContents.isDestroyed()) {
+        try {
+          log.debug(`销毁控制栏视图: detached-control-${windowId}`)
+          controlBarView.webContents.close()
+        } catch (error) {
+          log.error('销毁控制栏视图时出错:', error)
+        }
+      }
+
+      // 6. 清理映射关系
       this.sourceViewMapping.delete(detachedWindowInfo.sourceViewId)
       this.detachedWindows.delete(windowId)
 
-      // 触发关闭事件  
-      const closeData2 = {
+      // 7. 触发关闭事件  
+      const closeData = {
         viewId: detachedWindowInfo.sourceViewId,
         detachedWindowId: windowId,
         timestamp: Date.now()
       }
-      emitEvent.emit('view:detached-window-closed', closeData2)
+      emitEvent.emit('view:detached-window-closed', closeData)
+
+      log.info(`分离窗口清理完成: ${windowId}`)
     }
   }
 
@@ -1049,7 +1146,7 @@ export class DetachManager {
       detachedWindow.removeAllListeners()
       detachedWindow.close()
     }
-    if (controlBarView && !controlBarView.webContents.isDestroyed()) {
+    if (controlBarView && controlBarView.webContents && !controlBarView.webContents.isDestroyed()) {
       controlBarView.webContents.close()
     }
   }

@@ -3,9 +3,11 @@ import log from "electron-log/renderer";
 import { RendererErrorHandler } from "@libs/unhandled/renderer";
 import { ipcRouter } from "@shared/utils/ipcRouterClient";
 import { eventRouter } from "@shared/utils/eventRouterClient";
+import { isFunction } from "@shared/utils/common/typeUtils";
 
 // @ts-ignore
 const prefix = `${__METADATA__['fullPath']?.split(':')?.[0] || __METADATA__['title']}`;
+const hooks: Record<string, ((params: any) => void)[]> = { enter: [], exit: [], }
 
 /**
  * Naimo API - uTools 兼容层
@@ -40,14 +42,14 @@ const naimo = {
 
   // ========== 文档数据库 (db) ==========
   db: {
-    put: (doc: any) => ipcRouter.dbPut(doc, prefix),
-    get: (id: string) => ipcRouter.dbGet(id, prefix),
-    remove: (id: string) => ipcRouter.dbRemove(id, prefix),
-    allDocs: (docPrefix?: string) => ipcRouter.dbAllDocs(docPrefix, prefix),
-    bulkDocs: (docs: any[]) => ipcRouter.dbBulkDocs(docs, prefix),
-    putAttachment: (id: string, data: Buffer, type: string) =>
-      ipcRouter.dbPutAttachment(id, data, type, prefix),
-    getAttachment: (id: string) => ipcRouter.dbGetAttachment(id, prefix),
+    put: (doc: any, name = "") => ipcRouter.dbPut(doc, [prefix, name].join("_")),
+    get: (id: string, name = "") => ipcRouter.dbGet(id, [prefix, name].join("_")),
+    remove: (id: string, name = "") => ipcRouter.dbRemove(id, [prefix, name].join("_")),
+    allDocs: (docPrefix?: string, name = "") => ipcRouter.dbAllDocs(docPrefix, [prefix, name].join("_")),
+    bulkDocs: (docs: any[], name = "") => ipcRouter.dbBulkDocs(docs, [prefix, name].join("_")),
+    putAttachment: (id: string, data: Buffer, type: string, name = "") =>
+      ipcRouter.dbPutAttachment(id, data, type, [prefix, name].join("_")),
+    getAttachment: (id: string, name = "") => ipcRouter.dbGetAttachment(id, [prefix, name].join("_")),
   },
 
   // ========== 简单键值存储 (storage - 兼容 localStorage) ==========
@@ -135,13 +137,11 @@ const naimo = {
 
   // ========== 事件系统 ==========
   onEnter: (callback: (params: any) => void) => {
-    console.warn("请使用 module.exports 导出 onEnter 函数");
+    hooks.enter.push(callback);
   },
 
   onExit: (callback: () => void) => {
-    // 使用 eventRouter 监听退出事件
-    // TODO: 实现插件退出事件监听
-    console.warn("插件退出事件尚未实现");
+    hooks.exit.push(callback);
   },
 };
 
@@ -151,10 +151,21 @@ eventRouter.onPluginMessage((event, data) => {
   try {
     const targetKey = data.fullPath.split(":").slice(1).join(":")
     const targetFunc = module.exports[targetKey]
-    if (targetFunc && targetFunc?.onEnter) return targetFunc.onEnter(data.data)
-    console.log('PRELOAD 收到主进程传递的参数失败:', { fullPath: data.fullPath, modules: module.exports, targetKey, targetFunc });
+    if (targetFunc && targetFunc?.onEnter) {
+      targetFunc.onEnter(data.data)
+      try {
+        hooks.enter.forEach(callback => isFunction(callback) && callback(data.data));
+      } catch (error) {
+        console.error("PRELOAD Hooks 执行失败:", error);
+        log.error("PRELOAD Hooks 执行失败:", error);
+      }
+    } else {
+      console.log('PRELOAD 收到主进程传递的参数失败:', { fullPath: data.fullPath, modules: module.exports, targetKey, targetFunc });
+    }
   } catch (error) {
-    console.log(error, { fullPath: data.fullPath, modules: module.exports });
+    console.log(error, { fullPath: data.fullPath, modules: module.exports, });
     log.error("PRELOAD 收到主进程传递的参数失败:", error);
   }
 });
+
+// eventRouter.onPlugin

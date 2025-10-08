@@ -1,6 +1,6 @@
 /**
  * 自动生成的事件类型定义
- * 生成时间: 2025-10-08T03:39:14.267Z
+ * 生成时间: 2025-10-08T04:42:34.591Z
  * 请勿手动修改此文件
  */
 
@@ -67,6 +67,11 @@ interface EventInterface {
   "plugin-message": (handler: (event: any, data: EventData<'plugin-message'>) => void) => () => void;
   /** 监听 plugin-message 事件 */
   "onPluginMessage": (handler: (event: any, data: EventData<'plugin-message'>) => void) => () => void;
+
+  /** 监听 plugin-exit 事件 */
+  "plugin-exit": (handler: (event: any, data: EventData<'plugin-exit'>) => void) => () => void;
+  /** 监听 plugin-exit 事件 */
+  "onPluginExit": (handler: (event: any, data: EventData<'plugin-exit'>) => void) => () => void;
 
   /** 监听 hotkey-updated 事件 */
   "hotkey-updated": (handler: (event: any, data: EventData<'hotkey-updated'>) => void) => () => void;
@@ -179,6 +184,11 @@ export const EVENT_INFO = [
     name: "plugin-message",
     comment: "监听 plugin-message 事件",
     method: "onPluginMessage"
+  },
+  {
+    name: "plugin-exit",
+    comment: "监听 plugin-exit 事件",
+    method: "onPluginExit"
   },
   {
     name: "hotkey-updated",

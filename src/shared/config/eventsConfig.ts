@@ -97,6 +97,12 @@ export interface EventsConfig {
     timestamp: number
   }
 
+  'plugin-exit': {
+    fullPath: string  // 插件路径
+    viewId: string
+    timestamp: number
+  }
+
   // 快捷键相关事件
   'hotkey-updated': {
     hotkeyId: string
