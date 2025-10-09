@@ -7,6 +7,7 @@ import { PinyinSearch } from '@/temp_code/utils/pinyinSearch'
 import type { AttachedFile } from '@/typings/composableTypes'
 import { usePluginStoreNew } from '../plugin'
 import type { PluginItem, SearchCategory } from '@/typings'
+import { appEventManager } from '../event'
 
 /** 动态导入所有模块 */
 const moduleFiles = import.meta.glob<{ [key: string]: any }>('./modules/*.ts', { eager: true })
@@ -118,9 +119,12 @@ export const useSearchStore = defineStore('search', () => {
         })
       })
 
-      const categories: SearchCategory[] = [{ ...searchCategory, items: searchCategory.items }]
+      const categories: SearchCategory[] = []
       if (recommendCategory.items.length > 0) {
         categories.push({ ...recommendCategory, items: recommendCategory.items })
+      }
+      if (searchCategory.items.length > 0) {
+        categories.push({ ...searchCategory, items: searchCategory.items })
       }
       return categories
     } else {
@@ -546,20 +550,24 @@ export const useSearchStore = defineStore('search', () => {
 
   // ==================== 事件监听 ====================
   const _setupEventListeners = async () => {
-    naimo.event.onPluginUninstalled(async (_event, _data) => {
-      // 更新最近使用的列表，因为如果插件卸载了，那么最近使用的列表中应该删除这个插件
+
+    const updateRecentList = async () => {
       const plugin = usePluginStoreNew()
       searchItems.value.filter(item => item.category === "recent").forEach(item => {
-        // 判断是否是插件，判断插件是否卸载了
         if (plugin.isPluginItem(item)) {
           const pluginId = (item as PluginItem).pluginId
-          // 如果插件ID存在，并且插件不存在，则删除这个插件在搜索列表中的项
           if (pluginId && !plugin.getInstalledPluginItem(item.fullPath || `${pluginId}:${item.path}`)) {
             deleteItem(item)
           }
         }
       })
-    });
+      setTimeout(() => initItems(), 100);
+    }
+
+    // naimo.event.onPluginInstalled(async (_event, _data) => updateRecentList());
+    // naimo.event.onPluginUninstalled(async (_event, _data) => updateRecentList());
+    appEventManager.on("plugin:installed", async (data) => updateRecentList());
+    appEventManager.on("plugin:uninstalled", async (data) => updateRecentList());
   };
   // ==================== 返回 ====================
   return {

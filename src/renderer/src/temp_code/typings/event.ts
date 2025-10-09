@@ -4,6 +4,17 @@ import type { HotkeyConfig, HotkeyType } from "./hotkey";
  * 定义应用事件类型
  */
 export interface AppEvents {
+
+  /** 插件安装事件 */
+  "plugin:installed": {
+    pluginId: string;
+  };
+
+  /** 插件卸载事件 */
+  "plugin:uninstalled": {
+    pluginId: string;
+  };
+
   // 快捷键相关事件
   "hotkey:triggered": {
     id: string;

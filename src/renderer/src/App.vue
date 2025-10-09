@@ -387,6 +387,7 @@ const handleExecuted = async (event: {
       return { name: m.name, path: m.path, size: m.size, type: m.type };
     }),
     searchText: app.ui.searchText,
+    hotkeyEmit: event.hotkeyEmit,
   };
 
   // 懒加载架构：打开插件窗口（后台会判断，没有 main 则打开空白页作为后台窗口）
@@ -466,20 +467,36 @@ watch(
 
 // 监听搜索框内容和界面状态
 watch(
-  [() => app.ui.searchText, isSettingsInterface],
-  async ([newSearchText, isSettings]) => {
+  [() => app.ui.searchText, isSettingsInterface, isPluginWindowOpen],
+  async ([newSearchText, isSettings, isPluginOpen]) => {
     console.log("🔍 监听搜索框内容和界面状态，当前状态:", {
       newSearchText,
       isSettings,
+      isPluginOpen,
     });
 
-    if (newSearchText.trim() !== "" && isSettings) {
-      try {
-        await naimo.router.windowCloseSettingsView();
-        console.log("✅ 搜索框有内容，已自动关闭设置view");
-      } catch (error) {
-        console.error("❌ 关闭设置view失败:", error);
+    // 如果搜索框有内容
+    if (newSearchText.trim() !== "") {
+      // 关闭设置页面
+      if (isSettings) {
+        try {
+          await naimo.router.windowCloseSettingsView();
+          console.log("✅ 搜索框有内容，已自动关闭设置view");
+        } catch (error) {
+          console.error("❌ 关闭设置view失败:", error);
+        }
       }
+
+      // // 关闭插件窗口
+      // if (isPluginOpen) {
+      //   try {
+      //     await windowManager.closePlugin();
+      //     clearSearchAndPlugin();
+      //     console.log("✅ 搜索框有内容，已自动关闭插件view");
+      //   } catch (error) {
+      //     console.error("❌ 关闭插件view失败:", error);
+      //   }
+      // }
     }
   }
 );
@@ -643,6 +660,13 @@ onMounted(async () => {
               return;
             }
 
+            if (app.ui.isPluginActive) {
+              await windowManager.closePlugin();
+              app.ui.closePluginWindow();
+              await nextTick();
+              await new Promise((resolve) => setTimeout(resolve, 0));
+            }
+
             // 设置搜索文本并搜索
             app.ui.searchText = name;
             await handleSearch(name);
@@ -654,6 +678,7 @@ onMounted(async () => {
             )?.items;
             if (bestMatchItems?.length) {
               handlePrepareAction(bestMatchItems[0], true);
+              app.ui.searchText = "";
             } else {
               console.log("没有搜索结果");
             }

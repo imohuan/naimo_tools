@@ -1,0 +1,30 @@
+# Development files
+src/
+*.log
+.DS_Store
+
+# Git
+.git
+.gitignore
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# Test files
+test/
+tests/
+*.test.js
+*.spec.js
+
+# Documentation (except README)
+docs/
+
+# Config files
+.eslintrc*
+.prettierrc*
+tsconfig.json
+

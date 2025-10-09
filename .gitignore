@@ -8,6 +8,9 @@ yarn-error.log*
 pnpm-debug.log*
 
 links/
+plugins-test/
+plugins-test-backup/
+plugins/
 **/links/
 # Build outputs
 dist/

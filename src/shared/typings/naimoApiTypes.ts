@@ -4,18 +4,36 @@
  */
 
 // ============ 数据库相关 ============
+
+/**
+ * 数据库文档接口
+ * 文档数据库中存储的数据结构
+ */
 export interface DbDoc {
+  /** 文档唯一标识符 */
   _id: string;
+  /** 文档修订版本号（用于冲突检测） */
   _rev?: string;
+  /** 其他自定义字段 */
   [key: string]: any;
 }
 
+/**
+ * 数据库操作结果
+ * 执行数据库操作后返回的结果对象
+ */
 export interface DbResult {
+  /** 文档 ID */
   id: string;
+  /** 文档修订版本号 */
   rev?: string;
+  /** 操作是否成功 */
   ok?: boolean;
+  /** 是否发生错误 */
   error?: boolean;
+  /** 错误名称 */
   name?: string;
+  /** 错误消息 */
   message?: string;
 }
 
@@ -57,12 +75,23 @@ export interface CopiedFile {
 }
 
 // ============ 显示器相关 ============
+
+/**
+ * 显示器信息接口
+ * 包含显示器的物理属性和工作区信息
+ */
 export interface Display {
+  /** 显示器唯一标识符 */
   id: number;
+  /** 显示器边界（屏幕在桌面坐标系中的位置和大小） */
   bounds: { x: number; y: number; width: number; height: number };
+  /** 工作区域（不包含任务栏等系统UI的可用区域） */
   workArea: { x: number; y: number; width: number; height: number };
+  /** 缩放因子（如 1.0 表示 100%，1.5 表示 150%） */
   scaleFactor: number;
+  /** 旋转角度（0, 90, 180, 270） */
   rotation: number;
+  /** 是否为内置显示器（笔记本屏幕为 true） */
   internal: boolean;
 }
 

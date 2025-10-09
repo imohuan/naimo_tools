@@ -1,0 +1,42 @@
+{
+  "name": "naimo-plugin-cli",
+  "version": "0.0.8",
+  "description": "Naimo plugin development template initializer",
+  "type": "module",
+  "main": "bin/cli.js",
+  "bin": {
+    "naimo-plugin": "./bin/cli.js"
+  },
+  "scripts": {
+    "test": "node bin/cli.js init",
+    "push": "node publish.js --skip-confirm --patch"
+  },
+  "keywords": [
+    "naimo",
+    "plugin",
+    "template",
+    "cli",
+    "scaffold",
+    "generator"
+  ],
+  "author": "",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/your-username/naimo_tools.git",
+    "directory": "plugins-doc"
+  },
+  "files": [
+    "bin",
+    "template",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "dependencies": {
+    "commander": "^11.1.0",
+    "chalk": "^4.1.2",
+    "fs-extra": "^11.2.0"
+  }
+}

@@ -219,32 +219,39 @@ function createUBrowserObject(ipcInvoke: IpcInvokeFunction) {
   const api = {
     // ========== 基础操作 ==========
 
+    /** 导航到指定 URL */
     goto(url: string, options?: WindowConfig) {
       return addAction('goto', url, options);
     },
 
+    /** 设置用户代理（User-Agent） */
     useragent(ua: string) {
       return addAction('useragent', ua);
     },
 
+    /** 设置视口大小 */
     viewport(width: number, height: number) {
       return addAction('viewport', width, height);
     },
 
+    /** 隐藏浏览器窗口 */
     hide() {
       return addAction('hide');
     },
 
+    /** 显示浏览器窗口 */
     show() {
       return addAction('show');
     },
 
     // ========== 网页操作 ==========
 
+    /** 注入自定义 CSS 样式 */
     css(css: string) {
       return addAction('css', css);
     },
 
+    /** 在页面上下文中执行 JavaScript 代码或函数 */
     evaluate(func: Function | string, ...params: any[]) {
       // 将函数转换为 Puppeteer 可执行的格式
       if (typeof func === 'function') {
@@ -260,46 +267,57 @@ function createUBrowserObject(ipcInvoke: IpcInvokeFunction) {
       return addAction('evaluate', func, ...params);
     },
 
+    /** 模拟按键操作 */
     press(key: string, options?: { delay?: number }) {
       return addAction('keyboard.press', key, options);
     },
 
+    /** 点击指定选择器的元素 */
     click(selector: string) {
       return addAction('click', selector);
     },
 
+    /** 在指定元素上按下鼠标 */
     mousedown(selector: string) {
       return addAction('mousedown', selector);
     },
 
+    /** 释放鼠标按键 */
     mouseup() {
       return addAction('mouseup');
     },
 
+    /** 上传文件到文件输入框 */
     file(selector: string, payload: string | string[] | Buffer) {
       return addAction('file', selector, payload);
     },
 
+    /** 在输入框中输入文本（模拟逐字输入） */
     type(selector: string, text: string, options?: { delay?: number }) {
       return addAction('type', selector, text, options);
     },
 
+    /** 直接设置输入框的值（不触发输入事件） */
     value(selector: string, value: string) {
       return addAction('value', selector, value);
     },
 
+    /** 选择下拉框选项 */
     select(selector: string, ...values: string[]) {
       return addAction('select', selector, ...values);
     },
 
+    /** 设置复选框或单选框的选中状态 */
     check(selector: string, checked: boolean) {
       return addAction('check', selector, checked);
     },
 
+    /** 聚焦到指定元素 */
     focus(selector: string) {
       return addAction('focus', selector);
     },
 
+    /** 滚动到指定元素或坐标位置 */
     scroll(selectorOrX: string | number, y?: number) {
       if (typeof selectorOrX === 'string') {
         return addAction('scroll', selectorOrX);
@@ -310,22 +328,27 @@ function createUBrowserObject(ipcInvoke: IpcInvokeFunction) {
       }
     },
 
+    /** 粘贴文本内容 */
     paste(text: string) {
       return addAction('paste', text);
     },
 
+    /** 截取页面截图 */
     screenshot(options?: any) {
       return addAction('screenshot', options);
     },
 
+    /** 生成页面 PDF */
     pdf(options?: any) {
       return addAction('pdf', options);
     },
 
+    /** 模拟设备环境（如手机、平板） */
     device(options: DeviceOptions) {
       return addAction('device', options);
     },
 
+    /** 等待指定时间、选择器或函数条件满足 */
     wait(msOrSelectorOrFunc: number | string | Function, timeout?: number, ...params: any[]) {
       if (typeof msOrSelectorOrFunc === 'number') {
         return addAction('wait', msOrSelectorOrFunc);
@@ -336,38 +359,46 @@ function createUBrowserObject(ipcInvoke: IpcInvokeFunction) {
       }
     },
 
+    /** 等待选择器元素出现 */
     waitForSelector(selector: string, options?: { visible?: boolean; hidden?: boolean; timeout?: number }) {
       return addAction('waitForSelector', selector, options);
     },
 
+    /** 等待选择器元素出现（简化版） */
     when(selector: string) {
       return addAction('when', selector);
     },
 
+    /** 标记任务结束 */
     end() {
       return addAction('end');
     },
 
+    /** 打开开发者工具 */
     devTools(mode?: 'right' | 'bottom' | 'undocked' | 'detach') {
       return addAction('devTools', mode || 'detach');
     },
 
     // ========== Cookie 操作 ==========
 
+    /** 获取指定 URL 的 Cookies */
     cookies(...urls: string[]) {
       return addAction('cookies', ...urls);
     },
 
+    /** 设置 Cookies */
     setCookie(...cookies: any[]) {
       return addAction('setCookie', ...cookies);
     },
 
+    /** 删除 Cookies */
     deleteCookie(...cookies: any[]) {
       return addAction('deleteCookie', ...cookies);
     },
 
     // ========== 执行 ==========
 
+    /** 执行所有操作队列并返回结果 */
     async run(options?: WindowConfig): Promise<[...any[], BrowserInstance]> {
       try {
         const result = await ipcInvoke('ubrowser:execute', actions, options);

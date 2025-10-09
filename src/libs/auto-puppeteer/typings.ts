@@ -335,62 +335,105 @@ export interface SystemInfo {
 
 /**
  * 窗口配置接口
+ * 用于配置 UBrowser 浏览器窗口的外观和行为
  */
 export interface WindowConfig {
   // 窗口基本设置
+  /** 是否显示窗口（默认 true） */
   show?: boolean;
+  /** 窗口宽度（像素） */
   width?: number;
+  /** 窗口高度（像素） */
   height?: number;
+  /** 窗口 X 坐标 */
   x?: number;
+  /** 窗口 Y 坐标 */
   y?: number;
+  /** 是否居中显示 */
   center?: boolean;
+  /** 最小宽度 */
   minWidth?: number;
+  /** 最小高度 */
   minHeight?: number;
+  /** 最大宽度 */
   maxWidth?: number;
+  /** 最大高度 */
   maxHeight?: number;
+  /** 是否可调整大小 */
   resizable?: boolean;
+  /** 是否可移动 */
   movable?: boolean;
+  /** 是否可最小化 */
   minimizable?: boolean;
+  /** 是否可最大化 */
   maximizable?: boolean;
+  /** 是否始终置顶 */
   alwaysOnTop?: boolean;
+  /** 是否全屏 */
   fullscreen?: boolean;
+  /** 是否可切换全屏 */
   fullscreenable?: boolean;
+  /** 是否允许窗口大于屏幕 */
   enableLargerThanScreen?: boolean;
+  /** 窗口透明度（0.0 - 1.0） */
   opacity?: number;
+  /** 是否显示窗口边框 */
   frame?: boolean;
 
   // goto 相关设置
+  /** 页面加载超时时间（毫秒） */
   timeout?: number;
+  /** 自定义请求头 */
   headers?: Record<string, string>;
+  /** 是否可关闭 */
   closable?: boolean;
+  /** 是否可获取焦点 */
   focusable?: boolean;
+  /** 是否在任务栏中隐藏 */
   skipTaskbar?: boolean;
+  /** 背景颜色（十六进制格式，如 '#ffffff'） */
   backgroundColor?: string;
+  /** 是否显示阴影 */
   hasShadow?: boolean;
+  /** 是否透明背景 */
   transparent?: boolean;
+  /** 标题栏样式 */
   titleBarStyle?: string;
+  /** 是否使用厚边框（Windows） */
   thickFrame?: boolean;
 
   // 请求拦截配置
+  /** 请求拦截配置 */
   requestInterception?: {
+    /** 是否启用请求拦截 */
     enabled: boolean;
+    /** 拦截规则正则表达式数组 */
     regex?: RegExp[];
   };
 
   // 自定义webPreferences
+  /** 自定义 webPreferences 配置 */
   webPreferences?: any;
 }
 
 /**
  * UBrowser 实例信息
+ * 浏览器执行完成后返回的实例信息
  */
 export interface BrowserInstance {
+  /** 浏览器实例 ID */
   id: number;
+  /** 当前页面 URL */
   url: string;
+  /** 当前页面标题 */
   title: string;
+  /** 窗口宽度 */
   width: number;
+  /** 窗口高度 */
   height: number;
+  /** 窗口 X 坐标 */
   x: number;
+  /** 窗口 Y 坐标 */
   y: number;
 }
 
@@ -408,12 +451,17 @@ export interface CookieFilter {
 }
 
 /**
- * 设备选项
+ * 设备模拟选项
+ * 用于模拟移动设备或其他设备的浏览器环境
  */
 export interface DeviceOptions {
+  /** 用户代理字符串（User-Agent） */
   userAgent: string;
+  /** 视口尺寸 */
   size: {
+    /** 宽度（像素） */
     width: number;
+    /** 高度（像素） */
     height: number;
   };
 }

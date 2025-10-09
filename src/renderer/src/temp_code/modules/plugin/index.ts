@@ -12,6 +12,7 @@ import { LocalPluginInstaller } from "./modules/local";
 import { GithubPluginInstaller } from "./modules/github";
 import { useLoading } from "@/temp_code/hooks/useLoading";
 import { storeUtils } from "@/temp_code/utils/store";
+import { appEventManager } from "../event";
 
 const modules = {
   // system: new SystemPluginInstaller(), // 已禁用：所有插件统一放在 plugins/ 目录
@@ -198,6 +199,7 @@ export const usePluginStoreNew = defineStore("pluginNew", () => {
     const local = await modules.local.getList();
 
     availablePlugins.value = [...local];
+    triggerRef(availablePlugins);
     console.log(`📋 加载了 ${local.length} 个本地插件`);
 
     // 2. 加载已安装的插件
@@ -222,8 +224,10 @@ export const usePluginStoreNew = defineStore("pluginNew", () => {
       installedPlugins.value = availablePlugins.value.filter((p) =>
         installedIds.includes(p.id)
       );
+      triggerRef(installedPlugins);
     }
     console.log(`✅ 初始化完成，已安装 ${installedPlugins.value.length} 个插件`);
+    console.log(`✅ 当前插件`, { ...installedPlugins.value });
   }, "初始化插件系统失败");
 
   /** 安装插件 */
@@ -242,10 +246,12 @@ export const usePluginStoreNew = defineStore("pluginNew", () => {
 
     // 添加到已安装列表
     installedPlugins.value.push(plugin);
+    triggerRef(installedPlugins);
 
     // 添加到可用列表（如果不存在）
     if (!availablePlugins.value.some((p) => p.id === plugin.id)) {
       availablePlugins.value.push(plugin);
+      triggerRef(availablePlugins);
     }
 
     await saveInstalledPluginIds();
@@ -255,6 +261,7 @@ export const usePluginStoreNew = defineStore("pluginNew", () => {
       });
     }
 
+    appEventManager.emit("plugin:installed", { pluginId: plugin.id, });
     console.log(`✅ 安装成功: ${plugin.id}`);
     return plugin;
   }, "安装插件失败");
@@ -282,6 +289,7 @@ export const usePluginStoreNew = defineStore("pluginNew", () => {
         pluginId: id,
       });
     }
+    appEventManager.emit("plugin:uninstalled", { pluginId: id, });
     console.log(`✅ 卸载成功: ${id}`);
     return true;
   }, "卸载插件失败");
