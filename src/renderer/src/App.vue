@@ -347,6 +347,96 @@ const { handleKeyNavigation } = useKeyboardNavigation(
   }
 );
 
+const handleExecuted = async (event: {
+  fullPath: string;
+  hotkeyEmit: boolean;
+}) => {
+  console.log("🔌 收到插件执行事件:", event);
+
+  const { fullPath } = event;
+  const pluginId = fullPath.split(":")[0];
+
+  const pluginItem = app.plugin.getInstalledPluginItem(fullPath);
+  if (!pluginItem) {
+    console.error("❌ 未找到插件配置:", fullPath);
+    return;
+  }
+
+  // 获取插件配置（包含顶层的 main 和 preload）
+  const plugin = app.plugin.getPlugin(pluginId!);
+  if (!plugin) {
+    console.error(`❌ 未找到插件: ${pluginId}`);
+    return;
+  }
+
+  console.log("📦 插件配置:", {
+    name: plugin.name,
+    main: plugin.main,
+    preload: plugin.preload,
+    fullPath: pluginItem.fullPath,
+  });
+
+  // 打开插件窗口并更新 UI 状态
+  app.ui.openPluginWindow(pluginItem);
+  await nextTick();
+  contentAreaRef.value?.handleResize();
+
+  // 传递给插件的参数
+  const data = {
+    files: attachedFiles.value.map((m) => {
+      return { name: m.name, path: m.path, size: m.size, type: m.type };
+    }),
+    searchText: app.ui.searchText,
+  };
+
+  // 懒加载架构：打开插件窗口（后台会判断，没有 main 则打开空白页作为后台窗口）
+  try {
+    // 确定生命周期类型：优先使用 pluginSetting.backgroundRun，其次使用 pluginItem.lifecycleType
+    let lifecycleType = pluginItem?.lifecycleType || LifecycleType.FOREGROUND;
+    try {
+      const allPluginSettings = (await naimo.router.storeGet(
+        "pluginSetting"
+      )) as Record<string, any> | null;
+      const pluginSetting = allPluginSettings?.[pluginId!];
+      if (pluginSetting && typeof pluginSetting.backgroundRun === "boolean") {
+        lifecycleType = pluginSetting.backgroundRun
+          ? LifecycleType.BACKGROUND
+          : LifecycleType.FOREGROUND;
+        console.log(
+          `🔄 插件 ${pluginId} 使用 pluginSetting.backgroundRun: ${pluginSetting.backgroundRun}, lifecycleType: ${lifecycleType}`
+        );
+      }
+    } catch (error) {
+      console.warn("获取插件设置失败，使用默认 lifecycleType:", error);
+    }
+
+    // 打开插件窗口并传递 featurePath
+    const result = await naimo.router.windowCreatePluginView({
+      fullPath: pluginItem?.fullPath || pluginId, // 完整路径（如 translate-plugin:text-translate）
+      title: pluginItem?.name || plugin.name || pluginId,
+      url: plugin?.main || "", // 使用插件级别的 main（可选，没有则后台加载 about:blank）
+      lifecycleType,
+      preload: plugin.preload, // 使用插件级别的 preload
+      singleton: pluginItem?.singleton ?? true,
+      data,
+    });
+
+    if (result.success) {
+      console.log("✅ 插件窗口已打开:", result.viewId);
+    } else {
+      app.ui.closePluginWindow();
+      console.error("❌ 打开插件窗口失败:", result.error);
+    }
+  } catch (error) {
+    app.ui.closePluginWindow();
+    console.error("❌ 打开插件窗口异常:", error);
+  }
+
+  // 清空搜索和附件
+  attachedFiles.value = [];
+  app.ui.searchText = "";
+};
+
 // ==================== 事件监听 ====================
 
 // ==================== 监听器 ====================
@@ -497,22 +587,20 @@ onMounted(async () => {
       );
 
       if (!pluginItem) {
-        console.warn("⚠️ 未找到插件配置:", config.pluginInfo);
+        console.error("❌ 未找到插件配置:", config.pluginInfo.fullPath);
         return;
       }
 
       console.log("✅ 找到插件配置:", pluginItem);
-
-      // 打开插件窗口并清空状态
-      app.ui.openPluginWindow(pluginItem);
       clearSearchAndPlugin();
-      await handleSearch("");
-
-      // 调整布局
-      await nextTick();
-      contentAreaRef.value?.handleResize();
-
-      console.log("✅ 插件状态已恢复:", pluginItem.name);
+      handleExecuted({
+        fullPath: config.pluginInfo.fullPath,
+        hotkeyEmit: false,
+      });
+      console.log(
+        "✅ 插件状态已恢复:",
+        pluginItem?.name || config.pluginInfo.name
+      );
     } catch (error) {
       console.error("❌ 处理视图重新附加失败:", error);
     }
@@ -581,96 +669,7 @@ onMounted(async () => {
     }
   );
 
-  app.event.on(
-    "plugin:executed",
-    async (event: { fullPath: string; hotkeyEmit: boolean }) => {
-      console.log("🔌 收到插件执行事件:", event);
-
-      const { fullPath } = event;
-      const pluginItem = app.plugin.getInstalledPluginItem(fullPath);
-
-      if (!pluginItem) {
-        console.error(`❌ 未找到插件项: ${fullPath}`);
-        return;
-      }
-
-      // 获取插件配置（包含顶层的 main 和 preload）
-      const plugin = app.plugin.getPlugin(pluginItem.pluginId!);
-      if (!plugin) {
-        console.error(`❌ 未找到插件: ${pluginItem.pluginId}`);
-        return;
-      }
-
-      console.log("📦 插件配置:", {
-        name: plugin.name,
-        main: plugin.main,
-        preload: plugin.preload,
-        fullPath: pluginItem.fullPath,
-      });
-
-      // 打开插件窗口并更新 UI 状态
-      app.ui.openPluginWindow(pluginItem);
-
-      // 传递给插件的参数
-      const data = {
-        files: attachedFiles.value.map((m) => {
-          return { name: m.name, path: m.path, size: m.size, type: m.type };
-        }),
-        searchText: app.ui.searchText,
-      };
-
-      // 懒加载架构：打开插件窗口（后台会判断，没有 main 则打开空白页作为后台窗口）
-      try {
-        // 确定生命周期类型：优先使用 pluginSetting.backgroundRun，其次使用 pluginItem.lifecycleType
-        let lifecycleType =
-          pluginItem.lifecycleType || LifecycleType.FOREGROUND;
-        try {
-          const allPluginSettings = (await naimo.router.storeGet(
-            "pluginSetting"
-          )) as Record<string, any> | null;
-          const pluginSetting = allPluginSettings?.[pluginItem.pluginId!];
-          if (
-            pluginSetting &&
-            typeof pluginSetting.backgroundRun === "boolean"
-          ) {
-            lifecycleType = pluginSetting.backgroundRun
-              ? LifecycleType.BACKGROUND
-              : LifecycleType.FOREGROUND;
-            console.log(
-              `🔄 插件 ${pluginItem.pluginId} 使用 pluginSetting.backgroundRun: ${pluginSetting.backgroundRun}, lifecycleType: ${lifecycleType}`
-            );
-          }
-        } catch (error) {
-          console.warn("获取插件设置失败，使用默认 lifecycleType:", error);
-        }
-
-        // 打开插件窗口并传递 featurePath
-        const result = await naimo.router.windowCreatePluginView({
-          fullPath: pluginItem.fullPath!, // 完整路径（如 translate-plugin:text-translate）
-          title: pluginItem.name,
-          url: plugin?.main || "", // 使用插件级别的 main（可选，没有则后台加载 about:blank）
-          lifecycleType,
-          preload: plugin.preload, // 使用插件级别的 preload
-          singleton: pluginItem.singleton ?? true,
-          data,
-        });
-
-        if (result.success) {
-          console.log("✅ 插件窗口已打开:", result.viewId);
-        } else {
-          app.ui.closePluginWindow();
-          console.error("❌ 打开插件窗口失败:", result.error);
-        }
-      } catch (error) {
-        app.ui.closePluginWindow();
-        console.error("❌ 打开插件窗口异常:", error);
-      }
-
-      // 清空搜索和附件
-      attachedFiles.value = [];
-      app.ui.searchText = "";
-    }
-  );
+  app.event.on("plugin:executed", handleExecuted);
 
   // 页面刷新时关闭所有插件view
   console.log("🔄 页面初始化，检查并关闭所有插件view");

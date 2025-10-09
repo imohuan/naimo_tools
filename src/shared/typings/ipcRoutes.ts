@@ -1,6 +1,6 @@
 /**
  * 自动生成的 IPC 类型定义
- * 生成时间: 2025-10-08T12:51:30.661Z
+ * 生成时间: 2025-10-09T08:49:19.565Z
  * 请勿手动修改此文件
  */
 
@@ -1440,14 +1440,14 @@ interface windowInterface {
 
   /**
  * 关闭插件视图（新架构专用）
-关闭所有不支持后台运行的插件视图
+关闭所有不支持后台运行的插件视图，隐藏支持后台运行的插件视图
  */
-  "window-close-plugin-view": () => Promise<{ success: boolean; error?: string; closedCount?: number }>;
+  "window-close-plugin-view": () => Promise<{ success: boolean; error?: string; closedCount?: number; hiddenCount?: number }>;
   /**
  * 关闭插件视图（新架构专用）
-关闭所有不支持后台运行的插件视图
+关闭所有不支持后台运行的插件视图，隐藏支持后台运行的插件视图
  */
-  "windowClosePluginView": () => Promise<{ success: boolean; error?: string; closedCount?: number }>;
+  "windowClosePluginView": () => Promise<{ success: boolean; error?: string; closedCount?: number; hiddenCount?: number }>;
 
   /** 创建设置页面 WebContentsView */
   "window-create-settings-view": () => Promise<{ success: boolean; viewId?: string; error?: string }>;
@@ -1526,6 +1526,16 @@ interface windowInterface {
     x?: number;
     y?: number;
   }) => Promise<number | null>;
+
+  /** 打开指定视图的 DevTools */
+  "window-open-view-dev-tools": (viewId: string) => Promise<{ success: boolean; error?: string }>;
+  /** 打开指定视图的 DevTools */
+  "windowOpenViewDevTools": (viewId: string) => Promise<{ success: boolean; error?: string }>;
+
+  /** 关闭指定 PID 的进程（主要用于关闭 DevTools） */
+  "window-close-process-by-pid": (pid: number) => Promise<{ success: boolean; error?: string }>;
+  /** 关闭指定 PID 的进程（主要用于关闭 DevTools） */
+  "windowCloseProcessByPid": (pid: number) => Promise<{ success: boolean; error?: string }>;
 }
 
 // 合并所有 IPC 路由类型
@@ -2257,7 +2267,7 @@ export const ROUTE_INFO: RouteInfo[] = [
   },
   {
     route: "window-close-plugin-view",
-    comment: "关闭插件视图（新架构专用）, 关闭所有不支持后台运行的插件视图",
+    comment: "关闭插件视图（新架构专用）, 关闭所有不支持后台运行的插件视图，隐藏支持后台运行的插件视图",
     module: "window",
     function: "closePluginView"
   },
@@ -2284,6 +2294,18 @@ export const ROUTE_INFO: RouteInfo[] = [
     comment: "显示系统弹出菜单",
     module: "window",
     function: "showPopupMenu"
+  },
+  {
+    route: "window-open-view-dev-tools",
+    comment: "打开指定视图的 DevTools",
+    module: "window",
+    function: "openViewDevTools"
+  },
+  {
+    route: "window-close-process-by-pid",
+    comment: "关闭指定 PID 的进程（主要用于关闭 DevTools）",
+    module: "window",
+    function: "closeProcessByPid"
   }
 ];
 

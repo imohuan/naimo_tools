@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>智能翻译</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+      background: #f5f5f5;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .container {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      background: white;
+    }
+
+    .input-section {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      border-bottom: 1px solid #e0e0e0;
+    }
+
+    .middle-section {
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      background: #fafafa;
+      border-bottom: 1px solid #e0e0e0;
+    }
+
+    .translate-logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 16px;
+      font-weight: 500;
+      color: #333;
+    }
+
+    .language-controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .language-select {
+      padding: 6px 12px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 14px;
+      background: white;
+      color: #333;
+      cursor: pointer;
+      min-width: 80px;
+    }
+
+    .language-select:focus {
+      outline: none;
+      border-color: #4285f4;
+    }
+
+    .swap-btn {
+      background: none;
+      border: none;
+      font-size: 16px;
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 4px;
+      transition: background-color 0.2s;
+    }
+
+    .swap-btn:hover {
+      background: #f0f0f0;
+    }
+
+    .output-section {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .text-input {
+      flex: 1;
+      position: relative;
+      padding: 20px;
+    }
+
+    .text-area {
+      width: 100%;
+      height: 100%;
+      border: none;
+      resize: none;
+      font-size: 16px;
+      line-height: 1.5;
+      outline: none;
+      font-family: inherit;
+    }
+
+    .text-area::placeholder {
+      color: #999;
+    }
+
+    .translate-btn {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      background: #4285f4;
+      color: white;
+      border: none;
+      border-radius: 20px;
+      padding: 8px 16px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 60px;
+      justify-content: center;
+    }
+
+    .translate-btn:hover {
+      background: #3367d6;
+    }
+
+    .translate-btn:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+
+    .translate-btn .btn-spinner {
+      display: none;
+      width: 14px;
+      height: 14px;
+      border: 2px solid transparent;
+      border-top: 2px solid white;
+      border-radius: 50%;
+      animation: btnSpin 1s linear infinite;
+    }
+
+    .translate-btn.loading .btn-spinner {
+      display: block;
+    }
+
+    @keyframes btnSpin {
+      0% {
+        transform: rotate(0deg);
+      }
+
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+
+    .output-area {
+      flex: 1;
+      padding: 20px;
+      background: #fafafa;
+      color: #333;
+      font-size: 16px;
+      line-height: 1.5;
+      overflow-y: auto;
+    }
+
+    .output-placeholder {
+      color: #999;
+    }
+
+    .char-count {
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      font-size: 12px;
+      color: #999;
+    }
+
+
+    .error-message {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #fee;
+      border: 1px solid #fcc;
+      color: #c33;
+      padding: 12px 20px;
+      border-radius: 6px;
+      display: none;
+      z-index: 1000;
+    }
+
+    .error-message.show {
+      display: block;
+      animation: slideDown 0.3s ease-out;
+    }
+
+    .success-message {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #efe;
+      border: 1px solid #cfc;
+      color: #363;
+      padding: 12px 20px;
+      border-radius: 6px;
+      display: none;
+      z-index: 1000;
+    }
+
+    .success-message.show {
+      display: block;
+      animation: slideDown 0.3s ease-out;
+    }
+
+    @keyframes slideDown {
+      from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(-10px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
+    }
+
+    .settings-btn {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: none;
+      border: none;
+      font-size: 20px;
+      cursor: pointer;
+      padding: 8px;
+      border-radius: 50%;
+      transition: background-color 0.2s;
+      z-index: 100;
+    }
+
+    .settings-btn:hover {
+      background: #f0f0f0;
+    }
+
+    .settings-panel {
+      position: fixed;
+      top: 60px;
+      right: 20px;
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      display: none;
+      z-index: 1000;
+      min-width: 250px;
+    }
+
+    .settings-panel.show {
+      display: block;
+    }
+
+    .setting-item {
+      margin-bottom: 15px;
+    }
+
+    .setting-item:last-child {
+      margin-bottom: 0;
+    }
+
+    .setting-label {
+      display: block;
+      margin-bottom: 5px;
+      font-size: 14px;
+      color: #333;
+    }
+
+    .setting-input {
+      width: 100%;
+      padding: 6px 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+
+    .setting-checkbox {
+      margin-right: 8px;
+    }
+
+    .save-settings-btn {
+      background: #4285f4;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 8px 16px;
+      font-size: 14px;
+      cursor: pointer;
+      width: 100%;
+      margin-top: 10px;
+    }
+
+    .save-settings-btn:hover {
+      background: #3367d6;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <!-- 上方输入区域 -->
+    <div class="input-section">
+      <div class="text-input">
+        <textarea id="sourceText" class="text-area" placeholder="请输入要翻译的文本..." maxlength="5000"></textarea>
+        <button id="translateBtn" class="translate-btn">
+          <div class="btn-spinner"></div>
+          <span>翻译</span>
+        </button>
+        <div class="char-count" id="sourceCharCount">0 / 5000</div>
+      </div>
+    </div>
+
+    <!-- 中间区域 -->
+    <div class="middle-section">
+      <div class="translate-logo">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path
+            d="M12.87 15.07L10.33 12.56L10.36 12.53C12.1 10.59 13.34 8.36 14.07 6H17V4H10V2H8V4H1V6H12.17C11.5 7.92 10.44 9.75 9 11.35C8.07 10.32 7.3 9.19 6.69 8H4.69C5.42 9.63 6.42 11.17 7.67 12.56L2.58 17.58L4 19L9 14L12.11 17.11L12.87 15.07ZM18.5 10H16.5L12 22H14L15.12 19H19.87L21 22H23L18.5 10ZM15.88 17L17.5 12.67L19.12 17H15.88Z"
+            fill="#4285f4" />
+        </svg>
+        <span>翻译</span>
+      </div>
+
+      <div class="language-controls">
+        <select id="sourceLanguage" class="language-select">
+          <option value="auto">自动检测</option>
+          <option value="zh">中文</option>
+          <option value="en">英语</option>
+          <option value="ja">日语</option>
+          <option value="ko">韩语</option>
+          <option value="fr">法语</option>
+          <option value="de">德语</option>
+          <option value="es">西班牙语</option>
+          <option value="ru">俄语</option>
+          <option value="pt">葡萄牙语</option>
+          <option value="it">意大利语</option>
+          <option value="ar">阿拉伯语</option>
+          <option value="th">泰语</option>
+          <option value="vi">越南语</option>
+        </select>
+
+        <button id="swapLanguages" class="swap-btn" title="交换语言">⇄</button>
+
+        <select id="targetLanguage" class="language-select">
+          <option value="zh">中文</option>
+          <option value="en">英语</option>
+          <option value="ja">日语</option>
+          <option value="ko">韩语</option>
+          <option value="fr">法语</option>
+          <option value="de">德语</option>
+          <option value="es">西班牙语</option>
+          <option value="ru">俄语</option>
+          <option value="pt">葡萄牙语</option>
+          <option value="it">意大利语</option>
+          <option value="ar">阿拉伯语</option>
+          <option value="th">泰语</option>
+          <option value="vi">越南语</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- 下方输出区域 -->
+    <div class="output-section">
+      <div id="targetText" class="output-area">
+        <div class="output-placeholder">翻译结果将显示在这里...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 设置按钮 -->
+  <button id="settingsBtn" class="settings-btn" title="设置">⚙️</button>
+
+  <!-- 设置面板 -->
+  <div id="settingsPanel" class="settings-panel">
+    <div class="setting-item">
+      <label class="setting-label">
+        <input type="checkbox" id="autoTranslateCheck" class="setting-checkbox">
+        自动翻译（输入后1秒自动翻译）
+      </label>
+    </div>
+
+    <div class="setting-item">
+      <label class="setting-label">
+        <input type="checkbox" id="saveHistoryCheck" class="setting-checkbox">
+        保存翻译历史记录
+      </label>
+    </div>
+
+    <div class="setting-item">
+      <label class="setting-label">历史记录保存数量</label>
+      <input type="number" id="maxHistoryInput" class="setting-input" min="10" max="200" placeholder="50">
+    </div>
+
+    <button id="saveSettingsBtn" class="save-settings-btn">保存设置</button>
+  </div>
+
+  <!-- 消息提示 -->
+  <div class="error-message" id="errorMessage"></div>
+  <div class="success-message" id="successMessage"></div>
+
+  <script>
+    // 全局变量
+    let translationHistory = [];
+    let autoTranslateTimer = null;
+    let pluginSettings = {};
+    let translationTimeout = null;
+
+    // DOM元素
+    const sourceText = document.getElementById('sourceText');
+    const targetText = document.getElementById('targetText');
+    const sourceLanguage = document.getElementById('sourceLanguage');
+    const targetLanguage = document.getElementById('targetLanguage');
+    const translateBtn = document.getElementById('translateBtn');
+    const swapLanguagesBtn = document.getElementById('swapLanguages');
+    const errorMessage = document.getElementById('errorMessage');
+    const successMessage = document.getElementById('successMessage');
+    const sourceCharCount = document.getElementById('sourceCharCount');
+    const settingsBtn = document.getElementById('settingsBtn');
+    const settingsPanel = document.getElementById('settingsPanel');
+    const saveSettingsBtn = document.getElementById('saveSettingsBtn');
+    const autoTranslateCheck = document.getElementById('autoTranslateCheck');
+    const saveHistoryCheck = document.getElementById('saveHistoryCheck');
+    const maxHistoryInput = document.getElementById('maxHistoryInput');
+
+    // 初始化
+    document.addEventListener('DOMContentLoaded', async () => {
+      await loadSettings();
+      loadHistory();
+      setupEventListeners();
+
+      // 检查是否有传入的文本需要翻译
+      const urlParams = new URLSearchParams(window.location.search);
+      const textToTranslate = urlParams.get('text');
+      if (textToTranslate) {
+        sourceText.value = decodeURIComponent(textToTranslate);
+        updateCharCount();
+        if (pluginSettings.autoTranslate) {
+          setTimeout(() => translate(), 500);
+        }
+      } else {
+        // 如果没有传入文本，尝试从剪切板获取中文文本
+        await tryLoadClipboardText();
+      }
+
+      // 检查是否是热键触发的自动翻译
+      await checkHotkeyAutoTranslate();
+    });
+
+    // 加载设置
+    async function loadSettings() {
+      try {
+        // 使用基础preload提供的IPC路由获取插件设置
+        if (naimo && naimo.router) {
+          pluginSettings = await naimo.router.storeGet('pluginSettings.translate-plugin') || {};
+        }
+
+        // 从本地存储加载UI设置
+        const uiSettings = JSON.parse(localStorage.getItem('translate-ui-settings') || '{}');
+
+        // 设置默认语言
+        sourceLanguage.value = uiSettings.defaultSource || 'auto';
+        targetLanguage.value = uiSettings.defaultTarget || 'zh';
+
+        // 设置自动翻译
+        if (uiSettings.autoTranslate !== undefined) {
+          pluginSettings.autoTranslate = uiSettings.autoTranslate;
+        } else {
+          pluginSettings.autoTranslate = true; // 默认开启
+        }
+
+        // 设置历史记录
+        if (uiSettings.saveHistory !== undefined) {
+          pluginSettings.saveHistory = uiSettings.saveHistory;
+        } else {
+          pluginSettings.saveHistory = true; // 默认开启
+        }
+
+        pluginSettings.maxHistoryCount = uiSettings.maxHistoryCount || 50;
+
+        // 更新UI元素
+        autoTranslateCheck.checked = pluginSettings.autoTranslate;
+        saveHistoryCheck.checked = pluginSettings.saveHistory;
+        maxHistoryInput.value = pluginSettings.maxHistoryCount;
+      } catch (error) {
+        console.error('加载设置失败:', error);
+      }
+    }
+
+    // 加载历史记录
+    function loadHistory() {
+      try {
+        const saved = localStorage.getItem('translate-history');
+        if (saved) {
+          translationHistory = JSON.parse(saved);
+        }
+      } catch (error) {
+        console.error('加载历史记录失败:', error);
+      }
+    }
+
+    // 保存历史记录
+    function saveHistory() {
+      try {
+        if (pluginSettings.saveHistory !== false) {
+          const maxCount = pluginSettings.maxHistoryCount || 50;
+          if (translationHistory.length > maxCount) {
+            translationHistory = translationHistory.slice(-maxCount);
+          }
+          localStorage.setItem('translate-history', JSON.stringify(translationHistory));
+        }
+      } catch (error) {
+        console.error('保存历史记录失败:', error);
+      }
+    }
+
+    // 保存UI设置
+    function saveUISettings() {
+      try {
+        const uiSettings = {
+          defaultSource: sourceLanguage.value,
+          defaultTarget: targetLanguage.value,
+          autoTranslate: pluginSettings.autoTranslate,
+          saveHistory: pluginSettings.saveHistory,
+          maxHistoryCount: pluginSettings.maxHistoryCount
+        };
+        localStorage.setItem('translate-ui-settings', JSON.stringify(uiSettings));
+      } catch (error) {
+        console.error('保存UI设置失败:', error);
+      }
+    }
+
+    // 设置事件监听器
+    function setupEventListeners() {
+      sourceText.addEventListener('input', () => {
+        updateCharCount();
+
+        // 自动翻译
+        if (pluginSettings.autoTranslate && sourceText.value.trim()) {
+          clearTimeout(autoTranslateTimer);
+          autoTranslateTimer = setTimeout(() => {
+            translate();
+          }, 1000);
+        }
+      });
+
+      translateBtn.addEventListener('click', translate);
+      swapLanguagesBtn.addEventListener('click', swapLanguages);
+      settingsBtn.addEventListener('click', toggleSettings);
+      saveSettingsBtn.addEventListener('click', saveSettings);
+
+      // 语言选择变化时保存设置
+      sourceLanguage.addEventListener('change', saveUISettings);
+      targetLanguage.addEventListener('change', saveUISettings);
+
+      // 点击其他地方关闭设置面板
+      document.addEventListener('click', (e) => {
+        if (!settingsPanel.contains(e.target) && !settingsBtn.contains(e.target)) {
+          settingsPanel.classList.remove('show');
+        }
+      });
+
+      // 键盘快捷键
+      document.addEventListener('keydown', (e) => {
+        if (e.ctrlKey || e.metaKey) {
+          switch (e.key) {
+            case 'Enter':
+              e.preventDefault();
+              translate();
+              break;
+            case 'k':
+              e.preventDefault();
+              clearAll();
+              break;
+          }
+        }
+      });
+    }
+
+    // 更新字符计数
+    function updateCharCount() {
+      const count = sourceText.value.length;
+      sourceCharCount.textContent = `${count} / 5000`;
+
+      if (count > 4500) {
+        sourceCharCount.style.color = '#ff6b6b';
+      } else if (count > 4000) {
+        sourceCharCount.style.color = '#ffa726';
+      } else {
+        sourceCharCount.style.color = '#999';
+      }
+    }
+
+    // 翻译函数
+    async function translate() {
+      const text = sourceText.value.trim();
+      if (!text) {
+        showError('请输入要翻译的文本');
+        return;
+      }
+
+      if (!pluginSettings.secretId || !pluginSettings.secretKey) {
+        showError('请先在插件设置中配置腾讯云API密钥');
+        return;
+      }
+
+      showLoading(true);
+      clearMessages();
+
+      // 设置5秒超时
+      translationTimeout = setTimeout(() => {
+        showLoading(false);
+        showError('翻译请求超时，请检查网络连接后重试');
+      }, 5000);
+
+      try {
+        // 调用插件preload提供的翻译方法
+        if (window.translatePluginAPI && window.translatePluginAPI.translateText) {
+          const result = await window.translatePluginAPI.translateText({
+            sourceText: text,
+            source: sourceLanguage.value,
+            target: targetLanguage.value,
+            settings: pluginSettings
+          });
+
+          // 清除超时定时器
+          if (translationTimeout) {
+            clearTimeout(translationTimeout);
+            translationTimeout = null;
+          }
+
+          if (result.success) {
+            displayResult(result.translatedText);
+
+            // 添加到历史记录
+            addToHistory(text, result.translatedText, sourceLanguage.value, targetLanguage.value);
+
+            // 移除成功提示，翻译完成后不再显示弹出框
+          } else {
+            showError(result.error || '翻译失败');
+          }
+        } else {
+          showError('翻译功能未正确加载，请检查插件配置');
+        }
+      } catch (error) {
+        // 清除超时定时器
+        if (translationTimeout) {
+          clearTimeout(translationTimeout);
+          translationTimeout = null;
+        }
+
+        console.error('翻译错误:', error);
+        showError('翻译服务暂时不可用，请稍后重试');
+      } finally {
+        // 只有在没有超时的情况下才关闭加载状态
+        if (translationTimeout === null) {
+          showLoading(false);
+        }
+      }
+    }
+
+    // 显示翻译结果
+    function displayResult(text) {
+      targetText.innerHTML = text;
+      targetText.classList.remove('output-placeholder');
+    }
+
+    // 添加到历史记录
+    function addToHistory(source, target, sourceLang, targetLang) {
+      if (!pluginSettings.saveHistory) return;
+
+      const historyItem = {
+        id: Date.now(),
+        source,
+        target,
+        sourceLang,
+        targetLang,
+        timestamp: new Date().toLocaleString('zh-CN')
+      };
+
+      translationHistory.unshift(historyItem);
+      saveHistory();
+    }
+
+    // 交换语言
+    function swapLanguages() {
+      if (sourceLanguage.value === 'auto') {
+        showError('自动检测语言无法交换');
+        return;
+      }
+
+      const temp = sourceLanguage.value;
+      sourceLanguage.value = targetLanguage.value;
+      targetLanguage.value = temp;
+
+      // 如果有翻译结果，交换文本
+      const sourceValue = sourceText.value.trim();
+      const targetValue = targetText.textContent.trim();
+
+      if (sourceValue && targetValue && !targetText.classList.contains('output-placeholder')) {
+        sourceText.value = targetValue;
+        displayResult(sourceValue);
+        updateCharCount();
+      }
+
+      saveUISettings();
+    }
+
+    // 清空所有内容
+    function clearAll() {
+      sourceText.value = '';
+      targetText.innerHTML = '<div class="output-placeholder">翻译结果将显示在这里...</div>';
+      targetText.classList.add('output-placeholder');
+      updateCharCount();
+      clearMessages();
+    }
+
+    // 切换设置面板
+    function toggleSettings() {
+      settingsPanel.classList.toggle('show');
+    }
+
+    // 保存设置
+    function saveSettings() {
+      try {
+        pluginSettings.autoTranslate = autoTranslateCheck.checked;
+        pluginSettings.saveHistory = saveHistoryCheck.checked;
+        pluginSettings.maxHistoryCount = parseInt(maxHistoryInput.value) || 50;
+
+        // 验证数值范围
+        if (pluginSettings.maxHistoryCount < 10) {
+          pluginSettings.maxHistoryCount = 10;
+          maxHistoryInput.value = 10;
+        } else if (pluginSettings.maxHistoryCount > 200) {
+          pluginSettings.maxHistoryCount = 200;
+          maxHistoryInput.value = 200;
+        }
+
+        saveUISettings();
+        showSuccess('设置已保存');
+        settingsPanel.classList.remove('show');
+
+        // 如果关闭了历史记录，清空现有历史
+        if (!pluginSettings.saveHistory) {
+          translationHistory = [];
+          localStorage.removeItem('translate-history');
+        }
+      } catch (error) {
+        console.error('保存设置失败:', error);
+        showError('保存设置失败');
+      }
+    }
+
+    // 显示加载状态
+    function showLoading(show) {
+      if (show) {
+        translateBtn.disabled = true;
+        translateBtn.classList.add('loading');
+        translateBtn.querySelector('span').textContent = '翻译中...';
+      } else {
+        translateBtn.disabled = false;
+        translateBtn.classList.remove('loading');
+        translateBtn.querySelector('span').textContent = '翻译';
+
+        // 清除超时定时器
+        if (translationTimeout) {
+          clearTimeout(translationTimeout);
+          translationTimeout = null;
+        }
+      }
+    }
+
+    // 显示错误消息
+    function showError(message) {
+      errorMessage.textContent = message;
+      errorMessage.classList.add('show');
+      setTimeout(() => {
+        errorMessage.classList.remove('show');
+      }, 5000);
+    }
+
+    // 显示成功消息
+    function showSuccess(message) {
+      successMessage.textContent = message;
+      successMessage.classList.add('show');
+      setTimeout(() => {
+        successMessage.classList.remove('show');
+      }, 3000);
+    }
+
+    // 清除消息
+    function clearMessages() {
+      errorMessage.classList.remove('show');
+      successMessage.classList.remove('show');
+    }
+
+    // 尝试从剪切板加载中文文本
+    async function tryLoadClipboardText() {
+      try {
+        // 检查是否有剪切板API可用
+        if (naimo && naimo.router) {
+          // 获取剪切板中的中文文本
+          const clipboardText = await naimo.router.clipboardReadText();
+
+          if (clipboardText && clipboardText.trim()) {
+            sourceText.value = clipboardText.trim();
+            updateCharCount();
+            console.log('📋 从剪切板加载中文文本成功');
+
+            // 显示提示信息
+            showSuccess('已从剪切板加载中文文本');
+          } else {
+            console.log('📋 剪切板中无中文文本');
+          }
+        }
+      } catch (error) {
+        console.error('❌ 从剪切板加载文本失败:', error);
+        // 不显示错误信息，因为这是可选功能
+      }
+    }
+
+    // 检查热键触发的自动翻译
+    async function checkHotkeyAutoTranslate() {
+      try {
+        // 检查是否存在 __metadata 全局变量
+        if (typeof window.__metadata !== 'undefined' && window.__metadata.hotkeyEmit === true) {
+          console.log('🔥 检测到热键触发，启用自动翻译');
+
+          // 如果输入框有内容，立即进行翻译
+          if (sourceText.value.trim()) {
+            setTimeout(() => {
+              translate();
+            }, 300); // 稍微延迟一下，确保界面完全加载
+          }
+        }
+      } catch (error) {
+        console.error('❌ 检查热键自动翻译失败:', error);
+      }
+    }
+  </script>
+</body>
+
+</html>

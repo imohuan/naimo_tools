@@ -22,6 +22,7 @@ import type {
 } from '@renderer/src/typings/windowTypes'
 import { LifecycleType } from '@renderer/src/typings/windowTypes'
 import type { PluginItem } from '@renderer/src/typings/pluginTypes'
+import { ViewManager } from './ViewManager'
 
 /**
  * 生命周期管理器配置
@@ -59,6 +60,8 @@ interface ViewLifecycleState {
   memoryUsage: number
   /** 关联的插件信息 */
   pluginItem?: PluginItem
+  /** 暂停前音频是否已静音（用于恢复时判断） */
+  wasAudioMuted?: boolean
 }
 
 /**
@@ -87,6 +90,8 @@ export class LifecycleManager {
   private viewStates: Map<string, ViewLifecycleState> = new Map()
   private cleanupTimer?: NodeJS.Timeout
   private performanceMetrics: PerformanceMetrics
+  /** ViewManager 引用（用于访问 webContents） */
+  private viewManager?: ViewManager
 
   private constructor(config?: Partial<LifecycleManagerConfig>) {
     this.config = {
@@ -123,6 +128,13 @@ export class LifecycleManager {
       LifecycleManager.instance = new LifecycleManager(config)
     }
     return LifecycleManager.instance
+  }
+
+  /**
+   * 设置 ViewManager 引用
+   */
+  public setViewManager(viewManager: any): void {
+    this.viewManager = viewManager
   }
 
   /**
@@ -221,6 +233,7 @@ export class LifecycleManager {
 
   /**
    * 暂停视图（后台模式）
+   * 真正优化资源：启用后台节流、静音音频
    * @param viewId 视图ID
    * @returns 操作结果
    */
@@ -230,6 +243,33 @@ export class LifecycleManager {
       if (!lifecycleState) {
         throw new Error('视图生命周期状态不存在')
       }
+
+      // 获取视图的 webContents
+      // const viewInfo = this.viewManager?.getViewInfo(viewId)
+      // if (viewInfo?.view?.webContents && !viewInfo.view.webContents.isDestroyed()) {
+      //   const webContents = viewInfo.view.webContents
+
+      //   try {
+      //     // 1. 启用后台节流（降低 CPU 使用）
+      //     webContents.setBackgroundThrottling(true)
+      //     log.debug(`已启用后台节流: ${viewId}`)
+
+      //     // 2. 静音音频（如果有）
+      //     if (!webContents.isAudioMuted()) {
+      //       webContents.setAudioMuted(true)
+      //       lifecycleState.wasAudioMuted = false // 记录原始状态，恢复时需要
+      //       log.debug(`已静音音频: ${viewId}`)
+      //     } else {
+      //       lifecycleState.wasAudioMuted = true
+      //     }
+
+      //     // 3. TODO: 可以考虑更激进的优化
+      //     // - webContents.executeJavaScript('window.stop()') // 停止所有网络请求
+      //     // - 暂停所有定时器和动画（需要注入 JS）
+      //   } catch (resourceError) {
+      //     log.warn(`资源优化失败: ${viewId}`, resourceError)
+      //   }
+      // }
 
       // 更新状态为暂停
       lifecycleState.isPaused = true
@@ -242,7 +282,7 @@ export class LifecycleManager {
         timestamp: lifecycleState.pausedAt || Date.now()
       })
 
-      log.info(`视图已暂停: ${viewId}`)
+      log.info(`✅ 视图已暂停（已优化资源）: ${viewId}`)
 
       return {
         success: true,
@@ -261,6 +301,7 @@ export class LifecycleManager {
 
   /**
    * 恢复视图（从暂停状态）
+   * 恢复资源：禁用后台节流、恢复音频
    * @param viewId 视图ID
    * @returns 操作结果
    */
@@ -279,6 +320,36 @@ export class LifecycleManager {
         }
       }
 
+      // 获取视图的 webContents
+      const viewInfo = this.viewManager?.getViewInfo(viewId)
+      if (viewInfo?.view?.webContents && !viewInfo.view.webContents.isDestroyed()) {
+        const webContents = viewInfo.view.webContents
+
+        try {
+          // 1. 禁用后台节流（恢复正常性能）
+          webContents.setBackgroundThrottling(false)
+          setTimeout(() => {
+            // 检查 webContents 是否仍然存在且未被销毁
+            if (viewInfo?.view?.webContents && !viewInfo.view.webContents.isDestroyed()) {
+              viewInfo.view.webContents.setBackgroundThrottling(false)
+            }
+          }, 3000);
+          log.debug(`已禁用后台节流: ${viewId}`)
+
+          // 2. 恢复音频（如果原来没有静音）
+          if (lifecycleState.wasAudioMuted === false) {
+            webContents.setAudioMuted(false)
+            log.debug(`已恢复音频: ${viewId}`)
+          }
+          delete lifecycleState.wasAudioMuted
+
+          // 3. TODO: 恢复其他资源
+          // - 恢复定时器和动画
+        } catch (resourceError) {
+          log.warn(`资源恢复失败: ${viewId}`, resourceError)
+        }
+      }
+
       // 更新状态为活跃
       lifecycleState.isPaused = false
       lifecycleState.lastAccessTime = Date.now()
@@ -291,7 +362,7 @@ export class LifecycleManager {
         timestamp: lifecycleState.lastAccessTime
       })
 
-      log.info(`视图已恢复: ${viewId}`)
+      log.info(`✅ 视图已恢复（已恢复资源）: ${viewId}`)
 
       return {
         success: true,

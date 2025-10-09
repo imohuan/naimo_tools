@@ -9,7 +9,7 @@ import { automateWithJson, fetchHTML, fetchJSON, parseHtmlByConfig, createRender
 
 // @ts-ignore
 const prefix = `${__METADATA__['fullPath']?.split(':')?.[0] || __METADATA__['title']}`;
-const hooks: Record<string, ((params: any) => void)[]> = { enter: [], exit: [], }
+const hooks: Record<string, ((params: any) => void)[]> = { enter: [], exit: [], search: [] }
 
 /**
  * Naimo API - uTools 兼容层
@@ -164,6 +164,10 @@ const naimo = {
     hooks.exit.push(callback);
   },
 
+  onSearch: (callback: (params: any) => void) => {
+    hooks.search.push(callback);
+  },
+
   getFeatures: async (codes: string[]) => {
     try {
       // 获取所有已安装的插件
@@ -209,6 +213,15 @@ const naimo = {
 };
 
 contextBridge.exposeInMainWorld("naimo", naimo);
+
+eventRouter.onPluginSearch((event, data) => {
+  try {
+    hooks.search.forEach(callback => isFunction(callback) && callback(data.searchText));
+  } catch (error) {
+    console.error("PRELOAD Hooks 执行失败:", error);
+    log.error("PRELOAD Hooks 执行失败:", error);
+  }
+});
 
 eventRouter.onPluginMessage((event, data) => {
   try {

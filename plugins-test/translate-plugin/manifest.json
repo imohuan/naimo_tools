@@ -1,0 +1,87 @@
+{
+  "id": "translate-plugin",
+  "icon": "./1.ico",
+  "name": "translate-plugin",
+  "version": "1.0.0",
+  "author": "Naimo Tools",
+  "description": "Translate plugin",
+  "category": "ai_artificial_intelligence",
+  "enabled": true,
+  "main": "./config.js",
+  "options": {
+    "autoStart": false,
+    "showInMenu": true,
+    "maxItems": 10
+  },
+  "items": [
+    {
+      "name": "翻译",
+      "icon": "./2.ico",
+      "path": "text-translate",
+      "description": "智能文本翻译工具"
+    },
+    {
+      "name": "快速翻译",
+      "icon": "./2.ico",
+      "path": "quick-translate",
+      "description": "快速翻译选中文本"
+    }
+  ],
+  "settings": [
+    {
+      "name": "secretId",
+      "title": "腾讯云 Secret ID",
+      "description": "请输入您的腾讯云API Secret ID",
+      "type": "input",
+      "defaultValue": "",
+      "required": true
+    },
+    {
+      "name": "secretKey",
+      "title": "腾讯云 Secret Key",
+      "description": "请输入您的腾讯云API Secret Key",
+      "type": "password",
+      "defaultValue": "",
+      "required": true
+    },
+    {
+      "name": "region",
+      "title": "服务区域",
+      "description": "选择腾讯云服务区域",
+      "type": "select",
+      "defaultValue": "ap-chengdu",
+      "option": {
+        "options": [
+          {
+            "label": "成都",
+            "value": "ap-chengdu"
+          },
+          {
+            "label": "北京",
+            "value": "ap-beijing"
+          },
+          {
+            "label": "上海",
+            "value": "ap-shanghai"
+          },
+          {
+            "label": "广州",
+            "value": "ap-guangzhou"
+          },
+          {
+            "label": "香港",
+            "value": "ap-hongkong"
+          },
+          {
+            "label": "新加坡",
+            "value": "ap-singapore"
+          },
+          {
+            "label": "东京",
+            "value": "ap-tokyo"
+          }
+        ]
+      }
+    }
+  ]
+}

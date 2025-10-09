@@ -52,13 +52,13 @@
       <!-- 重新附加按钮 -->
       <button
         tabindex="-1"
+        v-if="props.pluginId"
         class="group flex items-center justify-center w-9 h-9 rounded-lg transition-all duration-200 hover:bg-green-50 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent focus:outline-none"
         @click="handleShowPluginMenu"
       >
         <!-- 插件设置按钮 -->
         <PluginSettingsButton
           ref="pluginSettingsButton"
-          v-if="props.pluginId"
           :plugin-id="props.pluginId"
           :plugin-name="props.pluginName"
           icon-type="menu"

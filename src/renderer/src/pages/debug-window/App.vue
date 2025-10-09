@@ -95,18 +95,22 @@
           </section>
 
           <!-- 窗口结构（含视图） -->
-          <section class="bg-white/5 rounded-lg p-2.5 flex-shrink-0">
-            <h4 class="m-0 mb-2 text-[13px] font-semibold text-white/90">
+          <section
+            class="bg-white/5 rounded-lg p-2.5 flex-shrink-0 flex flex-col max-h-[300px]"
+          >
+            <div
+              class="m-0 mb-2 text-[13px] font-semibold text-white/90 flex-shrink-0"
+            >
               窗口结构 ({{ debugInfo.windows.length }} 窗口,
               {{ debugInfo.views.length }} 视图)
-            </h4>
+            </div>
             <div
-              class="flex flex-col gap-1.5 max-h-[280px] overflow-y-auto scrollbar-container"
+              class="flex-1 min-h-0 flex flex-col gap-1.5 overflow-y-auto scrollbar-container"
             >
               <div
                 v-for="window in debugInfo.windows"
                 :key="window.id"
-                class="bg-white/8 rounded-md overflow-hidden"
+                class="bg-white/8 rounded-md overflow-hidden flex-shrink-0"
               >
                 <!-- 窗口头部（可点击展开） -->
                 <div
@@ -203,6 +207,13 @@
                         {{ (getViewById(viewId)?.memoryUsage || 0).toFixed(1) }}
                         MB
                       </span>
+                      <button
+                        class="text-[9px] px-1.5 py-0.5 rounded bg-blue-500/30 text-blue-400 hover:bg-blue-500/40 transition-colors cursor-pointer border-0 no-drag-region"
+                        @click="openViewDevTools(viewId)"
+                        title="打开 DevTools"
+                      >
+                        🔧
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -325,6 +336,13 @@
                       <span class="text-[9px] text-orange-400/80">
                         {{ process.memoryUsage.toFixed(1) }} MB
                       </span>
+                      <button
+                        class="text-[9px] px-1.5 py-0.5 rounded bg-red-500/30 text-red-400 hover:bg-red-500/40 transition-colors cursor-pointer border-0 no-drag-region"
+                        @click="closeProcess(process.pid)"
+                        title="关闭进程"
+                      >
+                        ✕
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -634,6 +652,40 @@ const handleDebugUpdate = (_event: any, data: DebugInfo) => {
 // 监听展开状态切换
 const handleToggleExpanded = (_event: any, expanded: boolean) => {
   isExpanded.value = expanded;
+};
+
+// 打开指定视图的 DevTools
+const openViewDevTools = async (viewId: string) => {
+  try {
+    const naimo = (window as any).naimo;
+    if (naimo?.router?.windowOpenViewDevTools) {
+      const result = await naimo.router.windowOpenViewDevTools(viewId);
+      if (result.success) {
+        console.log(`[Debug Window] 成功打开视图 ${viewId} 的 DevTools`);
+      } else {
+        console.error(`[Debug Window] 打开 DevTools 失败:`, result.error);
+      }
+    }
+  } catch (error) {
+    console.error("[Debug Window] 打开 DevTools 异常:", error);
+  }
+};
+
+// 关闭指定 PID 的进程
+const closeProcess = async (pid: number) => {
+  try {
+    const naimo = (window as any).naimo;
+    if (naimo?.router?.windowCloseProcessByPid) {
+      const result = await naimo.router.windowCloseProcessByPid(pid);
+      if (result.success) {
+        console.log(`[Debug Window] 成功关闭进程 PID: ${pid}`);
+      } else {
+        console.error(`[Debug Window] 关闭进程失败:`, result.error);
+      }
+    }
+  } catch (error) {
+    console.error("[Debug Window] 关闭进程异常:", error);
+  }
 };
 
 onMounted(async () => {

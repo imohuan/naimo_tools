@@ -282,8 +282,12 @@ export class DetachManager {
         controlBarView // 添加控制栏视图引用
       }
 
-      // 设置分离窗口事件
+      // 设置分离窗口事件（包括快捷键）
       this.setupDetachedWindowEvents(detachedWindowInfo)
+
+      // 立即绑定快捷键（因为视图已经移动到新窗口，不会触发 did-finish-load）
+      this.bindDetachedViewShortcuts(detachedWindowInfo)
+      log.info(`分离窗口快捷键已立即绑定: 窗口ID=${detachedWindow.id}`)
 
       // 保存分离窗口信息
       this.detachedWindows.set(detachedWindow.id, detachedWindowInfo)
@@ -415,6 +419,15 @@ export class DetachManager {
         }
       } else {
         log.warn('ViewManager 未设置或不支持 updateViewParentWindow 方法')
+      }
+
+      // 重新绑定主窗口的快捷键（因为视图已经从分离窗口移回主窗口）
+      // 注意：需要等待视图准备就绪后再绑定，所以使用 await
+      if (this.viewManager && typeof this.viewManager.rebindViewShortcuts === 'function') {
+        this.viewManager.rebindViewShortcuts(detachedWindowInfo.sourceViewId)
+        log.info(`已重新绑定主窗口快捷键: ${detachedWindowInfo.sourceViewId}`)
+      } else {
+        log.warn('ViewManager 不支持 rebindViewShortcuts 方法，快捷键可能无法正常工作')
       }
 
       // 触发重新附加请求事件，通知 ProcessEventCoordinator 更新窗口-视图映射
@@ -747,7 +760,7 @@ export class DetachManager {
       } else {
         const controlBarPath = resolve(
           getDirname(import.meta.url),
-          '../renderer/pages/detached-window/index.html'
+          '../renderer/detached-window.html'
         )
         log.debug(`加载生产环境控制栏页面: ${controlBarPath}`)
         loadPromise = controlBarView.webContents.loadFile(controlBarPath)
@@ -784,7 +797,9 @@ export class DetachManager {
         log.info('控制栏初始化数据已通过 IPC 发送', initData)
       }
 
-      controlBarView.webContents.on('did-finish-load', initializeData)
+      controlBarView.webContents.on('did-finish-load', () => {
+        initializeData()
+      })
 
       // 等待页面加载完成后发送初始化数据
       if (!controlBarView.webContents.isLoading()) {
@@ -792,7 +807,7 @@ export class DetachManager {
         setTimeout(initializeData, 100)
       } else {
         // 页面正在加载，等待完成
-        // setTimeout(initializeData, 100)
+        setTimeout(initializeData, 500)
       }
 
       const initTime = performance.now() - initStartTime
@@ -847,6 +862,29 @@ export class DetachManager {
   }
 
   /**
+   * 绑定分离窗口的快捷键
+   * @param detachedWindowInfo 分离窗口信息
+   */
+  private bindDetachedViewShortcuts(detachedWindowInfo: DetachedWindowInfo): void {
+    const { view, windowId } = detachedWindowInfo
+
+    if (!view || view.webContents.isDestroyed()) {
+      log.warn(`无法绑定快捷键，视图已销毁: 窗口ID=${windowId}`)
+      return
+    }
+
+    // 先移除所有旧的监听器（避免重复绑定和冲突）
+    view.webContents.removeAllListeners('before-input-event')
+
+    // 绑定新的快捷键处理器
+    view.webContents.on('before-input-event', (event, input) => {
+      this.handleViewShortcuts(event, input, detachedWindowInfo)
+    })
+
+    log.debug(`分离窗口快捷键已绑定: 窗口ID=${windowId}`)
+  }
+
+  /**
    * 设置分离窗口事件
    * @param detachedWindowInfo 分离窗口信息
    */
@@ -897,14 +935,12 @@ export class DetachManager {
     // 也监听 resized 事件作为后备（调整结束后）
     window.on('resized', updateLayout)
 
-    // 视图快捷键事件
-    view.webContents.on('before-input-event', (event, input) => {
-      this.handleViewShortcuts(event, input, detachedWindowInfo)
-    })
-
-    // 视图页面加载完成
+    // 视图页面加载完成后重新绑定快捷键（处理刷新的情况）
     view.webContents.on('did-finish-load', () => {
       log.info(`分离视图加载完成: ${detachedWindowInfo.sourceViewId}`)
+
+      // 页面加载完成后重新绑定快捷键
+      this.bindDetachedViewShortcuts(detachedWindowInfo)
     })
 
     log.debug(`分离窗口事件监听器已设置: 窗口ID=${windowId}`)
@@ -967,22 +1003,33 @@ export class DetachManager {
       }
 
       // 4. 销毁原始插件视图（通过 ViewManager）
+      // 检查视图是否已被重新附加到其他窗口
       if (originalView && !originalView.webContents.isDestroyed()) {
         try {
-          log.info(`销毁分离窗口的插件视图: ${detachedWindowInfo.sourceViewId}`)
+          // 检查视图是否已被重新附加（通过 ViewManager 查询视图信息）
+          const viewInfo = this.viewManager?.getViewInfo(detachedWindowInfo.sourceViewId)
+          const isReattached = viewInfo && viewInfo.parentWindowId !== windowId
 
-          // 通过 ViewManager 移除视图（会自动清理 webContents）
-          if (this.viewManager && typeof this.viewManager.removeView === 'function') {
-            const removeResult = this.viewManager.removeView(detachedWindowInfo.sourceViewId)
-            if (removeResult.success) {
-              log.info(`插件视图已成功销毁: ${detachedWindowInfo.sourceViewId}`)
-            } else {
-              log.warn(`插件视图销毁失败: ${removeResult.error}`)
-            }
+          if (isReattached) {
+            // 视图已被重新附加到其他窗口，不应该销毁
+            log.info(`视图已被重新附加到窗口 ${viewInfo.parentWindowId}，跳过销毁: ${detachedWindowInfo.sourceViewId}`)
           } else {
-            // 如果 ViewManager 不可用，直接关闭 webContents
-            log.warn('ViewManager 不可用，直接关闭 webContents')
-            originalView.webContents.close()
+            // 视图未被重新附加，正常销毁
+            log.info(`销毁分离窗口的插件视图: ${detachedWindowInfo.sourceViewId}`)
+
+            // 通过 ViewManager 移除视图（会自动清理 webContents）
+            if (this.viewManager && typeof this.viewManager.removeView === 'function') {
+              const removeResult = this.viewManager.removeView(detachedWindowInfo.sourceViewId)
+              if (removeResult.success) {
+                log.info(`插件视图已成功销毁: ${detachedWindowInfo.sourceViewId}`)
+              } else {
+                log.warn(`插件视图销毁失败: ${removeResult.error}`)
+              }
+            } else {
+              // 如果 ViewManager 不可用，直接关闭 webContents
+              log.warn('ViewManager 不可用，直接关闭 webContents')
+              originalView.webContents.close()
+            }
           }
         } catch (error) {
           log.error(`销毁插件视图时出错: ${detachedWindowInfo.sourceViewId}`, error)

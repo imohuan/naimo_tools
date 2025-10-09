@@ -68,6 +68,8 @@ export interface WebContentsViewConfig {
   bounds: Rectangle
   /** 生命周期策略 */
   lifecycle: LifecycleStrategy
+  /** 是否不立即添加到窗口（静默创建，延迟显示） */
+  noSwitch?: boolean
   /** Web 首选项 */
   webPreferences?: {
     nodeIntegration?: boolean

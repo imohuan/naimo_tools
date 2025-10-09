@@ -1010,9 +1010,9 @@ export async function createPluginView(event: Electron.IpcMainInvokeEvent, param
 
 /**
  * 关闭插件视图（新架构专用）
- * 关闭所有不支持后台运行的插件视图
+ * 关闭所有不支持后台运行的插件视图，隐藏支持后台运行的插件视图
  */
-export async function closePluginView(event: Electron.IpcMainInvokeEvent): Promise<{ success: boolean; error?: string; closedCount?: number }> {
+export async function closePluginView(event: Electron.IpcMainInvokeEvent): Promise<{ success: boolean; error?: string; closedCount?: number; hiddenCount?: number }> {
   try {
     const manager = NewWindowManager.getInstance()
     const lifecycleManager = manager.getLifecycleManager()
@@ -1025,16 +1025,19 @@ export async function closePluginView(event: Electron.IpcMainInvokeEvent): Promi
     // 获取插件设置
     const pluginSettings = configManager.get('pluginSetting') || {}
 
-    // 筛选出不支持后台运行的插件视图
-    const nonBackgroundPluginViews = allViews.filter(viewInfo => {
+    // 分类插件视图：需要关闭的和需要隐藏的
+    const nonBackgroundPluginViews: typeof allViews = []
+    const backgroundPluginViews: typeof allViews = []
+
+    for (const viewInfo of allViews) {
       // 检查是否为插件视图
       if (!viewInfo.id.startsWith('plugin:')) {
-        return false
+        continue
       }
 
       // 排除已分离的视图
       if (detachManager.isViewDetached(viewInfo.id)) {
-        return false
+        continue
       }
 
       // 从 viewInfo.id 中提取插件 ID（格式：plugin:pluginId 或 plugin:pluginId:path）
@@ -1044,23 +1047,34 @@ export async function closePluginView(event: Electron.IpcMainInvokeEvent): Promi
       const pluginSetting = pluginSettings[pluginId]
       if (pluginSetting && typeof pluginSetting.backgroundRun === 'boolean') {
         // 如果配置了 backgroundRun，以此为准
-        // backgroundRun 为 true 表示支持后台运行，不应该关闭（返回 false）
-        // backgroundRun 为 false 表示不支持后台运行，应该关闭（返回 true）
-        return !pluginSetting.backgroundRun
+        // backgroundRun 为 true 表示支持后台运行，应该隐藏
+        // backgroundRun 为 false 表示不支持后台运行，应该关闭
+        if (pluginSetting.backgroundRun) {
+          backgroundPluginViews.push(viewInfo)
+        } else {
+          nonBackgroundPluginViews.push(viewInfo)
+        }
+        continue
       }
 
       // 备选方案：使用生命周期状态判断
       const lifecycleState = lifecycleManager.getViewState(viewInfo.id)
       if (!lifecycleState) {
         // 如果没有生命周期状态，默认关闭
-        return true
+        nonBackgroundPluginViews.push(viewInfo)
+        continue
       }
 
       // 检查是否为前台模式（不支持后台运行）
-      return lifecycleState.strategy.type === LifecycleType.FOREGROUND || !lifecycleState.strategy.persistOnClose
-    })
+      if (lifecycleState.strategy.type === LifecycleType.FOREGROUND || !lifecycleState.strategy.persistOnClose) {
+        nonBackgroundPluginViews.push(viewInfo)
+      } else {
+        backgroundPluginViews.push(viewInfo)
+      }
+    }
 
-    let successCount = 0
+    let closedCount = 0
+    let hiddenCount = 0
     let errors: string[] = []
 
     // 关闭所有不支持后台运行的插件视图
@@ -1068,7 +1082,7 @@ export async function closePluginView(event: Electron.IpcMainInvokeEvent): Promi
       try {
         const result = await manager.closePluginView(viewInfo.id)
         if (result.success) {
-          successCount++
+          closedCount++
           log.info(`已关闭不支持后台运行的插件视图: ${viewInfo.id}`)
         } else {
           errors.push(`关闭视图 ${viewInfo.id} 失败: ${result.error}`)
@@ -1080,20 +1094,39 @@ export async function closePluginView(event: Electron.IpcMainInvokeEvent): Promi
       }
     }
 
-    log.info(`插件视图关闭完成，成功关闭 ${successCount} 个不支持后台运行的插件视图`)
+    // 隐藏所有支持后台运行的插件视图
+    for (const viewInfo of backgroundPluginViews) {
+      try {
+        const result = await manager.hideView(viewInfo.id)
+        if (result.success) {
+          hiddenCount++
+          log.info(`已隐藏支持后台运行的插件视图: ${viewInfo.id}`)
+        } else {
+          errors.push(`隐藏视图 ${viewInfo.id} 失败: ${result.error}`)
+        }
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : '未知错误'
+        errors.push(`隐藏视图 ${viewInfo.id} 异常: ${errorMsg}`)
+        log.error(`隐藏插件视图异常: ${viewInfo.id}`, error)
+      }
+    }
+
+    log.info(`插件视图处理完成，成功关闭 ${closedCount} 个不支持后台运行的插件视图，隐藏 ${hiddenCount} 个支持后台运行的插件视图`)
 
     if (errors.length > 0) {
-      log.warn('部分插件视图关闭失败:', errors)
+      log.warn('部分插件视图处理失败:', errors)
       return {
         success: true, // 部分成功仍然返回成功
-        closedCount: successCount,
-        error: `部分视图关闭失败: ${errors.join('; ')}`
+        closedCount,
+        hiddenCount,
+        error: `部分视图处理失败: ${errors.join('; ')}`
       }
     }
 
     return {
       success: true,
-      closedCount: successCount
+      closedCount,
+      hiddenCount
     }
   } catch (error) {
     log.error('关闭插件视图失败:', error)
@@ -1244,4 +1277,101 @@ export async function showPopupMenu(
       resolve(null);
     }
   });
+}
+
+/**
+ * 打开指定视图的 DevTools
+ */
+export async function openViewDevTools(event: Electron.IpcMainInvokeEvent, viewId: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    log.info(`尝试打开视图 DevTools: ${viewId}`);
+
+    const manager = NewWindowManager.getInstance();
+    const viewManager = manager.getViewManager();
+
+    const viewInfo = viewManager.getViewInfo(viewId);
+    if (!viewInfo) {
+      log.warn(`未找到视图: ${viewId}`);
+      return { success: false, error: '视图不存在' };
+    }
+
+    if (viewInfo.view.webContents.isDevToolsOpened()) {
+      log.info(`视图 ${viewId} 的 DevTools 已经打开`);
+      return { success: true };
+    }
+
+    viewInfo.view.webContents.openDevTools({ mode: 'detach' });
+    log.info(`成功打开视图 ${viewId} 的 DevTools`);
+
+    return { success: true };
+  } catch (error) {
+    log.error('打开视图 DevTools 失败:', error);
+    return { success: false, error: error instanceof Error ? error.message : '未知错误' };
+  }
+}
+
+/**
+ * 关闭指定 PID 的进程（主要用于关闭 DevTools）
+ */
+export async function closeProcessByPid(event: Electron.IpcMainInvokeEvent, pid: number): Promise<{ success: boolean; error?: string }> {
+  try {
+    log.info(`尝试关闭进程: PID ${pid}`);
+
+    const manager = NewWindowManager.getInstance();
+    const viewManager = manager.getViewManager();
+
+    // 遍历所有视图，检查其 DevTools 是否打开并匹配 PID
+    const allViews = viewManager.getAllViews();
+    for (const viewInfo of allViews) {
+      // 检查视图和 webContents 是否存在且未被销毁
+      if (!viewInfo.view || !viewInfo.view.webContents) {
+        continue;
+      }
+
+      const webContents = viewInfo.view.webContents;
+      if (webContents.isDestroyed()) {
+        continue;
+      }
+
+      // 检查 DevTools 是否打开
+      if (webContents.isDevToolsOpened()) {
+        const devToolsWebContents = webContents.devToolsWebContents;
+        // 检查 DevTools 的进程 ID 是否匹配
+        if (devToolsWebContents && !devToolsWebContents.isDestroyed() && devToolsWebContents.getOSProcessId() === pid) {
+          log.info(`找到匹配的 DevTools (视图: ${viewInfo.id}), 正在关闭...`);
+          webContents.closeDevTools();
+          return { success: true };
+        }
+      }
+    }
+
+    // 如果在视图中没找到，检查所有窗口
+    const allWindows = BrowserWindow.getAllWindows();
+    for (const window of allWindows) {
+      // 检查窗口和 webContents 是否存在且未被销毁
+      if (!window || window.isDestroyed() || !window.webContents) {
+        continue;
+      }
+
+      const webContents = window.webContents;
+      if (webContents.isDestroyed()) {
+        continue;
+      }
+
+      if (webContents.isDevToolsOpened()) {
+        const devToolsWebContents = webContents.devToolsWebContents;
+        if (devToolsWebContents && !devToolsWebContents.isDestroyed() && devToolsWebContents.getOSProcessId() === pid) {
+          log.info(`找到匹配的 DevTools (窗口: ${window.id}), 正在关闭...`);
+          webContents.closeDevTools();
+          return { success: true };
+        }
+      }
+    }
+
+    log.warn(`未找到 PID ${pid} 对应的 DevTools`);
+    return { success: false, error: '未找到对应的 DevTools' };
+  } catch (error) {
+    log.error(`关闭进程失败 (PID ${pid}):`, error);
+    return { success: false, error: error instanceof Error ? error.message : '未知错误' };
+  }
 }

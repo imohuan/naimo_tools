@@ -68,7 +68,7 @@ export class ViewManager {
    */
   public createView(window: BaseWindow, config: WebContentsViewConfig): ViewOperationResult {
     try {
-      log.info(`开始创建视图: ${config.id}, 类型: ${config.type}`)
+      log.info(`开始创建视图: ${config.id}, 类型: ${config.type}, 静默模式: ${config.noSwitch || false}`)
 
       // 检查视图是否已存在
       if (this.views.has(config.id)) {
@@ -86,20 +86,27 @@ export class ViewManager {
         throw new Error('WebContentsView 创建失败')
       }
 
-      // 添加到父窗口
-      window.contentView.addChildView(view)
+      // 仅在非静默模式下添加到父窗口
+      if (!config.noSwitch) {
+        window.contentView.addChildView(view)
+        // 设置边界
+        view.setBounds(config.bounds)
+        log.info(`视图已添加到窗口并设置边界: ${config.id}`)
+      } else {
+        log.info(`静默模式：视图已创建但未添加到窗口: ${config.id}`)
+      }
 
       // 仅在开发环境下打开开发者工具
       if (process.env.NODE_ENV === 'development') {
         view.webContents.openDevTools({ mode: 'detach' })
       }
 
-      // 设置边界
-      view.setBounds(config.bounds)
-
       // 异步加载内容（避免阻塞调试器）
       setTimeout(() => {
-        this.loadViewContent(view, config)
+        // 检查 view 是否仍然存在且未被销毁
+        if (view && !view.webContents.isDestroyed()) {
+          this.loadViewContent(view, config)
+        }
       }, 0)
 
       // 创建视图信息
@@ -108,7 +115,7 @@ export class ViewManager {
         view,
         config,
         state: {
-          isVisible: true,
+          isVisible: !config.noSwitch, // 静默模式下视图不可见
           isActive: false,
           lastAccessTime: Date.now()
         },
@@ -503,6 +510,16 @@ export class ViewManager {
     return this.views.get(viewId)
   }
 
+  public updateViewFullPath(viewId: string, fullPath: string): WebContentsViewInfo | undefined {
+    const viewInfo = this.getViewInfo(viewId)
+    if (!viewInfo) return undefined
+    viewInfo.config.pluginMetadata = {
+      ...(viewInfo.config?.pluginMetadata || {}),
+      fullPath
+    }
+    return viewInfo
+  }
+
   /**
    * 获取窗口的活跃视图ID
    * @param windowId 窗口ID
@@ -591,8 +608,13 @@ export class ViewManager {
    */
   private hideView(viewInfo: WebContentsViewInfo): void {
     try {
-      // 通过设置不可见的边界来隐藏视图
-      viewInfo.view.setBounds({ x: -10000, y: -10000, width: 1, height: 1 })
+      // 从父窗口移除视图（但不销毁）
+      const window = this.baseWindowController.getWindow(viewInfo.parentWindowId)
+      if (window) {
+        window.contentView.removeChildView(viewInfo.view)
+        log.debug(`视图已从窗口移除: ${viewInfo.id}`)
+      }
+
       viewInfo.state.isVisible = false
       viewInfo.state.isActive = false
       log.debug(`视图已隐藏: ${viewInfo.id}`)
@@ -602,15 +624,46 @@ export class ViewManager {
   }
 
   /**
+   * 通过 ID 隐藏视图
+   * @param viewId 视图 ID
+   * @returns 是否成功隐藏
+   */
+  public hideViewById(viewId: string): boolean {
+    try {
+      const viewInfo = this.getViewInfo(viewId)
+      if (!viewInfo) {
+        log.warn(`未找到视图: ${viewId}`)
+        return false
+      }
+      this.hideView(viewInfo)
+      return true
+    } catch (error) {
+      log.error(`通过 ID 隐藏视图失败: ${viewId}`, error)
+      return false
+    }
+  }
+
+  /**
    * 显示视图
    * @param viewInfo 视图信息
    */
   public showView(viewInfo: WebContentsViewInfo): void {
     try {
+      // 如果视图不可见（被隐藏），需要添加到窗口
+      if (!viewInfo.state.isVisible) {
+        const window = this.baseWindowController.getWindow(viewInfo.parentWindowId)
+        if (window) {
+          window.contentView.addChildView(viewInfo.view)
+          log.info(`视图已添加到窗口: ${viewInfo.id}`)
+        } else {
+          log.warn(`无法找到父窗口: ${viewInfo.parentWindowId}，无法添加视图: ${viewInfo.id}`)
+          return
+        }
+      }
+
       // 恢复视图的正常边界
       viewInfo.view.setBounds(viewInfo.config.bounds)
       viewInfo.state.isVisible = true
-
       log.debug(`视图已显示: ${viewInfo.id}`)
     } catch (error) {
       log.error(`显示视图失败: ${viewInfo.id}`, error)
@@ -660,6 +713,12 @@ export class ViewManager {
    */
   private async loadViewContent(view: WebContentsView, config: WebContentsViewConfig): Promise<void> {
     try {
+      // 检查 view 是否已被销毁
+      if (!view || view.webContents.isDestroyed()) {
+        log.warn(`视图已被销毁，跳过内容加载: ${config.id}`)
+        return
+      }
+
       if (config.url) {
         if (config.url.startsWith('http') || config.url.startsWith('file://')) {
           await this.safeLoadURL(view, config.url, config.id)
@@ -782,14 +841,22 @@ export class ViewManager {
   }
 
   /**
-   * 设置视图分离快捷键
+   * 绑定视图快捷键（可以多次调用）
    * @param viewInfo 视图信息
    */
-  private setupDetachShortcuts(viewInfo: WebContentsViewInfo): void {
+  private bindViewShortcuts(viewInfo: WebContentsViewInfo): void {
     const { view, id } = viewInfo
 
-    // 监听键盘事件，处理 Alt+D 快捷键
-    view.webContents.on('before-input-event', (event, input) => {
+    if (!view || view.webContents.isDestroyed()) {
+      log.warn(`无法绑定快捷键，视图已销毁: ${id}`)
+      return
+    }
+
+    // 先移除所有旧的监听器（避免重复绑定和冲突）
+    view.webContents.removeAllListeners('before-input-event')
+
+    // 创建快捷键处理函数
+    const shortcutHandler = (event: Electron.Event, input: Electron.Input) => {
       // 在调试模式下记录键盘事件
       if (process.env.NODE_ENV === 'development') {
         log.debug(
@@ -823,9 +890,48 @@ export class ViewManager {
         event.preventDefault()
         return
       }
+    }
+
+    // 绑定快捷键事件
+    view.webContents.on('before-input-event', shortcutHandler)
+    log.debug(`[${id}] 快捷键已绑定`)
+  }
+
+  /**
+   * 设置视图分离快捷键
+   * @param viewInfo 视图信息
+   */
+  private setupDetachShortcuts(viewInfo: WebContentsViewInfo): void {
+    const { view, id } = viewInfo
+
+    // 初始绑定快捷键
+    this.bindViewShortcuts(viewInfo)
+
+    // 监听页面加载完成事件，在页面刷新后重新绑定快捷键
+    view.webContents.on('did-finish-load', () => {
+      log.debug(`[${id}] 页面加载完成，重新绑定快捷键`)
+      this.bindViewShortcuts(viewInfo)
     })
 
     log.debug(`[${id}] Alt+D 快捷键监听器已设置`)
+  }
+
+  /**
+   * 重新绑定视图快捷键（供外部调用，例如在视图重新附加后）
+   * @param viewId 视图ID
+   */
+  public rebindViewShortcuts(viewId: string): void {
+    const viewInfo = this.views.get(viewId)
+    if (!viewInfo) {
+      log.warn(`无法重新绑定快捷键，视图不存在: ${viewId}`)
+      return
+    }
+
+    // 只为非主视图绑定快捷键
+    if (viewId !== 'main-view') {
+      setTimeout(() => this.bindViewShortcuts(viewInfo), 0);
+      log.info(`已重新绑定快捷键: ${viewId}`)
+    }
   }
 
   /**

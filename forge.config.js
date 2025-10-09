@@ -140,6 +140,8 @@ export default {
       /^\/\.git/,
       /^\/scripts/,
       /^\/docs/,
+      /^\/links$/,
+      /^\/link\.bat$/,
       /\.ts$/,
       /\.map$/,
       /README\.md$/,

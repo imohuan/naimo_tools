@@ -326,86 +326,6 @@ export class NewWindowManager {
   }
 
   /**
-   * 显示视图
-   */
-  public async showView(params: ViewOperationParams): Promise<ViewOperationResult> {
-    try {
-      if (!this.mainWindow) {
-        throw new Error('主窗口未创建')
-      }
-
-      log.info(`显示视图: 类型=${params.type}, 强制新建=${params.forceNew}`)
-
-      // 生成视图ID
-      const viewId = this.generateViewId(params.type, params.config?.path)
-
-      // 检查视图是否已存在
-      let viewInfo = this.viewManager.getViewInfo(viewId)
-
-      if (viewInfo && !params.forceNew) {
-        // 视图已存在
-        if (!params.noSwitch) {
-          // 切换到该视图
-          const switchResult = this.viewManager.switchToView(this.mainWindow.id, viewId)
-          if (switchResult.success) {
-            await this.handleViewActivated(viewId)
-          }
-          return switchResult
-        } else {
-          // 静默模式：不切换，只返回成功
-          log.info(`视图已存在（静默模式，不切换）: ${viewId}`)
-          return {
-            success: true,
-            viewId,
-            data: { created: false, switched: false, silent: true }
-          }
-        }
-      }
-
-      // 创建新视图
-      const viewConfig = this.prepareViewConfig(viewId, params)
-      const createResult = this.viewManager.createView(this.mainWindow, viewConfig)
-
-      if (!createResult.success) {
-        throw new Error(createResult.error || '视图创建失败')
-      }
-
-      // 设置生命周期策略
-      if (params.pluginItem) {
-        const lifecycleStrategy = params.lifecycleStrategy ||
-          this.lifecycleManager.inferLifecycleFromPlugin(params.pluginItem)
-
-        this.lifecycleManager.setLifecycleStrategy(viewId, lifecycleStrategy, params.pluginItem)
-      }
-
-      // 根据 noSwitch 参数决定是否切换到新创建的视图
-      let switchResult: ViewOperationResult = { success: false }
-      if (!params.noSwitch) {
-        switchResult = this.viewManager.switchToView(this.mainWindow.id, viewId)
-        if (switchResult.success) {
-          await this.handleViewActivated(viewId)
-        }
-      } else {
-        log.info(`视图已创建（静默模式，不切换）: ${viewId}`)
-      }
-
-      log.info(`视图显示成功: ${viewId}`)
-
-      return {
-        success: true,
-        viewId,
-        data: { created: true, switched: params.noSwitch ? false : switchResult.success, silent: params.noSwitch || false }
-      }
-    } catch (error) {
-      log.error('显示视图失败:', error)
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : '未知错误'
-      }
-    }
-  }
-
-  /**
    * 创建设置页面 WebContentsView
    */
   public async createSettingsView(): Promise<ViewOperationResult> {
@@ -656,8 +576,98 @@ export class NewWindowManager {
     }
   }
 
+
+  /**
+   * 显示视图
+   */
+  public async showView(params: ViewOperationParams): Promise<ViewOperationResult> {
+    try {
+      if (!this.mainWindow) {
+        throw new Error('主窗口未创建')
+      }
+
+      log.info(`显示视图: 类型=${params.type}, 强制新建=${params.forceNew}`)
+
+      // 生成视图ID
+      const viewId = this.generateViewId(params.type, params.config?.path?.split(':')?.[0])
+
+      // 检查视图是否已存在
+      let viewInfo = this.viewManager.getViewInfo(viewId)
+
+      if (viewInfo && !params.forceNew) {
+        // 更新 ViewInfo
+        this.viewManager.updateViewFullPath(viewId, params.pluginItem?.fullPath || '')
+
+        // 视图已存在
+        if (!params.noSwitch) {
+          // 切换到该视图
+          const switchResult = this.viewManager.switchToView(this.mainWindow.id, viewId)
+          if (switchResult.success) {
+            await this.lifecycleManager.resumeView(viewId)
+            await this.handleViewActivated(viewId)
+          }
+          return switchResult
+        } else {
+          // 静默模式：不切换，只返回成功
+          // this.viewManager.hideViewById(viewId)
+          log.info(`视图已存在（静默模式，不切换）: ${viewId}`)
+          return {
+            success: true,
+            viewId,
+            data: { created: false, switched: false, silent: true }
+          }
+        }
+      }
+
+      // 创建新视图
+      const viewConfig = this.prepareViewConfig(viewId, params)
+      const createResult = this.viewManager.createView(this.mainWindow, viewConfig)
+
+      if (!createResult.success) {
+        throw new Error(createResult.error || '视图创建失败')
+      }
+
+      // 设置生命周期策略
+      if (params.pluginItem) {
+        const lifecycleStrategy = params.lifecycleStrategy ||
+          this.lifecycleManager.inferLifecycleFromPlugin(params.pluginItem)
+
+        this.lifecycleManager.setLifecycleStrategy(viewId, lifecycleStrategy, params.pluginItem)
+      }
+
+      // 根据 noSwitch 参数决定是否切换到新创建的视图
+      let switchResult: ViewOperationResult = { success: false }
+      if (!params.noSwitch) {
+        switchResult = this.viewManager.switchToView(this.mainWindow.id, viewId)
+        if (switchResult.success) {
+          await this.lifecycleManager.resumeView(viewId)
+          await this.handleViewActivated(viewId)
+        }
+      } else {
+        // this.viewManager.hideViewById(viewId)
+        log.info(`视图已创建（静默模式，不切换）: ${viewId}`)
+      }
+
+      log.info(`视图显示成功: ${viewId}`)
+
+      return {
+        success: true,
+        viewId,
+        data: { created: true, switched: params.noSwitch ? false : switchResult.success, silent: params.noSwitch || false }
+      }
+    } catch (error) {
+      log.error('显示视图失败:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : '未知错误'
+      }
+    }
+  }
+
+
   /**
    * 隐藏视图
+   * 隐藏视图并暂停它，这样可以节省资源但快速恢复
    */
   public async hideView(viewId: string): Promise<ViewOperationResult> {
     try {
@@ -667,32 +677,33 @@ export class NewWindowManager {
         throw new Error('主窗口未创建')
       }
 
-      // 隐藏视图（需要检查ViewManager的正确API）
-      // TODO: 修复ViewManager.hideView方法调用
-      try {
-        // this.viewManager.hideView(viewId)
-        log.info(`视图 ${viewId} 准备隐藏`)
-      } catch (error) {
-        log.warn(`隐藏视图时出现问题: ${error}`)
+      // 1. 隐藏视图（移到屏幕外）
+      const hideSuccess = this.viewManager.hideViewById(viewId)
+      if (!hideSuccess) {
+        throw new Error(`无法隐藏视图: ${viewId}`)
       }
 
-      // 处理生命周期
-      const lifecycleResult = await this.lifecycleManager.handleViewClose(viewId)
-      if (!lifecycleResult.success) {
-        log.warn(`生命周期处理失败: ${viewId}, 错误: ${lifecycleResult.error}`)
+      // 2. 暂停视图（节省资源，但保持状态以便快速恢复）
+      const pauseResult = await this.lifecycleManager.pauseView(viewId)
+      if (!pauseResult.success) {
+        log.warn(`暂停视图失败: ${viewId}, 错误: ${pauseResult.error}`)
       }
 
-      // 更新活跃视图
+      // 3. 更新活跃视图
       if (this.activeViewId === viewId) {
         this.activeViewId = null
       }
 
-      log.info(`视图隐藏成功: ${viewId}`)
+      log.info(`视图已隐藏并暂停: ${viewId}`)
 
       return {
         success: true,
         viewId,
-        data: { hidden: true, lifecycleHandled: lifecycleResult.success }
+        data: {
+          hidden: true,
+          paused: pauseResult.success,
+          isPaused: pauseResult.data?.isPaused || false
+        }
       }
     } catch (error) {
       log.error(`隐藏视图失败: ${viewId}`, error)
@@ -1076,6 +1087,8 @@ export class NewWindowManager {
     this.viewManager = ViewManager.getInstance()
     this.lifecycleManager = LifecycleManager.getInstance()
     this.detachManager = DetachManager.getInstance()
+    // 设置 LifecycleManager 的 ViewManager 引用（用于访问 webContents 进行资源优化）
+    this.lifecycleManager.setViewManager(this.viewManager)
   }
 
   /**
@@ -1150,6 +1163,7 @@ export class NewWindowManager {
       category: params.category || ViewCategory.MAIN_WINDOW,
       bounds,
       lifecycle: params.lifecycleStrategy || this.config.defaultLifecycle,
+      noSwitch: params.noSwitch, // 传递静默创建参数
       webPreferences: {
         nodeIntegration: true,
         contextIsolation: true,
@@ -1205,6 +1219,12 @@ export class NewWindowManager {
       // 跳过已分离的视图
       if (this.detachManager.isViewDetached(viewInfo.id)) {
         log.debug(`跳过已分离视图的布局更新: ${viewInfo.id}`)
+        return
+      }
+
+      // 检查视图是否已被销毁
+      if (!viewInfo.view || viewInfo.view.webContents.isDestroyed()) {
+        log.debug(`跳过已销毁视图的布局更新: ${viewInfo.id}`)
         return
       }
 
@@ -1372,6 +1392,9 @@ export class NewWindowManager {
   }): Promise<ViewOperationResult> {
     try {
       if (!this.mainWindow) throw new Error('主窗口未创建')
+      const pluginId = params.fullPath.split(':')[0]
+      // 生成视图ID（与 generateViewId 方法保持一致）
+      const viewId = this.generateViewId(ViewType.PLUGIN, pluginId)
 
       // 默认单例模式为 true
       const isSingleton = params.singleton !== false
@@ -1402,9 +1425,6 @@ export class NewWindowManager {
 
       // 如果是单例模式，检查视图是否已存在或已分离
       if (isSingleton) {
-        // 生成视图ID（与 generateViewId 方法保持一致）
-        const viewId = this.generateViewId(ViewType.PLUGIN, params.fullPath)
-
         // 检查视图是否已被分离
         if (this.detachManager.isViewDetached(viewId)) {
           const detachedWindowId = this.detachManager.getDetachedWindowId(viewId)
@@ -1464,6 +1484,7 @@ export class NewWindowManager {
       }
 
       // 确定生命周期类型
+
       const lifecycleType = params.lifecycleType
 
       // 处理 URL：如果没有传入 URL，则使用空白页（用于后台窗口）
