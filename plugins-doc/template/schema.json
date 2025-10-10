@@ -13,6 +13,10 @@
     "enabled"
   ],
   "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "JSON Schema 引用路径"
+    },
     "id": {
       "type": "string",
       "description": "插件唯一标识，建议使用英文小写字母、数字、短横线组合",

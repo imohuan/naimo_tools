@@ -23,16 +23,22 @@
         :plugin="selectedPlugin as PluginConfig"
         :is-installed="isPluginInstalled(selectedPlugin.id)"
         :is-installing="isPluginInstalling(selectedPlugin.id)"
+        :is-updating="isPluginUpdating(selectedPlugin.id)"
+        :has-update="hasPluginUpdate(selectedPlugin.id)"
+        :installed-version="getInstalledPluginVersion(selectedPlugin.id)"
         :install-progress="getPluginInstallProgress(selectedPlugin.id)"
         @close="closePluginDetail"
         @install="installPlugin"
         @uninstall="uninstallPlugin"
+        @update="updatePlugin"
       />
 
       <!-- 插件列表页面 -->
       <template v-else>
         <!-- 顶部区域：搜索框、分类列表、分页 -->
-        <div class="px-3 py-2 bg-white border border-gray-200 rounded-lg shadow-sm">
+        <div
+          class="px-3 py-2 bg-white border border-gray-200 rounded-lg shadow-sm"
+        >
           <div class="flex items-center justify-between gap-3">
             <div class="flex-1 flex items-center gap-3">
               <!-- 搜索框 -->
@@ -52,7 +58,8 @@
 
               <!-- 分类列表 -->
               <div class="flex items-center gap-1.5">
-                <label class="text-xs font-medium text-gray-700 whitespace-nowrap"
+                <label
+                  class="text-xs font-medium text-gray-700 whitespace-nowrap"
                   >分类:</label
                 >
                 <select
@@ -123,17 +130,23 @@
           </div>
 
           <!-- 插件网格 -->
-          <div v-else-if="filteredPlugins.length > 0" class="grid grid-cols-2 gap-2">
+          <div
+            v-else-if="filteredPlugins.length > 0"
+            class="grid grid-cols-2 gap-2"
+          >
             <PluginCard
               v-for="plugin in paginatedPlugins"
               :key="plugin.id"
               :plugin="plugin as PluginConfig"
               :is-installed="isPluginInstalled(plugin.id)"
               :is-installing="isPluginInstalling(plugin.id)"
+              :is-updating="isPluginUpdating(plugin.id)"
+              :has-update="hasPluginUpdate(plugin.id)"
               :install-progress="getPluginInstallProgress(plugin.id)"
               @click="showPluginDetail"
               @install="installPlugin"
               @uninstall="uninstallPlugin"
+              @update="updatePlugin"
             />
           </div>
 
@@ -145,7 +158,10 @@
             <div class="w-full flex items-center justify-center">
               <div class="flex-1 border-t border-gray-200"></div>
               <span class="mx-4 text-gray-500 text-sm flex items-center gap-2">
-                <svg class="animate-spin h-4 w-4 text-blue-400" viewBox="0 0 24 24">
+                <svg
+                  class="animate-spin h-4 w-4 text-blue-400"
+                  viewBox="0 0 24 24"
+                >
                   <circle
                     class="opacity-25"
                     cx="12"
@@ -177,7 +193,10 @@ import { ref, computed, watch, onMounted } from "vue";
 import { useEventListener } from "@vueuse/core";
 import { useApp } from "@/temp_code";
 import type { PluginConfig } from "@/typings/pluginTypes";
-import { PluginCategoryType, PLUGIN_CATEGORY_CONFIG } from "@/typings/pluginTypes";
+import {
+  PluginCategoryType,
+  PLUGIN_CATEGORY_CONFIG,
+} from "@/typings/pluginTypes";
 import PluginCard from "./PluginCard.vue";
 import PluginDetail from "./PluginDetail.vue";
 /** @ts-ignore */
@@ -194,18 +213,41 @@ const itemsPerPage = 6;
 const selectedPlugin = ref<PluginConfig | null>(null);
 
 // 安装状态管理
-const installingPlugins = ref<Map<string, { progress?: number; downloadId?: string }>>(
-  new Map()
-);
+const installingPlugins = ref<
+  Map<string, { progress?: number; downloadId?: string }>
+>(new Map());
+
+// 更新状态管理
+const updatingPlugins = ref<Set<string>>(new Set());
 
 // 检查插件是否已安装
 const isPluginInstalled = (pluginId: string) => {
   return pluginStore.installedPlugins.some((p) => p.id === pluginId);
 };
 
+// 检查插件是否有更新
+const hasPluginUpdate = (pluginId: string): boolean => {
+  return pluginStore.needUpdatePlugins.some((p) => p.id === pluginId);
+};
+
+// 获取已安装插件的版本
+const getInstalledPluginVersion = (pluginId: string): string | undefined => {
+  const installedPlugin = pluginStore.installedPlugins.find(
+    (p) => p.id === pluginId
+  );
+  return installedPlugin?.version;
+};
+
+// 检查插件是否正在更新
+const isPluginUpdating = (pluginId: string): boolean => {
+  return updatingPlugins.value.has(pluginId);
+};
+
 // 计算过滤后的插件列表
 const filteredPlugins = computed(() => {
-  const installedPluginIds = new Set(pluginStore.installedPlugins.map((p) => p.id));
+  const installedPluginIds = new Set(
+    pluginStore.installedPlugins.map((p) => p.id)
+  );
   let result = [...pluginStore.availablePlugins];
 
   // 搜索过滤
@@ -231,7 +273,8 @@ const filteredPlugins = computed(() => {
       }
 
       // 按插件类型过滤
-      const category = plugin.category || getPluginCategory(plugin as PluginConfig);
+      const category =
+        plugin.category || getPluginCategory(plugin as PluginConfig);
       return category === categoryFilter.value;
     });
   }
@@ -240,7 +283,9 @@ const filteredPlugins = computed(() => {
 });
 
 // 计算总页数和分页后的插件列表
-const totalPages = computed(() => Math.ceil(filteredPlugins.value.length / itemsPerPage));
+const totalPages = computed(() =>
+  Math.ceil(filteredPlugins.value.length / itemsPerPage)
+);
 const paginatedPlugins = computed(() => {
   const start = (currentPage.value - 1) * itemsPerPage;
   return filteredPlugins.value.slice(start, start + itemsPerPage);
@@ -295,7 +340,15 @@ const setPluginInstalling = (
 
 // 插件详情相关
 const showPluginDetail = (plugin: PluginConfig) => {
-  selectedPlugin.value = plugin;
+  // 如果是已安装的插件，优先查找 GitHub 上的最新版本信息
+  if (isPluginInstalled(plugin.id)) {
+    const githubPlugin = pluginStore.githubPlugins.find(
+      (p) => p.id === plugin.id
+    );
+    selectedPlugin.value = githubPlugin || plugin;
+  } else {
+    selectedPlugin.value = plugin;
+  }
 };
 const closePluginDetail = () => {
   selectedPlugin.value = null;
@@ -315,7 +368,6 @@ const installPlugin = async (pluginConfig: PluginConfig) => {
       setPluginInstalling(pluginConfig.id, true);
       console.log(`📦 开始下载插件: ${pluginConfig.id}`);
       console.log(`🔗 下载地址: ${pluginConfig.downloadUrl}`);
-
       // 设置总超时（5分钟）
       const timeoutPromise = new Promise<boolean>((_, reject) => {
         setTimeout(() => {
@@ -323,7 +375,10 @@ const installPlugin = async (pluginConfig: PluginConfig) => {
         }, 300000); // 5分钟
       });
       // 并发执行下载和超时检查
-      await Promise.race([pluginStore.install(pluginConfig.downloadUrl), timeoutPromise]);
+      await Promise.race([
+        pluginStore.install(pluginConfig.downloadUrl),
+        timeoutPromise,
+      ]);
       setPluginInstalling(pluginConfig.id, false);
     } else {
       // 普通安装（无下载）
@@ -350,6 +405,41 @@ const uninstallPlugin = async (pluginId: string) => {
     }
   } catch (err) {
     console.error(`❌ 卸载插件失败: ${pluginId}`, err);
+  }
+};
+
+// 更新插件
+const updatePlugin = async (pluginOldConfig: PluginConfig) => {
+  // 防止重复更新
+  if (isPluginUpdating(pluginOldConfig.id)) {
+    console.warn(`⚠️ 插件正在更新中: ${pluginOldConfig.id}`);
+    return;
+  }
+
+  const pluginConfig = pluginStore.githubPlugins.find(
+    (p) => p.id === pluginOldConfig.id
+  );
+
+  if (!pluginConfig) {
+    console.warn(`⚠️ 插件未找到: ${pluginOldConfig.id}`);
+    return;
+  }
+
+  try {
+    // 标记为更新中
+    updatingPlugins.value.add(pluginConfig.id);
+    console.log(`🔄 开始更新插件: ${pluginConfig.id}`);
+    await pluginStore.update(pluginConfig.id);
+    console.log(`✅ 插件更新成功: ${pluginConfig.id}`);
+  } catch (err) {
+    console.error(`❌ 更新插件失败: ${pluginConfig.id}`, err);
+    // 显示错误提示
+    if (err instanceof Error) {
+      console.error("错误详情:", err.message);
+    }
+  } finally {
+    // 移除更新中标记
+    updatingPlugins.value.delete(pluginConfig.id);
   }
 };
 

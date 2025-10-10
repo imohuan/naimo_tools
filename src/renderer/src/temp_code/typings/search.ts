@@ -1,4 +1,4 @@
-import type { AttachedFile as AttachedFileFromComposableTypes } from "@/typings/composableTypes";
+import type { AttachedFile as AttachedFileFromComposableTypes } from "../../typings/composableTypes";
 
 /**
  * 搜索分类接口

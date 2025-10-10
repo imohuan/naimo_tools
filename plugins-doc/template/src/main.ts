@@ -4,31 +4,38 @@ import './style.css';
 
 // ==================== 类型定义 ====================
 
-/**
- * Naimo API 类型
- * 从全局 window.naimo 获取
- */
-type NaimoAPI = typeof window.naimo;
+// ==================== 热重载 ====================
+if (import.meta.hot) {
+  // 监听 preload 文件变化事件
+  import.meta.hot.on('preload-changed', async (data) => {
+    console.log('📝 检测到 preload 变化:', data);
+    // 触发 preload 构建
+    console.log('🔨 正在触发 preload 构建...');
+    try {
+      const response = await fetch('/__preload_build');
+      const result = await response.json();
+      if (result.success) {
+        console.log('✅ Preload 构建完成');
+        // 构建成功后，触发热重载
+        await window.naimo.hot()
+        console.log('🔄 Preload 热重载完成');
+        location.reload()
+      } else {
+        console.error('❌ Preload 构建失败');
+      }
+    } catch (error) {
+      console.error('❌ 触发 preload 构建失败:', error);
+    }
+  })
+}
 
-/**
- * 自定义插件 API 类型
- * 从 preload.ts 中暴露的 API
- */
-type MyPluginAPI = typeof window.myPluginAPI;
-
-// ==================== 主逻辑 ====================
+// =======================================================
 
 /**
  * 应用初始化
  */
 async function initApp(): Promise<void> {
   console.log('应用初始化...');
-
-  // 获取 Naimo API
-  const naimo: NaimoAPI = window.naimo;
-
-  // 获取自定义插件 API
-  const myAPI: MyPluginAPI = window.myPluginAPI;
 
   // 设置按钮点击事件
   const testBtn = document.getElementById('testBtn');
@@ -41,8 +48,8 @@ async function initApp(): Promise<void> {
         naimo.log.info('按钮被点击了！');
 
         // 使用自定义 API
-        const time = myAPI.getCurrentTime();
-        const formatted = myAPI.formatText('hello world');
+        const time = customApi.getCurrentTime();
+        const formatted = customApi.formatText('hello world');
 
         // 显示结果
         output.innerHTML = `

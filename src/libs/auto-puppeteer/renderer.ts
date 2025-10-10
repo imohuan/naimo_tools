@@ -195,7 +195,7 @@ export const autoPuppeteerRenderer = {
 
 // ========== UBrowser 渲染进程封装 ==========
 
-import { WindowConfig, BrowserInstance, CookieFilter, DeviceOptions, Rect, AutomationStep } from './typings';
+import { WindowConfig, BrowserInstance, CookieFilter, DeviceOptions, Rect, AutomationStep, UBrowserAPI, InstantBrowserAPI } from './typings';
 
 // IPC 调用函数类型
 type IpcInvokeFunction = (channel: string, ...args: any[]) => Promise<any>;
@@ -204,7 +204,7 @@ type IpcInvokeFunction = (channel: string, ...args: any[]) => Promise<any>;
  * 创建渲染进程 UBrowser 对象
  * 链式调用模式：构建操作队列，最后统一执行
  */
-function createUBrowserObject(ipcInvoke: IpcInvokeFunction) {
+function createUBrowserObject(ipcInvoke: IpcInvokeFunction): UBrowserAPI {
   const actions: AutomationStep[] = [];
 
   /**
@@ -434,7 +434,7 @@ export function createRendererUBrowser(ipcInvoke: IpcInvokeFunction) {
 /**
  * 创建即时执行浏览器对象
  */
-function createInstantBrowserObject(ipcInvoke: IpcInvokeFunction) {
+function createInstantBrowserObject(ipcInvoke: IpcInvokeFunction): InstantBrowserAPI {
   let browserId: number | null = null;
 
   /**

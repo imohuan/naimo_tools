@@ -43,8 +43,8 @@
     },
 
     // 类型声明
-    "types": ["node"]
+    "types": ["node", "electron", "vite/client"]
   },
-  "include": ["src/**/*", "typings/*"],
+  "include": ["src/**/*", "typings/*", "*.ts"],
   "exclude": ["node_modules", "dist"]
 }

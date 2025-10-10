@@ -6,6 +6,14 @@ import { ipcRouter } from "@shared/utils/ipcRouterClient";
 import { eventRouter } from "@shared/utils/eventRouterClient";
 import { isFunction } from "@shared/utils/common/typeUtils";
 import { automateWithJson, fetchHTML, fetchJSON, parseHtmlByConfig, createRendererUBrowser, createInstantUBrowser } from "@libs/auto-puppeteer/renderer";
+// import { PluginItem } from "@renderer/src/typings";
+interface PluginItem {
+  path: string;
+  name: string;
+  description: string;
+  icon: string;
+  type: string;
+}
 
 // @ts-ignore
 const prefix = `${__METADATA__['fullPath']?.split(':')?.[0] || __METADATA__['title']}`;
@@ -292,9 +300,13 @@ const naimo = {
    * @returns 执行结束后的回调
    */
   hot() {
-    return ipcRenderer.invoke("hot-reload")
+    log.info(`热重载::::: plugin:${prefix}-hot-reload`)
+    // @ts-ignore
+    return ipcRenderer.invoke(`plugin:${prefix}-hot-reload`)
   }
 };
+
+export type Naimo = typeof naimo;
 
 contextBridge.exposeInMainWorld("naimo", naimo);
 

@@ -29,14 +29,14 @@ export function useAppActions() {
         appEventManager.emit("plugin:executed", { fullPath: fullPath, hotkeyEmit, });
 
         // 更新使用统计
-        await updateRecentApps(pluginItem);
+        await updateRecentApps(pluginItem as AppItem);
         return true;
       } else {
         // 普通应用项目，使用原有逻辑
         console.log("📱 检测到普通应用项目，使用默认执行逻辑:", appItem.name);
         const success = await naimo.router.appLaunchApp(appItem.path);
         if (success) {
-          await updateRecentApps(appItem);
+          await updateRecentApps(appItem as AppItem);
           return true;
         }
         return false;
@@ -52,7 +52,7 @@ export function useAppActions() {
     try {
       if (appItem.notVisibleSearch || appItem.type !== "text") return;
       const appCopy = app.plugin.getSerializedPluginItem(appItem as PluginItem);
-      await app.search.addItem({ ...appCopy, category: "recent", __metadata: { enableDelete: true, enablePin: false } });
+      await app.search.addItem({ ...appCopy, category: "recent", __metadata: { enableDelete: true, enablePin: false } } as AppItem);
       app.search.performSearch("")
     } catch (error) {
       console.error("更新最近使用应用记录失败:", error);
@@ -88,7 +88,7 @@ export function useAppActions() {
       const serializableItems = newItems.map((item) =>
         app.plugin.getSerializedPluginItem(item as PluginItem)
       );
-      await app.search.setItems(categoryId, serializableItems);
+      await app.search.setItems(categoryId, serializableItems as AppItem[]);
     } catch (error) {
       console.error(`保存分类 ${categoryId} 排序失败:`, error);
     }

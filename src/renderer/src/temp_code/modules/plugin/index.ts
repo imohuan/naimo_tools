@@ -13,9 +13,11 @@ import { GithubPluginInstaller } from "./modules/github";
 import { useLoading } from "@/temp_code/hooks/useLoading";
 import { storeUtils } from "@/temp_code/utils/store";
 import { appEventManager } from "../event";
+import { SystemPluginInstaller } from "./modules/system";
+import semver from "semver";
 
 const modules = {
-  // system: new SystemPluginInstaller(), // 已禁用：所有插件统一放在 plugins/ 目录
+  system: new SystemPluginInstaller(),
   local: new LocalPluginInstaller(),
   github: new GithubPluginInstaller(),
 };
@@ -48,17 +50,42 @@ export const usePluginStoreNew = defineStore("pluginNew", () => {
 
   // ==================== 计算属性 ====================
   const enabledPlugins = computed(() => installedPlugins.value.filter((p) => p.enabled));
-  // const systemPlugins = computed(() =>
-  //   availablePlugins.value.filter((p) => p.options?.pluginType === "system")
-  // ); // 已禁用系统插件
+  const systemPlugins = computed(() =>
+    availablePlugins.value.filter((p) => p.options?.pluginType === "system")
+  ); // 已禁用系统插件
   const localPlugins = computed(() =>
     availablePlugins.value.filter((p) => p.options?.pluginType === "local")
   );
-  const githubPlugins = computed(() =>
-    availablePlugins.value.filter((p) => p.options?.pluginType === "github")
-  );
+  const githubPlugins = shallowRef<PluginConfig[]>([]);
   const pluginCount = computed(() => installedPlugins.value.length);
   const enabledCount = computed(() => enabledPlugins.value.length);
+
+  const needUpdatePlugins = computed(() => {
+    const pluginMap = new Map([...systemPlugins.value, ...localPlugins.value].map((p) => [p.id, p]));
+    console.log("needUpdatePlugins", pluginMap, githubPlugins.value);
+    const needUpdate = githubPlugins.value.filter((p) => {
+      const plugin = pluginMap.has(p.id) ? pluginMap.get(p.id) : null
+      if (!plugin) return false
+
+      // 使用 semver 比较版本号：如果远程版本大于本地版本，则需要更新
+      try {
+        const remoteVersion = semver.valid(semver.coerce(p.version))
+        const localVersion = semver.valid(semver.coerce(plugin.version))
+
+        // 如果两个版本号都有效，则比较；否则使用字符串比较
+        if (remoteVersion && localVersion) {
+          return semver.gt(remoteVersion, localVersion)
+        }
+        return plugin.version !== p.version
+      } catch (error) {
+        // 如果 semver 解析失败，降级到字符串比较
+        console.warn(`版本号解析失败: ${plugin.id}, 本地: ${plugin.version}, 远程: ${p.version}`, error)
+        return plugin.version !== p.version
+      }
+    })
+
+    return needUpdate
+  })
 
   // ==================== 安装器管理 ====================
 
@@ -197,13 +224,14 @@ export const usePluginStoreNew = defineStore("pluginNew", () => {
 
     // 1. 加载所有本地插件（系统插件已禁用，所有插件统一放在 plugins/ 目录）
     const local = await modules.local.getList();
-
-    availablePlugins.value = [...local];
+    const system = await modules.system.getList();
+    availablePlugins.value = [...local, ...system];
     triggerRef(availablePlugins);
-    console.log(`📋 加载了 ${local.length} 个本地插件`);
+    console.log(`📋 加载了 ${availablePlugins.value.length} 个本地插件`);
 
     // 2. 加载已安装的插件
     const installedIds = await getInstalledPluginIds();
+
 
     // 3. 安装已安装的插件
     if (silent.value) {
@@ -213,7 +241,7 @@ export const usePluginStoreNew = defineStore("pluginNew", () => {
       console.log(`📋 加载了 ${pluginSettings.value.size} 个插件的设置`);
 
       // 实际安装和安装监听事件
-      const waitInstalls = availablePlugins.value.filter((p) => installedIds.includes(p.id))
+      const waitInstalls = availablePlugins.value.filter((p) => installedIds.includes(p.id) || p.options?.pluginType === "system")
       await Promise.all(waitInstalls.map((p) => install(p)));
       _setupEventListeners();
 
@@ -303,33 +331,108 @@ export const usePluginStoreNew = defineStore("pluginNew", () => {
     return true;
   }, "切换插件状态失败");
 
+  /** 更新插件 */
+  const update = loading.withLoading(async (source: PluginConfig | string) => {
+    // 1. 解析插件ID和配置
+    let pluginId: string;
+    let newPluginConfig: PluginConfig;
+
+    if (typeof source === "string") {
+      // 如果是字符串，从 githubPlugins 中查询
+      pluginId = source;
+      const githubPlugin = githubPlugins.value.find((p) => p.id === pluginId);
+      if (!githubPlugin) {
+        throw new Error(`未在 GitHub 插件列表中找到插件: ${pluginId}`);
+      }
+      newPluginConfig = githubPlugin
+    } else {
+      // 如果是插件配置对象
+      pluginId = source.id;
+      newPluginConfig = source;
+    }
+
+    console.log(`🔄 开始更新插件: ${pluginId}`);
+
+    // 2. 检查插件是否已安装
+    const installedPlugin = getPlugin(pluginId);
+    if (!installedPlugin) {
+      throw new Error(`插件未安装，无法更新: ${pluginId}`);
+    }
+
+    // 3. 记录旧版本信息
+    const oldVersion = installedPlugin.version;
+    const newVersion = newPluginConfig.version;
+    console.log(`📦 版本更新: ${oldVersion} -> ${newVersion}`);
+
+    try {
+      // 4. 先卸载旧版本
+      console.log(`🗑️ 卸载旧版本: ${pluginId}`);
+      await uninstall(pluginId);
+
+      // 5. 安装新版本
+      console.log(`📥 安装新版本: ${pluginId}`);
+
+      const updatedPlugin: PluginConfig = await install(newPluginConfig?.downloadUrl ? newPluginConfig?.downloadUrl : newPluginConfig)
+      console.log(`✅ 插件更新成功: ${pluginId} (${oldVersion} -> ${newVersion})`);
+
+      // 6. 触发更新事件
+      appEventManager.emit("plugin:updated", {
+        pluginId,
+        oldVersion,
+        newVersion
+      });
+
+      await updateAllLists()
+
+      return updatedPlugin;
+    } catch (error) {
+      console.error(`❌ 插件更新失败: ${pluginId}`, error);
+      // 如果安装新版本失败，尝试回滚（重新安装旧版本）
+      console.warn(`⚠️ 尝试回滚到旧版本: ${pluginId}`);
+      try {
+        await install(installedPlugin);
+        console.log(`✅ 已回滚到旧版本: ${pluginId}`);
+      } catch (rollbackError) {
+        console.error(`❌ 回滚失败: ${pluginId}`, rollbackError);
+      }
+      throw error;
+    }
+  }, "更新插件失败");
+
   // ==================== GitHub 插件相关 ====================
+
+  const updateGithubPlugins = async (list: PluginConfig[]) => {
+    githubPlugins.value = list;
+    triggerRef(githubPlugins);
+
+    mergePlugins(list);
+    return list
+  }
+
+  /** 加载更多 GitHub 插件 */
+  const loadMoreGithubPlugins = listLoading.withLoading(async () => {
+    const plugins = await modules.github.loadMore();
+    return updateGithubPlugins(plugins);
+  }, "加载更多 GitHub 插件失败");
 
   /** 加载 GitHub 插件列表 */
   const loadGithubPlugins = listLoading.withLoading(
     async (options?: { search?: string; page?: number }) => {
       const plugins = await modules.github.getList(options);
-      mergePlugins(plugins);
-      return plugins;
+      return updateGithubPlugins(plugins);
     },
     "加载 GitHub 插件失败"
   );
-
-  /** 加载更多 GitHub 插件 */
-  const loadMoreGithubPlugins = listLoading.withLoading(async () => {
-    const plugins = await modules.github.loadMore();
-    mergePlugins(plugins);
-    return plugins;
-  }, "加载更多 GitHub 插件失败");
 
   /** 更新所有插件列表 */
   const updateAllLists = async () => {
     // 只加载本地插件（系统插件已禁用）
     const local = await modules.local.getList();
+    const system = await modules.system.getList();
     const github = availablePlugins.value.filter(
       (p) => p.options?.pluginType === "github"
     );
-    availablePlugins.value = [...local, ...github];
+    availablePlugins.value = [...local, ...system, ...github];
   };
 
   const getInstalledPluginItem = (fullPath: string) => {
@@ -420,9 +523,10 @@ export const usePluginStoreNew = defineStore("pluginNew", () => {
 
     // 计算属性
     enabledPlugins,
-    // systemPlugins, // 已禁用系统插件
+    systemPlugins, // 已禁用系统插件
     localPlugins,
     githubPlugins,
+    needUpdatePlugins,
     pluginCount,
     enabledCount,
 
@@ -430,6 +534,7 @@ export const usePluginStoreNew = defineStore("pluginNew", () => {
     initialize,
     install,
     uninstall,
+    update,
     toggle,
     getPlugin,
     getInstalledPluginItem,

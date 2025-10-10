@@ -8,7 +8,7 @@ import { resolve, dirname } from "path";
 import { autoPuppeteerRenderer } from "@libs/auto-puppeteer/renderer";
 import { downloadManagerRenderer } from "@libs/download-manager/renderer";
 import { eventRouter } from "@shared/utils/eventRouterClient";
-import { readFileSync } from "fs";
+import { existsSync, readFileSync } from "fs";
 
 /**
  * 启用热重载
@@ -66,6 +66,11 @@ console.log("Preload启动时间:", new Date(preloadStartTime).toLocaleTimeStrin
 const prefix = "[Renderer] ";
 
 const webUtils = {
+  async loadPluginDir(dirpath: string) {
+    const configPath = resolve(dirpath, 'manifest.json');
+    return await this.loadPluginConfig(configPath);
+  },
+
   /**
    * 加载插件配置（懒加载架构）
    * 只支持 manifest.json 格式
@@ -73,14 +78,19 @@ const webUtils = {
   async loadPluginConfig(configPath: string) {
     try {
       const absoluteConfigPath = resolve(configPath);
-      const directory = await ipcRouter.pluginGetPluginsDirectory()
-      if (!absoluteConfigPath.startsWith(directory)) {
-        return null
-      }
+      // const directory = await ipcRouter.pluginGetPluginsDirectory()
+      // if (!absoluteConfigPath.startsWith(directory)) {
+      //   return null
+      // }
 
       // 只支持 manifest.json
       if (!absoluteConfigPath.endsWith('manifest.json')) {
         log.warn(`插件配置文件必须是 manifest.json: ${configPath}`);
+        return null;
+      }
+
+      if (!existsSync(absoluteConfigPath)) {
+        log.warn(`插件配置文件不存在: ${configPath}`);
         return null;
       }
 

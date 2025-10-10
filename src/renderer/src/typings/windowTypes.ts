@@ -5,13 +5,6 @@
 
 import type { PluginItem } from './pluginTypes'
 
-/** 扩展 CSS 样式属性以支持 webkit 样式 */
-declare module 'vue' {
-  interface CSSProperties {
-    webkitAppRegion?: 'drag' | 'no-drag' | string
-  }
-}
-
 /** 视图类型枚举 */
 export enum ViewType {
   /** 主界面 */

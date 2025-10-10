@@ -29,8 +29,35 @@
               >
             </h3>
           </div>
-          <!-- 安装/卸载图标按钮 -->
+          <!-- 安装/卸载/更新图标按钮 -->
           <div class="flex items-center gap-1">
+            <!-- 更新按钮（已安装且有新版本） -->
+            <button
+              v-if="isInstalled && hasUpdate"
+              @click.stop="$emit('update', plugin)"
+              :disabled="isUpdating"
+              class="p-1.5 text-blue-500 hover:bg-blue-50 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              :title="
+                isUpdating ? '更新中...' : `有新版本可用: ${plugin.version}`
+              "
+            >
+              <div v-if="isUpdating" class="animate-spin text-blue-500">
+                <svg class="w-4 h-4" viewBox="0 0 24 24">
+                  <circle
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    fill="none"
+                    stroke-dasharray="31.416"
+                    class="transition-all duration-300"
+                  />
+                </svg>
+              </div>
+              <IconMdiUpdate v-else class="w-4 h-4" />
+            </button>
+
             <!-- 安装按钮（未安装状态） -->
             <div v-if="!isInstalled" class="relative">
               <button
@@ -51,7 +78,9 @@
                         stroke-width="2"
                         fill="none"
                         stroke-dasharray="31.416"
-                        :stroke-dashoffset="31.416 * (1 - (installProgress || 0) / 100)"
+                        :stroke-dashoffset="
+                          31.416 * (1 - (installProgress || 0) / 100)
+                        "
                         class="transition-all duration-300"
                       />
                     </svg>
@@ -94,11 +123,15 @@ import type { PluginConfig } from "@/typings/pluginTypes";
 import IconMdiDownload from "~icons/mdi/download";
 /** @ts-ignore */
 import IconMdiDeleteOutline from "~icons/mdi/delete-outline";
+/** @ts-ignore */
+import IconMdiUpdate from "~icons/mdi/update";
 
 interface Props {
   plugin: PluginConfig;
   isInstalled: boolean;
   isInstalling?: boolean;
+  isUpdating?: boolean;
+  hasUpdate?: boolean;
   installProgress?: number;
 }
 
@@ -108,6 +141,7 @@ defineEmits<{
   click: [plugin: PluginConfig];
   install: [plugin: PluginConfig];
   uninstall: [pluginId: string];
+  update: [plugin: PluginConfig];
 }>();
 </script>
 

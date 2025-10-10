@@ -129,7 +129,7 @@ export abstract class BasePluginInstaller implements PluginInstaller {
    * @param options 选项
    */
   protected setPluginType(plugin: PluginConfig, options: any = {}): void {
-    plugin.options = { ...(plugin.options || {}), ...options, pluginType: this.pluginType }
+    plugin.options = { ...(plugin?.options || {}), ...options, pluginType: this.pluginType }
   }
 
   /**

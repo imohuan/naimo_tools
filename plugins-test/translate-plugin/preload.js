@@ -171,4 +171,3 @@ if (typeof module !== "undefined" && module.exports) {
 window.addEventListener("DOMContentLoaded", () => {
   console.log("翻译插件 Preload 脚本已初始化");
 });
-//# sourceMappingURL=preload.js.map

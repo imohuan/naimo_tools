@@ -12,11 +12,11 @@ import { isObject, isNumber, isString } from './typeUtils'
 export function validateAppConfig(config: any): boolean {
   return (
     isObject(config) &&
-    isString(config.theme) &&
-    isString(config.language) &&
-    isObject(config.windowSize) &&
-    isNumber(config.windowSize.width) &&
-    isNumber(config.windowSize.height)
+    isString((config as any).theme) &&
+    isString((config as any).language) &&
+    isObject((config as any).windowSize) &&
+    isNumber((config as any).windowSize.width) &&
+    isNumber((config as any).windowSize.height)
   )
 }
 
@@ -28,10 +28,10 @@ export function validateAppConfig(config: any): boolean {
 export function validateWindowSize(windowSize: any): boolean {
   return (
     isObject(windowSize) &&
-    isNumber(windowSize.width) &&
-    isNumber(windowSize.height) &&
-    windowSize.width > 0 &&
-    windowSize.height > 0
+    isNumber((windowSize as any).width) &&
+    isNumber((windowSize as any).height) &&
+    (windowSize as any).width > 0 &&
+    (windowSize as any).height > 0
   )
 }
 

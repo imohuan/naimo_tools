@@ -100,6 +100,24 @@
 
         <!-- 安装状态和操作 -->
         <div class="border-t border-gray-200 pt-4">
+          <!-- 版本更新提示 -->
+          <div
+            v-if="isInstalled && hasUpdate && installedVersion"
+            class="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-md"
+          >
+            <div class="flex items-center gap-2 mb-1">
+              <IconMdiUpdate class="w-4 h-4 text-blue-500" />
+              <span class="text-sm font-medium text-blue-700"
+                >有新版本可用</span
+              >
+            </div>
+            <div class="text-xs text-blue-600 ml-6">
+              当前版本: v{{ installedVersion }} → 最新版本: v{{
+                plugin.version
+              }}
+            </div>
+          </div>
+
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-2">
               <div
@@ -111,6 +129,37 @@
               </span>
             </div>
             <div class="flex items-center gap-2">
+              <!-- 更新按钮（已安装且有新版本） -->
+              <button
+                v-if="isInstalled && hasUpdate"
+                @click="$emit('update', plugin)"
+                :disabled="isUpdating"
+                class="px-3 py-1.5 bg-blue-500 text-white text-sm rounded-md hover:bg-blue-600 transition-colors flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-blue-500"
+                :title="isUpdating ? '更新中...' : '更新到最新版本'"
+              >
+                <div v-if="isUpdating" class="flex items-center gap-1.5">
+                  <div class="animate-spin">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24">
+                      <circle
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        fill="none"
+                        stroke-dasharray="31.416"
+                        class="transition-all duration-300"
+                      />
+                    </svg>
+                  </div>
+                  <span>更新中...</span>
+                </div>
+                <template v-else>
+                  <IconMdiUpdate class="w-4 h-4" />
+                  更新插件
+                </template>
+              </button>
+
               <!-- 安装按钮（未安装状态） -->
               <div v-if="!isInstalled" class="relative">
                 <button
@@ -165,7 +214,7 @@
               </div>
               <!-- 卸载按钮（已安装状态） -->
               <button
-                v-else
+                v-else-if="!hasUpdate"
                 @click="$emit('uninstall', plugin.id)"
                 class="px-3 py-1.5 bg-red-500 text-white text-sm rounded-md hover:bg-red-600 transition-colors flex items-center gap-1.5"
               >
@@ -189,11 +238,16 @@ import IconMdiClose from "~icons/mdi/close";
 import IconMdiDownload from "~icons/mdi/download";
 /** @ts-ignore */
 import IconMdiDeleteOutline from "~icons/mdi/delete-outline";
+/** @ts-ignore */
+import IconMdiUpdate from "~icons/mdi/update";
 
 interface Props {
   plugin: PluginConfig;
   isInstalled: boolean;
   isInstalling?: boolean;
+  isUpdating?: boolean;
+  hasUpdate?: boolean;
+  installedVersion?: string;
   installProgress?: number;
 }
 
@@ -203,5 +257,6 @@ defineEmits<{
   close: [];
   install: [plugin: PluginConfig];
   uninstall: [pluginId: string];
+  update: [plugin: PluginConfig];
 }>();
 </script>

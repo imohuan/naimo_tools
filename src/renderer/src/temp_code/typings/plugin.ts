@@ -1,4 +1,4 @@
-import type { PluginConfig } from '@/typings/pluginTypes'
+import type { PluginConfig } from '../../typings/pluginTypes'
 
 /**
  * 插件来源类型

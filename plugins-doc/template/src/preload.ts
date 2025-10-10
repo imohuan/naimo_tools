@@ -5,17 +5,6 @@ import { contextBridge } from 'electron';
 // ==================== 类型定义 ====================
 
 /**
- * 自定义插件 API 接口
- */
-interface MyPluginAPI {
-  getCurrentTime: () => string;
-  formatText: (text: string) => string;
-  fetchData: (url: string) => Promise<any>;
-}
-
-// ==================== 工具函数 ====================
-
-/**
  * 获取当前时间
  */
 function getCurrentTime(): string {
@@ -44,7 +33,7 @@ async function fetchData(url: string): Promise<any> {
 
 // ==================== 暴露插件 API ====================
 
-const myPluginAPI: MyPluginAPI = {
+const myPluginAPI = {
   getCurrentTime,
   formatText,
   fetchData
@@ -58,7 +47,7 @@ contextBridge.exposeInMainWorld('myPluginAPI', myPluginAPI);
  * 导出功能处理器
  * 类型定义来自 naimo.d.ts
  */
-const handlers: import('../typings/naimo').PluginExports = {
+const handlers = {
   hello: {
     onEnter: async (params: any) => {
       console.log('Hello World 功能被触发');
@@ -90,8 +79,6 @@ window.addEventListener('DOMContentLoaded', () => {
 // ==================== 类型扩展 ====================
 
 declare global {
-  interface Window {
-    myPluginAPI: MyPluginAPI;
-  }
+  const customApi: typeof myPluginAPI;
 }
 

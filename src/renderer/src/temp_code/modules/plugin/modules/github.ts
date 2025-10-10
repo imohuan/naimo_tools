@@ -141,8 +141,10 @@ export class GithubPluginInstaller extends BasePluginInstaller {
   /** 加载单个插件配置 */
   private async loadPluginConfig(item: GithubPluginItem): Promise<GithubPluginItem> {
     try {
-      const url = `https://raw.githubusercontent.com/${item.user}/${item.repo}/${this.branch}/manifest.json`
-      const config = await request.get<PluginConfig>(url)
+      const url = `https://raw.githubusercontent.com/${item.user}/${item.repo}/${this.branch}/manifest.json?r=${Date.now()}`
+      const config = await request.get<PluginConfig>(url, {
+        headers: { 'Content-Type': 'application/json' }
+      })
       if (config) {
         // 处理图标和路径
         if (config.icon) config.icon = this.resolveRootUrl(item.user, item.repo, config.icon)

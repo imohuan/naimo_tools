@@ -78,7 +78,7 @@ ${customPreloadContent ? `
 
     // 使用自定义名称或默认名称
     const fileName = outputName
-      ? `${outputName}.js`
+      ? outputName
       : `combined-preload-${Date.now()}.js`;
     const tempFilePath = join(tempDir, fileName);
     writeFileSync(tempFilePath, combinedContent, 'utf-8');

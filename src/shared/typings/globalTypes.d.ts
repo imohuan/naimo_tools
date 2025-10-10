@@ -11,6 +11,14 @@ interface WebUtils {
    * @returns 文件的实际路径
    */
   getPathForFile: (file: File) => string;
+
+  /**
+   * 加载插件目录
+   * @param dirpath 目录路径
+   * @returns 插件配置对象
+   */
+  loadPluginDir: (dirpath: string) => Promise<any>;
+
   /**
    * 安全地加载插件配置文件
    * @param configPath 配置文件路径

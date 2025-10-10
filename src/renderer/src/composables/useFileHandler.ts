@@ -131,6 +131,8 @@ export function useFileHandler(options: FileHandlerOptions = {}) {
 
       // 尝试获取文件路径
       let filePath = naimo.webUtils.getPathForFile(file)
+      // 获取文件路径是否是文件夹
+      const isDirectory = await naimo.router.filesystemIsDirectory(filePath)
 
       // 如果是图片且没有路径（剪贴板截图），保存到临时文件
       if ((!filePath || filePath.trim() === '') && imageTypes.includes(file.type)) {
@@ -158,7 +160,7 @@ export function useFileHandler(options: FileHandlerOptions = {}) {
       const attachedFile: AttachedFile = {
         name: file.name,
         path: filePath,
-        type: file.type,
+        type: isDirectory ? 'directory' : "file",
         size: file.size,
         originalFile: file
       }

@@ -5,11 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "npm run type-check && npm run build:main && npm run build:preload",
-    "build:main": "vite build",
-    "build:preload": "node scripts/build-preload.js",
+    "build": "vite build",
     "preview": "vite preview",
-    "add-electron-types": "$env:ELECTRON_SKIP_DOWNLOAD=1; pnpm install electron --save-dev",
     "type-check": "tsc --noEmit",
     "deploy": "node scripts/deploy-to-build.js"
   },
@@ -21,9 +18,10 @@
   "author": "",
   "license": "MIT",
   "devDependencies": {
+    "@tailwindcss/vite": "^4.1.13",
     "@types/node": "^22.0.0",
+    "tailwindcss": "^4.1.13",
     "typescript": "^5.9.2",
     "vite": "^7.1.5"
-  },
-  "dependencies": {}
+  }
 }

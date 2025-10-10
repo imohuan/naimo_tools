@@ -1,7 +1,7 @@
 {
   "id": "translate-plugin",
   "name": "智能翻译",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "author": "Naimo Tools",
   "icon": "./1.ico",
   "description": "基于腾讯云的智能翻译插件，支持多语言互译",

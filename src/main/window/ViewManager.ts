@@ -3,7 +3,7 @@
  * 负责 WebContentsView 的创建、切换、布局和生命周期管理
  */
 
-import { BaseWindow, WebContentsView, screen } from 'electron'
+import { BaseWindow, WebContentsView, ipcMain, screen } from 'electron'
 import { resolve } from 'path'
 import log from 'electron-log'
 import { DEFAULT_WINDOW_LAYOUT } from '@shared/constants'
@@ -831,6 +831,7 @@ export class ViewManager {
     // WebContentsView关闭事件
     view.webContents.on('destroyed', () => {
       log.info(`视图WebContents已销毁: ${id}`)
+      ipcMain.removeHandler(`${id}-hot-reload`)
       this.handleViewClosed(viewInfo)
     })
 
@@ -906,7 +907,6 @@ export class ViewManager {
 
     // 初始绑定快捷键
     this.bindViewShortcuts(viewInfo)
-
     // 监听页面加载完成事件，在页面刷新后重新绑定快捷键
     view.webContents.on('did-finish-load', () => {
       log.debug(`[${id}] 页面加载完成，重新绑定快捷键`)

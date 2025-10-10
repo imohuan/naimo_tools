@@ -15,6 +15,13 @@ export interface AppEvents {
     pluginId: string;
   };
 
+  /** 插件更新事件 */
+  "plugin:updated": {
+    pluginId: string;
+    oldVersion: string;
+    newVersion: string;
+  };
+
   // 快捷键相关事件
   "hotkey:triggered": {
     id: string;

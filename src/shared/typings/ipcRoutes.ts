@@ -1,6 +1,6 @@
 /**
  * 自动生成的 IPC 类型定义
- * 生成时间: 2025-10-10T01:41:31.549Z
+ * 生成时间: 2025-10-10T12:38:35.483Z
  * 请勿手动修改此文件
  */
 
@@ -568,6 +568,11 @@ DIP (Device Independent Pixels): 设备独立像素
 }
 
 interface filesystemInterface {
+  /** 无注释 */
+  "filesystem-is-directory": (filePath: string) => Promise<boolean>;
+  /** 无注释 */
+  "filesystemIsDirectory": (filePath: string) => Promise<boolean>;
+
   /**
  * 选择文件
  * @param IPC事件对象
@@ -1832,6 +1837,12 @@ export const ROUTE_INFO: RouteInfo[] = [
     comment: "将 DIP 坐标转换为屏幕坐标",
     module: "display",
     function: "dipToScreenPoint"
+  },
+  {
+    route: "filesystem-is-directory",
+    comment: "无注释",
+    module: "filesystem",
+    function: "isDirectory"
   },
   {
     route: "filesystem-select-file",

@@ -1571,10 +1571,8 @@ export class NewWindowManager {
           const pluginViewInfo = this.viewManager.getViewInfo(result.viewId)
           if (pluginViewInfo && pluginViewInfo.view && !pluginViewInfo.view.webContents.isDestroyed()) {
             const webContents = pluginViewInfo.view.webContents
-            pluginViewInfo.view.webContents.on('did-finish-load', () => {
-              ipcMain.handleOnce("hot-reload", async (event) => {
-                return await createPreloadScript(outputName)
-              })
+            ipcMain.handle(`${result.viewId}-hot-reload`, async (event) => {
+              return await createPreloadScript(outputName)
             })
             sendPluginMessageData(webContents, result.viewId)
           }

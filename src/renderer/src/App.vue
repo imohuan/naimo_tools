@@ -369,6 +369,28 @@ const handleExecuted = async (event: {
     return;
   }
 
+  // 传递给插件的参数
+  const data = {
+    files: attachedFiles.value.map((m) => {
+      return { name: m.name, path: m.path, size: m.size, type: m.type };
+    }),
+    searchText: app.ui.searchText,
+    hotkeyEmit: event.hotkeyEmit,
+  };
+
+  // 如果插件有 onEnter 回调，则执行回调
+  if (pluginItem?.onEnter) {
+    try {
+      pluginItem.onEnter(data, pluginItem);
+    } catch (error) {
+      console.error("❌ 执行插件 onEnter 回调失败:", error);
+    }
+    attachedFiles.value = [];
+    app.ui.searchText = "";
+    handleSearch("");
+    return;
+  }
+
   console.log("📦 插件配置:", {
     name: plugin.name,
     main: plugin.main,
@@ -380,15 +402,6 @@ const handleExecuted = async (event: {
   app.ui.openPluginWindow(pluginItem);
   await nextTick();
   contentAreaRef.value?.handleResize();
-
-  // 传递给插件的参数
-  const data = {
-    files: attachedFiles.value.map((m) => {
-      return { name: m.name, path: m.path, size: m.size, type: m.type };
-    }),
-    searchText: app.ui.searchText,
-    hotkeyEmit: event.hotkeyEmit,
-  };
 
   // 懒加载架构：打开插件窗口（后台会判断，没有 main 则打开空白页作为后台窗口）
   try {

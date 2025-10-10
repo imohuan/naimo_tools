@@ -4,8 +4,21 @@
  */
 
 import { dialog, BrowserWindow } from 'electron';
-import { readFile, writeFile } from 'fs/promises';
+import { readFile, writeFile, stat } from 'fs/promises';
 import log from 'electron-log';
+
+
+export function isDirectory(event: Electron.IpcMainInvokeEvent, filePath: string): Promise<boolean> {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const isDirectory = await stat(filePath);
+      resolve(isDirectory.isDirectory());
+    } catch (error) {
+      log.error('判断文件是否为文件夹失败:', error);
+      reject(error);
+    }
+  });
+}
 
 /**
  * 选择文件

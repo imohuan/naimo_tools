@@ -1,4 +1,4 @@
-import type { AppItem } from '@/temp_code/typings/search'
+import type { AppItem } from '../temp_code/typings/search'
 import type { SettingConfig } from './settingTypes'
 import type { LifecycleType } from './windowTypes'
 
@@ -140,7 +140,12 @@ export interface PluginConfig {
 }
 
 /** 插件项目类型 - 基于新的搜索系统 AppItem */
-export type PluginItem = AppItem & {
+export type PluginItem = Partial<AppItem> & {
+  name: string;
+  path: string;
+  fullPath?: string;
+  icon: string | null;
+
   /** 插件ID */
   pluginId?: string
   /** 开机启动 */
@@ -151,4 +156,6 @@ export type PluginItem = AppItem & {
   singleton?: boolean
   /** 推荐 */
   recommend?: boolean
+
+  [key: string]: any
 }

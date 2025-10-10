@@ -475,3 +475,172 @@ export interface Rect {
   width: number;
   height: number;
 }
+
+/**
+ * UBrowser API 接口
+ * 链式调用模式的浏览器自动化 API
+ * 所有方法（除了 run）都返回自身以支持链式调用
+ */
+export interface UBrowserAPI {
+  // ========== 基础操作 ==========
+
+  /** 导航到指定 URL */
+  goto(url: string, options?: WindowConfig): UBrowserAPI;
+
+  /** 设置用户代理（User-Agent） */
+  useragent(ua: string): UBrowserAPI;
+
+  /** 设置视口大小 */
+  viewport(width: number, height: number): UBrowserAPI;
+
+  /** 隐藏浏览器窗口 */
+  hide(): UBrowserAPI;
+
+  /** 显示浏览器窗口 */
+  show(): UBrowserAPI;
+
+  // ========== 网页操作 ==========
+
+  /** 注入自定义 CSS 样式 */
+  css(css: string): UBrowserAPI;
+
+  /** 在页面上下文中执行 JavaScript 代码或函数 */
+  evaluate(func: Function | string, ...params: any[]): UBrowserAPI;
+
+  /** 模拟按键操作 */
+  press(key: string, options?: { delay?: number }): UBrowserAPI;
+
+  /** 点击指定选择器的元素 */
+  click(selector: string): UBrowserAPI;
+
+  /** 在指定元素上按下鼠标 */
+  mousedown(selector: string): UBrowserAPI;
+
+  /** 释放鼠标按键 */
+  mouseup(): UBrowserAPI;
+
+  /** 上传文件到文件输入框 */
+  file(selector: string, payload: string | string[] | Buffer): UBrowserAPI;
+
+  /** 在输入框中输入文本（模拟逐字输入） */
+  type(selector: string, text: string, options?: { delay?: number }): UBrowserAPI;
+
+  /** 直接设置输入框的值（不触发输入事件） */
+  value(selector: string, value: string): UBrowserAPI;
+
+  /** 选择下拉框选项 */
+  select(selector: string, ...values: string[]): UBrowserAPI;
+
+  /** 设置复选框或单选框的选中状态 */
+  check(selector: string, checked: boolean): UBrowserAPI;
+
+  /** 聚焦到指定元素 */
+  focus(selector: string): UBrowserAPI;
+
+  /** 滚动到指定元素或坐标位置 */
+  scroll(selectorOrX: string | number, y?: number): UBrowserAPI;
+
+  /** 粘贴文本内容 */
+  paste(text: string): UBrowserAPI;
+
+  /** 截取页面截图 */
+  screenshot(options?: any): UBrowserAPI;
+
+  /** 生成页面 PDF */
+  pdf(options?: any): UBrowserAPI;
+
+  /** 模拟设备环境（如手机、平板） */
+  device(options: DeviceOptions): UBrowserAPI;
+
+  /** 等待指定时间、选择器或函数条件满足 */
+  wait(msOrSelectorOrFunc: number | string | Function, timeout?: number, ...params: any[]): UBrowserAPI;
+
+  /** 等待选择器元素出现 */
+  waitForSelector(selector: string, options?: { visible?: boolean; hidden?: boolean; timeout?: number }): UBrowserAPI;
+
+  /** 等待选择器元素出现（简化版） */
+  when(selector: string): UBrowserAPI;
+
+  /** 标记任务结束 */
+  end(): UBrowserAPI;
+
+  /** 打开开发者工具 */
+  devTools(mode?: 'right' | 'bottom' | 'undocked' | 'detach'): UBrowserAPI;
+
+  // ========== Cookie 操作 ==========
+
+  /** 获取指定 URL 的 Cookies */
+  cookies(...urls: string[]): UBrowserAPI;
+
+  /** 设置 Cookies */
+  setCookie(...cookies: any[]): UBrowserAPI;
+
+  /** 删除 Cookies */
+  deleteCookie(...cookies: any[]): UBrowserAPI;
+
+  // ========== 执行 ==========
+
+  /** 执行所有操作队列并返回结果 */
+  run(options?: WindowConfig): Promise<[...any[], BrowserInstance]>;
+}
+
+/**
+ * 即时执行浏览器 API 接口
+ * 与 UBrowserAPI 不同，这些方法会立即执行而不是添加到队列中
+ * 所有方法都返回 Promise
+ */
+export interface InstantBrowserAPI {
+  /** 打开浏览器并跳转到指定网页 */
+  goto(url: string, options?: WindowConfig): Promise<BrowserInstance>;
+
+  /** 等待（毫秒或选择器） */
+  wait(msOrSelector: number | string, timeout?: number): Promise<void>;
+
+  /** 点击元素 */
+  click(selector: string): Promise<void>;
+
+  /** 输入文本 */
+  type(selector: string, text: string, options?: { delay?: number }): Promise<void>;
+
+  /** 设置输入框的值 */
+  value(selector: string, value: string): Promise<void>;
+
+  /** 选择下拉框选项 */
+  select(selector: string, ...values: string[]): Promise<string[]>;
+
+  /** 模拟键盘按键 */
+  press(key: string, options?: { delay?: number }): Promise<void>;
+
+  /** 执行自定义 JS 代码 */
+  evaluate(func: Function | string, ...params: any[]): Promise<any>;
+
+  /** 滚动页面 */
+  scroll(selectorOrX: string | number, y?: number): Promise<void>;
+
+  /** 截图 */
+  screenshot(options?: any): Promise<Buffer>;
+
+  /** 聚焦元素 */
+  focus(selector: string): Promise<void>;
+
+  /** 获取 Cookies */
+  cookies(...urls: string[]): Promise<any>;
+
+  /** 设置 Cookies */
+  setCookie(...cookies: any[]): Promise<void>;
+
+  /** 删除 Cookies */
+  deleteCookie(...cookies: any[]): Promise<void>;
+
+  /** 显示窗口 */
+  show(): Promise<void>;
+
+  /** 隐藏窗口 */
+  hide(): Promise<void>;
+
+  /** 关闭浏览器 */
+  close(): Promise<void>;
+
+  /** 获取浏览器信息 */
+  getInfo(): Promise<BrowserInstance>;
+}
