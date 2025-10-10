@@ -4,10 +4,12 @@
   "description": "Naimo Tools 插件开发模板",
   "type": "module",
   "scripts": {
+    "init": "pnpm i && pnpm run add-electron-types && pnpm run dev",
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
     "type-check": "tsc --noEmit",
+    "add-electron-types": "$env:ELECTRON_SKIP_DOWNLOAD=1; pnpm install electron --save-dev",
     "deploy": "node scripts/deploy-to-build.js"
   },
   "keywords": [
