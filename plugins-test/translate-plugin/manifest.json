@@ -7,7 +7,8 @@
   "description": "基于腾讯云的智能翻译插件，支持多语言互译",
   "category": "ai_artificial_intelligence",
   "enabled": true,
-  "main": "./index.html",
+  "main1": "./index.html",
+  "main": "http://localhost:3000/",
   "preload": "./preload.js",
   "feature": [
     {

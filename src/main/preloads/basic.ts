@@ -91,7 +91,7 @@ const webUtils = {
       return {
         ...manifest,
         getResourcePath: (...paths: string[]) => {
-          return resolve(__dirname, ...paths);
+          return paths.join("/").startsWith("http") ? paths.join("/") : resolve(__dirname, ...paths);
         }
       };
     } catch (e) {

@@ -22,6 +22,7 @@
     "generate:ipc-types": "node scripts/generate-ipc-types.js",
     "generate:events": "node scripts/generate-events.js",
     "generate:naimo-types": "node scripts/generate-naimo-types.js",
+    "generate": "npm run generate:ipc-types && npm run generate:events && npm run generate:naimo-types",
     "prebuild": "npm run generate:ipc-types",
     "version:tag": "node scripts/version.js patch",
     "add-sync-origin": "git remote add upstream https://github.com/imohuan/electron-vue3-template.git",

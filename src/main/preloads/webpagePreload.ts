@@ -237,8 +237,12 @@ const naimo = {
     hooks.search.push(callback);
   },
 
-  /** 获取所有已安装插件的功能列表 */
-  getFeatures: async (codes: string[]) => {
+  /**
+   * 获取所有已安装插件的功能列表
+   * @param codes 功能代码数组（可选，为空则返回所有功能）
+   * @returns 插件功能列表
+   */
+  getFeatures: async (codes: string[]): Promise<PluginItem[]> => {
     try {
       // 获取所有已安装的插件
       const plugins = await ipcRouter.pluginGetAllInstalledPlugins();
@@ -279,6 +283,16 @@ const naimo = {
       console.error('Failed to get features:', error);
       return [];
     }
+  },
+
+  // ========== 插件管理 ==========
+
+  /**
+   * 热更新
+   * @returns 执行结束后的回调
+   */
+  hot() {
+    return ipcRenderer.invoke("hot-reload")
   }
 };
 

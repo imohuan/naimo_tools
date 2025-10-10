@@ -385,6 +385,41 @@ function extractUsedTypes(naimoStructure, project) {
     }
   }
 
+  // 额外处理：从 naimoStructure 中提取类型引用
+  for (const [name, structure] of Object.entries(naimoStructure)) {
+    if (structure.type === 'function') {
+      // 从返回类型字符串中提取类型名称
+      const referencedTypes = extractTypeNamesFromText(structure.returnType);
+      for (const typeName of referencedTypes) {
+        collectTypeByName(typeName, project, collectedTypes, new Set());
+      }
+
+      // 从参数类型中提取
+      for (const param of structure.parameters) {
+        const referencedTypes = extractTypeNamesFromText(param.type);
+        for (const typeName of referencedTypes) {
+          collectTypeByName(typeName, project, collectedTypes, new Set());
+        }
+      }
+    } else if (structure.type === 'object') {
+      for (const [methodName, methodInfo] of Object.entries(structure.methods)) {
+        // 从返回类型字符串中提取类型名称
+        const referencedTypes = extractTypeNamesFromText(methodInfo.returnType);
+        for (const typeName of referencedTypes) {
+          collectTypeByName(typeName, project, collectedTypes, new Set());
+        }
+
+        // 从参数类型中提取
+        for (const param of methodInfo.parameters) {
+          const referencedTypes = extractTypeNamesFromText(param.type);
+          for (const typeName of referencedTypes) {
+            collectTypeByName(typeName, project, collectedTypes, new Set());
+          }
+        }
+      }
+    }
+  }
+
   return collectedTypes;
 }
 
@@ -550,6 +585,9 @@ function getPluginHelperTypes(project) {
 
   // DeviceOptions - 设备选项
   collectTypeByName('DeviceOptions', project, helperTypes, new Set());
+
+  // PluginItem - 插件功能项类型
+  collectTypeByName('PluginItem', project, helperTypes, new Set());
 
   // UBrowser - 尝试从源码提取
   const ubrowserType = extractUBrowserType(project);
@@ -764,22 +802,46 @@ function analyzeNaimoObject(sourceFile) {
                 };
               });
 
-              // 尝试推断返回类型
+              // 使用 TypeScript 类型系统正确推断返回类型
               let returnType = 'any';
               try {
-                const bodyText = methodInit.getBodyText();
-                // 如果调用了 ipcRouter 的方法，返回类型是 Promise
-                if (bodyText.includes('ipcRouter.')) {
-                  returnType = 'Promise<any>';
-                } else if (bodyText.includes('log.')) {
-                  returnType = 'void';
-                } else if (bodyText.includes('hooks.')) {
-                  returnType = 'void';
-                } else if (bodyText.includes('return')) {
-                  returnType = 'any';
+                const actualReturnType = methodInit.getReturnType();
+                returnType = actualReturnType.getText();
+
+                // 特殊处理：如果无法准确推断，使用启发式分析
+                if (!returnType || returnType === 'void' || returnType === '{}' || returnType === 'any') {
+                  const bodyText = methodInit.getBodyText();
+                  // 如果调用了 ipcRouter 的方法，返回类型是 Promise
+                  if (bodyText.includes('ipcRouter.')) {
+                    returnType = 'Promise<any>';
+                  } else if (bodyText.includes('log.')) {
+                    returnType = 'void';
+                  } else if (bodyText.includes('hooks.')) {
+                    returnType = 'void';
+                  } else if (bodyText.includes('return')) {
+                    if (methodInit.isAsync() || bodyText.includes('await')) {
+                      returnType = 'Promise<any>';
+                    } else {
+                      returnType = 'any';
+                    }
+                  } else {
+                    returnType = 'void';
+                  }
                 }
               } catch (e) {
-                // 忽略错误
+                // 如果出错，尝试简单推断
+                try {
+                  const bodyText = methodInit.getBodyText();
+                  if (bodyText.includes('ipcRouter.')) {
+                    returnType = 'Promise<any>';
+                  } else if (bodyText.includes('return')) {
+                    returnType = 'any';
+                  } else {
+                    returnType = 'void';
+                  }
+                } catch (e2) {
+                  returnType = 'any';
+                }
               }
 
               methods[methodName] = {
@@ -826,15 +888,39 @@ function analyzeNaimoObject(sourceFile) {
           };
         });
 
-        // 推断返回类型
+        // 使用 TypeScript 类型系统正确推断返回类型
         let returnType = 'void';
         try {
-          const bodyText = initializer.getBodyText();
-          if (bodyText.includes('return')) {
-            returnType = 'Promise<Feature[]>';
+          const actualReturnType = initializer.getReturnType();
+          returnType = actualReturnType.getText();
+
+          // 特殊处理：如果无法准确推断，使用默认值
+          if (!returnType || returnType === 'void' || returnType === '{}') {
+            const bodyText = initializer.getBodyText();
+            if (bodyText.includes('return')) {
+              // 检查是否是异步函数
+              if (initializer.isAsync() || bodyText.includes('await')) {
+                returnType = 'Promise<any>';
+              } else {
+                returnType = 'any';
+              }
+            }
           }
         } catch (e) {
-          // 忽略错误
+          // 如果出错，尝试简单推断
+          try {
+            const bodyText = initializer.getBodyText();
+            if (bodyText.includes('return')) {
+              if (initializer.isAsync() || bodyText.includes('await')) {
+                returnType = 'Promise<any>';
+              } else {
+                returnType = 'any';
+              }
+            }
+          } catch (e2) {
+            // 完全失败，使用默认值
+            returnType = 'void';
+          }
         }
 
         naimoStructure[name] = {
@@ -1000,6 +1086,13 @@ declare global {
      */
     naimo: Naimo;
   }
+
+  /**
+   * Naimo Tools 插件 API
+   * 
+   * 可在插件的 HTML 页面中通过 window.naimo 访问
+   */
+  const naimo: Naimo;
 }
 
 // ==================== 导出 ====================

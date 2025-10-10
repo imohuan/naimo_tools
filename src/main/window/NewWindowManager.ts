@@ -4,7 +4,7 @@
  * 提供统一的窗口管理接口，支持 BaseWindow + WebContentsView 架构
  */
 
-import { BaseWindow, WebContents, app } from 'electron'
+import { BaseWindow, WebContents, app, ipcMain } from 'electron'
 import { resolve } from 'path'
 import log from 'electron-log'
 import { sendPluginViewOpened, sendPluginViewClosed, sendPluginMessage } from '@main/ipc-router/mainEvents'
@@ -1474,13 +1474,48 @@ export class NewWindowManager {
         }
       }
 
+      // 处理 preload 脚本合并 - 无论是否有自定义 preload 都创建合并脚本
+      const defaultPreloadPath = resolve(getDirname(import.meta.url), './preloads/webpagePreload.js')
+      const createPreloadScript = async (outputName: string) => {
+        let finalPreloadPath: string = defaultPreloadPath
+        try {
+          // 创建元数据脚本
+          const customScript = `
+   // 插件元数据
+   const __METADATA__ = {
+     fullPath: '${params.fullPath}',
+     title: '${params.title}',
+     lifecycleType: '${params.lifecycleType}',
+     singleton: ${isSingleton}
+   };
+   `
+          // 调用合并脚本函数，第三个参数（用户自定义 preload）可选
+          finalPreloadPath = await createCombinedPreloadScript(
+            customScript,
+            defaultPreloadPath,
+            params.preload,
+            outputName // 可选参数，可能为 undefined
+          )
+
+          log.info(`插件 preload 脚本已创建: ${params.preload} -> ${finalPreloadPath}`)
+        } catch (error) {
+          log.warn(`创建插件 preload 脚本失败，使用默认脚本: ${defaultPreloadPath}`, error)
+          finalPreloadPath = defaultPreloadPath
+        }
+
+        return finalPreloadPath
+      }
+      const outputName = `combined-preload-${pluginId}.js`
+      const finalPreloadPath = await createPreloadScript(outputName)
+
       // 构建插件项目信息
       const pluginItem: PluginItem = {
         fullPath: params.fullPath,
         name: params.title,
         icon: null,
         lifecycleType: params.lifecycleType,
-        singleton: isSingleton
+        singleton: isSingleton,
+        preload: finalPreloadPath
       }
 
       // 确定生命周期类型
@@ -1493,32 +1528,6 @@ export class NewWindowManager {
         log.info(`插件未指定 URL，将加载空白页作为后台窗口: ${params.fullPath}`)
       }
 
-      // 处理 preload 脚本合并 - 无论是否有自定义 preload 都创建合并脚本
-      const defaultPreloadPath = resolve(getDirname(import.meta.url), './preloads/webpagePreload.js')
-      let finalPreloadPath: string = defaultPreloadPath
-
-      try {
-        // 创建元数据脚本
-        const customScript = `
-// 插件元数据
-const __METADATA__ = {
-  fullPath: '${params.fullPath}',
-  title: '${params.title}',
-  lifecycleType: '${params.lifecycleType}',
-  singleton: ${isSingleton}
-};
-`
-        // 调用合并脚本函数，第三个参数（用户自定义 preload）可选
-        finalPreloadPath = await createCombinedPreloadScript(
-          customScript,
-          defaultPreloadPath,
-          params.preload // 可选参数，可能为 undefined
-        )
-        log.info(`插件 preload 脚本已创建: ${params.preload} -> ${finalPreloadPath}`)
-      } catch (error) {
-        log.warn(`创建插件 preload 脚本失败，使用默认脚本: ${defaultPreloadPath}`, error)
-        finalPreloadPath = defaultPreloadPath
-      }
 
       const result = await this.showView({
         type: ViewType.PLUGIN,
@@ -1562,6 +1571,11 @@ const __METADATA__ = {
           const pluginViewInfo = this.viewManager.getViewInfo(result.viewId)
           if (pluginViewInfo && pluginViewInfo.view && !pluginViewInfo.view.webContents.isDestroyed()) {
             const webContents = pluginViewInfo.view.webContents
+            pluginViewInfo.view.webContents.on('did-finish-load', () => {
+              ipcMain.handleOnce("hot-reload", async (event) => {
+                return await createPreloadScript(outputName)
+              })
+            })
             sendPluginMessageData(webContents, result.viewId)
           }
         }

@@ -33,11 +33,13 @@ export function debounce<T extends (...args: any[]) => void>(func: T, wait: numb
  * @param customScript 自定义脚本代码（如元数据等）
  * @param defaultPreloadPath 默认 preload 脚本路径
  * @param customPreloadPath 用户自定义 preload 脚本路径（可选）
+ * @param outputName 输出文件的自定义名称（可选，不包含扩展名）
  */
 export async function createCombinedPreloadScript(
   customScript: string,
   defaultPreloadPath: string,
-  customPreloadPath?: string
+  customPreloadPath?: string,
+  outputName?: string
 ): Promise<string> {
   try {
     // 读取内置 preload 脚本
@@ -74,7 +76,11 @@ ${customPreloadContent ? `
     const tempDir = join(tmpdir(), 'naimo');
     mkdirSync(tempDir, { recursive: true });
 
-    const tempFilePath = join(tempDir, `combined-preload-${Date.now()}.js`);
+    // 使用自定义名称或默认名称
+    const fileName = outputName
+      ? `${outputName}.js`
+      : `combined-preload-${Date.now()}.js`;
+    const tempFilePath = join(tempDir, fileName);
     writeFileSync(tempFilePath, combinedContent, 'utf-8');
 
     log.debug(`创建组合 preload 脚本: ${tempFilePath}`);
