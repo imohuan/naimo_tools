@@ -42,11 +42,11 @@ export class LogConfigManager {
    * 记录启动信息
    */
   private static logStartupInfo(): void {
-    log.info('应用启动中...');
-    log.info(`Node.js 版本: ${process.version}`);
-    log.info(`Electron 版本: ${process.versions.electron}`);
-    log.info(`当前工作目录: ${process.cwd()}`);
-    log.info(`应用路径: ${process.env.NODE_ENV === 'development' ? process.cwd() : process.resourcesPath}`);
+    log.debug('应用启动中...');
+    log.debug(`Node.js 版本: ${process.version}`);
+    log.debug(`Electron 版本: ${process.versions.electron}`);
+    log.debug(`当前工作目录: ${process.cwd()}`);
+    log.debug(`应用路径: ${process.env.NODE_ENV === 'development' ? process.cwd() : process.resourcesPath}`);
   }
 
   /**
@@ -55,7 +55,7 @@ export class LogConfigManager {
   private static openLogDirectoryInDev(): void {
     try {
       const logPath = log.transports.file.getFile().path;
-      log.info(`日志目录: ${logPath}`);
+      log.debug(`日志目录: ${logPath}`);
 
       if (!isProduction()) {
         shell.openPath(dirname(logPath));
@@ -71,6 +71,6 @@ export class LogConfigManager {
   static updateLogLevel(level: 'error' | 'warn' | 'info' | 'debug'): void {
     log.transports.console.level = level;
     log.transports.file.level = level;
-    log.info(`日志级别已更新为: ${level}`);
+    log.debug(`日志级别已更新为: ${level}`);
   }
 }

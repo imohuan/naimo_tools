@@ -74,7 +74,7 @@ export class AppConfigManager {
       headerHeight: 50, maxHeight: 420, padding: 8
     })
 
-    log.info(`存储配置文件路径: ${this.store.path}`);
+    log.debug(`存储配置文件路径: ${this.store.path}`);
   }
 
   static getInstance(): AppConfigManager {
@@ -103,7 +103,7 @@ export class AppConfigManager {
    */
   set<K extends keyof AppConfig>(key: K, value: AppConfig[K]): void {
     this.store.set(key, value);
-    log.info(`配置已更新: ${String(key)}`);
+    log.debug(`配置已更新: ${String(key)}`);
   }
 
   /**
@@ -111,7 +111,7 @@ export class AppConfigManager {
    */
   delete<K extends keyof AppConfig>(key: K): void {
     this.store.delete(key);
-    log.info(`配置已删除: ${String(key)}`);
+    log.debug(`配置已删除: ${String(key)}`);
   }
 
   /**
@@ -119,7 +119,7 @@ export class AppConfigManager {
    */
   clear(): void {
     this.store.clear();
-    log.info('所有配置已清空');
+    log.debug('所有配置已清空');
   }
 
   /**

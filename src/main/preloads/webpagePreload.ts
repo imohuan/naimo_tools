@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer } from "electron";
 import log from "electron-log/renderer";
+import { set } from "lodash-es"
 import { readFile } from 'fs/promises'
 import { downloadManagerRenderer } from "@libs/download-manager/renderer";
 import { RendererErrorHandler } from "@libs/unhandled/renderer";
@@ -319,8 +320,12 @@ const naimo = {
 };
 
 export type Naimo = typeof naimo;
+set(window, "naimo", naimo);
 
 contextBridge.exposeInMainWorld("naimo", naimo);
+
+console.log(11111, window.naimo);
+
 
 eventRouter.onPluginSearch((event, data) => {
   try {

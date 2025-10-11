@@ -101,6 +101,38 @@
       ],
       "timeout": 30000,
       "trace": true
+    },
+    {
+      "name": "🔧 启动开发服务器 生产环境 (Forge Start)",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "runtimeExecutable": "cmd.exe",
+      "runtimeArgs": [
+        "/c",
+        "chcp 65001 >nul && pnpm exec electron-forge start"
+      ],
+      "console": "integratedTerminal",
+      "env": {
+        "NODE_ENV": "production",
+        "ELECTRON_ENABLE_LOGGING": "true",
+        "NODE_OPTIONS": "--max-old-space-size=4096"
+      },
+      "skipFiles": ["<node_internals>/**"],
+      "sourceMaps": true,
+      "outFiles": [
+        "${workspaceFolder}/dist/main/**/*.js",
+        "${workspaceFolder}/dist/main/preloads/**/*.js"
+      ],
+      "resolveSourceMapLocations": [
+        "${workspaceFolder}/src/main/**",
+        "${workspaceFolder}/dist/main/**",
+        "!**/node_modules/**"
+      ],
+      "autoAttachChildProcesses": true,
+      "timeout": 60000,
+      "outputCapture": "console",
+      "internalConsoleOptions": "neverOpen"
     }
   ],
   "compounds": [
@@ -118,6 +150,15 @@
       "name": "🚀 开始调试 - 主进程",
       "configurations": ["🔧 启动开发服务器 - 主进程", "🔧 Electron: 主进程"],
       "stopAll": true
+    },
+    {
+      "name": "🚀 开始调试 - 生产环境 (pnpm start)",
+      "configurations": [
+        "🔧 启动开发服务器 生产环境 (Forge Start)",
+        "🔧 Electron: 主进程"
+      ],
+      "stopAll": true,
+      "_preLaunchTask": "重新构建项目"
     }
   ]
 }

@@ -7,6 +7,7 @@ import { join } from 'path';
 console.log('🚀 开始构建 Electron 应用...\n');
 
 try {
+  const NODE_ENV = "production"
   // 确保 dist 目录存在
   if (!existsSync('dist')) {
     mkdirSync('dist', { recursive: true });
@@ -18,7 +19,7 @@ try {
     cwd: process.cwd(),
     env: {
       ...process.env,
-      NODE_ENV: 'production'
+      NODE_ENV
     }
   });
 
@@ -28,7 +29,7 @@ try {
     cwd: process.cwd(),
     env: {
       ...process.env,
-      NODE_ENV: 'production'
+      NODE_ENV
     }
   });
 
@@ -58,7 +59,7 @@ try {
       cwd: process.cwd(),
       env: {
         ...process.env,
-        NODE_ENV: 'production',
+        NODE_ENV,
         PRELOAD_ENTRY: preloadFile
       }
     });

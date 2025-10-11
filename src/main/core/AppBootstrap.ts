@@ -115,7 +115,7 @@ export class AppBootstrap {
    * 注册所有服务
    */
   private registerServices(): void {
-    log.info('注册应用服务...')
+    log.debug('注册应用服务...')
 
     // 注册配置管理器
     this.serviceContainer.register({
@@ -170,7 +170,7 @@ export class AppBootstrap {
       singleton: true
     })
 
-    log.info('所有服务注册完成')
+    log.debug('所有服务注册完成')
   }
 
   /**
@@ -183,8 +183,8 @@ export class AppBootstrap {
     }
 
     const startTime = Date.now()
-    log.info('🚀 应用启动中...')
-    log.info('启动时间:', new Date(startTime).toLocaleTimeString())
+    log.debug('🚀 应用启动中...')
+    log.debug('启动时间:', new Date(startTime).toLocaleTimeString())
 
     try {
       // 按顺序初始化服务
@@ -193,7 +193,7 @@ export class AppBootstrap {
       const endTime = Date.now()
       this.isInitialized = true
 
-      log.info('✅ 应用启动完成，耗时:', endTime - startTime, 'ms')
+      log.debug('✅ 应用启动完成，耗时:', endTime - startTime, 'ms')
     } catch (error) {
       log.error('❌ 应用启动失败:', error)
       await this.cleanup()
@@ -216,7 +216,7 @@ export class AppBootstrap {
 
     for (const serviceName of initOrder) {
       try {
-        log.info(`初始化 ${serviceName}...`)
+        log.debug(`初始化 ${serviceName}...`)
         const service = this.serviceContainer.get(serviceName)
 
         if (service && typeof service.initialize === 'function') {
@@ -229,11 +229,11 @@ export class AppBootstrap {
           const windowManager = windowService?.getWindowManager()
           if (windowManager && service && typeof service.setWindowManager === 'function') {
             service.setWindowManager(windowManager)
-            log.info('调试服务已设置窗口管理器引用')
+            log.debug('调试服务已设置窗口管理器引用')
           }
         }
 
-        log.info(`${serviceName} 初始化完成`)
+        log.debug(`${serviceName} 初始化完成`)
       } catch (error) {
         log.error(`${serviceName} 初始化失败:`, error)
         throw error
@@ -267,7 +267,7 @@ export class AppBootstrap {
    */
   updateConfig(config: Partial<AppBootstrapConfig>): void {
     this.config = { ...this.config, ...config }
-    log.info('应用配置已更新:', config)
+    log.debug('应用配置已更新:', config)
 
     // 将配置更新传播到相应的服务
     this.propagateConfigUpdates(config)
@@ -325,14 +325,14 @@ export class AppBootstrap {
       return
     }
 
-    log.info('🧹 清理应用...')
+    log.debug('🧹 清理应用...')
 
     try {
       // 清理所有服务
       this.serviceContainer.cleanup()
 
       this.isInitialized = false
-      log.info('✅ 应用清理完成')
+      log.debug('✅ 应用清理完成')
     } catch (error) {
       log.error('❌ 应用清理失败:', error)
     }
@@ -342,11 +342,11 @@ export class AppBootstrap {
    * 重启应用
    */
   async restart(): Promise<void> {
-    log.info('重启应用...')
+    log.debug('重启应用...')
 
     await this.cleanup()
     await this.start()
 
-    log.info('应用重启完成')
+    log.debug('应用重启完成')
   }
 }
