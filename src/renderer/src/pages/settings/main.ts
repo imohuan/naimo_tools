@@ -43,16 +43,14 @@ if (import.meta.env.DEV) {
 
     // 1. 初始化快捷键系统（优先执行，确保插件快捷键可以正确注册）
     console.log('⌨️ 设置页面 - 开始初始化快捷键系统...')
-    await app.hotkey.initialize()
     app.hotkey.setSilent(false)
+    await app.hotkey.initialize()
     console.log('✅ 设置页面 - 快捷键系统初始化完成')
 
-    await app.plugin.initialize()
     app.plugin.setSilent(false)
+    await app.plugin.initialize()
     // 2. 初始化插件系统
     console.log('🔌 设置页面 - 开始初始化插件系统...')
-    // const pluginStore = usePluginStore()
-    // await pluginStore.initialize()
     console.log('✅ 设置页面 - 插件系统初始化完成')
   } catch (error) {
     console.error('❌ 设置页面 - 系统初始化失败:', error)

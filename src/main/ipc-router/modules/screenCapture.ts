@@ -6,6 +6,7 @@ import { tmpdir } from "os";
 import { isDevelopment } from "@shared/utils";
 import { getRendererUrl } from "@main/utils/windowConfig";
 import { NewWindowManager } from "@main/window/NewWindowManager";
+import log from 'electron-log';
 
 import { sendWindowMainShow } from "@main/ipc-router/mainEvents";
 
@@ -28,8 +29,9 @@ export async function getSources(event: Electron.IpcMainInvokeEvent, options: {
     const sources = await desktopCapturer.getSources(options);
     return sources;
   } catch (error) {
-    console.error("获取屏幕源失败:", error);
-    throw new Error(`获取屏幕源失败: ${(error as Error).message}`);
+    log.error("获取屏幕源失败:", error);
+    // 保留原始错误堆栈，不要重新创建 Error
+    throw error;
   }
 }
 
@@ -80,8 +82,13 @@ export async function captureAndGetFilePath(event: Electron.IpcMainInvokeEvent, 
     return { success: true, filePath };
 
   } catch (error) {
-    console.error("截图失败:", error);
-    return { success: false, error: (error as Error).message };
+    // 使用 log.error 输出完整的错误对象和堆栈
+    log.error("截图失败 - 完整错误信息:", error);
+    log.error("错误堆栈:", (error as Error).stack);
+    return {
+      success: false,
+      error: (error as Error).message,
+    };
   } finally {
     // 恢复主窗口的显示状态
     const windowManager = NewWindowManager.getInstance()
@@ -122,11 +129,13 @@ async function captureScreen(sourceId: string): Promise<string> {
     const thumbnail = source.thumbnail;
     const dataURL = thumbnail.toDataURL();
 
-    console.log('截图成功，大小:', thumbnail.getSize());
+    log.info('截图成功，大小:', thumbnail.getSize());
     return dataURL;
   } catch (error) {
-    console.error('截图失败:', error);
-    throw new Error(`截图失败: ${(error as Error).message}`);
+    log.error('captureScreen 失败 - 完整错误信息:', error);
+    log.error('错误堆栈:', (error as Error).stack);
+    // 保留原始错误堆栈，不要重新创建 Error
+    throw error;
   }
 }
 
@@ -207,7 +216,8 @@ async function showCropWindow(screenInfo: {
         cropWindow.close();
         resolve(''); // 复制到剪切板不需要返回文件路径
       } catch (error) {
-        console.error('复制到剪切板失败:', error);
+        log.error('复制到剪切板失败 - 完整错误信息:', error);
+        log.error('错误堆栈:', (error as Error).stack);
         cropWindow.close();
         reject(error);
       }

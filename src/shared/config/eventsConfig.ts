@@ -86,11 +86,13 @@ export interface EventsConfig {
 
   'plugin-installed': {
     pluginId: string
+    sender: string
     timestamp: number
   }
 
   'plugin-uninstalled': {
     pluginId: string
+    sender: string
     timestamp: number
   }
 

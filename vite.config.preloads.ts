@@ -37,7 +37,7 @@ export default defineConfig({
   build: {
     outDir: resolve(__dirname, 'dist/main/preloads'),
     emptyOutDir: false, // 不清理目录，允许多个文件共存
-    sourcemap: isDevelopment ? "inline" : false,
+    sourcemap: true, // 始终生成 source map，便于调试生产环境错误
     minify: isDevelopment ? false : 'terser', // 开发环境不压缩
     lib: {
       entry: getPreloadEntries(),

@@ -21,7 +21,9 @@
         ]"
       >
         <span
-          :class="saveFeedback.type === 'success' ? 'text-green-500' : 'text-red-500'"
+          :class="
+            saveFeedback.type === 'success' ? 'text-green-500' : 'text-red-500'
+          "
         >
           {{ saveFeedback.type === "success" ? "✅" : "❌" }}
         </span>
@@ -39,7 +41,9 @@
         v-if="settingsList.length === 0"
         class="flex-1 flex items-center justify-center"
       >
-        <div class="flex flex-col items-center justify-center text-center text-gray-500">
+        <div
+          class="flex flex-col items-center justify-center text-center text-gray-500"
+        >
           <div class="text-6xl mb-4">⚙️</div>
           <p class="text-lg mb-2">暂无可配置项</p>
           <p class="text-sm mb-4">没有可用的设置项</p>
@@ -76,7 +80,10 @@
       </div>
 
       <!-- 设置列表 -->
-      <div v-if="settingsList.length > 0" class="flex-1 pt-2 flex flex-col pb-2">
+      <div
+        v-if="settingsList.length > 0"
+        class="flex-1 pt-2 flex flex-col pb-2"
+      >
         <div class="grid grid-cols-1 gap-2">
           <div
             v-for="settingGroup in settingsList"
@@ -116,7 +123,9 @@
                     <svg
                       :class="[
                         'w-4 h-4 transition-transform duration-200',
-                        isCollapsed(settingGroup.id) ? 'rotate-0' : 'rotate-180',
+                        isCollapsed(settingGroup.id)
+                          ? 'rotate-0'
+                          : 'rotate-180',
                       ]"
                       fill="none"
                       stroke="currentColor"
@@ -131,7 +140,10 @@
                     </svg>
                   </div>
                 </div>
-                <p v-if="settingGroup.description" class="text-xs text-gray-500">
+                <p
+                  v-if="settingGroup.description"
+                  class="text-xs text-gray-500"
+                >
                   {{ settingGroup.description }}
                 </p>
               </div>
@@ -248,7 +260,8 @@ const getAllSettings = async () => {
             settingValues.value[appSetting.id][setting.name] = savedValue;
           } else {
             // 使用默认值
-            settingValues.value[appSetting.id][setting.name] = getDefaultValue(setting);
+            settingValues.value[appSetting.id][setting.name] =
+              getDefaultValue(setting);
           }
         }
       }
@@ -263,8 +276,10 @@ const getAllSettings = async () => {
 
     // 从存储中加载已保存的插件设置
     const savedPluginSettings =
-      ((await storeUtils.get("pluginSettings")) as Record<string, Record<string, any>>) ||
-      {};
+      ((await storeUtils.get("pluginSettings")) as Record<
+        string,
+        Record<string, any>
+      >) || {};
     console.log("🔍 已保存的插件设置:", savedPluginSettings);
 
     for (const plugin of installedPlugins) {
@@ -296,7 +311,8 @@ const getAllSettings = async () => {
                 savedPluginSettings[plugin.id][setting.name];
             } else {
               // 使用默认值
-              settingValues.value[plugin.id][setting.name] = getDefaultValue(setting);
+              settingValues.value[plugin.id][setting.name] =
+                getDefaultValue(setting);
             }
           }
         }
@@ -377,12 +393,17 @@ const saveAllSettings = async () => {
     const pluginSettings: Record<string, Record<string, any>> = {};
     for (const settingGroup of settingsList.value) {
       if (settingGroup.type === "plugin") {
-        pluginSettings[settingGroup.id] = toRaw(settingValues.value[settingGroup.id]);
+        pluginSettings[settingGroup.id] = toRaw(
+          settingValues.value[settingGroup.id]
+        );
       }
     }
 
     if (Object.keys(pluginSettings).length > 0) {
-      pluginSettingsSuccess = await storeUtils.set("pluginSettings", pluginSettings);
+      pluginSettingsSuccess = await storeUtils.set(
+        "pluginSettings",
+        pluginSettings
+      );
     } else {
       pluginSettingsSuccess = true; // 没有插件设置时认为成功
     }

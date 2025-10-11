@@ -35,13 +35,13 @@
             <button
               v-if="isInstalled && hasUpdate"
               @click.stop="$emit('update', plugin)"
-              :disabled="isUpdating"
+              :disabled="isLoading"
               class="p-1.5 text-blue-500 hover:bg-blue-50 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               :title="
-                isUpdating ? '更新中...' : `有新版本可用: ${plugin.version}`
+                isLoading ? '更新中...' : `有新版本可用: ${plugin.version}`
               "
             >
-              <div v-if="isUpdating" class="animate-spin text-blue-500">
+              <div v-if="isLoading" class="animate-spin text-blue-500">
                 <svg class="w-4 h-4" viewBox="0 0 24 24">
                   <circle
                     cx="12"
@@ -59,49 +59,36 @@
             </button>
 
             <!-- 安装按钮（未安装状态） -->
-            <div v-if="!isInstalled" class="relative">
-              <button
-                @click.stop="$emit('install', plugin)"
-                :disabled="isInstalling"
-                class="p-1.5 text-green-500 hover:bg-green-50 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                :title="isInstalling ? '安装中...' : '安装插件'"
-              >
-                <!-- 安装进度显示 -->
-                <div v-if="isInstalling" class="relative">
-                  <div class="animate-spin text-green-500">
-                    <svg class="w-4 h-4" viewBox="0 0 24 24">
-                      <circle
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        fill="none"
-                        stroke-dasharray="31.416"
-                        :stroke-dashoffset="
-                          31.416 * (1 - (installProgress || 0) / 100)
-                        "
-                        class="transition-all duration-300"
-                      />
-                    </svg>
-                  </div>
-                  <!-- 进度百分比（如果有） -->
-                  <div
-                    v-if="installProgress !== undefined"
-                    class="absolute -bottom-5 left-1/2 transform -translate-x-1/2 text-xs text-green-600 whitespace-nowrap"
-                  >
-                    {{ Math.round(installProgress) }}%
-                  </div>
-                </div>
-                <!-- 默认下载图标 -->
-                <IconMdiDownload v-else class="w-4 h-4" />
-              </button>
-            </div>
+            <button
+              v-if="!isInstalled"
+              @click.stop="$emit('install', plugin)"
+              :disabled="isLoading"
+              class="p-1.5 text-green-500 hover:bg-green-50 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              :title="isLoading ? '安装中...' : '安装插件'"
+            >
+              <div v-if="isLoading" class="animate-spin text-green-500">
+                <svg class="w-4 h-4" viewBox="0 0 24 24">
+                  <circle
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    fill="none"
+                    stroke-dasharray="31.416"
+                    class="transition-all duration-300"
+                  />
+                </svg>
+              </div>
+              <IconMdiDownload v-else class="w-4 h-4" />
+            </button>
+
             <!-- 卸载按钮（已安装状态） -->
             <button
-              v-else
+              v-else-if="!hasUpdate"
               @click.stop="$emit('uninstall', plugin.id)"
-              class="p-1.5 text-red-500 hover:bg-red-50 rounded transition-colors"
+              :disabled="isLoading"
+              class="p-1.5 text-red-500 hover:bg-red-50 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               title="卸载插件"
             >
               <IconMdiDeleteOutline class="w-4 h-4" />
@@ -129,10 +116,8 @@ import IconMdiUpdate from "~icons/mdi/update";
 interface Props {
   plugin: PluginConfig;
   isInstalled: boolean;
-  isInstalling?: boolean;
-  isUpdating?: boolean;
+  isLoading?: boolean;
   hasUpdate?: boolean;
-  installProgress?: number;
 }
 
 defineProps<Props>();

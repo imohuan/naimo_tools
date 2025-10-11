@@ -50,7 +50,8 @@ const appBootstrap = new AppBootstrap({
     enabled: true
   },
   debug: {
-    enabled: !isProduction() // 开发环境启用调试窗口
+    // enabled: !isProduction() // 开发环境启用调试窗口
+    enabled: true
   }
 });
 

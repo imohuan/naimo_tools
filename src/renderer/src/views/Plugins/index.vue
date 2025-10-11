@@ -22,11 +22,9 @@
         v-if="selectedPlugin"
         :plugin="selectedPlugin as PluginConfig"
         :is-installed="isPluginInstalled(selectedPlugin.id)"
-        :is-installing="isPluginInstalling(selectedPlugin.id)"
-        :is-updating="isPluginUpdating(selectedPlugin.id)"
+        :is-loading="isPluginLoading(selectedPlugin.id)"
         :has-update="hasPluginUpdate(selectedPlugin.id)"
         :installed-version="getInstalledPluginVersion(selectedPlugin.id)"
-        :install-progress="getPluginInstallProgress(selectedPlugin.id)"
         @close="closePluginDetail"
         @install="installPlugin"
         @uninstall="uninstallPlugin"
@@ -139,10 +137,8 @@
               :key="plugin.id"
               :plugin="plugin as PluginConfig"
               :is-installed="isPluginInstalled(plugin.id)"
-              :is-installing="isPluginInstalling(plugin.id)"
-              :is-updating="isPluginUpdating(plugin.id)"
+              :is-loading="isPluginLoading(plugin.id)"
               :has-update="hasPluginUpdate(plugin.id)"
-              :install-progress="getPluginInstallProgress(plugin.id)"
               @click="showPluginDetail"
               @install="installPlugin"
               @uninstall="uninstallPlugin"
@@ -212,13 +208,8 @@ const currentPage = ref(1);
 const itemsPerPage = 6;
 const selectedPlugin = ref<PluginConfig | null>(null);
 
-// 安装状态管理
-const installingPlugins = ref<
-  Map<string, { progress?: number; downloadId?: string }>
->(new Map());
-
-// 更新状态管理
-const updatingPlugins = ref<Set<string>>(new Set());
+// 加载状态管理（安装和更新都使用此状态）
+const loadingPlugins = ref<Set<string>>(new Set());
 
 // 检查插件是否已安装
 const isPluginInstalled = (pluginId: string) => {
@@ -236,11 +227,6 @@ const getInstalledPluginVersion = (pluginId: string): string | undefined => {
     (p) => p.id === pluginId
   );
   return installedPlugin?.version;
-};
-
-// 检查插件是否正在更新
-const isPluginUpdating = (pluginId: string): boolean => {
-  return updatingPlugins.value.has(pluginId);
 };
 
 // 计算过滤后的插件列表
@@ -286,6 +272,7 @@ const filteredPlugins = computed(() => {
 const totalPages = computed(() =>
   Math.ceil(filteredPlugins.value.length / itemsPerPage)
 );
+
 const paginatedPlugins = computed(() => {
   const start = (currentPage.value - 1) * itemsPerPage;
   return filteredPlugins.value.slice(start, start + itemsPerPage);
@@ -316,25 +303,16 @@ const getPluginCategory = (plugin: PluginConfig): string => {
   }
 };
 
-// 安装状态相关方法
-const isPluginInstalling = (pluginId: string): boolean => {
-  return installingPlugins.value.has(pluginId);
+// 加载状态相关方法（安装/更新）
+const isPluginLoading = (pluginId: string): boolean => {
+  return loadingPlugins.value.has(pluginId);
 };
 
-const getPluginInstallProgress = (pluginId: string): number | undefined => {
-  return installingPlugins.value.get(pluginId)?.progress;
-};
-
-const setPluginInstalling = (
-  pluginId: string,
-  downloading: boolean,
-  progress?: number,
-  downloadId?: string
-) => {
-  if (downloading) {
-    installingPlugins.value.set(pluginId, { progress, downloadId });
+const setPluginLoading = (pluginId: string, loading: boolean) => {
+  if (loading) {
+    loadingPlugins.value.add(pluginId);
   } else {
-    installingPlugins.value.delete(pluginId);
+    loadingPlugins.value.delete(pluginId);
   }
 };
 
@@ -350,6 +328,7 @@ const showPluginDetail = (plugin: PluginConfig) => {
     selectedPlugin.value = plugin;
   }
 };
+
 const closePluginDetail = () => {
   selectedPlugin.value = null;
 };
@@ -357,42 +336,39 @@ const closePluginDetail = () => {
 // 安装插件
 const installPlugin = async (pluginConfig: PluginConfig) => {
   // 防止重复安装
-  if (isPluginInstalling(pluginConfig.id)) {
-    console.warn(`⚠️ 插件正在安装中: ${pluginConfig.id}`);
+  if (isPluginLoading(pluginConfig.id)) {
+    console.warn(`⚠️ 插件正在加载中: ${pluginConfig.id}`);
     return;
   }
 
   try {
+    setPluginLoading(pluginConfig.id, true);
+
     if (pluginConfig.downloadUrl) {
-      // 开始安装（显示加载状态）
-      setPluginInstalling(pluginConfig.id, true);
       console.log(`📦 开始下载插件: ${pluginConfig.id}`);
       console.log(`🔗 下载地址: ${pluginConfig.downloadUrl}`);
       // 设置总超时（5分钟）
       const timeoutPromise = new Promise<boolean>((_, reject) => {
         setTimeout(() => {
           reject(new Error("插件下载超时（5分钟）"));
-        }, 300000); // 5分钟
+        }, 300000);
       });
       // 并发执行下载和超时检查
       await Promise.race([
         pluginStore.install(pluginConfig.downloadUrl),
         timeoutPromise,
       ]);
-      setPluginInstalling(pluginConfig.id, false);
     } else {
       // 普通安装（无下载）
-      setPluginInstalling(pluginConfig.id, true);
       await pluginStore.install(pluginConfig);
-      setPluginInstalling(pluginConfig.id, false);
     }
   } catch (err) {
     console.error(`❌ 安装插件失败: ${pluginConfig.id}`, err);
-    setPluginInstalling(pluginConfig.id, false);
-    // 显示错误提示
     if (err instanceof Error) {
       console.error("错误详情:", err.message);
     }
+  } finally {
+    setPluginLoading(pluginConfig.id, false);
   }
 };
 
@@ -411,8 +387,8 @@ const uninstallPlugin = async (pluginId: string) => {
 // 更新插件
 const updatePlugin = async (pluginOldConfig: PluginConfig) => {
   // 防止重复更新
-  if (isPluginUpdating(pluginOldConfig.id)) {
-    console.warn(`⚠️ 插件正在更新中: ${pluginOldConfig.id}`);
+  if (isPluginLoading(pluginOldConfig.id)) {
+    console.warn(`⚠️ 插件正在加载中: ${pluginOldConfig.id}`);
     return;
   }
 
@@ -426,20 +402,17 @@ const updatePlugin = async (pluginOldConfig: PluginConfig) => {
   }
 
   try {
-    // 标记为更新中
-    updatingPlugins.value.add(pluginConfig.id);
+    setPluginLoading(pluginConfig.id, true);
     console.log(`🔄 开始更新插件: ${pluginConfig.id}`);
     await pluginStore.update(pluginConfig.id);
     console.log(`✅ 插件更新成功: ${pluginConfig.id}`);
   } catch (err) {
     console.error(`❌ 更新插件失败: ${pluginConfig.id}`, err);
-    // 显示错误提示
     if (err instanceof Error) {
       console.error("错误详情:", err.message);
     }
   } finally {
-    // 移除更新中标记
-    updatingPlugins.value.delete(pluginConfig.id);
+    setPluginLoading(pluginConfig.id, false);
   }
 };
 

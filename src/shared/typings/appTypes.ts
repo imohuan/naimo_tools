@@ -50,6 +50,8 @@ export interface AppConfig {
   pluginSettings?: Record<string, Record<string, any>>;
   /** 插件设置，自启动，自分离，后台运行 */
   pluginSetting?: Record<string, PluginSetting>;
+  /** 临时插件列表 */
+  temporaryPlugins?: string[];
 }
 
 export interface LogLevel {

@@ -7,9 +7,9 @@ import type {
   CommandConfig,
 } from "@/typings/pluginTypes";
 import type { PluginInstaller, PluginSetting, } from "@/temp_code/typings/plugin";
-// import { SystemPluginInstaller } from "./modules/_system"; // 已禁用系统插件
 import { LocalPluginInstaller } from "./modules/local";
 import { GithubPluginInstaller } from "./modules/github";
+import { TemporaryPluginInstaller } from "./modules/temporary";
 import { useLoading } from "@/temp_code/hooks/useLoading";
 import { storeUtils } from "@/temp_code/utils/store";
 import { appEventManager } from "../event";
@@ -20,6 +20,7 @@ const modules = {
   system: new SystemPluginInstaller(),
   local: new LocalPluginInstaller(),
   github: new GithubPluginInstaller(),
+  temporary: new TemporaryPluginInstaller(),
 };
 modules.github.setLocalInstaller(modules.local);
 
@@ -33,6 +34,7 @@ export const usePluginStoreNew = defineStore("pluginNew", () => {
   const loading = useLoading();
   const listLoading = useLoading();
   // ==================== 状态（单一数据源） ====================
+  const id = Math.random().toString(36).substring(2, 15);
   /** 已安装的插件列表 */
   const installedPlugins = shallowRef<PluginConfig[]>([]);
   /** 所有可用的插件列表 */
@@ -52,7 +54,7 @@ export const usePluginStoreNew = defineStore("pluginNew", () => {
   const enabledPlugins = computed(() => installedPlugins.value.filter((p) => p.enabled));
   const systemPlugins = computed(() =>
     availablePlugins.value.filter((p) => p.options?.pluginType === "system")
-  ); // 已禁用系统插件
+  );
   const localPlugins = computed(() =>
     availablePlugins.value.filter((p) => p.options?.pluginType === "local")
   );
@@ -217,21 +219,25 @@ export const usePluginStoreNew = defineStore("pluginNew", () => {
   };
 
   // ==================== 核心方法 ====================
+  const getLocalPlugins = async () => {
+    const local = await modules.local.getList();
+    const system = await modules.system.getList();
+    const temporary = await modules.temporary.getList();
+    return [...local, ...system, ...temporary];
+  }
 
   /** 初始化插件系统 */
   const initialize = loading.withLoading(async () => {
     console.log("🚀 [插件系统] 开始初始化");
+    if (silent.value) await modules.temporary.clear();
 
     // 1. 加载所有本地插件（系统插件已禁用，所有插件统一放在 plugins/ 目录）
-    const local = await modules.local.getList();
-    const system = await modules.system.getList();
-    availablePlugins.value = [...local, ...system];
+    availablePlugins.value = await getLocalPlugins();
     triggerRef(availablePlugins);
     console.log(`📋 加载了 ${availablePlugins.value.length} 个本地插件`);
 
     // 2. 加载已安装的插件
     const installedIds = await getInstalledPluginIds();
-
 
     // 3. 安装已安装的插件
     if (silent.value) {
@@ -243,8 +249,6 @@ export const usePluginStoreNew = defineStore("pluginNew", () => {
       // 实际安装和安装监听事件
       const waitInstalls = availablePlugins.value.filter((p) => installedIds.includes(p.id) || p.options?.pluginType === "system")
       await Promise.all(waitInstalls.map((p) => install(p)));
-      _setupEventListeners();
-
       // 初始化自启动插件（后台静默创建，不切换到该插件窗口）
       await initAutoStartPlugins();
     } else {
@@ -254,6 +258,8 @@ export const usePluginStoreNew = defineStore("pluginNew", () => {
       );
       triggerRef(installedPlugins);
     }
+
+    _setupEventListeners();
     console.log(`✅ 初始化完成，已安装 ${installedPlugins.value.length} 个插件`);
     console.log(`✅ 当前插件`, { ...installedPlugins.value });
   }, "初始化插件系统失败");
@@ -264,7 +270,7 @@ export const usePluginStoreNew = defineStore("pluginNew", () => {
     const installer = findInstaller(source);
     if (!installer) throw new Error(`未找到支持的安装器: ${source}`);
     console.log(`使用 ${installer.name} 安装`);
-    const plugin = await installer.install(source, { skipLoad: !silent.value });
+    const plugin = await installer.install(source);
 
     // 检查是否已安装
     if (installedPlugins.value.some((p) => p.id === plugin.id)) {
@@ -285,7 +291,7 @@ export const usePluginStoreNew = defineStore("pluginNew", () => {
     await saveInstalledPluginIds();
     if (!silent.value) {
       await naimo.router.appForwardMessageToMainView("plugin-installed", {
-        pluginId: plugin.id,
+        pluginId: plugin.id, sender: id,
       });
     }
 
@@ -314,7 +320,7 @@ export const usePluginStoreNew = defineStore("pluginNew", () => {
     if (!silent.value) {
       await updateAllLists();
       await naimo.router.appForwardMessageToMainView("plugin-uninstalled", {
-        pluginId: id,
+        pluginId: id, sender: id,
       });
     }
     appEventManager.emit("plugin:uninstalled", { pluginId: id, });
@@ -377,13 +383,10 @@ export const usePluginStoreNew = defineStore("pluginNew", () => {
 
       // 6. 触发更新事件
       appEventManager.emit("plugin:updated", {
-        pluginId,
-        oldVersion,
-        newVersion
+        pluginId, oldVersion, newVersion
       });
 
       await updateAllLists()
-
       return updatedPlugin;
     } catch (error) {
       console.error(`❌ 插件更新失败: ${pluginId}`, error);
@@ -427,12 +430,11 @@ export const usePluginStoreNew = defineStore("pluginNew", () => {
   /** 更新所有插件列表 */
   const updateAllLists = async () => {
     // 只加载本地插件（系统插件已禁用）
-    const local = await modules.local.getList();
-    const system = await modules.system.getList();
+    const locals = await getLocalPlugins();
     const github = availablePlugins.value.filter(
       (p) => p.options?.pluginType === "github"
     );
-    availablePlugins.value = [...local, ...system, ...github];
+    availablePlugins.value = [...locals, ...github];
   };
 
   const getInstalledPluginItem = (fullPath: string) => {
@@ -471,11 +473,11 @@ export const usePluginStoreNew = defineStore("pluginNew", () => {
     return serialized;
   }
 
-
   // ==================== 事件监听 ====================
   const _setupEventListeners = () => {
     // 监听插件安装事件（主窗口执行真正的安装）
     naimo.event.onPluginInstalled(async (_event, data) => {
+      if (data.sender === id) return;
       // 静默状态：当前是主窗口，执行真正的安装逻辑
       console.log(
         `📥 [PluginStoreNew] 主窗口接收到安装事件，开始执行真正的安装: ${data.pluginId}`
@@ -497,6 +499,7 @@ export const usePluginStoreNew = defineStore("pluginNew", () => {
 
     // 监听插件卸载事件（主窗口执行真正的卸载）
     naimo.event.onPluginUninstalled(async (_event, data) => {
+      if (data.sender === id) return;
       // 静默状态：当前是主窗口，执行真正的卸载逻辑
       console.log(
         `📥 [PluginStoreNew] 主窗口接收到卸载事件，开始执行真正的卸载: ${data.pluginId}`

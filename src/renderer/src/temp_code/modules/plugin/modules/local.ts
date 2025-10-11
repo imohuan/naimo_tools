@@ -15,7 +15,7 @@ export class LocalPluginInstaller extends BasePluginInstaller {
   /** 判断是否为本地插件来源 */
   canHandle(source: any): boolean {
     if (typeof source === 'string') {
-      const hasPath = source.includes('\\') || source.includes('/') || source.endsWith('.zip')
+      const hasPath = ((source.includes('\\') || source.includes('/')) && source.endsWith(".json")) || source.endsWith('.zip')
       const notUrl = !source.startsWith('http://') && !source.startsWith('https://')
       return hasPath && notUrl
     }
