@@ -221,14 +221,22 @@ export class TrayService implements Service {
   private quitApp(): void {
     try {
       log.info('正在退出应用...')
+
       // 先清理托盘,避免在退出过程中出现错误
       if (this.tray && !this.tray.isDestroyed()) {
         this.tray.destroy()
         this.tray = null
       }
+
+      // 触发 app.quit() 会自动触发 'before-quit' 事件
+      // 该事件会调用 CoreService.cleanup()，进而调用 ServiceContainer.cleanup()
+      // ServiceContainer.cleanup() 会依次清理所有服务（包括 WindowService）
+      // 这样就能正确清理所有插件视图和分离窗口了
       app.quit()
     } catch (error) {
       log.error('退出应用失败:', error)
+      // 如果 app.quit() 失败，强制退出
+      process.exit(1)
     }
   }
 

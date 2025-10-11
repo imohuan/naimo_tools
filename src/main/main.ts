@@ -105,11 +105,17 @@ appBootstrap
     }
   });
 
+app.on('before-quit', () => {
+  log.info('应用即将退出')
+  appBootstrap.cleanup();
+})
+
 // 确保在进程退出时调用清理
 process.on('exit', () => {
   console.log("进程退出，执行清理...");
   appBootstrap.cleanup();
 });
+
 
 // 导出应用启动器实例，供其他模块使用
 export { appBootstrap };

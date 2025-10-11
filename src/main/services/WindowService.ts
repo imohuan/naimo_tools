@@ -373,18 +373,25 @@ export class WindowService implements Service {
   cleanup(): void {
     log.info('清理窗口服务...')
 
-    // 清理下载窗口
-    if (this.downloadWindow && !this.downloadWindow.isDestroyed()) {
-      log.info('清理下载专用窗口')
-      this.downloadWindow.destroy()
-      this.downloadWindow = null
-    }
+    try {
+      // 1. 先清理窗口管理器（包括所有插件视图和分离窗口）
+      if (this.windowManager) {
+        log.info('正在清理窗口管理器...')
+        this.windowManager.destroy()
+        this.windowManager = null
+        log.info('窗口管理器清理完成')
+      }
 
-    // 窗口管理器的清理由其内部管理
-    if (this.windowManager) {
-      // 窗口管理器有自己的清理逻辑
-    }
+      // 2. 清理下载窗口
+      if (this.downloadWindow && !this.downloadWindow.isDestroyed()) {
+        log.info('清理下载专用窗口')
+        this.downloadWindow.destroy()
+        this.downloadWindow = null
+      }
 
-    log.info('窗口服务清理完成')
+      log.info('窗口服务清理完成')
+    } catch (error) {
+      log.error('清理窗口服务时出错:', error)
+    }
   }
 }

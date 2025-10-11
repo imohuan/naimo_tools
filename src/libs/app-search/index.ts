@@ -29,7 +29,7 @@ export interface AppPath {
  * @param workerPath 子进程路径
  * @param logger 日志器
  */
-export function createIconWorker(workerPath: string, logger: Logger): void {
+export function createIconWorker(workerPath: string, logger: Logger) {
   iconWorker = utilityProcess.fork(workerPath);
 
   // 监听来自子进程的消息
@@ -50,6 +50,8 @@ export function createIconWorker(workerPath: string, logger: Logger): void {
     // 简单地重启 worker
     createIconWorker(workerPath, logger);
   });
+
+  return iconWorker;
 }
 
 /**

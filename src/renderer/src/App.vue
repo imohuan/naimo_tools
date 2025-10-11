@@ -252,15 +252,12 @@ const handleClearPlugin = async () => {
 // 打开设置页面的包装函数
 const openSettingsWrapper = async () => {
   if (isPluginWindowOpen.value) {
-    console.log("🔧 打开设置前，先关闭插件view");
-    try {
-      await naimo.router.windowClosePluginView();
-      console.log("✅ 插件view已关闭");
-    } catch (error) {
-      console.error("❌ 关闭插件view失败:", error);
-    }
+    await windowManager.closePlugin();
   }
-  await windowManager.openSettings();
+  await nextTick();
+  setTimeout(() => {
+    windowManager.openSettings();
+  }, 0);
 };
 
 // ==================== 窗口管理 ====================

@@ -1308,8 +1308,8 @@ export class NewWindowManager {
         timestamp: Date.now()
       })
 
-      // 清理所有资源
-      this.cleanup()
+      // 不在这里调用 cleanup()，让 app.quit() 触发的 'before-quit' 事件统一处理清理
+      // 这样可以避免重复清理导致的 "Object has been destroyed" 错误
 
       // 主窗口关闭后直接退出应用
       log.info('主窗口已关闭，正在退出应用...')
@@ -1373,14 +1373,43 @@ export class NewWindowManager {
    * 清理资源
    */
   private cleanup(): void {
-    log.info('清理 NewWindowManager 资源')
-
-    // 停止性能监控
-    if (this.performanceTimer) {
-      clearInterval(this.performanceTimer)
-      this.performanceTimer = undefined
+    // 防止重复清理
+    if (!this.isInitialized) {
+      log.debug('NewWindowManager 已清理，跳过重复清理')
+      return
     }
 
+    log.info('清理 NewWindowManager 资源')
+
+    try {
+      // 1. 停止性能监控
+      if (this.performanceTimer) {
+        clearInterval(this.performanceTimer)
+        this.performanceTimer = undefined
+      }
+
+      // 2. 清理所有视图（包括插件视图）
+      // 这会关闭所有插件视图的 WebContents，确保插件进程被正确终止
+      log.info('清理所有视图...')
+      this.viewManager.cleanup()
+      log.info('视图清理完成')
+
+      // 3. 清理主窗口（如果还存在）
+      // 注意：如果主窗口已经在 handleMainWindowClosed 中被设为 null，这里就不会重复处理
+      if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+        log.info('清理主窗口...')
+        this.mainWindow.destroy()
+        this.mainWindow = null
+        log.info('主窗口清理完成')
+      }
+
+      // 标记为已清理，防止重复清理
+      this.isInitialized = false
+
+      log.info('NewWindowManager 资源清理完成')
+    } catch (error) {
+      log.error('清理 NewWindowManager 资源时出错:', error)
+    }
   }
 
   /**

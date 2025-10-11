@@ -128,7 +128,6 @@ export class ServiceContainer {
    */
   cleanup(): void {
     log.info('开始清理所有服务...')
-
     const services = Array.from(this.services.values()).reverse()
 
     for (const service of services) {

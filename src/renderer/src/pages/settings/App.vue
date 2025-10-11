@@ -155,6 +155,10 @@ const closeSettings = async () => {
   }
 };
 
+onMounted(async () => {
+  isMainView.value = await naimo.router.windowIsMainView();
+});
+
 naimo.event.onViewDetached(async (event, data) => {
   console.log("🔄 收到分离窗口事件:", data);
   isMainView.value = await naimo.router.windowIsMainView();

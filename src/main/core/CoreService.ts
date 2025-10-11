@@ -2,7 +2,7 @@
  * 核心服务 - 管理应用的核心生命周期
  */
 
-import { app, shell } from 'electron'
+import { app, shell, UtilityProcess } from 'electron'
 import log from 'electron-log'
 import { LogConfigManager } from '../config/logConfig'
 import { cleanupIpcRouter, initializeIpcRouter } from '../ipc-router'
@@ -34,6 +34,7 @@ export class CoreService implements Service {
   private serviceContainer: ServiceContainer
   private config: CoreServiceConfig
   private isInitialized = false
+  private iconWorker: UtilityProcess | null = null
 
   constructor(
     serviceContainer: ServiceContainer,
@@ -170,7 +171,7 @@ export class CoreService implements Service {
       const workerPath = resolve(getDirname(import.meta.url), 'iconWorker.js')
       log.info('🖼️ 初始化图标工作进程:', workerPath)
 
-      createIconWorker(workerPath, log)
+      this.iconWorker = createIconWorker(workerPath, log)
       log.info('✅ 图标工作进程初始化完成')
 
       getApps(resolve(app.getPath('userData'), 'icons'))
@@ -216,15 +217,15 @@ export class CoreService implements Service {
     app.on('window-all-closed', () => {
       if (process.platform !== 'darwin') {
         log.info('所有窗口已关闭，退出应用')
-        app.quit()
+        // app.quit()
       }
     })
 
     // 应用即将退出
-    app.on('before-quit', () => {
-      log.info('应用即将退出')
-      this.cleanup()
-    })
+    // app.on('before-quit', () => {
+    //   log.info('应用即将退出')
+    //   this.cleanup()
+    // })
 
     // macOS 特有的激活事件
     app.on('activate', () => {
@@ -294,6 +295,12 @@ export class CoreService implements Service {
       // 清空临时目录
       if (this.config.tempDirCleanup) {
         this.cleanupTempDirectory()
+      }
+
+      // 清理图标工作进程
+      if (this.iconWorker) {
+        this.iconWorker.kill()
+        this.iconWorker = null
       }
 
       this.isInitialized = false
