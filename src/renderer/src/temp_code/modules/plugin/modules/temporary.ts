@@ -35,6 +35,9 @@ export class TemporaryPluginInstaller extends BasePluginInstaller {
     }
     if (!config) throw new Error(`读取配置失败: ${source}`)
     const plugin = await this.processPlugin(config, options)
+    if (isString(source) && plugin.options) {
+      plugin.options.temporaryPath = source
+    }
     return plugin
   }
 

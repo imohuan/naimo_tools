@@ -173,9 +173,13 @@ export function manifestCopyPlugin(
   return {
     name: 'vite-plugin-manifest-copy',
 
-    configureServer() {
+    configureServer(server: ViteDevServer) {
       // 如果是开发模式，复制并修改 manifest.json
       modifyManifestForDev(source, dest);
+      server.watcher.add(source);
+      server.watcher.on('change', async (_file: string) => {
+        modifyManifestForDev(source, dest);
+      })
     },
 
     closeBundle() {

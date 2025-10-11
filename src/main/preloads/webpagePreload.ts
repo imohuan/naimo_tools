@@ -324,9 +324,6 @@ set(window, "naimo", naimo);
 
 contextBridge.exposeInMainWorld("naimo", naimo);
 
-console.log(11111, window.naimo);
-
-
 eventRouter.onPluginSearch((event, data) => {
   try {
     hooks.search.forEach(callback => isFunction(callback) && callback(data.searchText));
@@ -336,7 +333,22 @@ eventRouter.onPluginSearch((event, data) => {
   }
 });
 
-eventRouter.onPluginMessage((event, data) => {
+
+
+eventRouter.onPluginExit(() => {
+  try {
+    hooks.exit.forEach(callback => isFunction(callback) && callback(null));
+  } catch (error) {
+    console.error("PRELOAD Hooks 执行失败:", error);
+    log.error("PRELOAD Hooks 执行失败:", error);
+  }
+});
+
+const loaded = new Promise((resolve) => window.addEventListener('DOMContentLoaded', () => resolve(true)));
+
+eventRouter.onPluginMessage(async (event, data) => {
+  await loaded;
+
   try {
     const targetKey = data.fullPath.split(":").slice(1).join(":")
     const targetFunc = module.exports[targetKey]

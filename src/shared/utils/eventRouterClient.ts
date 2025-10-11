@@ -115,18 +115,31 @@ export function createEventRouter(): AllEventRouter {
 
   // 创建普通对象而不是 Proxy，以避免 contextBridge 克隆问题
   const router: any = {};
+  const callbacks = new Map<string, (() => void)[]>();
+
+  const generateHandler = (eventInfo: { name: string; comment: string; method: string; }, handler: any) => {
+    const name = eventInfo.name as EventKey
+    // const exec = (...args: any[]) => {
+    //   const funcs: any[] = callbacks.has(name) ? callbacks.get(name)! : [];
+    //   funcs.push(handler);
+    //   callbacks.set(name, funcs);
+    //   for (const func of funcs) {
+    //     try {
+    //       func(...args);
+    //     } catch (error) {
+    //       console.error('事件处理函数执行失败:', error);
+    //     }
+    //   }
+    // }
+    return client.on(name, handler);
+  }
 
   // 为每个事件创建方法
   for (const eventInfo of EVENT_INFO) {
     // 短横线分隔的事件名
-    router[eventInfo.name] = (handler: any) => {
-      return client.on(eventInfo.name as EventKey, handler);
-    };
-
+    router[eventInfo.name] = (handler: any) => generateHandler(eventInfo, handler)
     // 驼峰式方法名
-    router[eventInfo.method] = (handler: any) => {
-      return client.on(eventInfo.name as EventKey, handler);
-    };
+    router[eventInfo.method] = (handler: any) => generateHandler(eventInfo, handler)
   }
 
   return router;

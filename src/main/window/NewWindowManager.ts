@@ -1446,13 +1446,13 @@ export class NewWindowManager {
 
         // 如果页面已经加载完成，直接发送
         if (!webContents.isLoading()) {
-          sendPluginMessage(webContents, messageData)
+          setTimeout(() => sendPluginMessage(webContents, messageData), 0);
           log.debug(`已向分离的插件视图发送数据（页面已加载）: ${viewId}`, params.data)
         } else {
           // 否则等待页面加载完成
           webContents.once('did-finish-load', () => {
             if (!webContents.isDestroyed()) {
-              sendPluginMessage(webContents, messageData)
+              setTimeout(() => sendPluginMessage(webContents, messageData), 0);
               log.debug(`已向分离的插件视图发送数据（等待加载完成）: ${viewId}`, params.data)
             }
           })

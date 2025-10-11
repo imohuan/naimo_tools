@@ -1,6 +1,6 @@
 {
   "name": "naimo-plugin-cli",
-  "version": "0.0.13",
+  "version": "0.0.14",
   "description": "Naimo plugin development template initializer",
   "type": "module",
   "main": "bin/cli.js",

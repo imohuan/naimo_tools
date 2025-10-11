@@ -265,7 +265,7 @@ export const usePluginStoreNew = defineStore("pluginNew", () => {
   }, "初始化插件系统失败");
 
   /** 安装插件 */
-  const install = loading.withLoading(async (source: PluginConfig | string) => {
+  const install = loading.withLoading(async (source: PluginConfig | string, focus: boolean = false) => {
     console.log(`📦 开始安装:`, typeof source === "string" ? source : source.id);
     const installer = findInstaller(source);
     if (!installer) throw new Error(`未找到支持的安装器: ${source}`);
@@ -273,9 +273,11 @@ export const usePluginStoreNew = defineStore("pluginNew", () => {
     const plugin = await installer.install(source);
 
     // 检查是否已安装
-    if (installedPlugins.value.some((p) => p.id === plugin.id)) {
+    const index = installedPlugins.value.findIndex((p) => p.id === plugin.id);
+    if (index !== -1) {
       console.log(`ℹ️ 插件已安装: ${plugin.id}`);
-      return plugin;
+      if (!focus) return plugin;
+      installedPlugins.value.splice(index, 1);
     }
 
     // 添加到已安装列表
@@ -283,10 +285,10 @@ export const usePluginStoreNew = defineStore("pluginNew", () => {
     triggerRef(installedPlugins);
 
     // 添加到可用列表（如果不存在）
-    if (!availablePlugins.value.some((p) => p.id === plugin.id)) {
-      availablePlugins.value.push(plugin);
-      triggerRef(availablePlugins);
-    }
+    const availableIndex = availablePlugins.value.findIndex((p) => p.id === plugin.id);
+    if (availableIndex !== -1) availablePlugins.value.splice(availableIndex, 1);
+    availablePlugins.value.push(plugin);
+    triggerRef(availablePlugins);
 
     await saveInstalledPluginIds();
     if (!silent.value) {
