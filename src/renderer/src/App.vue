@@ -163,12 +163,12 @@ const processAttachedInfo = async (): Promise<AttachedInfo | undefined> => {
   const file = attachedFiles.value[0];
 
   // 图片类型：使用已提取的 icon（base64）
-  if (file.type.startsWith("image/") && file.icon) {
+  if (file.originalFile?.type.startsWith("image/") && file.icon) {
     return { type: "img", data: file.icon, originalFile: file };
   }
 
   // 文本类型：读取文件内容
-  if (file.type.startsWith("text/")) {
+  if (file.originalFile?.type.startsWith("text/")) {
     try {
       // 优先使用原始File对象读取（更快，不需要IPC）
       const text = file.originalFile
@@ -369,7 +369,13 @@ const handleExecuted = async (event: {
   // 传递给插件的参数
   const data = {
     files: attachedFiles.value.map((m) => {
-      return { name: m.name, path: m.path, size: m.size, type: m.type };
+      return {
+        name: m.name,
+        path: m.path,
+        size: m.size,
+        type: m.type,
+        originalType: m.originalFile?.type || "",
+      };
     }),
     searchText: app.ui.searchText,
     hotkeyEmit: event.hotkeyEmit,

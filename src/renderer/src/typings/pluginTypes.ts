@@ -101,6 +101,18 @@ export const PLUGIN_CATEGORY_CONFIG = {
   }
 } as const
 
+export interface PluginItemData {
+  files: {
+    name: string;
+    path: string;
+    size: number;
+    type: string;
+    originalType: string;
+  }[]
+  searchText: string;
+  hotkeyEmit: boolean;
+}
+
 /** 插件配置接口 */
 export interface PluginConfig {
   /** 插件唯一标识 */

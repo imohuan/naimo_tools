@@ -265,6 +265,10 @@ const filteredPlugins = computed(() => {
     });
   }
 
+  result = result.filter((plugin) => {
+    return ["github", "local"].includes(plugin.options?.pluginType || "");
+  });
+
   return result;
 });
 
