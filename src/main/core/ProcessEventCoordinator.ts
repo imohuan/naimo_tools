@@ -17,6 +17,7 @@ import {
   sendViewEscPressed
 } from '@main/ipc-router/mainEvents'
 import { NewWindowManager } from '@main/window/NewWindowManager'
+import { BaseWindowController } from '@/window/BaseWindowController'
 
 /**
  * 进程事件协调器
@@ -56,6 +57,7 @@ export class ProcessEventCoordinator {
    */
   public setNewWindowManager(newWindowManager: NewWindowManager): void {
     this.newWindowManager = newWindowManager
+
     log.info('已设置 NewWindowManager 引用')
   }
 
@@ -112,7 +114,12 @@ export class ProcessEventCoordinator {
       })
 
       // 隐藏主窗口
-      this.newWindowManager?.hideView(this.newWindowManager.getMainViewId())
+      // this.newWindowManager?.hideView(this.newWindowManager.getMainViewId())
+      if (!this.newWindowManager) return
+      const id = this.newWindowManager.getMainWindow()?.id || 1
+      const baseWindow = this.newWindowManager.getBaseWindowController()
+      const window = baseWindow.getWindow(id)
+      if (window) baseWindow.hideWindow(window)
     })
 
     // 主窗口关闭事件

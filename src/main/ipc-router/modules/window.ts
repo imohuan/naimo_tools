@@ -37,15 +37,25 @@ export async function minimize(event: Electron.IpcMainInvokeEvent): Promise<bool
       const controller = BaseWindowController.getInstance();
       const callingWindow = controller.getWindow(currentViewInfo.parentWindowId);
 
-      if (callingWindow && !callingWindow.isDestroyed()) {
-        if (callingWindow.isMinimized?.()) {
-          log.debug('窗口已是最小化状态');
-          return true;
-        }
-        callingWindow.minimize();
-        log.debug(`分离窗口已最小化，ID: ${callingWindow.id}`);
+      if (!callingWindow || callingWindow.isDestroyed()) {
+        log.warn('最小化失败：窗口不存在或已销毁');
+        return false;
+      }
+
+      // 【安全检查】严格验证：禁止操作主窗口
+      const mainWindow = manager.getMainWindow();
+      if (mainWindow && callingWindow.id === mainWindow.id) {
+        log.error(`严重错误：分离窗口控制栏试图最小化主窗口！视图ID: ${currentViewInfo.id}`);
+        return false;
+      }
+
+      if (callingWindow.isMinimized?.()) {
+        log.debug('窗口已是最小化状态');
         return true;
       }
+      callingWindow.minimize();
+      log.debug(`分离窗口已最小化，ID: ${callingWindow.id}`);
+      return true;
     }
 
     log.warn('最小化失败：无法找到调用窗口或不支持的视图类别');
@@ -83,16 +93,26 @@ export async function maximize(event: Electron.IpcMainInvokeEvent): Promise<bool
       const controller = BaseWindowController.getInstance();
       const callingWindow = controller.getWindow(currentViewInfo.parentWindowId);
 
-      if (callingWindow && !callingWindow.isDestroyed()) {
-        if (callingWindow.isMaximized()) {
-          callingWindow.unmaximize();
-          log.debug(`分离窗口已还原，ID: ${callingWindow.id}`);
-        } else {
-          callingWindow.maximize();
-          log.debug(`分离窗口已最大化，ID: ${callingWindow.id}`);
-        }
-        return true;
+      if (!callingWindow || callingWindow.isDestroyed()) {
+        log.warn('最大化失败：窗口不存在或已销毁');
+        return false;
       }
+
+      // 【安全检查】严格验证：禁止操作主窗口
+      const mainWindow = manager.getMainWindow();
+      if (mainWindow && callingWindow.id === mainWindow.id) {
+        log.error(`严重错误：分离窗口控制栏试图最大化主窗口！视图ID: ${currentViewInfo.id}`);
+        return false;
+      }
+
+      if (callingWindow.isMaximized()) {
+        callingWindow.unmaximize();
+        log.debug(`分离窗口已还原，ID: ${callingWindow.id}`);
+      } else {
+        callingWindow.maximize();
+        log.debug(`分离窗口已最大化，ID: ${callingWindow.id}`);
+      }
+      return true;
     }
 
     log.warn('最大化失败：无法找到调用窗口或不支持的视图类别');
@@ -130,6 +150,14 @@ export async function close(event: Electron.IpcMainInvokeEvent): Promise<boolean
 
       if (!callingWindow || callingWindow.isDestroyed()) {
         log.warn(`关闭失败：窗口不存在或已销毁 (${currentViewInfo.parentWindowId})`);
+        return false;
+      }
+
+      // 【安全检查】严格验证：禁止关闭主窗口
+      const mainWindow = manager.getMainWindow();
+      if (mainWindow && callingWindow.id === mainWindow.id) {
+        log.error(`严重错误：分离窗口控制栏试图关闭主窗口！视图ID: ${currentViewInfo.id}, 窗口ID: ${currentViewInfo.parentWindowId}`);
+        log.error(`这是一个BUG，控制栏视图的 parentWindowId 应该是分离窗口ID，而不是主窗口ID`);
         return false;
       }
 
@@ -298,11 +326,21 @@ export async function setAlwaysOnTop(event: Electron.IpcMainInvokeEvent, alwaysO
       const controller = BaseWindowController.getInstance();
       const callingWindow = controller.getWindow(currentViewInfo.parentWindowId);
 
-      if (callingWindow && !callingWindow.isDestroyed()) {
-        callingWindow.setAlwaysOnTop(alwaysOnTop);
-        log.debug(`分离窗口置顶状态已设置，ID: ${callingWindow.id}, 置顶: ${alwaysOnTop}`);
-        return true;
+      if (!callingWindow || callingWindow.isDestroyed()) {
+        log.warn('设置窗口置顶失败：窗口不存在或已销毁');
+        return false;
       }
+
+      // 【安全检查】严格验证：禁止操作主窗口
+      const mainWindow = manager.getMainWindow();
+      if (mainWindow && callingWindow.id === mainWindow.id) {
+        log.error(`严重错误：分离窗口控制栏试图置顶主窗口！视图ID: ${currentViewInfo.id}`);
+        return false;
+      }
+
+      callingWindow.setAlwaysOnTop(alwaysOnTop);
+      log.debug(`分离窗口置顶状态已设置，ID: ${callingWindow.id}, 置顶: ${alwaysOnTop}`);
+      return true;
     }
 
     log.warn('设置窗口置顶失败：无法找到调用窗口或不支持的视图类别');

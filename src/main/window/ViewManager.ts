@@ -290,6 +290,12 @@ export class ViewManager {
         return
       }
 
+      // 【关键修复】确保视图已添加到窗口
+      if (!mainViewInfo.state.isVisible) {
+        window.contentView.addChildView(mainViewInfo.view)
+        log.info(`主视图已重新添加到窗口: ${mainViewInfo.id}`)
+      }
+
       const windowBounds = window.getBounds()
 
       const fullSizeBounds = {
@@ -988,6 +994,11 @@ export class ViewManager {
           timestamp: Date.now()
         })
       }
+
+      setTimeout(() => {
+        console.log(this.getViewInfo('main-view'));
+        console.log(this.baseWindowController.getWindow(this.getViewInfo('main-view')?.parentWindowId || 1));
+      }, 3000);
     } catch (error) {
       log.error(`处理视图分离失败: ${viewInfo.id}`, error)
 

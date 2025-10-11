@@ -214,6 +214,41 @@ export class DetachManager {
         throw new Error('源窗口已被销毁或无效')
       }
 
+      // 先注册控制栏视图到 ViewManager（在视图添加到窗口之前）
+      // 这样可以确保 IPC 调用时能正确识别控制栏视图的归属
+      if (this.viewManager && typeof this.viewManager.registerDetachedControlBar === 'function') {
+        try {
+          const controlBarViewId = `detached-control-${detachedWindow.id}`
+          const controlBarConfig: WebContentsViewConfig = {
+            id: controlBarViewId,
+            type: 'detached-control' as any,
+            category: ViewCategory.DETACHED_WINDOW,
+            bounds: { x: 0, y: 0, width: detachConfig.bounds.width, height: 40 },
+            lifecycle: {
+              type: 'foreground' as any,
+              persistOnClose: false,
+              maxIdleTime: 0,
+              memoryThreshold: 0
+            },
+            webPreferences: {
+              nodeIntegration: true,
+              contextIsolation: true,
+              webSecurity: true
+            }
+          }
+          await this.viewManager.registerDetachedControlBar(detachedWindow.id, controlBarViewId, controlBarView, controlBarConfig)
+          log.info(`控制栏视图已提前注册: ${controlBarViewId} -> 窗口 ${detachedWindow.id}`)
+        } catch (error) {
+          log.error('提前注册控制栏视图失败:', error)
+          this.cleanupOnFailure(detachedWindow, controlBarView)
+          throw new Error('控制栏视图注册失败')
+        }
+      } else {
+        log.error('ViewManager 不可用，无法注册控制栏视图')
+        this.cleanupOnFailure(detachedWindow, controlBarView)
+        throw new Error('ViewManager 不可用')
+      }
+
       // --- Core Operation: Reparenting ---
       try {
         const sourceContentView = sourceWindow?.contentView
@@ -221,8 +256,41 @@ export class DetachManager {
           throw new Error('源窗口的内容视图无效')
         }
 
-        // Remove from source window first
-        sourceContentView.removeChildView(originalView)
+        // 【关键优化】先切换主窗口到 main-view
+        // switchToView 会自动隐藏插件视图（调用 removeChildView），无需再次手动移除
+        if (this.viewManager && parentWindowId !== detachedWindow.id) {
+          try {
+            const mainViewInfo = this.viewManager.getViewInfo('main-view')
+            if (mainViewInfo && mainViewInfo.parentWindowId === parentWindowId) {
+              log.info(`分离前切换主窗口到 main-view（会自动移除插件视图）`)
+              const switchResult = this.viewManager.switchToView(parentWindowId, 'main-view')
+              if (!switchResult.success) {
+                log.warn(`切换到 main-view 失败: ${switchResult.error}，尝试手动移除视图`)
+                // 如果切换失败，手动移除视图
+                sourceContentView.removeChildView(originalView)
+              } else {
+                log.info(`已成功切换到 main-view，插件视图已自动移除`)
+              }
+            } else {
+              // 如果没有 main-view 或不在主窗口，直接移除
+              sourceContentView.removeChildView(originalView)
+              log.info(`已从窗口移除插件视图: ${sourceView.id}`)
+            }
+          } catch (error) {
+            log.warn('分离前切换主视图失败，尝试手动移除:', error)
+            // 出错时尝试手动移除
+            try {
+              sourceContentView.removeChildView(originalView)
+              log.info(`已手动移除插件视图: ${sourceView.id}`)
+            } catch (removeError) {
+              log.warn('手动移除视图也失败（视图可能已被移除）:', removeError)
+            }
+          }
+        } else {
+          // 非主窗口分离，直接移除
+          sourceContentView.removeChildView(originalView)
+          log.info(`已从窗口移除插件视图: ${sourceView.id}`)
+        }
 
         // Ensure the detached window is still valid, then add views in the correct order
         if (detachedWindow.isDestroyed()) {
@@ -635,7 +703,7 @@ export class DetachManager {
   }
 
   /**
-   * 创建控制栏视图并注册到 ViewManager
+   * 创建控制栏视图（不注册，注册在 detachView 中完成）
    * @param config 分离配置
    * @param detachedWindowId 分离窗口ID
    * @returns 控制栏 WebContentsView
@@ -649,29 +717,6 @@ export class DetachManager {
       } catch {
         // 如果找不到，使用基础preload
         preloadPath = resolve(getDirname(import.meta.url), './preloads/basic.js')
-      }
-
-      // 生成控制栏视图的唯一ID
-      const controlBarViewId = `detached-control-${detachedWindowId}`
-
-      // 创建控制栏视图配置
-      const controlBarConfig: WebContentsViewConfig = {
-        id: controlBarViewId,
-        type: 'detached-control' as any, // 临时使用，需要在 ViewType 中添加
-        category: ViewCategory.DETACHED_WINDOW,
-        bounds: { x: 0, y: 0, width: config.bounds.width, height: 40 },
-        lifecycle: {
-          type: 'foreground' as any,
-          persistOnClose: false,
-          maxIdleTime: 0,
-          memoryThreshold: 0
-        },
-        webPreferences: {
-          nodeIntegration: true,
-          contextIsolation: true,
-          webSecurity: true,
-          preload: preloadPath
-        }
       }
 
       const controlBarView = new WebContentsView({
@@ -689,18 +734,7 @@ export class DetachManager {
         controlBarView.webContents.openDevTools()
       }
 
-      // 如果 ViewManager 可用，注册控制栏视图
-      if (this.viewManager && typeof this.viewManager.registerDetachedControlBar === 'function') {
-        try {
-          await this.viewManager.registerDetachedControlBar(detachedWindowId, controlBarViewId, controlBarView, controlBarConfig)
-          log.info(`控制栏视图已注册到 ViewManager: ${controlBarViewId}`)
-        } catch (error) {
-          log.warn('注册控制栏视图到 ViewManager 失败:', error)
-        }
-      } else {
-        log.warn('ViewManager 不支持 registerDetachedControlBar 方法，控制栏视图未注册')
-      }
-
+      log.info(`控制栏视图已创建: detached-control-${detachedWindowId}`)
       return controlBarView
     } catch (error) {
       log.error('创建控制栏视图失败:', error)

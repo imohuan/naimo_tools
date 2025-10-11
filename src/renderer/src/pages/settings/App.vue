@@ -13,7 +13,11 @@
       <nav class="flex-1 p-3">
         <ul class="space-y-1">
           <li v-for="route in routes" :key="route.name">
-            <router-link :to="route.path" custom v-slot="{ navigate, isActive }">
+            <router-link
+              :to="route.path"
+              custom
+              v-slot="{ navigate, isActive }"
+            >
               <button
                 @click="navigate"
                 tabindex="-1"
@@ -29,7 +33,9 @@
                     :is="getIcon(route.meta?.icon as string)"
                     class="w-4 h-4 mr-2"
                   />
-                  <span class="text-sm font-medium">{{ route.meta?.title }}</span>
+                  <span class="text-sm font-medium">{{
+                    route.meta?.title
+                  }}</span>
                 </div>
               </button>
             </router-link>
@@ -52,14 +58,14 @@
             {{ currentRoute?.meta?.description || "" }}
           </p>
         </div>
-        <button
+        <!-- <button
           @click="closeSettings"
           tabindex="-1"
           class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
           title="关闭设置"
         >
           <IconMdiClose class="w-6 h-6" />
-        </button>
+        </button> -->
       </div>
 
       <!-- 内容主体 - 使用 router-view 和 keep-alive -->
@@ -126,7 +132,10 @@ const getIcon = (icon?: string) => {
 const closeSettings = async () => {
   try {
     // 通过 IPC 通知主进程关闭设置页面视图
-    if (window.naimo?.router && "windowCloseSettingsView" in window.naimo.router) {
+    if (
+      window.naimo?.router &&
+      "windowCloseSettingsView" in window.naimo.router
+    ) {
       await (window.naimo.router as any).windowCloseSettingsView();
     } else {
       // 降级处理：发送关闭消息给主进程

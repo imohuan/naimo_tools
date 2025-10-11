@@ -896,6 +896,13 @@ export class NewWindowManager {
   }
 
   /**
+   * 获取 BaseWindowController
+   */
+  public getBaseWindowController(): BaseWindowController {
+    return this.baseWindowController
+  }
+
+  /**
    * 获取主窗口
    */
   public getMainWindow(): BaseWindow | null {
@@ -1512,6 +1519,7 @@ export class NewWindowManager {
       const pluginItem: PluginItem = {
         fullPath: params.fullPath,
         name: params.title,
+        path: params.fullPath.split(':')[0],
         icon: null,
         lifecycleType: params.lifecycleType,
         singleton: isSingleton,
