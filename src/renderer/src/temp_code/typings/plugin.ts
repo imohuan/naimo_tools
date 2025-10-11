@@ -9,7 +9,9 @@ export enum PluginSourceType {
   /** 本地插件（ZIP、文件夹） */
   LOCAL = 'local',
   /** 远程插件（GitHub等） */
-  REMOTE = 'remote'
+  REMOTE = 'remote',
+  /** 临时插件（临时插件） */
+  TEMPORARY = 'temporary'
 }
 
 export interface PluginSetting {

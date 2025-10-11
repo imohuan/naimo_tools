@@ -174,6 +174,13 @@ export async function close(event: Electron.IpcMainInvokeEvent): Promise<boolean
   }
 }
 
+export async function isMainView(event: Electron.IpcMainInvokeEvent): Promise<boolean> {
+  const manager = NewWindowManager.getInstance();
+  const viewManager = manager.getViewManager();
+  const currentViewInfo = viewManager.getCurrentViewInfo(event.sender);
+  return currentViewInfo?.parentWindowId === manager.getMainWindow()?.id;
+}
+
 /**
  * 切换窗口显示状态
  * @param show 可选参数，指定是否显示窗口。不传则进行toggle

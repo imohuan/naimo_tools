@@ -986,7 +986,6 @@ export class DownloadManagerMain {
             if (filePath) unlink(filePath);
           }
         }
-
         this.downloads.delete(downloadId);
         this.saveDownloadsToStorage();
         this.sendToRenderer('download-deleted', { id: downloadId });

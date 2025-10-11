@@ -641,6 +641,10 @@ onMounted(async () => {
     handleEscAction();
   });
 
+  naimo.event.onSetVisibleInput((_event, data) => {
+    app.ui.toggleSearchBoxVisibility(data.value);
+  });
+
   // 注册事件监听（统一使用 app.event）
   app.event.on(
     "hotkey:triggered",

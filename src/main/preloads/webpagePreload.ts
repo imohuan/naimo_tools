@@ -1,12 +1,12 @@
 import { contextBridge, ipcRenderer } from "electron";
 import log from "electron-log/renderer";
 import { readFile } from 'fs/promises'
+import { downloadManagerRenderer } from "@libs/download-manager/renderer";
 import { RendererErrorHandler } from "@libs/unhandled/renderer";
 import { ipcRouter } from "@shared/utils/ipcRouterClient";
 import { eventRouter } from "@shared/utils/eventRouterClient";
 import { isFunction } from "@shared/utils/common/typeUtils";
 import { automateWithJson, fetchHTML, fetchJSON, parseHtmlByConfig, createRendererUBrowser, createInstantUBrowser } from "@libs/auto-puppeteer/renderer";
-// import { PluginItem } from "@renderer/src/typings";
 interface PluginItem {
   path: string;
   name: string;
@@ -39,6 +39,10 @@ const naimo = {
       RendererErrorHandler.getInstance().logError(error, options);
     },
   },
+
+  // ========== 下载管理 ==========
+  /** 下载管理 */
+  download: downloadManagerRenderer,
 
   // ========== 窗口管理 ==========
   window: {
@@ -303,7 +307,15 @@ const naimo = {
     log.info(`热重载::::: plugin:${prefix}-hot-reload`)
     // @ts-ignore
     return ipcRenderer.invoke(`plugin:${prefix}-hot-reload`)
-  }
+  },
+
+  /**
+   * 设置搜索框可见性 (主窗口接收)
+   * @param value 
+   */
+  visibleInput(value: boolean) {
+    ipcRouter.appForwardMessageToMainView("set-visible-input", { value })
+  },
 };
 
 export type Naimo = typeof naimo;

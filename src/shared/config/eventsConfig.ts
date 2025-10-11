@@ -11,6 +11,11 @@
 
 /** 事件配置接口 */
 export interface EventsConfig {
+  'set-visible-input': {
+    value: boolean
+    timestamp: number
+  }
+
   'view-esc-pressed': {
     viewId: string
     windowId: number

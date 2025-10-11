@@ -192,9 +192,12 @@ export class GithubPluginInstaller extends BasePluginInstaller {
     }
     console.log(`📥 [GitHub插件] 下载: ${downloadUrl}`)
     // 下载ZIP插件
-    const zipPath = await this.download(downloadUrl)
+    const { id, path: zipPath } = await this.download(downloadUrl)
     // 安装ZIP插件
     const plugin = await this.localInstaller.install(zipPath, options)
+    // 删除下载的ZIP文件
+    naimo.download.deleteDownload(id, true)
+
     // 覆盖类型标记为 github
     this.setPluginType(plugin)
     console.log(`✅ [GitHub插件] 安装成功: ${plugin.id}`)
@@ -206,7 +209,7 @@ export class GithubPluginInstaller extends BasePluginInstaller {
    * @param url 下载URL
    * @returns 下载后的文件路径 ZIP文件路径
    */
-  private download(url: string): Promise<string> {
+  private download(url: string): Promise<{ id: string, path: string }> {
     return new Promise((resolve, reject) => {
       const cleanup = {
         completed: null as (() => void) | null,
@@ -237,7 +240,7 @@ export class GithubPluginInstaller extends BasePluginInstaller {
         cleanup.completed = naimo.download.onDownloadCompleted(data => {
           if (data.id === id) {
             clear()
-            resolve(data.filePath)
+            resolve({ id, path: data.filePath })
           }
         })
 

@@ -104,14 +104,27 @@ export class ProcessEventCoordinator {
     emitEvent.on('view:detached', (data) => {
       if (!this.mainWebContents || this.mainWebContents.isDestroyed()) return
 
-      // 发送视图分离通知
-      sendViewDetached(this.mainWebContents, {
+      const newData = {
         detachedViewId: data.viewId,
         sourceWindowId: data.windowId,
         detachedWindowId: data.detachedWindowId,
         timestamp: data.timestamp,
         remainingViews: []
-      })
+      }
+
+      // 发送视图分离通知
+      sendViewDetached(this.mainWebContents, newData)
+
+      // 发送给分离窗口的view中
+      if (this.newWindowManager) {
+        const viewManager = this.newWindowManager.getViewManager()
+        const viewInfo = viewManager.getViewInfo(data.viewId)
+        if (viewInfo) {
+          setTimeout(() => {
+            sendViewDetached(viewInfo.view.webContents, newData)
+          }, 0);
+        }
+      }
 
       // 隐藏主窗口
       // this.newWindowManager?.hideView(this.newWindowManager.getMainViewId())
@@ -185,7 +198,7 @@ export class ProcessEventCoordinator {
 
       const pluginInfo = data.pluginInfo || this.newWindowManager?.getViewManager()?.getViewInfo(data.viewId)?.config?.pluginMetadata
 
-      sendViewReattached(this.mainWebContents, {
+      const newData = {
         sourceViewId: data.viewId,
         sourceWindowId: data.toWindowId,
         detachedWindowId: data.fromWindowId,
@@ -195,7 +208,19 @@ export class ProcessEventCoordinator {
           fullPath: pluginInfo?.fullPath || ''
         },
         timestamp: data.timestamp
-      })
+      }
+      sendViewReattached(this.mainWebContents, newData)
+
+      // 发送给分离窗口的view中
+      if (this.newWindowManager) {
+        const viewManager = this.newWindowManager.getViewManager()
+        const viewInfo = viewManager.getViewInfo(data.viewId)
+        if (viewInfo) {
+          setTimeout(() => {
+            sendViewReattached(viewInfo.view.webContents, newData)
+          }, 0);
+        }
+      }
     })
 
     // 分离窗口关闭事件

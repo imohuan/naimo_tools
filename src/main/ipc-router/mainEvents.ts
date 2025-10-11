@@ -8,6 +8,23 @@ import log from 'electron-log'
 import type { EventsConfig, EventType, EventData } from '@shared/config/eventsConfig'
 
 /**
+ * 发送 set-visible-input 事件
+ * @param webContents 目标 WebContents
+ * @param data 事件数据
+ */
+export function sendSetVisibleInput(
+  webContents: WebContents,
+  data: EventData<'set-visible-input'>
+): void {
+  if (webContents && !webContents.isDestroyed()) {
+    webContents.send('set-visible-input', data)
+    log.debug(`事件已发送: set-visible-input`, { data })
+  } else {
+    log.warn(`无法发送事件: WebContents已销毁 - set-visible-input`)
+  }
+}
+
+/**
  * 发送 view-esc-pressed 事件
  * @param webContents 目标 WebContents
  * @param data 事件数据
@@ -417,6 +434,7 @@ export function sendDevReload(
 
 // 事件发送对象
 export const mainEvents = {
+  setVisibleInput: sendSetVisibleInput,
   viewEscPressed: sendViewEscPressed,
   viewDetached: sendViewDetached,
   viewRestoreRequested: sendViewRestoreRequested,

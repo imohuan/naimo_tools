@@ -1,6 +1,6 @@
 /**
  * 自动生成的事件类型定义
- * 生成时间: 2025-10-11T04:33:43.817Z
+ * 生成时间: 2025-10-11T06:42:43.711Z
  * 请勿手动修改此文件
  */
 
@@ -8,6 +8,11 @@ import type { EventsConfig, EventData } from '@shared/config/eventsConfig'
 
 // 事件接口定义
 interface EventInterface {
+  /** 监听 set-visible-input 事件 */
+  "set-visible-input": (handler: (event: any, data: EventData<'set-visible-input'>) => void) => () => void;
+  /** 监听 set-visible-input 事件 */
+  "onSetVisibleInput": (handler: (event: any, data: EventData<'set-visible-input'>) => void) => () => void;
+
   /** 监听 view-esc-pressed 事件 */
   "view-esc-pressed": (handler: (event: any, data: EventData<'view-esc-pressed'>) => void) => () => void;
   /** 监听 view-esc-pressed 事件 */
@@ -130,6 +135,11 @@ interface EventInterface {
 }
 // 事件信息常量
 export const EVENT_INFO = [
+  {
+    name: "set-visible-input",
+    comment: "监听 set-visible-input 事件",
+    method: "onSetVisibleInput"
+  },
   {
     name: "view-esc-pressed",
     comment: "监听 view-esc-pressed 事件",

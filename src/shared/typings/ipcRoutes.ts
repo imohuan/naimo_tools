@@ -1,6 +1,6 @@
 /**
  * 自动生成的 IPC 类型定义
- * 生成时间: 2025-10-11T05:45:10.477Z
+ * 生成时间: 2025-10-11T06:42:43.367Z
  * 请勿手动修改此文件
  */
 
@@ -1177,6 +1177,11 @@ interface windowInterface {
   /** 关闭窗口 - 基于视图类别的智能控制 */
   "windowClose": () => Promise<boolean>;
 
+  /** 无注释 */
+  "window-is-main-view": () => Promise<boolean>;
+  /** 无注释 */
+  "windowIsMainView": () => Promise<boolean>;
+
   /**
  * 切换窗口显示状态
  * @param 可选参数，指定是否显示窗口。不传则进行toggle
@@ -2119,6 +2124,12 @@ export const ROUTE_INFO: RouteInfo[] = [
     comment: "关闭窗口 - 基于视图类别的智能控制",
     module: "window",
     function: "close"
+  },
+  {
+    route: "window-is-main-view",
+    comment: "无注释",
+    module: "window",
+    function: "isMainView"
   },
   {
     route: "window-toggle-show",

@@ -6,13 +6,14 @@ import { isString } from "lodash-es"
 
 export class TemporaryPluginInstaller extends BasePluginInstaller {
   readonly name = '临时插件'
-  readonly type = PluginSourceType.LOCAL
+  readonly type = PluginSourceType.TEMPORARY
   readonly weight = 1
   readonly pluginType = 'temporary'
 
   canHandle(source: any): boolean {
     if (typeof source !== 'string') return false
-    return true
+    const isUrl = /^http?s:\/\/.+/.test(source)
+    return !isUrl
   }
 
   async getList(_options?: any): Promise<PluginConfig[]> {

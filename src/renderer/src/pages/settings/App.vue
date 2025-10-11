@@ -58,14 +58,15 @@
             {{ currentRoute?.meta?.description || "" }}
           </p>
         </div>
-        <!-- <button
+        <button
+          v-if="isMainView"
           @click="closeSettings"
           tabindex="-1"
           class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
           title="关闭设置"
         >
           <IconMdiClose class="w-6 h-6" />
-        </button> -->
+        </button>
       </div>
 
       <!-- 内容主体 - 使用 router-view 和 keep-alive -->
@@ -103,6 +104,7 @@ import GithubToken from "./components/GithubToken.vue";
 // 使用路由
 const router = useRouter();
 const route = useRoute();
+const isMainView = ref(false);
 
 // 获取所有路由（排除重定向路由）
 const routes = computed(() => {
@@ -131,6 +133,9 @@ const getIcon = (icon?: string) => {
 // 关闭设置 - 通知主进程关闭此 WebContentsView
 const closeSettings = async () => {
   try {
+    const isMainView = await naimo.router.windowIsMainView();
+    if (!isMainView) return;
+
     // 通过 IPC 通知主进程关闭设置页面视图
     if (
       window.naimo?.router &&
@@ -149,6 +154,16 @@ const closeSettings = async () => {
     window.close();
   }
 };
+
+naimo.event.onViewDetached(async (event, data) => {
+  console.log("🔄 收到分离窗口事件:", data);
+  isMainView.value = await naimo.router.windowIsMainView();
+});
+
+naimo.event.onViewReattached(async (event, data) => {
+  console.log("🔄 收到重新附加窗口事件:", data);
+  isMainView.value = await naimo.router.windowIsMainView();
+});
 </script>
 
 <style scoped>
