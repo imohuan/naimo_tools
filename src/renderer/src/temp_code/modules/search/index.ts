@@ -257,13 +257,18 @@ export const useSearchStore = defineStore('search', () => {
 
   // 显示默认结果
   const showDefaultResults = () => {
-    // searchResults.value = searchItems.value.filter(item => {
-    //   const includeCategory = ['applications', 'pinned', 'recent', 'files'].includes(item.category || '')
-    //   return includeCategory
-    // }).sort((a, b) => {
-    //   return (getItemModule(a)?.weight) - (getItemModule(b)?.weight)
-    // })
-    searchResults.value = searchItems.value
+    let results: AppItem[] = searchItems.value
+    results = searchItems.value.filter(item => {
+      const categories = ['applications', 'pinned', 'recent', 'files']
+      if (import.meta.env.DEV) categories.push('plugin')
+      const includeCategory = categories.includes(item.category || '')
+      return includeCategory
+    })
+
+    results = results.sort((a, b) => {
+      return (getItemModule(a)?.weight) - (getItemModule(b)?.weight)
+    })
+    searchResults.value = results
     triggerRef(searchResults)
   }
 
