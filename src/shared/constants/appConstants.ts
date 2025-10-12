@@ -102,4 +102,8 @@ export const DEFAULT_VALUES = {
   LOG_LEVEL_DEV: LOG_LEVELS.DEBUG
 } as const
 
+
+/** 是否打开开发者工具 */
+export const OPEN_DEVTOOLS = false
+
 // 类型定义已移至 ../typings/constantTypes.ts

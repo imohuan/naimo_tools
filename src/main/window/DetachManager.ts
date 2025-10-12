@@ -28,6 +28,7 @@ import { emitEvent } from '@main/core/ProcessEvent'
 import { DEFAULT_WINDOW_LAYOUT, calculateDetachedControlBarBounds, calculateDetachedContentBounds } from '@shared/config/windowLayoutConfig'
 import { isProduction } from '@shared/utils'
 import type { ViewManager } from './ViewManager'
+import { OPEN_DEVTOOLS } from '@shared/constants'
 
 /**
  * 分离窗口信息
@@ -730,7 +731,7 @@ export class DetachManager {
         }
       })
 
-      if (!isProduction()) {
+      if (process.env.NODE_ENV === 'development' && OPEN_DEVTOOLS) {
         controlBarView.webContents.openDevTools()
       }
 

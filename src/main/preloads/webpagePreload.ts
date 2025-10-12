@@ -8,13 +8,7 @@ import { ipcRouter } from "@shared/utils/ipcRouterClient";
 import { eventRouter } from "@shared/utils/eventRouterClient";
 import { isFunction } from "@shared/utils/common/typeUtils";
 import { automateWithJson, fetchHTML, fetchJSON, parseHtmlByConfig, createRendererUBrowser, createInstantUBrowser } from "@libs/auto-puppeteer/renderer";
-interface PluginItem {
-  path: string;
-  name: string;
-  description: string;
-  icon: string;
-  type: string;
-}
+import { PluginItemData, PluginItem } from "@renderer/src/typings";
 
 // @ts-ignore
 const prefix = `${__METADATA__['fullPath']?.split(':')?.[0] || __METADATA__['title']}`;
@@ -147,6 +141,8 @@ const naimo = {
     getName: () => ipcRouter.appGetName(),
     /** 获取文件图标 */
     getFileIcon: (path: string) => ipcRouter.appExtractFileIcon(path),
+    /** 获取本地地址图片 */
+    getLocalImage: (path: string) => ipcRouter.filesystemReadFileContent(path, 'base64'),
     /** 判断是否为 macOS 系统 */
     isMac: () => ipcRouter.appGetSystemInfo()
       .then((info: any) => info.platform === "darwin"),
@@ -236,7 +232,7 @@ const naimo = {
 
   // ========== 事件系统 ==========
   /** 注册功能进入钩子（当功能被触发时调用） */
-  onEnter: (callback: (params: any) => void) => {
+  onEnter: (callback: (params: PluginItemData) => void) => {
     hooks.enter.push(callback);
   },
 
@@ -348,23 +344,25 @@ const loaded = new Promise((resolve) => window.addEventListener('DOMContentLoade
 
 eventRouter.onPluginMessage(async (event, data) => {
   await loaded;
+  await naimo.visibleInput(false)
 
   try {
     const targetKey = data.fullPath.split(":").slice(1).join(":")
     const targetFunc = module.exports[targetKey]
     if (targetFunc && targetFunc?.onEnter) {
-      targetFunc.onEnter(data.data)
-      try {
-        hooks.enter.forEach(callback => isFunction(callback) && callback(data.data));
-      } catch (error) {
-        console.error("PRELOAD Hooks 执行失败:", error);
-        log.error("PRELOAD Hooks 执行失败:", error);
-      }
+      await targetFunc.onEnter(data.data)
     } else {
       console.log('PRELOAD 收到主进程传递的参数失败:', { fullPath: data.fullPath, modules: module.exports, targetKey, targetFunc });
     }
   } catch (error) {
     console.log(error, { fullPath: data.fullPath, modules: module.exports, });
     log.error("PRELOAD 收到主进程传递的参数失败:", error);
+  }
+
+  try {
+    hooks.enter.forEach(callback => isFunction(callback) && callback(data.data));
+  } catch (error) {
+    console.error("PRELOAD Hooks 执行失败:", error);
+    log.error("PRELOAD Hooks 执行失败:", error);
   }
 });

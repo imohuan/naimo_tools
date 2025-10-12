@@ -10,6 +10,7 @@ import type { Service } from '../core/ServiceContainer'
 import type { NewWindowManager } from '../window/NewWindowManager'
 import { getDirname } from '@main/utils'
 import { readFileSync } from 'fs'
+import { OPEN_DEVTOOLS } from '@shared/constants'
 
 /**
  * 调试服务配置
@@ -209,9 +210,13 @@ export class DebugService implements Service {
         const devConfig = JSON.parse(readFileSync(resolve(process.cwd(), 'package.json'), 'utf-8')).config?.dev || {}
         const port = devConfig.rendererPort || 5173
         const host = devConfig.rendererHost || 'localhost'
-        await this.debugWindow.loadURL(`http://${host}:${port}/src/pages/debug-window/`)
+        const url = `http://${host}:${port}/src/pages/debug-window/`
+        log.debug(`加载调试窗口页面: ${url}`)
+        await this.debugWindow.loadURL(url)
       } else {
-        await this.debugWindow.loadFile(resolve(getDirname(import.meta.url), '../renderer/debug-window.html'))
+        const debugWindowPath = resolve(getDirname(import.meta.url), '../renderer/debug-window.html')
+        log.debug(`加载调试窗口页面: ${debugWindowPath}`)
+        await this.debugWindow.loadFile(debugWindowPath)
       }
 
       // 显示窗口

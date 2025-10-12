@@ -535,7 +535,7 @@ export function openLogViewer(event: Electron.IpcMainInvokeEvent): void {
   });
 
   // 开发环境下打开开发者工具
-  if (process.env.NODE_ENV === "development") {
+  if (process.env.NODE_ENV === "development" && OPEN_DEVTOOLS) {
     logWindow.webContents.openDevTools({ mode: "bottom" });
   }
 }
@@ -627,6 +627,7 @@ import { ViewManager } from '@main/window/ViewManager'
 import { ViewType, LifecycleType } from '@renderer/src/typings/windowTypes'
 import { ViewCategory } from '@main/typings/windowTypes'
 import type { PluginItem } from '@renderer/src/typings/pluginTypes'
+import { OPEN_DEVTOOLS } from "@shared/constants";
 
 
 /**

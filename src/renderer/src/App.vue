@@ -73,7 +73,7 @@ import { HotkeyType, useApp, type HotkeyConfig } from "@/temp_code";
 
 // 类型导入
 import type { AppItem, AttachedInfo } from "@/temp_code/typings/search";
-import { LifecycleType } from "./typings";
+import { LifecycleType, type PluginItemData } from "./typings";
 
 // ==================== 初始化 ====================
 // 应用状态管理
@@ -367,7 +367,7 @@ const handleExecuted = async (event: {
   }
 
   // 传递给插件的参数
-  const data = {
+  const data: PluginItemData = {
     files: attachedFiles.value.map((m) => {
       return {
         name: m.name,
@@ -379,6 +379,7 @@ const handleExecuted = async (event: {
     }),
     searchText: app.ui.searchText,
     hotkeyEmit: event.hotkeyEmit,
+    fullPath,
   };
 
   // 如果插件有 onEnter 回调，则执行回调

@@ -299,7 +299,12 @@ export class GithubPluginInstaller extends BasePluginInstaller {
   /** 获取插件配置列表 */
   private getPluginConfigs(): PluginConfig[] {
     return this.searchResult.items
-      .map(item => item.config)
+      .map(item => {
+        const plugin = item.config
+        if (!plugin) return null
+        this.setPluginType(plugin)
+        return plugin
+      })
       .filter(Boolean) as PluginConfig[]
   }
 

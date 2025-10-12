@@ -101,16 +101,28 @@ export const PLUGIN_CATEGORY_CONFIG = {
   }
 } as const
 
+/**
+ * 插件功能进入/搜索时传递的数据类型定义
+ */
 export interface PluginItemData {
   files: {
+    /** 文件名称 */
     name: string;
+    /** 文件路径 */
     path: string;
+    /** 文件大小，单位字节 */
     size: number;
+    /** 文件类型（扩展名或 mime） */
     type: string;
+    /** 原始文件类型 */
     originalType: string;
   }[]
+  /** 用户输入的搜索文本 */
   searchText: string;
+  /** 是否由热键触发功能 */
   hotkeyEmit: boolean;
+  /** 功能完整路径（包含插件ID前缀） */
+  fullPath: string
 }
 
 /** 插件配置接口 */
@@ -153,9 +165,13 @@ export interface PluginConfig {
 
 /** 插件项目类型 - 基于新的搜索系统 AppItem */
 export type PluginItem = Partial<AppItem> & {
+  /** 功能名称 */
   name: string;
+  /** 功能路径（英文标识） */
   path: string;
+  /** 功能完整路径（包含插件ID前缀，可选） */
   fullPath?: string;
+  /** 功能图标，null 表示无图标 */
   icon: string | null;
 
   /** 插件ID */

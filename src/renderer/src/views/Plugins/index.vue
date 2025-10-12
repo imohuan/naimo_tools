@@ -199,6 +199,7 @@ import PluginDetail from "./PluginDetail.vue";
 import IconMdiChevronLeft from "~icons/mdi/chevron-left";
 /** @ts-ignore */
 import IconMdiChevronRight from "~icons/mdi/chevron-right";
+import { uniqueArrayByProperty } from "@/temp_code/utils/unique";
 
 const app = useApp();
 const pluginStore = app.plugin;
@@ -268,6 +269,9 @@ const filteredPlugins = computed(() => {
   result = result.filter((plugin) => {
     return ["github", "local"].includes(plugin.options?.pluginType || "");
   });
+
+  // 根据 id 去重
+  result = uniqueArrayByProperty(result, "id");
 
   return result;
 });

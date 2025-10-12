@@ -6,7 +6,7 @@
 import { BaseWindow, WebContentsView, ipcMain, screen } from 'electron'
 import { resolve } from 'path'
 import log from 'electron-log'
-import { DEFAULT_WINDOW_LAYOUT } from '@shared/constants'
+import { DEFAULT_WINDOW_LAYOUT, OPEN_DEVTOOLS } from '@shared/constants'
 import {
   calculateSettingsViewBounds,
   calculateMainViewBounds
@@ -97,7 +97,7 @@ export class ViewManager {
       }
 
       // 仅在开发环境下打开开发者工具
-      if (process.env.NODE_ENV === 'development') {
+      if (process.env.NODE_ENV === 'development' && OPEN_DEVTOOLS) {
         view.webContents.openDevTools({ mode: 'detach' })
       }
 
