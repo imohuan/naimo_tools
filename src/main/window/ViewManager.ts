@@ -889,12 +889,12 @@ export class ViewManager {
 
       // 监听esc
       if (input.key === 'Escape' && input.type === 'keyDown') {
-        emitEvent.emit('view:esc-pressed', {
-          viewId: viewInfo.id,
-          windowId: viewInfo.parentWindowId,
-          timestamp: Date.now()
-        })
-        event.preventDefault()
+        // emitEvent.emit('view:esc-pressed', {
+        //   viewId: viewInfo.id,
+        //   windowId: viewInfo.parentWindowId,
+        //   timestamp: Date.now()
+        // })
+        // event.preventDefault()
         return
       }
     }

@@ -1,6 +1,6 @@
 /**
  * 自动生成的 IPC 类型定义
- * 生成时间: 2025-10-12T08:03:29.558Z
+ * 生成时间: 2025-10-12T12:33:59.577Z
  * 请勿手动修改此文件
  */
 
@@ -1546,6 +1546,17 @@ interface windowInterface {
   "window-close-process-by-pid": (pid: number) => Promise<{ success: boolean; error?: string }>;
   /** 关闭指定 PID 的进程（主要用于关闭 DevTools） */
   "windowCloseProcessByPid": (pid: number) => Promise<{ success: boolean; error?: string }>;
+
+  /**
+ * 处理默认的 ESC 快捷键行为
+此函数由 preload 脚本调用，当页面没有阻止 ESC 事件时执行
+ */
+  "window-handle-default-esc-shortcut": () => Promise<{ success: boolean; error?: string }>;
+  /**
+ * 处理默认的 ESC 快捷键行为
+此函数由 preload 脚本调用，当页面没有阻止 ESC 事件时执行
+ */
+  "windowHandleDefaultEscShortcut": () => Promise<{ success: boolean; error?: string }>;
 }
 
 // 合并所有 IPC 路由类型
@@ -2328,6 +2339,12 @@ export const ROUTE_INFO: RouteInfo[] = [
     comment: "关闭指定 PID 的进程（主要用于关闭 DevTools）",
     module: "window",
     function: "closeProcessByPid"
+  },
+  {
+    route: "window-handle-default-esc-shortcut",
+    comment: "处理默认的 ESC 快捷键行为, 此函数由 preload 脚本调用，当页面没有阻止 ESC 事件时执行",
+    module: "window",
+    function: "handleDefaultEscShortcut"
   }
 ];
 

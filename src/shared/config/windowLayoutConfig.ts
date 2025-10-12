@@ -89,6 +89,11 @@ export const DEFAULT_WINDOW_LAYOUT: WindowLayoutConfig = {
 
 /**
  * 计算设置视图的边界
+ * 
+ * 布局说明：
+ * - searchHeader内部已包含padding，所以顶部不需要额外的settingsBackgroundPadding
+ * - 左右需要 totalPadding = appPadding + settingsBackgroundPadding
+ * - 底部需要 settingsBackgroundPadding
  */
 export function calculateSettingsViewBounds(windowBounds: { width: number; height: number }) {
   const config = DEFAULT_WINDOW_LAYOUT
@@ -96,9 +101,9 @@ export function calculateSettingsViewBounds(windowBounds: { width: number; heigh
 
   return {
     x: totalPadding,
-    y: config.searchHeaderHeight + totalPadding,
+    y: config.appPadding + config.searchHeaderHeight, // searchHeader内部已有padding，顶部不加settingsBackgroundPadding
     width: windowBounds.width - totalPadding * 2,
-    height: windowBounds.height - config.searchHeaderHeight - totalPadding * 2
+    height: Math.max(windowBounds.height - config.appPadding - config.searchHeaderHeight - totalPadding, 0)
   }
 }
 
@@ -177,14 +182,14 @@ export function calculateDetachedContentBounds(
   const contentPadding = config.detachedWindow.padding // 内容区域额外的 padding
   const controlBarHeight = config.detachedWindow.controlBarHeight
 
-  // 总 padding = app padding + content padding
+  // 左右需要 totalPadding，顶部不需要额外的 contentPadding
   const totalPadding = appPadding + contentPadding
 
   return {
     x: totalPadding,
-    y: controlBarHeight + totalPadding,
+    y: appPadding + controlBarHeight, // controlBar内部已有padding，顶部不加contentPadding
     width: Math.max(windowBounds.width - totalPadding * 2, 0),
-    height: Math.max(windowBounds.height - controlBarHeight - totalPadding * 2, 0)
+    height: Math.max(windowBounds.height - controlBarHeight - totalPadding - appPadding, 0)
   }
 }
 

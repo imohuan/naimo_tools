@@ -111,11 +111,11 @@
                   <div class="flex items-center gap-3">
                     <h3 class="text font-semibold text-gray-900">
                       {{ settingGroup.name }}
-                      <span
+                      <!-- <span
                         v-if="settingGroup.type === 'plugin'"
                         class="bg-gray-100 px-2 py-1 rounded text-xs transform scale-75 origin-center-left inline-block"
                         >v1.0.0</span
-                      >
+                      > -->
                     </h3>
                   </div>
                   <!-- 折叠/展开图标 -->

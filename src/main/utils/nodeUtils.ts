@@ -67,7 +67,11 @@ ${builtinPreloadContent}
 ${customPreloadContent ? `
 (() => {
   // 用户自定义 preload 脚本
-  ${customPreloadContent}
+  try {
+    ${customPreloadContent}
+  } catch (error) {
+    log.error('执行用户自定义 preload 脚本失败:', error);
+  }
 })()
 ` : ''}
 `;

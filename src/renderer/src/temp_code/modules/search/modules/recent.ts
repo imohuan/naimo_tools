@@ -20,12 +20,15 @@ export class RecentModule implements SearchModule {
 
   async deleteItem(item: AppItem): Promise<void> {
     // 使用 fullPath 作为唯一标识，如果没有则 fallback 到 path
-    storeUtils.removeListItem("recentApps", item.fullPath || item.path, "fullPath")
+    storeUtils.removeListItem("recentApps", item.fullPath, "fullPath")
   }
 
   async addItem(item: AppItem): Promise<void> {
-    // 使用 fullPath 作为唯一标识
-    storeUtils.addListItem("recentApps", item, { unique: true, uniqueField: "fullPath", position: "start" })
+    const updateItem = {
+      fullPath: item?.fullPath || item.path,
+      ...item
+    }
+    storeUtils.addListItem("recentApps", updateItem, { unique: true, uniqueField: "fullPath", position: "start" })
   }
 
   async setItems(items: AppItem[]): Promise<void> {

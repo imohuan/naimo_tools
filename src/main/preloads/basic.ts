@@ -270,3 +270,29 @@ contextBridge.exposeInMainWorld("naimo", naimo);
 // 不再需要事件转发代码，渲染进程可以直接使用 naimo.ipcRenderer.on() 监听事件
 
 console.log("✅ Preload脚本执行完成，耗时:", Date.now() - preloadStartTime, "ms");
+
+
+// ========== 全局快捷键处理 ==========
+// 监听页面的键盘事件，实现页面优先的快捷键处理机制
+window.addEventListener('DOMContentLoaded', () => {
+  // 在捕获阶段监听 keydown 事件（在页面处理之前）
+  document.addEventListener('keydown', async (event) => {
+    // 仅处理 ESC 键
+    if (event.key === 'Escape') {
+      // 使用 requestAnimationFrame 延迟到下一帧，确保页面有机会处理事件
+      requestAnimationFrame(async () => {
+        // 检查事件是否被页面阻止
+        if (!event.defaultPrevented) {
+          // 页面没有阻止事件，执行主进程的默认行为
+          try {
+            await ipcRouter.windowHandleDefaultEscShortcut();
+          } catch (error) {
+            log.error('执行默认 ESC 快捷键失败:', error);
+          }
+        } else {
+          log.debug('ESC 事件已被页面处理，跳过默认行为');
+        }
+      });
+    }
+  }, true); // 使用捕获阶段，确保能捕获到事件
+});

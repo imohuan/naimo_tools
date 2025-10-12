@@ -70,7 +70,6 @@ export class LocalPluginInstaller extends BasePluginInstaller {
     console.log(`📦 [本地插件] 安装: ${pluginData.id}`)
     // 统一处理插件（自动添加类型标记）
     const plugin = await this.processPlugin(pluginData, options)
-
     console.log(`✅ [本地插件] 安装成功: ${plugin.id}`)
     return plugin
   }

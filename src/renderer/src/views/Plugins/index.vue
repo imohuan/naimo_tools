@@ -273,6 +273,9 @@ const filteredPlugins = computed(() => {
   // 根据 id 去重
   result = uniqueArrayByProperty(result, "id");
 
+  // 固定排序：按插件ID排序，确保顺序始终不变
+  result.sort((a, b) => a.id.localeCompare(b.id));
+
   return result;
 });
 

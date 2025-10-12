@@ -4,20 +4,28 @@
  */
 
 import log from 'electron-log';
+import { app } from 'electron';
 import { readdir, readFile, stat, mkdir, rmdir, rename, copyFile } from 'fs/promises';
 import { join, resolve, basename, extname } from 'path';
 import { createReadStream, createWriteStream, read } from 'fs';
 // @ts-ignore
 import unzipper from 'unzipper';
 import archiver from 'archiver';
+import { getDirname } from '@main/utils';
 
 
 /**
  * 获取插件目录路径
  */
 export function getPluginsDirectory(event: Electron.IpcMainInvokeEvent): string {
-  // return join(app.getPath('userData'), 'plugins');
-  return resolve("E:/Code/Git/naimo_tools/plugins-test");
+  // dist/main
+  const __dirname = getDirname(import.meta.url)
+  const localDir = resolve(__dirname, '..', '..', 'plugins-temp');
+  if (process.env.NODE_ENV === 'development') {
+    return localDir;
+  } else {
+    return resolve(app.getPath('userData'), 'plugins');
+  }
 }
 
 /**

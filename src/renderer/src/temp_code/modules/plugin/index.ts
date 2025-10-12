@@ -299,6 +299,13 @@ export const usePluginStoreNew = defineStore("pluginNew", () => {
 
     appEventManager.emit("plugin:installed", { pluginId: plugin.id, });
     console.log(`✅ 安装成功: ${plugin.id}`);
+
+    if (plugin.main?.startsWith(".")) {
+      naimo.log.warn(`插件路径依然是相对路径 ${plugin.main}\n请检查插件配置，需要将插件路径改为绝对路径`)
+      naimo.log.warn(`插件路径信息: ${installer.type} - ${plugin.options?.getResourcePath?.toString()}`)
+      debugger
+    }
+
     return plugin;
   }, "安装插件失败");
 

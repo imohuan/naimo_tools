@@ -1421,3 +1421,36 @@ export async function closeProcessByPid(event: Electron.IpcMainInvokeEvent, pid:
     return { success: false, error: error instanceof Error ? error.message : '未知错误' };
   }
 }
+
+/**
+ * 处理默认的 ESC 快捷键行为
+ * 此函数由 preload 脚本调用，当页面没有阻止 ESC 事件时执行
+ */
+export async function handleDefaultEscShortcut(event: Electron.IpcMainInvokeEvent): Promise<{ success: boolean; error?: string }> {
+  try {
+    const manager = NewWindowManager.getInstance();
+    const viewManager = manager.getViewManager();
+    const { emitEvent } = await import('@main/core/ProcessEvent');
+
+    // 获取当前视图信息
+    const currentViewInfo = viewManager.getCurrentViewInfo(event.sender);
+
+    if (!currentViewInfo) {
+      log.warn('处理 ESC 快捷键失败：无法获取当前视图信息');
+      return { success: false, error: '无法获取当前视图信息' };
+    }
+
+    // 触发 ESC 事件
+    emitEvent.emit('view:esc-pressed', {
+      viewId: currentViewInfo.id,
+      windowId: currentViewInfo.parentWindowId,
+      timestamp: Date.now()
+    });
+
+    log.debug(`ESC 快捷键已触发，视图ID: ${currentViewInfo.id}`);
+    return { success: true };
+  } catch (error) {
+    log.error('处理 ESC 快捷键失败:', error);
+    return { success: false, error: error instanceof Error ? error.message : '未知错误' };
+  }
+}

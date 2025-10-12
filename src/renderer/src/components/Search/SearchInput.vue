@@ -1,18 +1,30 @@
 <template>
   <div class="flex-1 w-full h-full relative">
     <!-- 占位符文本 -->
-    <div v-if="!modelValue && !isComposing"
-      class="absolute left-1 top-1/2 transform -translate-y-1/2 text-gray-400 text-base pointer-events-none select-none no-drag">
+    <div
+      v-if="!modelValue && !isComposing && shouldShowSearchBox"
+      class="absolute left-1 top-1/2 transform -translate-y-1/2 text-gray-400 text-base pointer-events-none select-none no-drag"
+    >
       {{ placeholder }}
     </div>
 
     <!-- 输入框 -->
-    <input v-show="shouldShowSearchBox" ref="inputRef" :value="modelValue" type="text"
+    <input
+      v-show="shouldShowSearchBox"
+      ref="inputRef"
+      :value="modelValue"
+      type="text"
       class="relative z-10 h-full flex-1 pl-1 pr-4 py-3 text-gray-700 bg-transparent border-none outline-none text-base no-drag"
-      :style="{ width: inputWidth }" @click="handleInputClick" @keydown.enter="handleEnter"
-      @keydown.delete="handleDelete" @input="handleInput" @paste="handlePaste"
-      @compositionstart="handleCompositionStart" @compositionupdate="handleCompositionUpdate"
-      @compositionend="handleCompositionEnd" />
+      :style="{ width: inputWidth }"
+      @click="handleInputClick"
+      @keydown.enter="handleEnter"
+      @keydown.delete="handleDelete"
+      @input="handleInput"
+      @paste="handlePaste"
+      @compositionstart="handleCompositionStart"
+      @compositionupdate="handleCompositionUpdate"
+      @compositionend="handleCompositionEnd"
+    />
   </div>
 </template>
 
@@ -54,50 +66,53 @@ const emit = defineEmits<Emits>();
 // ==================== 响应式数据 ====================
 const inputRef = ref<HTMLInputElement>();
 const isComposing = ref(false); // 是否正在输入中文
-const compositionText = ref(''); // 预输入的拼音文字
+const compositionText = ref(""); // 预输入的拼音文字
 
 // ==================== Hooks ====================
 const { useTextWidthCalculator } = useTextWidth();
 
-const { width: inputWidth, updateWidthAsync } = useTextWidthCalculator(inputRef, {
-  minWidth: props.minWidth,
-  maxWidth: props.maxWidth,
-  padding: props.padding,
-  extraWidth: props.extraWidth,
-});
+const { width: inputWidth, updateWidthAsync } = useTextWidthCalculator(
+  inputRef,
+  {
+    minWidth: props.minWidth,
+    maxWidth: props.maxWidth,
+    padding: props.padding,
+    extraWidth: props.extraWidth,
+  }
+);
 
 // ==================== 计算属性 ====================
 const currentText = computed(() => {
-  if (!inputRef.value) return props.modelValue || '';
+  if (!inputRef.value) return props.modelValue || "";
 
   // 如果正在输入中文，需要组合当前值和预输入拼音
   if (isComposing.value) {
-    const currentValue = props.modelValue || '';
+    const currentValue = props.modelValue || "";
     const fullText = currentValue + compositionText.value;
     return fullText;
   }
 
   // 非中文输入状态，使用正常的文本内容
-  return props.modelValue || '';
+  return props.modelValue || "";
 });
 
 // ==================== 方法 ====================
 const handleInputClick = () => {
   // 确保输入框获得焦点
   inputRef.value?.focus();
-  emit('input-click');
+  emit("input-click");
 };
 
 const handleEnter = () => {
   if (props.modelValue.trim()) {
-    emit('enter', props.modelValue);
+    emit("enter", props.modelValue);
   }
 };
 
 const handleDelete = () => {
   // 如果当前没有文字且存在文件，则清除文件
   if (!props.modelValue.trim() && props.hasFiles) {
-    emit('clear-files');
+    emit("clear-files");
   }
 };
 
@@ -105,20 +120,20 @@ const handleInput = (event: Event) => {
   const target = event.target as HTMLInputElement;
   const value = target.value;
   // 触发 v-model 更新
-  emit('update:modelValue', value);
+  emit("update:modelValue", value);
   // 更新宽度
   updateWidthAsync(currentText.value);
 };
 
 const handlePaste = (event: ClipboardEvent) => {
-  emit('paste', event);
+  emit("paste", event);
 };
 
 // 中文输入法事件处理
 const handleCompositionStart = () => {
   isComposing.value = true;
-  compositionText.value = '';
-  console.log('开始中文输入');
+  compositionText.value = "";
+  console.log("开始中文输入");
 };
 
 const handleCompositionUpdate = (event: CompositionEvent) => {

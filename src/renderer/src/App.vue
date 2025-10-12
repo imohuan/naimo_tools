@@ -649,6 +649,13 @@ onMounted(async () => {
     app.ui.toggleSearchBoxVisibility(data.value);
   });
 
+  // naimo.event.onViewEscPressed 替代了
+  // useEventListener(document, "keydown", (event) => {
+  //   if (event.key === "Escape") {
+  //     handleEscAction();
+  //   }
+  // });
+
   // 注册事件监听（统一使用 app.event）
   app.event.on(
     "hotkey:triggered",

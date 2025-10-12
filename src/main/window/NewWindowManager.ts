@@ -11,7 +11,7 @@ import { sendPluginViewOpened, sendPluginViewClosed, sendPluginMessage } from '@
 import { emitEvent } from '@main/core/ProcessEvent'
 import { processEventCoordinator } from '@main/core/ProcessEventCoordinator'
 import { DEFAULT_WINDOW_LAYOUT } from '@shared/constants'
-import { calculateSettingsViewBounds } from '@shared/config/windowLayoutConfig'
+import { calculateSettingsViewBounds, calculateMainViewBounds } from '@shared/config/windowLayoutConfig'
 import type { AppConfig } from '@shared/typings/appTypes'
 import {
   type WebContentsViewConfig,
@@ -1236,13 +1236,20 @@ export class NewWindowManager {
       }
 
       if (viewInfo.id === 'main-view') {
-        // 主视图占满整个窗口
+        // 主视图：检查是否有次要视图（设置/插件）显示
+        // const hasSecondaryView = windowViews.some(v =>
+        //   v.id !== 'main-view' &&
+        //   !this.detachManager.isViewDetached(v.id) &&
+        //   !v.view?.webContents.isDestroyed()
+        // )
+        // const mainViewBounds = calculateMainViewBounds(newBounds, hasSecondaryView)
         const mainViewBounds = {
           x: 0,
           y: 0,
           width: newBounds.width,
           height: newBounds.height
         }
+
         viewInfo.view.setBounds(mainViewBounds)
         viewInfo.config.bounds = mainViewBounds
       } else {
