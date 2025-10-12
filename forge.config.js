@@ -217,7 +217,7 @@ export default {
         // remoteReleases: false,
 
         // 创建桌面快捷方式的关键配置
-        loadingGif: undefined,
+        loadingGif: './setup/loading.gif',
         // 设置应用程序快捷方式
         // Squirrel 会在首次运行时创建快捷方式，我们通过 setupIcon 来设置图标
       },

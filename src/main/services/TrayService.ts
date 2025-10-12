@@ -145,11 +145,24 @@ export class TrayService implements Service {
       return
     }
 
+    // 获取调试服务并检查调试窗口状态
+    const debugService = this.serviceContainer.get('debugService')
+    const isDebugWindowOpen = debugService?.isOpen() || false
+
     const contextMenu = Menu.buildFromTemplate([
       {
         label: '显示主窗口',
         click: () => {
           this.showMainWindow()
+        }
+      },
+      {
+        type: 'separator'
+      },
+      {
+        label: isDebugWindowOpen ? '关闭调试窗口' : '打开调试窗口',
+        click: () => {
+          this.toggleDebugWindow()
         }
       },
       {
@@ -199,6 +212,34 @@ export class TrayService implements Service {
       }
     } catch (error) {
       log.error('显示主窗口失败:', error)
+    }
+  }
+
+  /**
+   * 切换调试窗口打开/关闭
+   */
+  private async toggleDebugWindow(): Promise<void> {
+    try {
+      const debugService = this.serviceContainer.get('debugService')
+      if (!debugService) {
+        log.warn('调试服务未找到')
+        return
+      }
+
+      if (debugService.isOpen()) {
+        // 关闭并销毁调试窗口
+        debugService.close()
+        log.info('调试窗口已关闭')
+      } else {
+        // 创建并打开调试窗口
+        await debugService.open()
+        log.info('调试窗口已打开')
+      }
+
+      // 更新托盘菜单以反映新状态
+      this.updateTrayMenu()
+    } catch (error) {
+      log.error('切换调试窗口失败:', error)
     }
   }
 

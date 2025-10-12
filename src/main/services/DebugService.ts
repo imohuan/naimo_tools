@@ -115,22 +115,9 @@ export class DebugService implements Service {
       log.info('调试服务已禁用')
       return
     }
-
     log.info('初始化调试服务...')
-
-    try {
-      // 创建调试窗口
-      await this.createDebugWindow()
-
-      // 启动定时更新
-      this.startPeriodicUpdate()
-
-      log.info('调试服务初始化完成')
-    } catch (error) {
-      log.error('调试服务初始化失败:', error)
-      throw error
-    }
   }
+
 
   /**
    * 设置窗口管理器引用
@@ -784,6 +771,47 @@ export class DebugService implements Service {
   }
 
   /**
+   * 打开调试窗口（如果不存在则创建）
+   */
+  async open(): Promise<void> {
+    if (this.debugWindow && !this.debugWindow.isDestroyed()) {
+      this.debugWindow.show()
+      log.info('调试窗口已显示')
+      return
+    }
+
+    try {
+      log.info('开始创建调试窗口...')
+      await this.createDebugWindow()
+      this.startPeriodicUpdate()
+      log.info('调试窗口已打开')
+    } catch (error) {
+      log.error('打开调试窗口失败:', error)
+      throw error
+    }
+  }
+
+  /**
+   * 关闭调试窗口（销毁窗口实例）
+   */
+  close(): void {
+    if (!this.debugWindow || this.debugWindow.isDestroyed()) {
+      log.warn('调试窗口不存在或已销毁')
+      return
+    }
+
+    try {
+      log.info('关闭调试窗口...')
+      this.stopPeriodicUpdate()
+      this.debugWindow.destroy()
+      this.debugWindow = null
+      log.info('调试窗口已关闭')
+    } catch (error) {
+      log.error('关闭调试窗口失败:', error)
+    }
+  }
+
+  /**
    * 显示调试窗口
    */
   show(): void {
@@ -799,6 +827,13 @@ export class DebugService implements Service {
     if (this.debugWindow && !this.debugWindow.isDestroyed()) {
       this.debugWindow.hide()
     }
+  }
+
+  /**
+   * 检查调试窗口是否已打开
+   */
+  isOpen(): boolean {
+    return this.debugWindow !== null && !this.debugWindow.isDestroyed()
   }
 
   /**
