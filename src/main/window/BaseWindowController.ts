@@ -270,19 +270,20 @@ export class BaseWindowController {
   public showWindow(window: BaseWindow): void {
     try {
       window.show()
-
       // 检查是否有缓存位置
-      const cachedPosition = this.hiddenWindowPositions.get(window.id)
-      if (cachedPosition) {
-        // 恢复到缓存位置
-        window.setPosition(cachedPosition.x, cachedPosition.y)
-        this.hiddenWindowPositions.delete(window.id) // 清除缓存
-        log.debug(`窗口已显示并恢复位置: ID=${window.id}, position=(${cachedPosition.x}, ${cachedPosition.y})`)
-      } else {
-        // 没有缓存位置，居中显示
-        this.centerWindow(window)
-        log.debug(`窗口已显示并居中: ID=${window.id}`)
-      }
+      setTimeout(() => {
+        const cachedPosition = this.hiddenWindowPositions.get(window.id)
+        if (cachedPosition) {
+          // 恢复到缓存位置
+          window.setPosition(cachedPosition.x, cachedPosition.y)
+          this.hiddenWindowPositions.delete(window.id) // 清除缓存
+          log.debug(`窗口已显示并恢复位置: ID=${window.id}, position=(${cachedPosition.x}, ${cachedPosition.y})`)
+        } else {
+          // 没有缓存位置，居中显示
+          this.centerWindow(window)
+          log.debug(`窗口已显示并居中: ID=${window.id}`)
+        }
+      }, 100);
     } catch (error) {
       log.error('显示窗口失败:', error)
     }
@@ -302,6 +303,7 @@ export class BaseWindowController {
       }
       // 将窗口移到屏幕外隐藏（使用 -10000 确保完全隐藏）
       window.setPosition(-10000, y)
+      window.hide()
       log.debug(`窗口已隐藏: ID=${window.id}`)
     } catch (error) {
       log.error('隐藏窗口失败:', error)

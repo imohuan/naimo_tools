@@ -77,26 +77,26 @@ export abstract class BasePluginInstaller implements PluginInstaller {
 
   /** 处理资源路径 */
   resolveResourcePaths(pluginData: PluginConfig, options?: InstallOptions): void {
-    const resolver = options?.getResourcePath || (pluginData as any)?.getResourcePath
-    if (resolver) {
-      // 处理插件图标
-      if (pluginData.icon) {
-        pluginData.icon = resolver(pluginData.icon)
-      }
-      // 处理 feature 的图标
-      pluginData.feature?.forEach(item => {
-        if (item.icon) {
-          item.icon = resolver(item.icon)
-        }
-      })
-      // 处理插件级别的 main 和 preload 路径
-      if (pluginData.main) {
-        pluginData.main = resolver(pluginData.main)
-      }
-      if (pluginData.preload) {
-        pluginData.preload = resolver(pluginData.preload)
-      }
-    }
+    // const resolver = options?.getResourcePath || (pluginData as any)?.getResourcePath
+    // if (resolver) {
+    //   // 处理插件图标
+    //   if (pluginData.icon) {
+    //     pluginData.icon = resolver(pluginData.icon)
+    //   }
+    //   // 处理 feature 的图标
+    //   pluginData.feature?.forEach(item => {
+    //     if (item.icon) {
+    //       item.icon = resolver(item.icon)
+    //     }
+    //   })
+    //   // 处理插件级别的 main 和 preload 路径
+    //   if (pluginData.main) {
+    //     pluginData.main = resolver(pluginData.main)
+    //   }
+    //   if (pluginData.preload) {
+    //     pluginData.preload = resolver(pluginData.preload)
+    //   }
+    // }
   }
 
   /** 设置插件 feature（替代原来的 setupPluginItems） */

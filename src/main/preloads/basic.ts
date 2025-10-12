@@ -97,13 +97,20 @@ const webUtils = {
       const __dirname = dirname(absoluteConfigPath);
       const content = readFileSync(absoluteConfigPath, 'utf-8');
       const manifest = JSON.parse(content);
+      const getResourcePath = (...paths: string[]) => {
+        return paths.join("/").startsWith("http") ? paths.join("/") : resolve(__dirname, ...paths);
+      }
+      manifest.getResourcePath = getResourcePath
+      // 处理插件资源路径（图标）
+      if (manifest.icon) manifest.icon = getResourcePath(manifest.icon)
+      manifest.feature?.forEach((item: any) => {
+        if (item.icon) item.icon = getResourcePath(item.icon)
+      })
+      // 处理插件资源路径（main 和 preload）
+      if (manifest.main) manifest.main = getResourcePath(manifest.main)
+      if (manifest.preload) manifest.preload = getResourcePath(manifest.preload)
 
-      return {
-        ...manifest,
-        getResourcePath: (...paths: string[]) => {
-          return paths.join("/").startsWith("http") ? paths.join("/") : resolve(__dirname, ...paths);
-        }
-      };
+      return manifest;
     } catch (e) {
       log.error("加载插件配置失败", e);
       return null
