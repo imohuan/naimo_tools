@@ -16,13 +16,16 @@ export class LogConfigManager {
     log.initialize();
 
     // 配置日志级别
-    if (isProduction()) {
-      log.transports.console.level = 'warn';
-      log.transports.file.level = 'info';
-    } else {
-      log.transports.console.level = 'debug';
-      log.transports.file.level = 'debug';
-    }
+    // if (isProduction()) {
+    //   log.transports.console.level = 'warn';
+    //   log.transports.file.level = 'info';
+    // } else {
+    //   log.transports.console.level = 'debug';
+    //   log.transports.file.level = 'debug';
+    // }
+
+    log.transports.console.level = 'debug';
+    log.transports.file.level = 'debug';
 
     // 配置日志格式
     log.transports.file.format = '[{y}-{m}-{d} {h}:{i}:{s}.{ms}] [{level}] {text}';
