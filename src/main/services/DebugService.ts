@@ -112,10 +112,11 @@ export class DebugService implements Service {
    */
   async initialize(): Promise<void> {
     if (!this.config.enabled) {
-      log.info('调试服务已禁用')
+      log.debug('调试服务已禁用')
       return
     }
-    log.info('初始化调试服务...')
+    log.debug('初始化调试服务...')
+    log.debug('调试服务已准备就绪（窗口按需创建）')
   }
 
 
@@ -124,15 +125,17 @@ export class DebugService implements Service {
    */
   setWindowManager(windowManager: NewWindowManager): void {
     this.windowManager = windowManager
-    log.info('调试服务：已设置窗口管理器引用', {
+    log.debug('调试服务：已设置窗口管理器引用', {
       hasWindowManager: !!windowManager,
       hasLifecycleManager: !!(windowManager as any)?.lifecycleManager
     })
 
-    // 立即发送一次调试信息
-    setTimeout(() => {
-      this.sendDebugInfo()
-    }, 1000)
+    // 如果调试窗口已打开，立即发送一次调试信息
+    if (this.isOpen()) {
+      setTimeout(() => {
+        this.sendDebugInfo()
+      }, 1000)
+    }
   }
 
   /**
