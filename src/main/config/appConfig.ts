@@ -28,7 +28,8 @@ export class AppConfigManager {
           headerHeight: 50,
           maxHeight: 420,
           padding: 8
-        }
+        },
+        autoStart: false
       },
       schema: {
         theme: {
@@ -66,6 +67,10 @@ export class AppConfigManager {
           required: ['headerHeight', 'maxHeight', 'padding'],
           additionalProperties: false,
           default: { headerHeight: 50, maxHeight: 420, padding: 8 }
+        },
+        autoStart: {
+          type: 'boolean',
+          default: false
         }
       }
     });
@@ -94,7 +99,7 @@ export class AppConfigManager {
   /**
    * 获取指定配置项
    */
-  get<K extends keyof AppConfig>(key: K, defaultValue = undefined): AppConfig[K] | undefined {
+  get<K extends keyof AppConfig>(key: K, defaultValue: AppConfig[K] | undefined = undefined): AppConfig[K] | undefined {
     return this.store.get(key) ?? defaultValue
   }
 

@@ -354,8 +354,6 @@ eventRouter.onPluginSearch((event, data) => {
   }
 });
 
-
-
 eventRouter.onPluginExit(() => {
   try {
     hooks.exit.forEach(callback => isFunction(callback) && callback(null));

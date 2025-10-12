@@ -1,6 +1,6 @@
 /**
  * 自动生成的 IPC 类型定义
- * 生成时间: 2025-10-12T12:33:59.577Z
+ * 生成时间: 2025-10-12T13:21:16.243Z
  * 请勿手动修改此文件
  */
 
@@ -147,6 +147,34 @@ interface appInterface {
  * @returns 是否广播成功
  */
   "appForwardMessageToPluginView": (pluginPath: string, channel: string, data: any) => Promise<boolean>;
+
+  /**
+ * 设置开机自启
+ * @param IPC事件对象
+ * @param 是否启用开机自启
+ * @returns 是否设置成功
+ */
+  "app-set-auto-launch": (enabled: boolean) => Promise<boolean>;
+  /**
+ * 设置开机自启
+ * @param IPC事件对象
+ * @param 是否启用开机自启
+ * @returns 是否设置成功
+ */
+  "appSetAutoLaunch": (enabled: boolean) => Promise<boolean>;
+
+  /**
+ * 获取开机自启状态
+ * @param IPC事件对象
+ * @returns 是否已启用开机自启
+ */
+  "app-get-auto-launch-status": () => Promise<boolean>;
+  /**
+ * 获取开机自启状态
+ * @param IPC事件对象
+ * @returns 是否已启用开机自启
+ */
+  "appGetAutoLaunchStatus": () => Promise<boolean>;
 }
 
 interface clipboardInterface {
@@ -1661,6 +1689,18 @@ export const ROUTE_INFO: RouteInfo[] = [
     comment: "广播插件事件到所有视图",
     module: "app",
     function: "forwardMessageToPluginView"
+  },
+  {
+    route: "app-set-auto-launch",
+    comment: "设置开机自启",
+    module: "app",
+    function: "setAutoLaunch"
+  },
+  {
+    route: "app-get-auto-launch-status",
+    comment: "获取开机自启状态",
+    module: "app",
+    function: "getAutoLaunchStatus"
   },
   {
     route: "clipboard-read-text",

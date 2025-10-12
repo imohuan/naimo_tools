@@ -11,6 +11,7 @@ export { UpdateService } from './UpdateService'
 export { WindowService } from './WindowService'
 export { TrayService } from './TrayService'
 export { DebugService } from './DebugService'
+export { AutoLaunchService } from './AutoLaunchService'
 
 // 服务配置类型
 export type { ErrorServiceConfig } from './ErrorService'

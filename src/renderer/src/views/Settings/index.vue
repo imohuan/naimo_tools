@@ -234,16 +234,16 @@ const getAllSettings = async () => {
 
     // 1. 加载应用设置
     console.log("🔍 加载应用设置配置...");
-    // for (const appSetting of appSettingsConfig) {
-    //   allSettings.push({
-    //     id: appSetting.id,
-    //     name: appSetting.name,
-    //     icon: appSetting.icon,
-    //     description: appSetting.description,
-    //     settings: appSetting.settings,
-    //     type: "app",
-    //   });
-    // }
+    for (const appSetting of appSettingsConfig) {
+      allSettings.push({
+        id: appSetting.id,
+        name: appSetting.name,
+        icon: appSetting.icon,
+        description: appSetting.description,
+        settings: appSetting.settings,
+        type: "app",
+      });
+    }
 
     // 初始化应用设置值 - 直接从 AppConfig 读取对应字段
     for (const appSetting of appSettingsConfig) {
@@ -457,7 +457,9 @@ const resetAllSettings = async () => {
 
 // 组件挂载时获取设置
 onMounted(() => {
-  getAllSettings();
+  setTimeout(() => {
+    getAllSettings();
+  }, 10);
 });
 </script>
 

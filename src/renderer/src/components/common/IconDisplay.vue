@@ -1,5 +1,8 @@
 <template>
-  <div class="icon-display flex items-center justify-center" :class="containerClass">
+  <div
+    class="icon-display flex items-center justify-center"
+    :class="containerClass"
+  >
     <!-- 图片图标 -->
     <img
       v-if="isImageSource && !hasError && iconSource"
@@ -50,7 +53,8 @@ const props = withDefaults(defineProps<Props>(), {
   alt: "",
   containerClass: "",
   iconClass: "w-full h-full flex items-center justify-center object-contain",
-  fallbackClass: "w-full h-full flex items-center justify-center bg-gray-300 rounded",
+  fallbackClass:
+    "w-full h-full flex items-center justify-center bg-gray-300 rounded",
 });
 
 const hasError = ref(false);
@@ -64,6 +68,11 @@ const { convertPathToDataUrl, isLocalPath } = usePathToDataUrl();
 const handleIconSource = async (src: string | null) => {
   if (!src) {
     iconSource.value = null;
+    return;
+  }
+
+  if (src.startsWith("!")) {
+    iconSource.value = src.slice(1);
     return;
   }
 
@@ -98,7 +107,8 @@ const isSvgSource = computed(() => {
   if (!iconSource.value) return false;
   // 检查是否为SVG代码
   return (
-    iconSource.value.trim().startsWith("<svg") && iconSource.value.includes("</svg>")
+    iconSource.value.trim().startsWith("<svg") &&
+    iconSource.value.includes("</svg>")
   );
 });
 

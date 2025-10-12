@@ -10,6 +10,7 @@ import { join } from "path";
 import { appBootstrap } from '@main/main';
 import { NewWindowManager } from '@main/window/NewWindowManager';
 import { ViewType } from '@renderer/src/typings';
+import { AutoLaunchService } from '@main/services/AutoLaunchService';
 
 
 /**
@@ -300,6 +301,61 @@ export async function forwardMessageToPluginView(
     }
   } catch (error) {
     log.error(`广播插件事件失败: ${channel}`, error);
+    return false;
+  }
+}
+
+
+/**
+ * 设置开机自启
+ * @param event IPC事件对象
+ * @param enabled 是否启用开机自启
+ * @returns 是否设置成功
+ */
+export async function setAutoLaunch(
+  event: Electron.IpcMainInvokeEvent,
+  enabled: boolean
+): Promise<boolean> {
+  try {
+    log.info(`设置开机自启: ${enabled ? '启用' : '禁用'}`);
+
+    const autoLaunchService = appBootstrap.getService<AutoLaunchService>('autoLaunchService');
+
+    if (!autoLaunchService) {
+      log.warn('开机自启服务未初始化');
+      return false;
+    }
+
+    await autoLaunchService.setAutoLaunch(enabled);
+    log.info(`✅ 开机自启已${enabled ? '启用' : '禁用'}`);
+    return true;
+  } catch (error) {
+    log.error('❌ 设置开机自启失败:', error);
+    return false;
+  }
+}
+
+/**
+ * 获取开机自启状态
+ * @param event IPC事件对象
+ * @returns 是否已启用开机自启
+ */
+export async function getAutoLaunchStatus(
+  event: Electron.IpcMainInvokeEvent
+): Promise<boolean> {
+  try {
+    const autoLaunchService = appBootstrap.getService<AutoLaunchService>('autoLaunchService');
+
+    if (!autoLaunchService) {
+      log.warn('开机自启服务未初始化');
+      return false;
+    }
+
+    const isEnabled = await autoLaunchService.isEnabled();
+    log.debug(`开机自启状态: ${isEnabled ? '已启用' : '已禁用'}`);
+    return isEnabled;
+  } catch (error) {
+    log.error('❌ 获取开机自启状态失败:', error);
     return false;
   }
 }

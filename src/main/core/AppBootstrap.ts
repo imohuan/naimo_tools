@@ -10,6 +10,7 @@ import { UpdateService } from '../services/UpdateService'
 import { WindowService } from '../services/WindowService'
 import { TrayService } from '../services/TrayService'
 import { DebugService } from '../services/DebugService'
+import { AutoLaunchService } from '../services/AutoLaunchService'
 import { AppConfigManager } from '../config/appConfig'
 
 /**
@@ -170,6 +171,15 @@ export class AppBootstrap {
       singleton: true
     })
 
+    // 注册开机自启服务
+
+    this.serviceContainer.register({
+      name: 'autoLaunchService',
+      factory: (container) => new AutoLaunchService(container.get('configManager')),
+      singleton: true,
+      dependencies: ['configManager']
+    })
+
     log.debug('所有服务注册完成')
   }
 
@@ -206,12 +216,13 @@ export class AppBootstrap {
    */
   private async initializeServicesInOrder(): Promise<void> {
     const initOrder = [
-      'coreService',     // 核心服务 - 最先初始化
-      'errorService',    // 错误服务 - 尽早初始化以捕获错误
-      'updateService',   // 更新服务 - 在核心功能之后
-      'windowService',   // 窗口服务
-      'debugService',    // 调试服务 - 在窗口服务之后
-      'trayService'      // 托盘服务 - 最后初始化
+      'coreService',        // 核心服务 - 最先初始化
+      'errorService',       // 错误服务 - 尽早初始化以捕获错误
+      'autoLaunchService',  // 开机自启服务 - 在核心服务之后
+      'updateService',      // 更新服务 - 在核心功能之后
+      'windowService',      // 窗口服务
+      'debugService',       // 调试服务 - 在窗口服务之后
+      'trayService'         // 托盘服务 - 最后初始化
     ]
 
     for (const serviceName of initOrder) {
