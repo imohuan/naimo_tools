@@ -169,12 +169,17 @@ export class CoreService implements Service {
     try {
       // 确定图标工作进程的路径
       const workerPath = resolve(getDirname(import.meta.url), 'iconWorker.js')
-      log.info('🖼️ 初始化图标工作进程:', workerPath)
+      const cacheIconsDir = resolve(app.getPath('userData'), 'icons')
 
-      this.iconWorker = createIconWorker(workerPath, log)
+      log.info('🖼️ 初始化图标工作进程:', workerPath)
+      log.info('📁 图标缓存目录:', cacheIconsDir)
+
+      // 创建图标工作进程并传递缓存目录（会自动初始化预缓存）
+      this.iconWorker = createIconWorker(workerPath, log, cacheIconsDir)
       log.info('✅ 图标工作进程初始化完成')
 
-      getApps(resolve(app.getPath('userData'), 'icons'))
+      // 预加载应用列表（可选）
+      getApps(cacheIconsDir)
     } catch (error) {
       log.error('❌ 图标工作进程初始化失败:', error)
     }

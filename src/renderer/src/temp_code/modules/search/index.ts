@@ -443,9 +443,8 @@ export const useSearchStore = defineStore('search', () => {
                 // 最终也要执行通用文本搜索并叠加分数
                 if (matched && query.length > 0) {
                   const textResult = performTextSearch(item)
-                  if (textResult.matched) {
-                    score += textResult.score
-                  }
+                  matched = textResult.matched
+                  score = textResult.score
                 }
               }
             }
@@ -461,9 +460,8 @@ export const useSearchStore = defineStore('search', () => {
             // 最终也要执行通用文本搜索并叠加分数
             if (matched && query.length > 0) {
               const textResult = performTextSearch(item)
-              if (textResult.matched) {
-                score += textResult.score
-              }
+              matched = textResult.matched
+              score = textResult.score
             }
             break
 

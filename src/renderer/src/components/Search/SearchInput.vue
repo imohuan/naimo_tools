@@ -1,5 +1,5 @@
 <template>
-  <div class="flex-1 w-full h-full relative">
+  <div class="flex-1 w-full h-full relative overflow-hidden">
     <!-- 占位符文本 -->
     <div
       v-if="!modelValue && !isComposing && shouldShowSearchBox"
@@ -21,6 +21,7 @@
       @keydown.delete="handleDelete"
       @input="handleInput"
       @paste="handlePaste"
+      @blur="handleBlur"
       @compositionstart="handleCompositionStart"
       @compositionupdate="handleCompositionUpdate"
       @compositionend="handleCompositionEnd"
@@ -129,6 +130,10 @@ const handlePaste = (event: ClipboardEvent) => {
   emit("paste", event);
 };
 
+const handleBlur = () => {
+  console.log("搜索框失去焦点");
+};
+
 // 中文输入法事件处理
 const handleCompositionStart = () => {
   isComposing.value = true;
@@ -182,6 +187,7 @@ defineExpose({
   focus: () => {
     // 只有在搜索框可见时才尝试聚焦
     if (props.shouldShowSearchBox !== false && inputRef.value) {
+      console.log("聚焦搜索框", inputRef.value);
       inputRef.value.focus();
     }
   },

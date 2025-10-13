@@ -186,18 +186,18 @@ export function useFileHandler(options: FileHandlerOptions = {}) {
     const iconPromises = processedFiles.map(async (file, index) => {
       try {
         let icon: string | null = null
-
-        if (imageTypes.includes(file.type)) {
+        if (imageTypes.includes(file.originalFile?.type || '')) {
           // 图片文件使用 Data URL
           icon = await convertFileToDataURL(fileArray[index])
-        } else if (file.type !== 'text/plain') {
-          // 其他文件类型提取系统图标
-          icon = await naimo.router.appExtractFileIcon(file.path)
+        } else {
+          // 如果有真实路径，使用路径；否则使用文件名（通过扩展名获取默认图标）
+          const targetPath = file.path || file.name
+          const start = performance.now();
+          icon = await naimo.router.appExtractFileIcon(targetPath, true);
+          const end = performance.now();
+          naimo.log.info(`appExtractFileIcon 执行耗时: ${(end - start).toFixed(2)} ms, 结果:`, !!icon);
         }
-
-        if (icon) {
-          file.icon = icon
-        }
+        if (icon) file.icon = icon
       } catch (error) {
         console.error(`提取文件图标失败 (${file.name}):`, error)
       }
@@ -214,10 +214,31 @@ export function useFileHandler(options: FileHandlerOptions = {}) {
     const processedFiles = await processFiles(files)
 
     if (processedFiles.length > 0) {
-      attachedFiles.value = [...attachedFiles.value, ...processedFiles]
+      // 去重：过滤掉已存在的文件
+      const uniqueFiles = processedFiles.filter(newFile => {
+        // 优先使用路径判断
+        if (newFile.path && newFile.path.trim() !== '') {
+          return !attachedFiles.value.some(existingFile => existingFile.path === newFile.path)
+        }
+        // 如果没有路径，使用文件名+大小组合判断
+        return !attachedFiles.value.some(
+          existingFile =>
+            existingFile.name === newFile.name &&
+            existingFile.size === newFile.size
+        )
+      })
 
-      // 等待下一个 tick 确保 UI 更新
-      await nextTick()
+      // 只添加不重复的文件
+      if (uniqueFiles.length > 0) {
+        attachedFiles.value = [...attachedFiles.value, ...uniqueFiles]
+        // 等待下一个 tick 确保 UI 更新
+        await nextTick()
+      }
+
+      // 如果有重复文件被过滤，输出提示
+      if (uniqueFiles.length < processedFiles.length) {
+        console.log(`已过滤 ${processedFiles.length - uniqueFiles.length} 个重复文件`)
+      }
     }
 
     return processedFiles

@@ -13,6 +13,8 @@ let iconWorker: UtilityProcess | null = null;
 let requestIdCounter = 0;
 /** Map: { id: resolve() } */
 const pendingIconRequests = new Map();
+/** 预缓存是否已完成 */
+let preCacheInitialized = false;
 
 /** 应用路径 */
 export interface AppPath {
@@ -28,8 +30,9 @@ export interface AppPath {
  * 创建子进程 (图标提取)
  * @param workerPath 子进程路径
  * @param logger 日志器
+ * @param cacheIconsDir 缓存目录路径（可选，提供后会自动初始化预缓存）
  */
-export function createIconWorker(workerPath: string, logger: Logger) {
+export function createIconWorker(workerPath: string, logger: Logger, cacheIconsDir?: string) {
   iconWorker = utilityProcess.fork(workerPath);
 
   // 监听来自子进程的消息
@@ -47,9 +50,23 @@ export function createIconWorker(workerPath: string, logger: Logger) {
     // 清理掉所有待处理的请求，避免它们永远不被 resolve
     pendingIconRequests.forEach((resolve) => resolve(null));
     pendingIconRequests.clear();
+    // 重置预缓存状态
+    preCacheInitialized = false;
     // 简单地重启 worker
-    createIconWorker(workerPath, logger);
+    createIconWorker(workerPath, logger, cacheIconsDir);
   });
+
+  // 如果提供了缓存目录，自动初始化预缓存
+  if (cacheIconsDir && !preCacheInitialized) {
+    logger.info('🔧 Worker 已创建，开始初始化图标预缓存...');
+    initIconPreCache(cacheIconsDir)
+      .then(() => {
+        logger.info('✅ 图标预缓存初始化完成');
+      })
+      .catch((error) => {
+        logger.error('❌ 图标预缓存初始化失败:', error);
+      });
+  }
 
   return iconWorker;
 }
@@ -143,21 +160,65 @@ export async function getAppsFromStartMenu(): Promise<AppPath[]> {
   return apps;
 }
 
+/**
+ * 初始化预缓存（在应用启动时调用）
+ * @param cacheIconsDir 缓存目录路径
+ * @returns Promise<void>
+ */
+export async function initIconPreCache(cacheIconsDir: string): Promise<void> {
+  if (preCacheInitialized || !iconWorker) {
+    return;
+  }
+
+  return new Promise((resolve) => {
+    const id = requestIdCounter++;
+    pendingIconRequests.set(id, (result: string | null) => {
+      if (result === 'PRE_CACHE_COMPLETE') {
+        preCacheInitialized = true;
+      }
+      pendingIconRequests.delete(id);
+      resolve();
+    });
+
+    iconWorker?.postMessage({
+      id,
+      path: '',
+      cacheIconsDir,
+      preCache: true
+    } as WorkerMessage);
+
+    // 预缓存超时时间设置为 10 秒
+    setTimeout(() => {
+      if (pendingIconRequests.has(id)) {
+        pendingIconRequests.delete(id);
+        resolve();
+      }
+    }, 10000);
+  });
+}
+
 // --- 新增辅助函数：通过子进程异步获取图标 (重构) ---
 /**
  * 通过子进程异步获取图标
  * @param filePath 文件路径
  * @param cacheIconsDir 缓存目录路径
+ * @param useExtension 是否使用扩展名模式（默认 false）
  * @returns 图标数据URL
  */
 export function getIconDataURLAsync(
   filePath: string,
-  cacheIconsDir: string
+  cacheIconsDir: string,
+  useExtension: boolean = false
 ): Promise<string | null> {
   return new Promise((resolve) => {
     const id = requestIdCounter++;
     pendingIconRequests.set(id, resolve);
-    iconWorker?.postMessage({ id, path: filePath, cacheIconsDir } as WorkerMessage);
+    iconWorker?.postMessage({
+      id,
+      path: filePath,
+      cacheIconsDir,
+      useExtension
+    } as WorkerMessage);
     // 添加超时以防子进程无响应
     setTimeout(() => {
       if (pendingIconRequests.has(id)) {

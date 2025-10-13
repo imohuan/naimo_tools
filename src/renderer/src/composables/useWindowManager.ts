@@ -204,15 +204,10 @@ export function useWindowManager(
    */
   const checkVisible = async (): Promise<boolean> => {
     try {
-      const currentViewInfo = await naimo.router.windowGetCurrentViewInfo()
-      if (!currentViewInfo) return false
-
       const visible = await naimo.router.windowIsWindowVisible()
-
       if (enableStateTracking) {
         windowState.value.visible = visible
       }
-
       return visible
     } catch (error) {
       console.error('检查窗口可见性失败:', error)

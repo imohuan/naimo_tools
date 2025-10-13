@@ -543,11 +543,12 @@ onMounted(async () => {
   await initializeApp();
 
   // 直接注册窗口事件监听
-  naimo.event.onAppFocus(() => {
-    handleSearchFocus();
-    windowManager.checkVisible().then((isVisible) => {
-      if (!isVisible) show();
-    });
+  naimo.event.onAppFocus(async () => {
+    const isVisible = await windowManager.checkVisible();
+    if (!isVisible) show();
+    setTimeout(() => {
+      handleSearchFocus();
+    }, 0);
   });
 
   naimo.event.onAppBlur((_event, data) => {
@@ -556,9 +557,14 @@ onMounted(async () => {
   });
 
   useEventListener(document, "visibilitychange", () => {
-    if (!document.hidden && document.hasFocus()) {
-      handleSearchFocus();
-      console.log("页面重新变为可见且获得焦点时，聚焦到搜索框");
+    // if (!document.hidden && document.hasFocus()) {
+    //   handleSearchFocus();
+    //   console.log("页面重新变为可见且获得焦点时，聚焦到搜索框");
+    // }
+
+    // 如果搜索框为空且没有搜索结果，则清空搜索框
+    if (app.ui.searchText.trim() === "" && !app.ui.hasSearchResults) {
+      handleSearch("");
     }
   });
 
@@ -673,6 +679,7 @@ onMounted(async () => {
         case "global_show_window":
           console.log("收到显示/隐藏窗口请求");
           const isMainWindowVisible = await windowManager.checkVisible();
+          naimo.log.info("检查窗口是否可见:", isMainWindowVisible);
           if (isMainWindowVisible) {
             hide();
           } else {

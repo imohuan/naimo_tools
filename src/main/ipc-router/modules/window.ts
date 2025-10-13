@@ -191,6 +191,7 @@ export async function toggleShow(event: Electron.IpcMainInvokeEvent, _id?: numbe
     const viewManager = manager.getViewManager();
     const currentViewInfo = viewManager.getCurrentViewInfo(event.sender);
 
+
     if (!currentViewInfo) {
       log.warn('切换窗口显示失败：无法获取当前视图信息');
       return false;
@@ -208,8 +209,11 @@ export async function toggleShow(event: Electron.IpcMainInvokeEvent, _id?: numbe
     const shouldShow = show ?? !isVisible;
 
     if (shouldShow && !isVisible) {
-      baseWindowController.showWindow(callingWindow);
-      callingWindow.focus();
+      await baseWindowController.showWindow(callingWindow, true);
+      // if (currentViewInfo.id === 'main-view') {
+      //   const viewInfo = viewManager.getViewInfo(currentViewInfo.id);
+      //   if (viewInfo) await sendAppFocus(viewInfo.view.webContents, { timestamp: Date.now() })
+      // }
       log.debug(`窗口已显示: ${callingWindow.id}`);
     } else if (!shouldShow && isVisible) {
       baseWindowController.hideWindow(callingWindow);
@@ -415,6 +419,98 @@ export async function isWindowVisible(event: Electron.IpcMainInvokeEvent): Promi
 }
 
 /**
+ * 显示主窗口
+ * 通过ViewManager获取main-view的父窗口并显示
+ */
+export async function show(event: Electron.IpcMainInvokeEvent): Promise<boolean> {
+  try {
+    const viewManager = ViewManager.getInstance();
+    const mainViewInfo = viewManager.getViewInfo('main-view');
+
+    if (!mainViewInfo) {
+      log.warn('显示窗口失败：找不到main-view');
+      return false;
+    }
+
+    const baseWindowController = BaseWindowController.getInstance();
+    const parentWindow = baseWindowController.getWindow(mainViewInfo.parentWindowId);
+
+    if (!parentWindow || parentWindow.isDestroyed()) {
+      log.warn('显示窗口失败：主窗口不存在或已销毁');
+      return false;
+    }
+
+    await baseWindowController.showWindow(parentWindow, true);
+    // await sendAppFocus(mainViewInfo.view.webContents, { timestamp: Date.now() })
+    // 关键修复：强制刷新所有 WebContentsView 以确保正确渲染
+    // 这解决了只有一个窗口时 View 可能不显示的问题
+    setTimeout(() => {
+      try {
+        const allViews = viewManager.getAllViewsForWindow(parentWindow.id);
+        allViews.forEach((viewInfo: WebContentsViewInfo) => {
+          if (!viewInfo.view.webContents.isDestroyed()) {
+            // 方法1：强制重绘视图内容
+            viewInfo.view.webContents.invalidate();
+            // 方法2：通过重新设置边界触发布局更新
+            const currentBounds = viewInfo.view.getBounds();
+            viewInfo.view.setBounds(currentBounds);
+            log.debug(`已刷新视图: ${viewInfo.id}`);
+          }
+        });
+      } catch (refreshError) {
+        log.error('刷新视图时出错:', refreshError);
+      }
+    }, 50);
+    log.debug('主窗口已显示');
+    return true;
+  } catch (error) {
+    log.error('显示窗口失败:', error);
+    return false;
+  }
+}
+
+/**
+ * 隐藏主窗口
+ * 通过ViewManager获取main-view的父窗口并隐藏
+ */
+export async function hide(event: Electron.IpcMainInvokeEvent): Promise<boolean> {
+  try {
+    const viewManager = ViewManager.getInstance();
+    const mainViewInfo = viewManager.getViewInfo('main-view');
+
+    if (!mainViewInfo) {
+      log.warn('隐藏窗口失败：找不到main-view');
+      return false;
+    }
+
+    const baseWindowController = BaseWindowController.getInstance();
+    const parentWindow = baseWindowController.getWindow(mainViewInfo.parentWindowId);
+
+    if (!parentWindow || parentWindow.isDestroyed()) {
+      log.warn('隐藏窗口失败：主窗口不存在或已销毁');
+      return false;
+    }
+
+    // 在隐藏前暂停所有视图的渲染以节省资源
+    const allViews = viewManager.getAllViewsForWindow(parentWindow.id);
+    allViews.forEach((viewInfo: WebContentsViewInfo) => {
+      if (!viewInfo.view.webContents.isDestroyed()) {
+        // 暂停渲染以节省资源
+        viewInfo.view.webContents.setBackgroundThrottling(true);
+      }
+    });
+
+    baseWindowController.hideWindow(parentWindow);
+    log.debug('主窗口已隐藏');
+
+    return true;
+  } catch (error) {
+    log.error('隐藏窗口失败:', error);
+    return false;
+  }
+}
+
+/**
  * 设置窗口大小
  * @param width 窗口宽度
  * @param height 窗口高度
@@ -542,71 +638,6 @@ export function openLogViewer(event: Electron.IpcMainInvokeEvent): void {
 
 
 /**
- * 显示主窗口
- * 通过ViewManager获取main-view的父窗口并显示
- */
-export async function show(event: Electron.IpcMainInvokeEvent): Promise<boolean> {
-  try {
-    const viewManager = ViewManager.getInstance();
-    const mainViewInfo = viewManager.getViewInfo('main-view');
-
-    if (!mainViewInfo) {
-      log.warn('显示窗口失败：找不到main-view');
-      return false;
-    }
-
-    const baseWindowController = BaseWindowController.getInstance();
-    const parentWindow = baseWindowController.getWindow(mainViewInfo.parentWindowId);
-
-    if (!parentWindow || parentWindow.isDestroyed()) {
-      log.warn('显示窗口失败：主窗口不存在或已销毁');
-      return false;
-    }
-
-    baseWindowController.showWindow(parentWindow);
-    parentWindow.focus();
-    log.debug('主窗口已显示');
-
-    return true;
-  } catch (error) {
-    log.error('显示窗口失败:', error);
-    return false;
-  }
-}
-
-/**
- * 隐藏主窗口
- * 通过ViewManager获取main-view的父窗口并隐藏
- */
-export async function hide(event: Electron.IpcMainInvokeEvent): Promise<boolean> {
-  try {
-    const viewManager = ViewManager.getInstance();
-    const mainViewInfo = viewManager.getViewInfo('main-view');
-
-    if (!mainViewInfo) {
-      log.warn('隐藏窗口失败：找不到main-view');
-      return false;
-    }
-
-    const baseWindowController = BaseWindowController.getInstance();
-    const parentWindow = baseWindowController.getWindow(mainViewInfo.parentWindowId);
-
-    if (!parentWindow || parentWindow.isDestroyed()) {
-      log.warn('隐藏窗口失败：主窗口不存在或已销毁');
-      return false;
-    }
-
-    baseWindowController.hideWindow(parentWindow);
-    log.debug('主窗口已隐藏');
-
-    return true;
-  } catch (error) {
-    log.error('隐藏窗口失败:', error);
-    return false;
-  }
-}
-
-/**
  * 获取UI常量配置
  * @returns UI常量配置对象，包含headerHeight、maxHeight、padding
  */
@@ -625,7 +656,7 @@ export function getUIConstants(event: Electron.IpcMainInvokeEvent): {
 
 import { ViewManager } from '@main/window/ViewManager'
 import { ViewType, LifecycleType } from '@renderer/src/typings/windowTypes'
-import { ViewCategory } from '@main/typings/windowTypes'
+import { ViewCategory, type WebContentsViewInfo } from '@main/typings/windowTypes'
 import type { PluginItem } from '@renderer/src/typings/pluginTypes'
 import { OPEN_DEVTOOLS } from "@shared/constants";
 

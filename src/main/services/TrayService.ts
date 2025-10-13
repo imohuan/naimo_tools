@@ -157,9 +157,6 @@ export class TrayService implements Service {
         }
       },
       {
-        type: 'separator'
-      },
-      {
         label: isDebugWindowOpen ? '关闭调试窗口' : '打开调试窗口',
         click: () => {
           this.toggleDebugWindow()
@@ -173,9 +170,6 @@ export class TrayService implements Service {
         click: () => {
           this.restartApp()
         }
-      },
-      {
-        type: 'separator'
       },
       {
         label: '退出',

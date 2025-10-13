@@ -1143,6 +1143,7 @@ export class NewWindowManager {
 
     // 窗口聚焦事件
     this.mainWindow.on('focus', () => {
+      this.viewManager.getViewInfo("main-view")?.view.webContents.focus()
       emitEvent.emit('window:main-focused', { windowId, timestamp: Date.now() })
     })
   }

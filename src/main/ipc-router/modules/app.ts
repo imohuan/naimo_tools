@@ -145,13 +145,19 @@ export async function launchApp(event: Electron.IpcMainInvokeEvent, appPath: str
  * 提取文件图标
  * @param event IPC事件对象
  * @param filePath 文件路径
+ * @param useExtension 是否使用扩展名模式（默认 false）
  * @returns 图标的 Data URL 或 null
  */
-export async function extractFileIcon(event: Electron.IpcMainInvokeEvent, filePath: string): Promise<string | null> {
+export async function extractFileIcon(
+  event: Electron.IpcMainInvokeEvent,
+  filePath: string,
+  useExtension: boolean = false
+): Promise<string | null> {
   try {
-    log.info("🖼️ 提取文件图标:", filePath);
+    log.info("🖼️ 提取文件图标:", filePath, useExtension ? "(扩展名模式)" : "");
     const cacheIconsDir = join(app.getPath("userData"), "icons");
-    const icon = await getIconDataURLAsync(filePath, cacheIconsDir);
+    const icon = await getIconDataURLAsync(filePath, cacheIconsDir, useExtension);
+
     if (icon) {
       log.info("✅ 文件图标提取成功");
     } else {

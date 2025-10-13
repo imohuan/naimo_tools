@@ -1,6 +1,6 @@
 /**
  * 自动生成的 IPC 类型定义
- * 生成时间: 2025-10-12T14:57:48.983Z
+ * 生成时间: 2025-10-13T07:10:46.127Z
  * 请勿手动修改此文件
  */
 
@@ -103,16 +103,18 @@ interface appInterface {
  * 提取文件图标
  * @param IPC事件对象
  * @param 文件路径
+ * @param 是否使用扩展名模式（默认 false）
  * @returns 图标的 Data URL 或 null
  */
-  "app-extract-file-icon": (filePath: string) => Promise<string | null>;
+  "app-extract-file-icon": (filePath: string, useExtension: boolean) => Promise<string | null>;
   /**
  * 提取文件图标
  * @param IPC事件对象
  * @param 文件路径
+ * @param 是否使用扩展名模式（默认 false）
  * @returns 图标的 Data URL 或 null
  */
-  "appExtractFileIcon": (filePath: string) => Promise<string | null>;
+  "appExtractFileIcon": (filePath: string, useExtension: boolean) => Promise<string | null>;
 
   /**
  * 广播插件事件到所有视图
@@ -1279,6 +1281,28 @@ interface windowInterface {
   "windowIsWindowVisible": () => Promise<boolean>;
 
   /**
+ * 显示主窗口
+通过ViewManager获取main-view的父窗口并显示
+ */
+  "window-show": () => Promise<boolean>;
+  /**
+ * 显示主窗口
+通过ViewManager获取main-view的父窗口并显示
+ */
+  "windowShow": () => Promise<boolean>;
+
+  /**
+ * 隐藏主窗口
+通过ViewManager获取main-view的父窗口并隐藏
+ */
+  "window-hide": () => Promise<boolean>;
+  /**
+ * 隐藏主窗口
+通过ViewManager获取main-view的父窗口并隐藏
+ */
+  "windowHide": () => Promise<boolean>;
+
+  /**
  * 设置窗口大小
  * @param 窗口宽度
  * @param 窗口高度
@@ -1319,28 +1343,6 @@ interface windowInterface {
   "window-open-log-viewer": () => Promise<void>;
   /** 打开日志查看器窗口 */
   "windowOpenLogViewer": () => Promise<void>;
-
-  /**
- * 显示主窗口
-通过ViewManager获取main-view的父窗口并显示
- */
-  "window-show": () => Promise<boolean>;
-  /**
- * 显示主窗口
-通过ViewManager获取main-view的父窗口并显示
- */
-  "windowShow": () => Promise<boolean>;
-
-  /**
- * 隐藏主窗口
-通过ViewManager获取main-view的父窗口并隐藏
- */
-  "window-hide": () => Promise<boolean>;
-  /**
- * 隐藏主窗口
-通过ViewManager获取main-view的父窗口并隐藏
- */
-  "windowHide": () => Promise<boolean>;
 
   /**
  * 获取UI常量配置
@@ -2219,6 +2221,18 @@ export const ROUTE_INFO: RouteInfo[] = [
     function: "isWindowVisible"
   },
   {
+    route: "window-show",
+    comment: "显示主窗口, 通过ViewManager获取main-view的父窗口并显示",
+    module: "window",
+    function: "show"
+  },
+  {
+    route: "window-hide",
+    comment: "隐藏主窗口, 通过ViewManager获取main-view的父窗口并隐藏",
+    module: "window",
+    function: "hide"
+  },
+  {
     route: "window-set-size",
     comment: "设置窗口大小",
     module: "window",
@@ -2241,18 +2255,6 @@ export const ROUTE_INFO: RouteInfo[] = [
     comment: "打开日志查看器窗口",
     module: "window",
     function: "openLogViewer"
-  },
-  {
-    route: "window-show",
-    comment: "显示主窗口, 通过ViewManager获取main-view的父窗口并显示",
-    module: "window",
-    function: "show"
-  },
-  {
-    route: "window-hide",
-    comment: "隐藏主窗口, 通过ViewManager获取main-view的父窗口并隐藏",
-    module: "window",
-    function: "hide"
   },
   {
     route: "window-get-u-i-constants",

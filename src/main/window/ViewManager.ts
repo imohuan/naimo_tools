@@ -1128,13 +1128,6 @@ export class ViewManager {
     }
   }
 
-
-
-
-
-
-
-
   /**
    * 获取性能指标
    * @param windowId 窗口ID
@@ -1150,6 +1143,28 @@ export class ViewManager {
    */
   public getAllViews(): WebContentsViewInfo[] {
     return Array.from(this.views.values())
+  }
+
+  /**
+   * 获取指定窗口的所有视图
+   * @param windowId 窗口ID
+   * @returns 该窗口的所有视图信息数组
+   */
+  public getAllViewsForWindow(windowId: number): WebContentsViewInfo[] {
+    const viewIds = this.windowViews.get(windowId)
+    if (!viewIds) {
+      return []
+    }
+
+    const views: WebContentsViewInfo[] = []
+    viewIds.forEach(viewId => {
+      const viewInfo = this.views.get(viewId)
+      if (viewInfo) {
+        views.push(viewInfo)
+      }
+    })
+
+    return views
   }
 
   /**

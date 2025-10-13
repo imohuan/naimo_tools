@@ -25,6 +25,15 @@ export class BaseWindowController {
   private hiddenWindowPositions: Map<number, HiddenWindowPosition> = new Map()
   private defaultConfig: Partial<BaseWindowConfig> = {}
 
+  /**
+   * 窗口显示动画延迟时间（ms）
+   * 用于避免系统窗口放大动画，可根据实际情况调整
+   * - 100-150ms: 快速但可能有轻微动画
+   * - 200-250ms: 平衡选择（推荐）
+   * - 300+ms: 完全无动画但有轻微延迟感
+   */
+  private showAnimationDelay: number = 200
+
   private constructor() {
     this.initializeDefaultConfig()
   }
@@ -266,27 +275,50 @@ export class BaseWindowController {
   /**
    * 显示窗口
    * @param window BaseWindow 实例
+   * @param focus 是否聚焦
    */
-  public showWindow(window: BaseWindow): void {
-    try {
-      window.show()
-      // 检查是否有缓存位置
-      setTimeout(() => {
+  public showWindow(window: BaseWindow, focus: boolean = false) {
+    return new Promise(resolve => {
+      try {
+        // 先确保窗口在正确的位置
         const cachedPosition = this.hiddenWindowPositions.get(window.id)
         if (cachedPosition) {
           // 恢复到缓存位置
           window.setPosition(cachedPosition.x, cachedPosition.y)
-          this.hiddenWindowPositions.delete(window.id) // 清除缓存
-          log.debug(`窗口已显示并恢复位置: ID=${window.id}, position=(${cachedPosition.x}, ${cachedPosition.y})`)
+          this.hiddenWindowPositions.delete(window.id)
+          log.debug(`窗口位置已恢复: ID=${window.id}, position=(${cachedPosition.x}, ${cachedPosition.y})`)
         } else {
           // 没有缓存位置，居中显示
           this.centerWindow(window)
-          log.debug(`窗口已显示并居中: ID=${window.id}`)
+          log.debug(`窗口已居中: ID=${window.id}`)
         }
-      }, 100);
-    } catch (error) {
-      log.error('显示窗口失败:', error)
-    }
+
+        // 关键技巧：先设置为完全透明，再显示，避免系统动画
+        // 这样窗口在正确位置显示，但用户看不到放大动画
+        window.setOpacity(0)
+
+        // 使用 showInactive 显示但不立即聚焦
+        window.showInactive()
+        log.debug(`窗口已显示（透明状态）: ID=${window.id}`)
+
+        // 关键延迟：等待系统窗口动画完成后再恢复透明度
+        // Windows 系统窗口动画通常需要 150-250ms
+        // 使用可配置的延迟时间，在无动画和用户体验之间取得平衡
+        setTimeout(() => {
+          window.setOpacity(1)
+          log.debug(`窗口透明度已恢复: ID=${window.id}`)
+          // 聚焦操作
+          if (focus) {
+            window.focus()
+            log.debug(`窗口已聚焦: ID=${window.id}`)
+          }
+          resolve(true)
+        }, this.showAnimationDelay)
+      } catch (error) {
+        log.error('显示窗口失败:', error)
+        resolve(false)
+      }
+    })
   }
 
   /**
@@ -302,7 +334,7 @@ export class BaseWindowController {
         log.debug(`缓存窗口显示位置: ID=${window.id}, position=(${x}, ${y})`)
       }
       // 将窗口移到屏幕外隐藏（使用 -10000 确保完全隐藏）
-      window.setPosition(-10000, y)
+      // window.setPosition(-10000, y)
       window.hide()
       log.debug(`窗口已隐藏: ID=${window.id}`)
     } catch (error) {
@@ -317,6 +349,13 @@ export class BaseWindowController {
    */
   public isWindowVisible(window: BaseWindow): boolean {
     try {
+      // 首先检查窗口是否被隐藏
+      const isVisible = window.isVisible()
+      if (!isVisible) {
+        log.debug(`窗口不可见（已隐藏）: ID=${window.id}`)
+        return false
+      }
+
       const windowBounds = window.getBounds()
       const { x, y, width, height } = windowBounds
 
@@ -429,6 +468,26 @@ export class BaseWindowController {
     })
 
     log.info(`分离窗口事件设置完成: ${config.title}`)
+  }
+
+  /**
+   * 设置窗口显示动画延迟时间
+   * @param delay 延迟时间（ms），推荐范围 100-300
+   */
+  public setShowAnimationDelay(delay: number): void {
+    if (delay < 0 || delay > 1000) {
+      log.warn(`无效的动画延迟时间: ${delay}ms，使用默认值 200ms`)
+      return
+    }
+    this.showAnimationDelay = delay
+    log.info(`窗口显示动画延迟已设置为: ${delay}ms`)
+  }
+
+  /**
+   * 获取当前的窗口显示动画延迟时间
+   */
+  public getShowAnimationDelay(): number {
+    return this.showAnimationDelay
   }
 
   /**

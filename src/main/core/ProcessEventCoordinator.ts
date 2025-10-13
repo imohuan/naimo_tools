@@ -17,7 +17,6 @@ import {
   sendViewEscPressed
 } from '@main/ipc-router/mainEvents'
 import { NewWindowManager } from '@main/window/NewWindowManager'
-import { BaseWindowController } from '@/window/BaseWindowController'
 
 /**
  * 进程事件协调器
