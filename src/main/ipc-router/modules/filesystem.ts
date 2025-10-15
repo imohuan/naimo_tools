@@ -232,3 +232,42 @@ export async function saveClipboardImageToTemp(
   }
 }
 
+/**
+ * 保存剪贴板/内存中的文本到临时文件
+ * @param event IPC事件对象
+ * @param fileInfo 文件对象的信息（name, type, content）
+ * @returns 保存后的文件路径
+ */
+export async function saveClipboardTextToTemp(
+  event: Electron.IpcMainInvokeEvent,
+  fileInfo: { name: string; type: string; content: string }
+): Promise<string> {
+  try {
+    const { tmpdir } = await import('os');
+    const { resolve: pathResolve } = await import('path');
+    const { existsSync, mkdirSync } = await import('fs');
+
+    // 创建临时目录
+    const tempDir = pathResolve(tmpdir(), 'naimo');
+    if (!existsSync(tempDir)) {
+      mkdirSync(tempDir, { recursive: true });
+    }
+
+    // 生成随机文件名
+    const timestamp = Date.now();
+    const ext = fileInfo.name.split('.').pop() || 'txt';
+    const fileName = `text-save-${timestamp}.${ext}`;
+
+    const filePath = pathResolve(tempDir, fileName);
+
+    // 写入文本内容
+    await writeFile(filePath, fileInfo.content, 'utf-8');
+    log.info('保存剪贴板文本到临时文件成功:', filePath);
+
+    return filePath;
+  } catch (error) {
+    log.error('保存剪贴板文本到临时文件失败:', error);
+    throw error;
+  }
+}
+

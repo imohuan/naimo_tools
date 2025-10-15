@@ -46,6 +46,9 @@ export function useFileHandler(options: FileHandlerOptions = {}) {
     maxFileSize = 100 * 1024 * 1024 // 100MB
   } = options
 
+  // 文本类型列表
+  const textTypes = ['text/plain', 'text/html', 'text/css', 'text/javascript', 'application/json', 'application/xml', 'text/xml', 'text/markdown']
+
   // 附件文件列表
   const attachedFiles = ref<AttachedFile[]>([])
 
@@ -114,6 +117,18 @@ export function useFileHandler(options: FileHandlerOptions = {}) {
   }
 
   /**
+   * 读取文本文件内容
+   */
+  const fileToText = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => resolve(reader.result as string)
+      reader.onerror = reject
+      reader.readAsText(file)
+    })
+  }
+
+  /**
    * 处理文件列表
    */
   const processFiles = async (files: FileList | File[]): Promise<AttachedFile[]> => {
@@ -133,26 +148,52 @@ export function useFileHandler(options: FileHandlerOptions = {}) {
       let filePath = naimo.webUtils.getPathForFile(file)
       // 获取文件路径是否是文件夹
       const isDirectory = filePath ? await naimo.router.filesystemIsDirectory(filePath) : false
-      // 如果是图片且没有路径（剪贴板截图），保存到临时文件
-      if ((!filePath || filePath.trim() === '') && imageTypes.includes(file.type)) {
-        try {
-          console.log('检测到剪贴板图片（无路径），正在保存到临时文件...')
 
-          // 转换为base64
-          const base64Data = await fileToBase64(file)
+      // 如果没有路径（剪贴板内容），保存到临时文件
+      if (!filePath || filePath.trim() === '') {
+        // 处理图片
+        if (imageTypes.includes(file.type)) {
+          try {
+            console.log('检测到剪贴板图片（无路径），正在保存到临时文件...')
 
-          // 调用IPC保存到临时文件
-          filePath = await naimo.router.filesystemSaveClipboardImageToTemp({
-            name: file.name,
-            type: file.type,
-            base64Data
-          })
+            // 转换为base64
+            const base64Data = await fileToBase64(file)
 
-          console.log('剪贴板图片已保存到:', filePath)
-        } catch (error) {
-          console.error('保存剪贴板图片失败:', error)
-          errors.push(`保存剪贴板图片失败: ${file.name}`)
-          continue
+            // 调用IPC保存到临时文件
+            filePath = await naimo.router.filesystemSaveClipboardImageToTemp({
+              name: file.name,
+              type: file.type,
+              base64Data
+            })
+
+            console.log('剪贴板图片已保存到:', filePath)
+          } catch (error) {
+            console.error('保存剪贴板图片失败:', error)
+            errors.push(`保存剪贴板图片失败: ${file.name}`)
+            continue
+          }
+        }
+        // 处理文本
+        else if (textTypes.includes(file.type)) {
+          try {
+            console.log('检测到剪贴板文本（无路径），正在保存到临时文件...')
+
+            // 读取文本内容
+            const content = await fileToText(file)
+
+            // 调用IPC保存到临时文件
+            filePath = await naimo.router.filesystemSaveClipboardTextToTemp({
+              name: file.name,
+              type: file.type,
+              content
+            })
+
+            console.log('剪贴板文本已保存到:', filePath)
+          } catch (error) {
+            console.error('保存剪贴板文本失败:', error)
+            errors.push(`保存剪贴板文本失败: ${file.name}`)
+            continue
+          }
         }
       }
 

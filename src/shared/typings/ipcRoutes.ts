@@ -1,6 +1,6 @@
 /**
  * 自动生成的 IPC 类型定义
- * 生成时间: 2025-10-15T04:45:11.309Z
+ * 生成时间: 2025-10-15T07:59:53.774Z
  * 请勿手动修改此文件
  */
 
@@ -730,6 +730,21 @@ interface filesystemInterface {
  * @returns 保存后的文件路径
  */
   "filesystemSaveClipboardImageToTemp": (fileInfo: { name: string; type: string; base64Data: string }) => Promise<string>;
+
+  /**
+ * 保存剪贴板/内存中的文本到临时文件
+ * @param IPC事件对象
+ * @param 文件对象的信息（name, type, content）
+ * @returns 保存后的文件路径
+ */
+  "filesystem-save-clipboard-text-to-temp": (fileInfo: { name: string; type: string; content: string }) => Promise<string>;
+  /**
+ * 保存剪贴板/内存中的文本到临时文件
+ * @param IPC事件对象
+ * @param 文件对象的信息（name, type, content）
+ * @returns 保存后的文件路径
+ */
+  "filesystemSaveClipboardTextToTemp": (fileInfo: { name: string; type: string; content: string }) => Promise<string>;
 }
 
 interface hotkeyInterface {
@@ -1949,6 +1964,12 @@ export const ROUTE_INFO: RouteInfo[] = [
     comment: "保存剪贴板/内存中的图片到临时文件",
     module: "filesystem",
     function: "saveClipboardImageToTemp"
+  },
+  {
+    route: "filesystem-save-clipboard-text-to-temp",
+    comment: "保存剪贴板/内存中的文本到临时文件",
+    module: "filesystem",
+    function: "saveClipboardTextToTemp"
   },
   {
     route: "hotkey-register-global-hotkey",
