@@ -451,6 +451,20 @@ watch([searchQuery, categoryFilter], () => {
   currentPage.value = 1;
 });
 
+// 监听页码变化，如果当前页结果不足则加载更多
+watch(currentPage, () => {
+  // 检查当前页的插件数量是否不足
+  if (
+    paginatedPlugins.value.length < itemsPerPage &&
+    paginatedPlugins.value.length > 0
+  ) {
+    console.log(
+      `📄 当前页码: ${currentPage.value}, 插件数量: ${paginatedPlugins.value.length}, 加载更多...`
+    );
+    pluginStore.loadMoreGithubPlugins();
+  }
+});
+
 useEventListener(document, "keydown", handleKeydown);
 
 onMounted(async () => {

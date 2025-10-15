@@ -4,7 +4,7 @@
   "name": "我的插件",
   "version": "1.0.0",
   "author": "你的名字",
-  "icon": "🎯",
+  "icon": "./ico.png",
   "description": "这是一个使用 TypeScript 开发的 Naimo 插件",
   "category": "other",
   "enabled": true,
@@ -14,17 +14,9 @@
     {
       "path": "hello",
       "name": "打招呼",
-      "icon": "👋",
+      "icon": "./ico.png",
       "description": "向世界问好",
-      "type": "text",
-      "weight": 100,
-      "lifecycleType": "reuse",
-      "singleton": true,
-      "anonymousSearchFields": [
-        "hello",
-        "world",
-        "你好"
-      ]
+      "type": "text"
     }
   ]
 }

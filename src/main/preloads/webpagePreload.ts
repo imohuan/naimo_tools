@@ -140,7 +140,9 @@ const naimo = {
     /** 获取应用名称 */
     getName: () => ipcRouter.appGetName(),
     /** 获取文件图标 */
-    getFileIcon: (path: string) => ipcRouter.appExtractFileIcon(path),
+    getFileIcon: (path: string) => ipcRouter.appExtractFileIcon(path, false),
+    /** 获取本地文本地址 */
+    getLocalText: (path: string) => ipcRouter.filesystemReadFileContent(path, 'utf-8'),
     /** 获取本地地址图片 */
     getLocalImage: (path: string) => ipcRouter.filesystemReadFileContent(path, 'base64'),
     /** 判断是否为 macOS 系统 */

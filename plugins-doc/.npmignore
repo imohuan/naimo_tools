@@ -5,7 +5,7 @@ src/
 
 # Git
 .git
-.gitignore
+# .gitignore
 
 # IDE
 .vscode

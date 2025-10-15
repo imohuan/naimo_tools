@@ -176,14 +176,11 @@ export type PluginItem = Partial<AppItem> & {
 
   /** 插件ID */
   pluginId?: string
-  /** 开机启动 */
-  autoStart?: boolean
   /** 生命周期类型 */
-  lifecycleType?: LifecycleType
-  /** 单例 默认 true */
+  // lifecycleType?: LifecycleType
+  /** 无需配置：单例 默认 true */
   singleton?: boolean
   /** 推荐 */
   recommend?: boolean
-
   [key: string]: any
 }
