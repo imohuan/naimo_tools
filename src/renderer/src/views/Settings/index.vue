@@ -176,8 +176,8 @@
 
 <script setup lang="ts">
 import { ref, onMounted, toRaw } from "vue";
-import { useApp } from "@/temp_code";
-import { storeUtils } from "@/temp_code/utils/store";
+import { useApp } from "@/core";
+import { storeUtils } from "@/core/utils/store";
 import type { SettingConfig, SettingItem } from "@/typings";
 import { appSettingsConfig } from "@/config/appSettings";
 import SettingItemComponent from "./SettingItem.vue";

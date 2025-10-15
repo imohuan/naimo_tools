@@ -7,7 +7,7 @@ import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import App from './App.vue'
 import router from './router'
-import { useApp } from '@/temp_code'
+import { useApp } from '@/core'
 import '@/style.css'
 
 // 创建设置页面应用

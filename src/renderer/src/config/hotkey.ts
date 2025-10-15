@@ -1,5 +1,5 @@
-import { HotkeyType } from "@/temp_code/typings/hotkey";
-import type { HotkeySettingsConfig } from "@/temp_code/typings/hotkey";
+import { HotkeyType } from "@/core/typings/hotkey";
+import type { HotkeySettingsConfig } from "@/core/typings/hotkey";
 
 /**
  * 默认快捷键配置

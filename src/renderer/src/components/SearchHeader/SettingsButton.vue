@@ -23,7 +23,7 @@
 </template>
 
 <script setup lang="ts">
-import { useApp } from "@/temp_code";
+import { useApp } from "@/core";
 import PluginSettingsButton from "@/components/Common/PluginSettingsButton.vue";
 // @ts-ignore
 import IconMdiCog from "~icons/mdi/cog";

@@ -1,6 +1,6 @@
 // 共享类型定义
-import { PluginSetting, } from '@renderer/src/temp_code/typings/plugin';
-import type { AppItem } from '@renderer/src/temp_code/typings/search'
+import { PluginSetting, } from '@renderer/src/core/typings/plugin';
+import type { AppItem } from '@renderer/src/core/typings/search'
 
 export interface AppConfig {
   /** 主题模式，支持 light 或 dark */

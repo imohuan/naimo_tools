@@ -1,5 +1,5 @@
 import { ref, computed, readonly, nextTick } from 'vue'
-import type { AppItem } from '@/temp_code/typings/search'
+import type { AppItem } from '@/core/typings/search'
 import type { AttachedFile } from '@/typings/composableTypes'
 
 /**

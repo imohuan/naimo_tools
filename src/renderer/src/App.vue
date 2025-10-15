@@ -69,10 +69,10 @@ import { useKeyboardNavigation } from "@/components/Search/hooks/useKeyboardNavi
 import { useAppActions } from "@/composables/useAppActions";
 
 // Store 导入
-import { HotkeyType, useApp, type HotkeyConfig } from "@/temp_code";
+import { HotkeyType, useApp, type HotkeyConfig } from "@/core";
 
 // 类型导入
-import type { AppItem, AttachedInfo } from "@/temp_code/typings/search";
+import type { AppItem, AttachedInfo } from "@/core/typings/search";
 import { LifecycleType, type PluginItemData } from "./typings";
 
 // ==================== 初始化 ====================

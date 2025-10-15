@@ -1,4 +1,4 @@
-import type { AppItem } from "@/temp_code/typings/search";
+import type { AppItem } from "@/core/typings/search";
 
 export function useKeyboardNavigation(
   flatItems: any,

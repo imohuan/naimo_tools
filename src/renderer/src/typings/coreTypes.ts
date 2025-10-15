@@ -1,4 +1,4 @@
-import type { AppItem } from '../temp_code/typings/search'
+import type { AppItem } from '../core/typings/search'
 
 /** 搜索提供者接口 */
 export interface SearchProvider {

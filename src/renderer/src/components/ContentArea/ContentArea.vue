@@ -22,7 +22,9 @@
       <div
         v-if="showSettingsBackground"
         class="w-full h-full bg-transparent rounded-lg"
-        :style="{ padding: `${DEFAULT_WINDOW_LAYOUT.settingsBackgroundPadding}px` }"
+        :style="{
+          padding: `${DEFAULT_WINDOW_LAYOUT.settingsBackgroundPadding}px`,
+        }"
       >
         <!-- 简洁的透明背景，无边框和阴影 -->
       </div>
@@ -68,8 +70,13 @@
         :flat-items="flatItems"
         @app-click="$emit('app-click', $event)"
         @category-toggle="$emit('category-toggle', $event)"
-        @category-drag-end="(categoryId: string, items: any[]) => $emit('category-drag-end', categoryId, items)"
-        @app-delete="(app: any, categoryId: string) => $emit('app-delete', app, categoryId)"
+        @category-drag-end="
+          (categoryId: string, items: any[]) =>
+            $emit('category-drag-end', categoryId, items)
+        "
+        @app-delete="
+          (app: any, categoryId: string) => $emit('app-delete', app, categoryId)
+        "
         @app-pin="(app: any) => $emit('app-pin', app)"
       />
 
@@ -91,7 +98,7 @@
 <script setup lang="ts">
 import { nextTick } from "vue";
 import SearchCategories from "@/components/Search/SearchCategories.vue";
-import type { AppItem } from "@/temp_code/typings/search";
+import type { AppItem } from "@/core/typings/search";
 import type { SearchCategory } from "@/typings/searchTypes";
 import { DEFAULT_WINDOW_LAYOUT } from "@shared/config/windowLayoutConfig";
 
@@ -123,7 +130,10 @@ const contentScrollContainerRef = ref<HTMLElement>();
 const { height } = useElementSize(contentScrollContainerRef);
 
 const handleResize = () => {
-  const contentHeight = Math.min(height.value, DEFAULT_WINDOW_LAYOUT.contentMaxHeight);
+  const contentHeight = Math.min(
+    height.value,
+    DEFAULT_WINDOW_LAYOUT.contentMaxHeight
+  );
   console.log("handleResize called", {
     contentHeight,
     contentAreaVisible: props.contentAreaVisible,
@@ -131,7 +141,8 @@ const handleResize = () => {
   if (props.contentAreaVisible && contentHeight > 0) {
     // 计算总窗口高度：搜索框高度 + 内容区域高度 + padding
     const config = DEFAULT_WINDOW_LAYOUT;
-    const totalHeight = config.searchHeaderHeight + contentHeight + config.appPadding * 2;
+    const totalHeight =
+      config.searchHeaderHeight + contentHeight + config.appPadding * 2;
     console.log("emitting window-resize", totalHeight);
     emit("window-resize", totalHeight);
   }

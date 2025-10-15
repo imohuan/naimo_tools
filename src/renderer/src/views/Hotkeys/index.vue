@@ -19,7 +19,9 @@
           >
             <div class="flex-1">
               <div class="font-medium text-gray-900">{{ hotkey.name }}</div>
-              <div class="text-sm text-gray-600 mt-1">{{ hotkey.description }}</div>
+              <div class="text-sm text-gray-600 mt-1">
+                {{ hotkey.description }}
+              </div>
             </div>
             <div class="flex items-center space-x-3">
               <div class="flex items-center space-x-2">
@@ -69,7 +71,9 @@
           >
             <div class="flex-1">
               <div class="font-medium text-gray-900">{{ hotkey.name }}</div>
-              <div class="text-sm text-gray-600 mt-1">{{ hotkey.description }}</div>
+              <div class="text-sm text-gray-600 mt-1">
+                {{ hotkey.description }}
+              </div>
             </div>
             <div class="flex items-center space-x-3">
               <div class="flex items-center space-x-2">
@@ -108,9 +112,13 @@
           <div class="text-sm text-blue-800">
             <p class="font-medium">快捷键设置说明：</p>
             <ul class="mt-2 space-y-1 list-disc list-inside">
-              <li>全局快捷键可以在任何应用程序中使用，用于快速显示/隐藏 Naimo</li>
+              <li>
+                全局快捷键可以在任何应用程序中使用，用于快速显示/隐藏 Naimo
+              </li>
               <li>应用内快捷键仅在 Naimo 获得焦点时生效</li>
-              <li>建议使用 Ctrl、Alt、Shift 等修饰键组合，避免与系统快捷键冲突</li>
+              <li>
+                建议使用 Ctrl、Alt、Shift 等修饰键组合，避免与系统快捷键冲突
+              </li>
               <li>设置快捷键时，请确保不与系统或其他应用程序的快捷键冲突</li>
             </ul>
           </div>
@@ -129,7 +137,9 @@
           {{ currentEditingHotkeyName }}
         </span>
       </h3>
-      <p class="text-sm text-gray-600">点击下方区域，然后按下您想要设置的快捷键组合。</p>
+      <p class="text-sm text-gray-600">
+        点击下方区域，然后按下您想要设置的快捷键组合。
+      </p>
 
       <!-- 使用 HotkeyInterceptor 组件 -->
       <div class="h-32 border-2 border-dashed border-gray-300 rounded-lg">
@@ -163,9 +173,9 @@
 import { ref, computed, onMounted } from "vue";
 /** @ts-ignore */
 import IconMdiInformation from "~icons/mdi/information";
-import { HotkeyType } from "@/temp_code/typings/hotkey";
-import type { HotkeyConfig, HotkeySettingsConfig } from "@/temp_code/typings/hotkey";
-import { useApp } from "@/temp_code";
+import { HotkeyType } from "@/core/typings/hotkey";
+import type { HotkeyConfig, HotkeySettingsConfig } from "@/core/typings/hotkey";
+import { useApp } from "@/core";
 import HotkeyInterceptor from "./HotkeyInterceptor.vue";
 
 // 使用新的快捷键系统
@@ -317,7 +327,8 @@ defineExpose({ isEditingHotkey });
 <style scoped>
 /* kbd 标签样式 */
 kbd {
-  font-family: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo,
+  font-family:
+    ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo,
     monospace;
   font-size: 0.75rem;
   line-height: 1rem;

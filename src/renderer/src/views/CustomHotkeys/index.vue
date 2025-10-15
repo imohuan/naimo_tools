@@ -12,7 +12,9 @@
           <div
             class="flex-shrink-0 w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center"
           >
-            <span class="text-sm font-medium text-gray-600">{{ index + 1 }}</span>
+            <span class="text-sm font-medium text-gray-600">{{
+              index + 1
+            }}</span>
           </div>
 
           <!-- 输入框 -->
@@ -37,7 +39,10 @@
             >
               <div class="w-full h-full flex items-center justify-center">
                 <div
-                  v-if="hotkey.keys && !(isListening && currentListeningId === hotkey.id)"
+                  v-if="
+                    hotkey.keys &&
+                    !(isListening && currentListeningId === hotkey.id)
+                  "
                   class="flex items-center space-x-1"
                 >
                   <kbd
@@ -104,7 +109,9 @@
     <div v-if="customHotkeys.length === 0" class="text-center py-8">
       <IconMdiKeyboard class="w-12 h-12 text-gray-300 mx-auto mb-4" />
       <h3 class="text-lg font-medium text-gray-900 mb-2">暂无自定义快捷键</h3>
-      <p class="text-sm text-gray-500">点击下方按钮添加您的第一个自定义快捷键</p>
+      <p class="text-sm text-gray-500">
+        点击下方按钮添加您的第一个自定义快捷键
+      </p>
     </div>
 
     <!-- 统一的添加按钮 -->
@@ -112,7 +119,9 @@
       @click="addCustomHotkey"
       class="w-full border-2 border-dashed border-gray-300 rounded-lg bg-gray-50 hover:border-gray-400 hover:bg-gray-100 cursor-pointer transition-all duration-200 flex items-center justify-center px-4 py-3"
     >
-      <div class="flex items-center space-x-2 text-gray-400 hover:text-gray-600">
+      <div
+        class="flex items-center space-x-2 text-gray-400 hover:text-gray-600"
+      >
         <IconMdiPlus class="w-4 h-4" />
         <span class="text-sm font-medium">点击添加自定义快捷键</span>
       </div>
@@ -129,9 +138,9 @@ import IconMdiPlus from "~icons/mdi/plus";
 import IconMdiDelete from "~icons/mdi/delete";
 /** @ts-ignore */
 import IconMdiKeyboard from "~icons/mdi/keyboard";
-import { HotkeyType } from "@/temp_code/typings/hotkey";
-import type { HotkeyConfig } from "@/temp_code/typings/hotkey";
-import { useApp } from "@/temp_code";
+import { HotkeyType } from "@/core/typings/hotkey";
+import type { HotkeyConfig } from "@/core/typings/hotkey";
+import { useApp } from "@/core";
 import { useHotkeyListener } from "./hooks/useHotkeyListener";
 
 // 使用新的快捷键系统
@@ -308,7 +317,8 @@ onMounted(() => {
 <style scoped>
 /* kbd 标签样式 */
 kbd {
-  font-family: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo,
+  font-family:
+    ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo,
     monospace;
   font-size: 0.75rem;
   line-height: 1rem;

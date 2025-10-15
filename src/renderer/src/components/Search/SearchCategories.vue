@@ -82,7 +82,7 @@ import ContextMenu, {
   type ContextMenuItem,
 } from "@/components/ContextMenu/ContextMenu.vue";
 import AppItemComponent from "./AppItem.vue";
-import type { AppItem } from "@/temp_code/typings/search";
+import type { AppItem } from "@/core/typings/search";
 import type { SearchCategory } from "@/typings/searchTypes";
 /** @ts-ignore */
 import IconMdiCog from "~icons/mdi/cog";

@@ -4,7 +4,7 @@
  */
 
 import { ref, computed, readonly, nextTick } from 'vue'
-import { useApp } from '@/temp_code'
+import { useApp } from '@/core'
 import { LifecycleType } from '@/typings/windowTypes'
 import type { PluginItem } from '@/typings/pluginTypes'
 import type { AttachedFile } from '@/typings/composableTypes'

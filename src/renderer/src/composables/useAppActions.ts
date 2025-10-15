@@ -1,7 +1,7 @@
-import type { AppItem } from "@/temp_code/typings/search";
+import type { AppItem } from "@/core/typings/search";
 import type { PluginItem } from "@/typings/pluginTypes";
-import { appEventManager } from "@/temp_code/modules/event";
-import { useApp } from "@/temp_code";
+import { appEventManager } from "@/core/modules/event";
+import { useApp } from "@/core";
 
 export function useAppActions() {
   // 获取 app 实例和搜索 store

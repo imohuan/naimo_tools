@@ -930,7 +930,7 @@ example-plugin/
   "name": "示例插件",
   "version": "1.0.0",
   "author": "你的名字",
-  "icon": "🎯",
+  "icon": "./ico.png",
   "description": "这是一个示例插件",
   "category": "other",
   "enabled": true,
@@ -940,11 +940,10 @@ example-plugin/
     {
       "path": "example",
       "name": "示例功能",
-      "icon": "✨",
+      "icon": "./ico.png",
       "description": "示例功能描述",
       "type": "text",
       "weight": 100,
-      "lifecycleType": "reuse",
       "singleton": true,
       "anonymousSearchFields": ["示例", "example"]
     }

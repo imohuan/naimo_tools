@@ -187,7 +187,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from "vue";
 import { useEventListener } from "@vueuse/core";
-import { useApp } from "@/temp_code";
+import { useApp } from "@/core";
 import type { PluginConfig } from "@/typings/pluginTypes";
 import {
   PluginCategoryType,
@@ -199,7 +199,7 @@ import PluginDetail from "./PluginDetail.vue";
 import IconMdiChevronLeft from "~icons/mdi/chevron-left";
 /** @ts-ignore */
 import IconMdiChevronRight from "~icons/mdi/chevron-right";
-import { uniqueArrayByProperty } from "@/temp_code/utils/unique";
+import { uniqueArrayByProperty } from "@/core/utils/unique";
 
 const app = useApp();
 const pluginStore = app.plugin;

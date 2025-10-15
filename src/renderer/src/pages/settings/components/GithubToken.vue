@@ -9,13 +9,20 @@
       @click.stop
     >
       <!-- Header -->
-      <div class="flex items-center justify-between p-4 border-b border-gray-200">
+      <div
+        class="flex items-center justify-between p-4 border-b border-gray-200"
+      >
         <h3 class="text-lg font-semibold text-gray-900">GitHub Token 配置</h3>
         <button
           @click="closeModal"
           class="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
         >
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg
+            class="w-5 h-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
             <path
               stroke-linecap="round"
               stroke-linejoin="round"
@@ -29,7 +36,10 @@
       <!-- Body -->
       <div class="p-4 space-y-4">
         <div class="space-y-2">
-          <label for="token-input" class="block text-sm font-medium text-gray-700">
+          <label
+            for="token-input"
+            class="block text-sm font-medium text-gray-700"
+          >
             GitHub Token:
           </label>
           <input
@@ -77,7 +87,7 @@
 
 <script setup lang="ts">
 import { ref } from "vue";
-import { useApp } from "@/temp_code";
+import { useApp } from "@/core";
 
 const setTokenCallback = useApp().plugin.setGithubToken;
 

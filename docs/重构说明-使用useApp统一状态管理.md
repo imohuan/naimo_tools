@@ -90,7 +90,7 @@ const searchHeaderState = useSearchHeaderState();
 
 ```typescript
 // 导入统一的 app store
-import { useApp } from "@/temp_code";
+import { useApp } from "@/core";
 
 // 初始化 app
 const app = useApp();
@@ -130,7 +130,7 @@ import { useFilePaste } from "@/components/SearchHeader/hooks/useFilePaste";
 
 ```typescript
 // 只需要导入 useApp 和必要的全局 composables
-import { useApp } from "@/temp_code";
+import { useApp } from "@/core";
 import { useFileHandler } from "@/composables/useFileHandler";
 import { useWindowManager } from "@/composables/useWindowManager";
 // ... 少量全局 composables
@@ -272,7 +272,7 @@ const { show, hide } = useWindowManager();
 
 **步骤：**
 
-1. 在 `src/renderer/src/temp_code/modules/ui/index.ts` 中添加状态
+1. 在 `src/renderer/src/core/modules/ui/index.ts` 中添加状态
 2. 在 App.vue 中使用 `app.ui.xxx` 访问
 3. 如果需要响应式，使用 `computed`
 

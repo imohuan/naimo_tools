@@ -58,7 +58,7 @@
 <script setup lang="ts">
 import { ref, watch, nextTick } from "vue";
 import IconDisplay from "@/components/Common/IconDisplay.vue";
-import type { AppItem } from "@/temp_code/typings/search";
+import type { AppItem } from "@/core/typings/search";
 /** @ts-ignore */
 import IconMdiApplication from "~icons/mdi/application";
 
@@ -70,7 +70,12 @@ interface Props {
 
 interface Emits {
   (e: "app-click", app: AppItem): void;
-  (e: "context-menu", event: MouseEvent, app: AppItem, categoryId: string): void;
+  (
+    e: "context-menu",
+    event: MouseEvent,
+    app: AppItem,
+    categoryId: string
+  ): void;
 }
 
 const props = defineProps<Props>();

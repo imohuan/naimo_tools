@@ -28,7 +28,7 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
-import type { PluginSetting } from "@/temp_code/typings/plugin";
+import type { PluginSetting } from "@/core/typings/plugin";
 // @ts-ignore
 import IconMdiDotsVertical from "~icons/mdi/dots-vertical";
 // @ts-ignore
