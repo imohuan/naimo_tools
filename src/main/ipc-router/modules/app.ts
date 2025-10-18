@@ -7,6 +7,7 @@ import { app, shell } from "electron";
 import log from "electron-log";
 import { getApps, AppPath, getIconDataURLAsync } from "@libs/app-search";
 import { join } from "path";
+import { access } from "fs/promises";
 import { appBootstrap } from '@main/main';
 import { NewWindowManager } from '@main/window/NewWindowManager';
 import { ViewType } from '@renderer/src/typings';
@@ -362,6 +363,23 @@ export async function getAutoLaunchStatus(
     return isEnabled;
   } catch (error) {
     log.error('❌ 获取开机自启状态失败:', error);
+    return false;
+  }
+}
+
+/**
+ * 检查路径是否存在
+ * @param event IPC事件
+ * @param path 路径
+ * @returns 是否存在
+ */
+export async function checkPathExists(event: Electron.IpcMainInvokeEvent, path: string): Promise<boolean> {
+  try {
+    log.info("🔍 检查路径是否存在:", path);
+    await access(path);
+    return true;
+  } catch (error) {
+    log.error("❌ 检查路径是否存在失败:", error);
     return false;
   }
 }

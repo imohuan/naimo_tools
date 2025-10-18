@@ -22,6 +22,8 @@ export function useAppActions() {
 
         if (!pluginItem) {
           console.error("❌ 未找到插件项目:", appItem.name);
+          // 删除该插件
+          handleAppDelete(appItem as any);
           return false;
         }
 
@@ -34,6 +36,14 @@ export function useAppActions() {
       } else {
         // 普通应用项目，使用原有逻辑
         console.log("📱 检测到普通应用项目，使用默认执行逻辑:", appItem.name);
+        // 判断地址是否存在
+        const exists = await naimo.router.appCheckPathExists(appItem.path);
+        if (!exists) {
+          console.error("❌ 应用地址不存在:", appItem.path);
+          // 删除该应用
+          handleAppDelete(appItem as any);
+          return false;
+        }
         const success = await naimo.router.appLaunchApp(appItem.path);
         if (success) {
           await updateRecentApps(appItem as AppItem);

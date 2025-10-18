@@ -11,7 +11,7 @@ export class TemporaryPluginInstaller extends BasePluginInstaller {
   readonly pluginType = 'temporary'
 
   canHandle(source: any): boolean {
-    if (typeof source !== 'string') return false
+    if (typeof source !== 'string') return source?.options?.pluginType === 'temporary'
     const isUrl = /^http?s:\/\/.+/.test(source)
     return !isUrl
   }
@@ -22,6 +22,7 @@ export class TemporaryPluginInstaller extends BasePluginInstaller {
     for (const pluginPath of pluginPaths) {
       const config = await naimo.webUtils.loadPluginDir(pluginPath)
       if (!config) continue
+      this.setPluginType(config)
       plugins.push(config)
     }
     return plugins

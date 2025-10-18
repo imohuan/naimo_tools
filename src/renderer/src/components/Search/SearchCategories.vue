@@ -84,10 +84,16 @@ import ContextMenu, {
 import AppItemComponent from "./AppItem.vue";
 import type { AppItem } from "@/core/typings/search";
 import type { SearchCategory } from "@/typings/searchTypes";
+import { usePluginStoreNew } from "@/core";
 /** @ts-ignore */
 import IconMdiCog from "~icons/mdi/cog";
 /** @ts-ignore */
 import IconMdiApplication from "~icons/mdi/application";
+/** @ts-ignore */
+import IconMdiRefresh from "~icons/mdi/refresh";
+/** @ts-ignore */
+import IconMdiClose from "~icons/mdi/close";
+import type { PluginItem } from "@/typings";
 
 interface Props {
   categories: SearchCategory[];
@@ -105,6 +111,7 @@ interface Emits {
 
 const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
+const pluginStore = usePluginStoreNew();
 
 // 检查项目是否被选中
 const isItemSelected = (app: AppItem, categoryId: string): boolean => {
@@ -152,11 +159,34 @@ const onDragEnd = (categoryId: string) => {
   }
 };
 
+// 检查是否是临时插件
+const isTempPlugin = computed(() => {
+  if (!currentApp.value?.fullPath) return false;
+  return pluginStore.temporaryFullPaths.includes(currentApp.value.fullPath);
+});
+
 // 右键菜单项目
 const contextMenuItems = computed((): ContextMenuItem[] => {
   if (!currentApp.value || !currentCategoryId.value) return [];
 
   const items: ContextMenuItem[] = [];
+
+  // 临时插件刷新功能
+  if (isTempPlugin.value) {
+    items.push({
+      key: "refresh",
+      label: "刷新插件",
+      icon: IconMdiRefresh,
+      action: () => handlePluginRefresh(currentApp.value!),
+    });
+    items.push({
+      key: "uninstall",
+      label: "卸载插件",
+      icon: IconMdiClose,
+      danger: true,
+      action: () => handlePluginUninstall(currentApp.value!),
+    });
+  }
 
   // 固定功能 - 基于 item 的 __metadata 配置
   if (
@@ -215,6 +245,22 @@ const handleAppDelete = (app: AppItem, categoryId: string) => {
 // 处理应用固定
 const handleAppPin = (app: AppItem, categoryId: string) => {
   emit("app-pin", app, categoryId);
+};
+
+// 处理插件刷新
+const handlePluginRefresh = (app: AppItem) => {
+  console.log("刷新插件:", app.name, app.fullPath, app, pluginStore);
+  if (!(app as PluginItem).pluginId) return;
+  const pluginItem = pluginStore.getPlugin((app as PluginItem).pluginId!);
+  if (!pluginItem || !pluginItem.options?.temporaryPath) return;
+  pluginStore.install(pluginItem.options.temporaryPath, true);
+};
+
+// 处理插件卸载
+const handlePluginUninstall = (app: AppItem) => {
+  console.log("卸载插件:", app.name, app.fullPath);
+  if (!(app as PluginItem).pluginId) return;
+  pluginStore.uninstall((app as PluginItem).pluginId!);
 };
 </script>
 

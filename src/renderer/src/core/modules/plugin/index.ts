@@ -17,10 +17,10 @@ import { SystemPluginInstaller } from "./modules/system";
 import semver from "semver";
 
 const modules = {
+  temporary: new TemporaryPluginInstaller(),
   system: new SystemPluginInstaller(),
   local: new LocalPluginInstaller(),
   github: new GithubPluginInstaller(),
-  temporary: new TemporaryPluginInstaller(),
 };
 modules.github.setLocalInstaller(modules.local);
 
@@ -58,6 +58,14 @@ export const usePluginStoreNew = defineStore("pluginNew", () => {
   const localPlugins = computed(() =>
     availablePlugins.value.filter((p) => p.options?.pluginType === "local")
   );
+  const temporaryPlugins = computed(() => availablePlugins.value.filter((p) => p.options?.pluginType === "temporary"))
+  const temporaryItems = computed(() =>
+    temporaryPlugins.value.flatMap((plugin) => plugin.feature)
+  );
+  const temporaryFullPaths = computed(() =>
+    temporaryItems.value.map((m) => m.fullPath || `${m.pluginId}:${m.path}`)
+  );
+
   const githubPlugins = shallowRef<PluginConfig[]>([]);
   const pluginCount = computed(() => installedPlugins.value.length);
   const enabledCount = computed(() => enabledPlugins.value.length);
@@ -538,6 +546,9 @@ export const usePluginStoreNew = defineStore("pluginNew", () => {
     systemPlugins, // 已禁用系统插件
     localPlugins,
     githubPlugins,
+    temporaryPlugins,
+    temporaryItems,
+    temporaryFullPaths,
     needUpdatePlugins,
     pluginCount,
     enabledCount,

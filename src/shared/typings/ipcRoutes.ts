@@ -1,6 +1,6 @@
 /**
  * 自动生成的 IPC 类型定义
- * 生成时间: 2025-10-18T05:26:04.871Z
+ * 生成时间: 2025-10-18T06:12:15.170Z
  * 请勿手动修改此文件
  */
 
@@ -177,6 +177,21 @@ interface appInterface {
  * @returns 是否已启用开机自启
  */
   "appGetAutoLaunchStatus": () => Promise<boolean>;
+
+  /**
+ * 检查路径是否存在
+ * @param IPC事件
+ * @param 路径
+ * @returns 是否存在
+ */
+  "app-check-path-exists": (path: string) => Promise<boolean>;
+  /**
+ * 检查路径是否存在
+ * @param IPC事件
+ * @param 路径
+ * @returns 是否存在
+ */
+  "appCheckPathExists": (path: string) => Promise<boolean>;
 }
 
 interface clipboardInterface {
@@ -1743,6 +1758,12 @@ export const ROUTE_INFO: RouteInfo[] = [
     comment: "获取开机自启状态",
     module: "app",
     function: "getAutoLaunchStatus"
+  },
+  {
+    route: "app-check-path-exists",
+    comment: "检查路径是否存在",
+    module: "app",
+    function: "checkPathExists"
   },
   {
     route: "clipboard-read-text",

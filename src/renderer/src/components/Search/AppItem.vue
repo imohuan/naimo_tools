@@ -38,6 +38,14 @@
           />
         </template>
       </IconDisplay>
+
+      <!-- 临时标签 -->
+      <div
+        v-if="isTemp"
+        class="absolute top-0 right-0 bg-red-500 text-white text-[8px] px-2.5 py-0.5 z-20 shadow-md temp-ribbon"
+      >
+        临时
+      </div>
     </div>
 
     <!-- 应用名称 -->
@@ -61,6 +69,7 @@ import IconDisplay from "@/components/Common/IconDisplay.vue";
 import type { AppItem } from "@/core/typings/search";
 /** @ts-ignore */
 import IconMdiApplication from "~icons/mdi/application";
+import { usePluginStoreNew } from "@/core";
 
 interface Props {
   app: AppItem;
@@ -80,8 +89,13 @@ interface Emits {
 
 const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
-
+const pluginStore = usePluginStoreNew();
 const itemRef = ref<HTMLElement>();
+
+const isTemp = computed(() => {
+  if (!props.app.fullPath) return false;
+  return pluginStore.temporaryFullPaths.includes(props.app.fullPath);
+});
 
 // 滚动到可视区域的函数
 const scrollToVisible = () => {
@@ -177,5 +191,16 @@ const handleContextMenu = (event: MouseEvent) => {
 .draggable-item:focus-visible {
   outline: 2px solid rgba(107, 114, 128, 0.5);
   outline-offset: 2px;
+}
+
+/* 临时标签彩带效果 */
+.temp-ribbon {
+  transform: rotate(45deg);
+  transform-origin: center;
+  position: absolute;
+  top: -1px;
+  right: -10px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
 }
 </style>

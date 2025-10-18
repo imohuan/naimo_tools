@@ -258,9 +258,13 @@ export const useSearchStore = defineStore('search', () => {
   // 显示默认结果
   const showDefaultResults = () => {
     let results: AppItem[] = searchItems.value
+    console.log("searchItems", searchItems.value);
+
+    const pluginStore = usePluginStoreNew()
     results = searchItems.value.filter(item => {
       const categories = ['applications', 'pinned', 'recent', 'files']
       if (import.meta.env.DEV) categories.push('plugin')
+      else if (item.fullPath) return pluginStore.temporaryFullPaths.includes(item.fullPath);
       const includeCategory = categories.includes(item.category || '')
       return includeCategory
     })
