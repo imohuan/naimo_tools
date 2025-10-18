@@ -335,6 +335,15 @@ window.addEventListener('DOMContentLoaded', () => {
         if (!event.defaultPrevented) {
           // 页面没有阻止事件，执行主进程的默认行为
           try {
+            // 获取当前视图信息，判断是否是分离窗口
+            const viewInfo = await ipcRouter.windowGetCurrentViewInfo();
+            const isDetachedWindow = viewInfo?.state?.isDetached === true;
+
+            // 如果是分离窗口，则不执行默认 ESC 快捷键处理
+            if (isDetachedWindow) {
+              log.debug('当前窗口为分离窗口，跳过默认 ESC 快捷键处理');
+              return;
+            }
             await ipcRouter.windowHandleDefaultEscShortcut();
           } catch (error) {
             log.error('执行默认 ESC 快捷键失败:', error);

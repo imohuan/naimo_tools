@@ -805,14 +805,26 @@ export async function detachNewView(event: Electron.IpcMainInvokeEvent, viewId: 
   try {
     const manager = NewWindowManager.getInstance()
 
-    const detachConfig = config ? {
-      title: config.title,
-      bounds: config.width && config.height ? {
-        x: 0, y: 0, width: config.width, height: config.height
-      } : undefined,
-      showControlBar: config.showControlBar !== false,
-      sourceViewId: viewId
-    } : undefined
+    // 构建分离配置，只包含有值的字段，避免 undefined 覆盖默认值
+    let detachConfig: Partial<any> | undefined = undefined
+
+    if (config) {
+      detachConfig = {}
+
+      if (config.title) {
+        detachConfig.title = config.title
+      }
+      if (config.width && config.height) {
+        detachConfig.bounds = {
+          x: 0, y: 0,
+          width: config.width,
+          height: config.height
+        }
+      }
+      if (config.showControlBar !== undefined) {
+        detachConfig.showControlBar = config.showControlBar
+      }
+    }
 
     const result = await manager.detachView(viewId, detachConfig)
 
@@ -1285,6 +1297,7 @@ export function getCurrentViewInfo(event: Electron.IpcMainInvokeEvent): {
     isActive: boolean;
     lastAccessTime: number;
     memoryUsage?: number;
+    isDetached?: boolean;
   };
   createdAt: string; // 序列化为ISO字符串
 } | null {
@@ -1308,13 +1321,22 @@ export async function showPopupMenu(
   options: {
     items: Array<{
       label: string;
+      type?: 'normal' | 'separator' | 'checkbox' | 'radio';
       checked?: boolean;
       enabled?: boolean;
+      submenu?: Array<{
+        label: string;
+        type?: 'normal' | 'separator' | 'checkbox' | 'radio';
+        checked?: boolean;
+        enabled?: boolean;
+        id?: string;
+      }>;
+      id?: string;
     }>;
     x?: number;
     y?: number;
   }
-): Promise<number | null> {
+): Promise<string | null> {
   return new Promise((resolve) => {
     try {
       // 获取发送请求的窗口
@@ -1325,16 +1347,66 @@ export async function showPopupMenu(
         return;
       }
 
+      // 构建菜单模板的辅助函数
+      const buildMenuTemplate = (items: typeof options.items): any[] => {
+        return items.map((item) => {
+          const menuItem: any = {
+            label: item.label,
+            enabled: item.enabled !== false,
+          };
+
+          // 处理子菜单
+          if (item.submenu && item.submenu.length > 0) {
+            // 有子菜单时，不设置 type，让 Electron 自动识别为 submenu
+            menuItem.submenu = item.submenu.map((subItem) => {
+              const subMenuItem: any = {
+                label: subItem.label,
+                enabled: subItem.enabled !== false,
+              };
+
+              // 设置子菜单项的类型
+              if (subItem.type) {
+                subMenuItem.type = subItem.type;
+              }
+
+              // 处理 checkbox 和 radio 类型的 checked 属性
+              if (subItem.type === 'checkbox' || subItem.type === 'radio') {
+                subMenuItem.checked = subItem.checked || false;
+              }
+
+              if (subItem.id) {
+                subMenuItem.click = () => {
+                  resolve(subItem.id!);
+                };
+              }
+
+              return subMenuItem;
+            });
+          } else {
+            // 没有子菜单时才设置 type
+            if (item.type) {
+              menuItem.type = item.type;
+            }
+
+            // 处理 checkbox 和 radio 类型的 checked 属性
+            if (item.type === 'checkbox' || item.type === 'radio') {
+              menuItem.checked = item.checked || false;
+            }
+
+            // 设置点击事件
+            if (item.id) {
+              menuItem.click = () => {
+                resolve(item.id!);
+              };
+            }
+          }
+
+          return menuItem;
+        });
+      };
+
       // 构建菜单模板
-      const menuTemplate = options.items.map((item, index) => ({
-        label: item.label,
-        type: 'checkbox' as const,
-        checked: item.checked || false,
-        enabled: item.enabled !== false,
-        click: () => {
-          resolve(index);
-        }
-      }));
+      const menuTemplate = buildMenuTemplate(options.items);
 
       // 创建菜单
       const menu = Menu.buildFromTemplate(menuTemplate);
@@ -1354,6 +1426,47 @@ export async function showPopupMenu(
       resolve(null);
     }
   });
+}
+
+/**
+ * 设置指定视图的页面缩放
+ */
+export async function setViewZoomFactor(
+  event: Electron.IpcMainInvokeEvent,
+  viewId: string,
+  zoomFactor: number
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    log.info(`尝试设置视图缩放: ${viewId}, 缩放比例: ${zoomFactor}`);
+
+    // 限制缩放范围
+    if (zoomFactor < 0.3 || zoomFactor > 1.5) {
+      log.warn(`缩放比例超出范围: ${zoomFactor}，将限制在 0.3-1.5 之间`);
+      zoomFactor = Math.max(0.3, Math.min(1.5, zoomFactor));
+    }
+
+    const manager = NewWindowManager.getInstance();
+    const viewManager = manager.getViewManager();
+
+    const viewInfo = viewManager.getViewInfo(viewId);
+    if (!viewInfo) {
+      log.warn(`未找到视图: ${viewId}`);
+      return { success: false, error: '视图不存在' };
+    }
+
+    if (viewInfo.view.webContents.isDestroyed()) {
+      log.warn(`视图 ${viewId} 的 webContents 已销毁`);
+      return { success: false, error: 'webContents 已销毁' };
+    }
+
+    viewInfo.view.webContents.setZoomFactor(zoomFactor);
+    log.info(`成功设置视图 ${viewId} 的缩放比例: ${(zoomFactor * 100).toFixed(0)}%`);
+
+    return { success: true };
+  } catch (error) {
+    log.error('设置视图缩放失败:', error);
+    return { success: false, error: error instanceof Error ? error.message : '未知错误' };
+  }
 }
 
 /**

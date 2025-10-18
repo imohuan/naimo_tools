@@ -82,6 +82,16 @@ interface ElectronAPI {
      * @returns 窗口信息对象
      */
     getCurrentWindowInfo: () => Promise<{ windowId: number | null; viewId: string | null; isDetached: boolean }>;
+    /**
+     * 设置页面缩放比例
+     * @param factor 缩放比例（0.3-1.5）
+     */
+    setZoomFactor: (factor: number) => void;
+    /**
+     * 获取当前页面缩放比例
+     * @returns 当前缩放比例
+     */
+    getZoomFactor: () => number;
   };
   auto: {
     parseHtmlByConfig: (config: DomParserConfig | DomParserConfig[], html: string) => any;

@@ -1,6 +1,6 @@
 /**
  * 自动生成的 IPC 类型定义
- * 生成时间: 2025-10-15T11:02:01.371Z
+ * 生成时间: 2025-10-18T05:13:49.486Z
  * 请勿手动修改此文件
  */
 
@@ -1529,6 +1529,7 @@ interface windowInterface {
     isActive: boolean;
     lastAccessTime: number;
     memoryUsage?: number;
+    isDetached?: boolean;
   };
   createdAt: string; // 序列化为ISO字符串
 } | null>;
@@ -1547,6 +1548,7 @@ interface windowInterface {
     isActive: boolean;
     lastAccessTime: number;
     memoryUsage?: number;
+    isDetached?: boolean;
   };
   createdAt: string; // 序列化为ISO字符串
 } | null>;
@@ -1560,12 +1562,21 @@ interface windowInterface {
   "window-show-popup-menu": (options: {
     items: Array<{
       label: string;
+      type?: 'normal' | 'separator' | 'checkbox' | 'radio';
       checked?: boolean;
       enabled?: boolean;
+      submenu?: Array<{
+        label: string;
+        type?: 'normal' | 'separator' | 'checkbox' | 'radio';
+        checked?: boolean;
+        enabled?: boolean;
+        id?: string;
+      }>;
+      id?: string;
     }>;
     x?: number;
     y?: number;
-  }) => Promise<number | null>;
+  }) => Promise<string | null>;
   /**
  * 显示系统弹出菜单
  * @param IPC事件对象
@@ -1575,12 +1586,26 @@ interface windowInterface {
   "windowShowPopupMenu": (options: {
     items: Array<{
       label: string;
+      type?: 'normal' | 'separator' | 'checkbox' | 'radio';
       checked?: boolean;
       enabled?: boolean;
+      submenu?: Array<{
+        label: string;
+        type?: 'normal' | 'separator' | 'checkbox' | 'radio';
+        checked?: boolean;
+        enabled?: boolean;
+        id?: string;
+      }>;
+      id?: string;
     }>;
     x?: number;
     y?: number;
-  }) => Promise<number | null>;
+  }) => Promise<string | null>;
+
+  /** 设置指定视图的页面缩放 */
+  "window-set-view-zoom-factor": (viewId: string, zoomFactor: number) => Promise<{ success: boolean; error?: string }>;
+  /** 设置指定视图的页面缩放 */
+  "windowSetViewZoomFactor": (viewId: string, zoomFactor: number) => Promise<{ success: boolean; error?: string }>;
 
   /** 打开指定视图的 DevTools */
   "window-open-view-dev-tools": (viewId: string) => Promise<{ success: boolean; error?: string }>;
@@ -2390,6 +2415,12 @@ export const ROUTE_INFO: RouteInfo[] = [
     comment: "显示系统弹出菜单",
     module: "window",
     function: "showPopupMenu"
+  },
+  {
+    route: "window-set-view-zoom-factor",
+    comment: "设置指定视图的页面缩放",
+    module: "window",
+    function: "setViewZoomFactor"
   },
   {
     route: "window-open-view-dev-tools",

@@ -1345,6 +1345,7 @@ export class ViewManager {
       isActive: boolean;
       lastAccessTime: number;
       memoryUsage?: number;
+      isDetached?: boolean;
     };
     createdAt: string; // 序列化为ISO字符串
   } | null {
@@ -1365,7 +1366,8 @@ export class ViewManager {
               isVisible: viewInfo.state.isVisible,
               isActive: viewInfo.state.isActive,
               lastAccessTime: viewInfo.state.lastAccessTime,
-              memoryUsage: viewInfo.state.memoryUsage
+              memoryUsage: viewInfo.state.memoryUsage,
+              isDetached: viewInfo.state.isDetached,
             },
             createdAt: viewInfo.createdAt.toISOString()
           }

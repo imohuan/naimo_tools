@@ -128,6 +128,8 @@ export interface WebContentsViewInfo {
     lastAccessTime: number
     /** 内存使用量（字节） */
     memoryUsage?: number
+    /** 是否已分离到独立窗口 */
+    isDetached?: boolean
   }
   /** 创建时间 */
   createdAt: Date

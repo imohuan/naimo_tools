@@ -21,6 +21,8 @@ export interface PluginSetting {
   backgroundRun: boolean
   /** 跟随主程序同时启动 */
   followMainProgram: boolean
+  /** 页面缩放比例（0.3-1.5，默认1.0） */
+  zoomFactor?: number
 }
 
 /**

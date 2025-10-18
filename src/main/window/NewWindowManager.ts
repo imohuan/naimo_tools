@@ -774,10 +774,10 @@ export class NewWindowManager {
         throw new Error('视图不存在')
       }
 
-      // 执行分离操作
+      // 执行分离操作 - 使用视图实际所在的父窗口ID，而不是硬编码主窗口ID
       const detachResult = await this.detachManager.detachView(
         viewInfo,
-        this.mainWindow.id,
+        viewInfo.parentWindowId, // 修复：使用视图实际所在的窗口ID
         config
       )
 

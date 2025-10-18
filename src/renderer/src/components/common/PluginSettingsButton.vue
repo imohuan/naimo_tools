@@ -27,7 +27,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, onMounted } from "vue";
 import type { PluginSetting } from "@/core/typings/plugin";
 // @ts-ignore
 import IconMdiDotsVertical from "~icons/mdi/dots-vertical";
@@ -61,12 +61,30 @@ const pluginOptions = [
   },
   {
     key: "followMainProgram" as keyof PluginSetting,
-    label: "跟随主程序同时启动",
+    label: "跟随主程序同时启动时运行",
   },
 ];
 
 // 按钮标题
 const buttonTitle = computed(() => `${props.pluginName}设置`);
+
+// 计算插件的 viewId（格式：plugin:pluginId）
+const pluginViewId = computed(() => `plugin:${props.pluginId}`);
+
+/**
+ * 获取插件视图信息
+ */
+const getPluginViewInfo = async () => {
+  try {
+    // 直接返回计算出的 viewId
+    return {
+      id: pluginViewId.value,
+    };
+  } catch (error) {
+    console.error("❌ 获取插件视图信息失败:", error);
+    return null;
+  }
+};
 
 /**
  * 获取插件设置
@@ -82,6 +100,7 @@ const getPluginSettings = async (): Promise<PluginSetting> => {
       autoSeparate: settings?.autoSeparate ?? false,
       backgroundRun: settings?.backgroundRun ?? false,
       followMainProgram: settings?.followMainProgram ?? false,
+      zoomFactor: settings?.zoomFactor ?? 1.0,
     };
   } catch (error) {
     console.error("❌ 获取插件设置失败:", error);
@@ -89,6 +108,7 @@ const getPluginSettings = async (): Promise<PluginSetting> => {
       autoSeparate: false,
       backgroundRun: false,
       followMainProgram: false,
+      zoomFactor: 1.0,
     };
   }
 };
@@ -96,7 +116,9 @@ const getPluginSettings = async (): Promise<PluginSetting> => {
 /**
  * 保存插件设置
  */
-const savePluginSettings = async (settings: PluginSetting): Promise<void> => {
+const savePluginSettings = async (
+  settings: Partial<PluginSetting>
+): Promise<void> => {
   try {
     const allSettings = (await naimo.router.storeGet(
       "pluginSetting"
@@ -116,6 +138,78 @@ const savePluginSettings = async (settings: PluginSetting): Promise<void> => {
 };
 
 /**
+ * 分离窗口
+ */
+const separateWindow = async () => {
+  try {
+    const viewInfo = await getPluginViewInfo();
+    if (!viewInfo) {
+      console.error("❌ 无法获取插件视图信息");
+      return;
+    }
+
+    const result = await naimo.router.windowDetachNewView(viewInfo.id, {
+      title: props.pluginName,
+      showControlBar: true,
+    });
+
+    if (result.success) {
+      console.log("✅ 窗口分离成功");
+    } else {
+      console.error("❌ 窗口分离失败:", result.error);
+    }
+  } catch (error) {
+    console.error("❌ 分离窗口失败:", error);
+  }
+};
+
+/**
+ * 结束运行
+ */
+const terminatePlugin = async () => {
+  try {
+    const result = await naimo.router.windowClosePluginView();
+
+    if (result.success) {
+      console.log("✅ 已结束运行");
+    } else {
+      console.error("❌ 结束运行失败:", result.error);
+    }
+  } catch (error) {
+    console.error("❌ 结束运行失败:", error);
+  }
+};
+
+/**
+ * 设置页面缩放
+ */
+const setZoomFactor = async (zoomFactor: number) => {
+  try {
+    const viewInfo = await getPluginViewInfo();
+    if (!viewInfo) {
+      console.error("❌ 无法获取插件视图信息");
+      return;
+    }
+
+    // 通过 IPC 设置指定视图的缩放
+    const result = await naimo.router.windowSetViewZoomFactor(
+      viewInfo.id,
+      zoomFactor
+    );
+
+    if (result.success) {
+      // 保存到配置
+      await savePluginSettings({ zoomFactor });
+      console.log(`✅ 页面缩放已设置为: ${(zoomFactor * 100).toFixed(0)}%`);
+    } else {
+      console.error("❌ 设置页面缩放失败:", result.error);
+    }
+  } catch (error) {
+    console.error("❌ 设置页面缩放失败:", error);
+  }
+};
+
+/**
  * 显示插件菜单
  */
 const showPluginMenu = async () => {
@@ -123,33 +217,119 @@ const showPluginMenu = async () => {
     // 获取当前设置
     const currentSettings = await getPluginSettings();
 
+    // 生成缩放选项 (30% - 150%, 步进10%)
+    const zoomOptions = [];
+    const currentZoomPercentage = Math.round(
+      (currentSettings.zoomFactor ?? 1.0) * 100
+    );
+    for (let zoom = 30; zoom <= 150; zoom += 10) {
+      zoomOptions.push({
+        label: `${zoom}%`,
+        type: "radio" as const,
+        checked: zoom === currentZoomPercentage,
+        id: `zoom-${zoom}`,
+      });
+    }
+
     // 构建菜单项
-    const menuItems = pluginOptions.map((option) => ({
-      label: option.label,
-      checked: currentSettings[option.key],
-      enabled: true,
-    }));
+    const menuItems = [
+      {
+        label: "分离为独立窗口 ( Alt + D)",
+        type: "normal" as const,
+        id: "separate-window",
+      },
+      {
+        label: "插件应用设置",
+        type: "normal" as const,
+        submenu: pluginOptions.map((option) => ({
+          label: option.label,
+          type: "checkbox" as const,
+          checked: currentSettings[option.key] as boolean,
+          id: `setting-${option.key}`,
+        })),
+      },
+      {
+        label: "插件页面缩放",
+        type: "normal" as const,
+        submenu: zoomOptions,
+      },
+      {
+        label: "结束运行",
+        type: "normal" as const,
+        id: "terminate",
+      },
+    ];
 
     // 显示系统弹出菜单
-    const selectedIndex = await naimo.router.windowShowPopupMenu({
+    const selectedId: string | null = await naimo.router.windowShowPopupMenu({
       items: menuItems,
     });
 
     // 处理用户选择
-    if (selectedIndex !== null && selectedIndex !== undefined) {
-      const selectedKey = pluginOptions[selectedIndex].key;
+    if (!selectedId) {
+      return;
+    }
+
+    // 处理分离窗口
+    if (selectedId === "separate-window") {
+      await separateWindow();
+      return;
+    }
+
+    // 处理结束运行
+    if (selectedId === "terminate") {
+      await terminatePlugin();
+      return;
+    }
+
+    // 处理插件应用设置
+    if (selectedId.startsWith("setting-")) {
+      const settingKey = selectedId.replace(
+        "setting-",
+        ""
+      ) as keyof PluginSetting;
       const newSettings = {
         ...currentSettings,
-        [selectedKey]: !currentSettings[selectedKey],
+        [settingKey]: !currentSettings[settingKey],
       };
-
-      // 保存设置
       await savePluginSettings(newSettings);
+      return;
+    }
+
+    // 处理页面缩放
+    if (selectedId.startsWith("zoom-")) {
+      const zoomPercentage = parseInt(selectedId.replace("zoom-", ""));
+      const zoomFactor = zoomPercentage / 100;
+      await setZoomFactor(zoomFactor);
+      return;
     }
   } catch (error) {
     console.error("❌ 显示插件菜单失败:", error);
   }
 };
+
+// 组件挂载时应用保存的缩放设置
+onMounted(async () => {
+  try {
+    const settings = await getPluginSettings();
+    if (settings.zoomFactor && settings.zoomFactor !== 1.0) {
+      const viewInfo = await getPluginViewInfo();
+      if (viewInfo) {
+        const result = await naimo.router.windowSetViewZoomFactor(
+          viewInfo.id,
+          settings.zoomFactor
+        );
+        if (result.success) {
+          console.log(
+            `✅ 已应用保存的缩放设置: ${(settings.zoomFactor * 100).toFixed(0)}%`
+          );
+        }
+      }
+    }
+  } catch (error) {
+    console.error("❌ 应用保存的缩放设置失败:", error);
+  }
+});
 
 defineExpose({ showPluginMenu });
 </script>

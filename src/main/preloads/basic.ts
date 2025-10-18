@@ -1,5 +1,5 @@
 import log from "electron-log/renderer";
-import { contextBridge, ipcRenderer, webUtils as electronWebUtils } from "electron";
+import { contextBridge, ipcRenderer, webUtils as electronWebUtils, webFrame } from "electron";
 import { RendererErrorHandler } from "@libs/unhandled/renderer";
 import { ipcRouter } from "@shared/utils/ipcRouterClient";
 import { isDevelopment } from "@shared/utils";
@@ -264,6 +264,36 @@ const electronAPI = {
           viewId: null,
           isDetached: false
         };
+      }
+    },
+
+    /**
+     * 设置页面缩放比例
+     * @param factor 缩放比例（0.3-1.5）
+     */
+    setZoomFactor: (factor: number): void => {
+      try {
+        if (factor < 0.3 || factor > 1.5) {
+          log.warn(`缩放比例超出范围: ${factor}，将限制在 0.3-1.5 之间`);
+          factor = Math.max(0.3, Math.min(1.5, factor));
+        }
+        webFrame.setZoomFactor(factor);
+        log.debug(`页面缩放已设置为: ${(factor * 100).toFixed(0)}%`);
+      } catch (error) {
+        log.error('设置页面缩放失败:', error);
+      }
+    },
+
+    /**
+     * 获取当前页面缩放比例
+     * @returns 当前缩放比例
+     */
+    getZoomFactor: (): number => {
+      try {
+        return webFrame.getZoomFactor();
+      } catch (error) {
+        log.error('获取页面缩放失败:', error);
+        return 1.0;
       }
     }
   },

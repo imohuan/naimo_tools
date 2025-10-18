@@ -374,6 +374,15 @@ export class DetachManager {
         log.warn('ViewManager 未设置或不支持 updateViewParentWindow 方法')
       }
 
+      // 设置视图的分离状态
+      if (this.viewManager) {
+        const viewInfo = this.viewManager.getViewInfo(sourceView.id)
+        if (viewInfo) {
+          viewInfo.state.isDetached = true
+          log.info(`已设置视图 ${sourceView.id} 的分离状态: isDetached = true`)
+        }
+      }
+
       // 显示分离窗口
       detachedWindow.show()
 
@@ -488,6 +497,15 @@ export class DetachManager {
         }
       } else {
         log.warn('ViewManager 未设置或不支持 updateViewParentWindow 方法')
+      }
+
+      // 清除视图的分离状态
+      if (this.viewManager) {
+        const viewInfo = this.viewManager.getViewInfo(detachedWindowInfo.sourceViewId)
+        if (viewInfo) {
+          viewInfo.state.isDetached = false
+          log.info(`已清除视图 ${detachedWindowInfo.sourceViewId} 的分离状态: isDetached = false`)
+        }
       }
 
       // 重新绑定主窗口的快捷键（因为视图已经从分离窗口移回主窗口）
@@ -1109,11 +1127,11 @@ export class DetachManager {
     detachedWindowInfo: DetachedWindowInfo
   ): void {
     // ESC 关闭窗口
-    if (input.key === 'Escape' && input.type === 'keyDown') {
-      detachedWindowInfo.window.close()
-      event.preventDefault()
-      return
-    }
+    // if (input.key === 'Escape' && input.type === 'keyDown') {
+    //   detachedWindowInfo.window.close()
+    //   event.preventDefault()
+    //   return
+    // }
 
     // Alt+R 重新附加
     if (input.key === 'r' && input.alt && input.type === 'keyDown') {
