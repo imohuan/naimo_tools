@@ -19,6 +19,7 @@ export abstract class BaseListModule implements SearchModule {
     // 为每个 item 添加 __metadata
     return items.map((item: AppItem) => ({
       ...item,
+      ...(item?.weight ? { weight: item.weight } : { weight: this.weight }),
       __metadata: {
         enableDelete: true,
         enablePin: false,

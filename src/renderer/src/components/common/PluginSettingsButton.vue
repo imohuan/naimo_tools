@@ -27,7 +27,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted } from "vue";
+import { computed } from "vue";
 import type { PluginSetting } from "@/core/typings/plugin";
 // @ts-ignore
 import IconMdiDotsVertical from "~icons/mdi/dots-vertical";
@@ -44,6 +44,8 @@ interface Props {
   iconType?: "dots" | "menu";
   /** 图标宽度 */
   iconWidth?: string;
+  /** 插件视图ID（可选，分离窗口中使用，如果不提供则自动构造） */
+  viewId?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -70,17 +72,24 @@ const pluginOptions = [
 // 按钮标题
 const buttonTitle = computed(() => `${props.pluginName}设置`);
 
-// 计算插件的 viewId（格式：plugin:pluginId）
-const pluginViewId = computed(() => `plugin:${props.pluginId}`);
-
 /**
  * 获取插件视图信息
+ * - 如果提供了 viewId prop（分离窗口），直接使用它
+ * - 如果没有提供（主窗口），使用 plugin:pluginId 格式构造
  */
 const getPluginViewInfo = async () => {
   try {
-    // 直接返回计算出的 viewId
+    // 优先使用 props 中的 viewId（分离窗口传入的插件视图 ID）
+    if (props.viewId) {
+      return {
+        id: props.viewId,
+      };
+    }
+
+    // 主窗口情况：使用标准的插件视图 ID 格式
+    const pluginViewId = `plugin:${props.pluginId}`;
     return {
-      id: pluginViewId.value,
+      id: pluginViewId,
     };
   } catch (error) {
     console.error("❌ 获取插件视图信息失败:", error);
@@ -320,29 +329,6 @@ const showPluginMenu = async () => {
     console.error("❌ 显示插件菜单失败:", error);
   }
 };
-
-// 组件挂载时应用保存的缩放设置
-onMounted(async () => {
-  try {
-    const settings = await getPluginSettings();
-    if (settings.zoomFactor && settings.zoomFactor !== 1.0) {
-      const viewInfo = await getPluginViewInfo();
-      if (viewInfo) {
-        const result = await naimo.router.windowSetViewZoomFactor(
-          viewInfo.id,
-          settings.zoomFactor
-        );
-        if (result.success) {
-          console.log(
-            `✅ 已应用保存的缩放设置: ${(settings.zoomFactor * 100).toFixed(0)}%`
-          );
-        }
-      }
-    }
-  } catch (error) {
-    console.error("❌ 应用保存的缩放设置失败:", error);
-  }
-});
 
 defineExpose({ showPluginMenu });
 </script>

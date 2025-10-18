@@ -25,6 +25,7 @@ import { getRendererUrl } from '@main/utils/windowConfig'
 import { BaseWindowController } from './BaseWindowController'
 import { DetachManager } from './DetachManager'
 import { emitEvent } from '@main/core/ProcessEvent'
+import { AppConfigManager } from '@main/config/appConfig'
 
 /**
  * ViewManager 类
@@ -812,6 +813,18 @@ export class ViewManager {
     // 页面加载完成
     view.webContents.on('did-finish-load', () => {
       log.debug(`视图页面加载完成: ${id}`)
+
+      // 处理视图缩放
+      if (id.startsWith('plugin:')) {
+        // 对插件视图应用保存的缩放设置
+        this.applyPluginZoomFactor(id, view)
+      } else {
+        // 确保非插件视图使用默认缩放 1.0
+        if (!view.webContents.isDestroyed()) {
+          view.webContents.setZoomFactor(1.0)
+          log.debug(`已确保视图 ${id} 使用默认缩放 1.0`)
+        }
+      }
     })
 
     // 页面加载失败
@@ -844,6 +857,37 @@ export class ViewManager {
     // 为非搜索框视图添加 Alt+D 快捷键监听
     if (id !== 'main-view') {
       this.setupDetachShortcuts(viewInfo)
+    }
+  }
+
+  /**
+   * 应用插件的缩放设置
+   * @param viewId 插件视图ID (格式: plugin:pluginId 或 plugin:pluginId:path)
+   * @param view WebContentsView 实例
+   */
+  private applyPluginZoomFactor(viewId: string, view: WebContentsView): void {
+    try {
+      // 从视图ID中提取插件ID
+      const pluginId = viewId.replace(/^plugin:/, '').split(':')[0]
+
+      // 获取插件设置
+      const configManager = AppConfigManager.getInstance()
+      const pluginSettings = configManager.get('pluginSetting') || {}
+      const pluginSetting = pluginSettings[pluginId]
+
+      // 检查是否有自定义缩放设置
+      if (pluginSetting?.zoomFactor && pluginSetting.zoomFactor !== 1.0) {
+        // 限制缩放范围
+        const zoomFactor = Math.max(0.3, Math.min(1.5, pluginSetting.zoomFactor))
+
+        // 应用缩放
+        if (!view.webContents.isDestroyed()) {
+          view.webContents.setZoomFactor(zoomFactor)
+          log.info(`✅ 已应用插件 ${pluginId} 的缩放设置: ${(zoomFactor * 100).toFixed(0)}%`)
+        }
+      }
+    } catch (error) {
+      log.error(`应用插件缩放设置失败: ${viewId}`, error)
     }
   }
 

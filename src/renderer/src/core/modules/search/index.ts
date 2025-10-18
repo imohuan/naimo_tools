@@ -79,6 +79,11 @@ export const useSearchStore = defineStore('search', () => {
   /** 结果模式 */
   const resultMode = ref<"default" | "search">("default")
 
+  // 对每个分类的 items 按 weight 降序排序
+  const sortItemsByWeight = (items: AppItem[]) => {
+    return items.sort((a, b) => (a.weight || 0) - (b.weight || 0))
+  }
+
   /** 将items转为category格式 */
   const categories = computed(() => {
     // 根据 item 中的cateory进行分组
@@ -124,10 +129,10 @@ export const useSearchStore = defineStore('search', () => {
 
       const categories: SearchCategory[] = []
       if (recommendCategory.items.length > 0) {
-        categories.push({ ...recommendCategory, items: recommendCategory.items })
+        categories.push({ ...recommendCategory, items: sortItemsByWeight(recommendCategory.items) })
       }
       if (searchCategory.items.length > 0) {
-        categories.push({ ...searchCategory, items: searchCategory.items })
+        categories.push({ ...searchCategory, items: sortItemsByWeight(searchCategory.items) })
       }
       return categories
     } else {
@@ -141,14 +146,32 @@ export const useSearchStore = defineStore('search', () => {
           isDragEnabled: module.isDragEnabled,
           maxDisplayCount: module.maxDisplayCount,
           isExpanded: expandedCategories[category] || false, // 从状态中读取展开状态
-          items: items
+          items: sortItemsByWeight(items) // 对每个分类的 items 按 weight 降序排序
         })
       })
-      return categories
+      // 根据模块的 weight 进行降序排序，weight 越大越靠前
+      return categories.sort((a, b) => {
+        const moduleA = modules[a.id]
+        const moduleB = modules[b.id]
+        return (moduleB?.weight || 0) - (moduleA?.weight || 0)
+      })
     }
   })
 
   // ==================== 核心方法 ====================
+  // 清除不存在插件数据 只处理 recent, pinned, files
+  const clearNotExistPluginData = (items: AppItem[]) => {
+    const pluginStore = usePluginStoreNew()
+    return items.filter(item => {
+      if (pluginStore.isPluginItem(item)) {
+        const pluginId = (item as PluginItem).pluginId
+        if (pluginId && !pluginStore.getInstalledPluginItem(item.fullPath || `${pluginId}:${item.path}`)) {
+          return false
+        }
+      }
+      return true
+    })
+  }
 
   /**
    * 更新搜索项数据（在菜单中固定或删除，或者在最近使用添加）
@@ -160,8 +183,13 @@ export const useSearchStore = defineStore('search', () => {
       items.push(...await module.getItems());
     }
 
+    // 清除不存在插件数据
+    const newItems = clearNotExistPluginData(items)
+
     // 加载图标
-    const itemsWithIcons = await loadAppIcons(items)
+    const itemsWithIcons = await loadAppIcons(newItems)
+    console.log("itemsWithIcons", itemsWithIcons);
+
     searchItems.value = itemsWithIcons
     triggerRef(searchItems)
 
@@ -261,20 +289,20 @@ export const useSearchStore = defineStore('search', () => {
   // 显示默认结果
   const showDefaultResults = () => {
     let results: AppItem[] = searchItems.value
-    console.log("searchItems", searchItems.value);
 
     const pluginStore = usePluginStoreNew()
     results = searchItems.value.filter(item => {
       const categories = ['applications', 'pinned', 'recent', 'files']
       if (import.meta.env.DEV) categories.push('plugin')
-      else if (item.fullPath) return pluginStore.temporaryFullPaths.includes(item.fullPath);
+      else if (item.fullPath) return pluginStore.temporaryFullPaths.includes(item.fullPath)
       const includeCategory = categories.includes(item.category || '')
       return includeCategory
     })
 
     results = results.sort((a, b) => {
-      return (getItemModule(a)?.weight) - (getItemModule(b)?.weight)
+      return (getItemModule(b)?.weight || 0) - (getItemModule(a)?.weight || 0)
     })
+
     searchResults.value = results
     triggerRef(searchResults)
   }

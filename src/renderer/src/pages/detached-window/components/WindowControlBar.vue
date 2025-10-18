@@ -61,6 +61,7 @@
           ref="pluginSettingsButton"
           :plugin-id="props.pluginId"
           :plugin-name="props.pluginName"
+          :view-id="props.viewId"
           icon-type="menu"
           class="pointer-events-none"
         />

@@ -315,6 +315,168 @@ const naimo = {
   visibleInput(value: boolean) {
     ipcRouter.appForwardMessageToMainView("set-visible-input", { value })
   },
+
+  // ========== 插件额外列表管理 (pluginExtraList) ==========
+  extraList: {
+    /**
+     * 获取当前插件的额外列表（从全局列表中过滤）
+     * @returns 当前插件的额外列表数组
+     */
+    async getList(): Promise<any[]> {
+      const allList = await ipcRouter.storeGet("pluginExtraList" as any) || [];
+      // 过滤出属于当前插件的项（fullPath 以当前插件ID开头）
+      return allList.filter((item: any) => item.fullPath?.startsWith(`${prefix}:`));
+    },
+
+    /**
+     * 添加一个项到全局插件额外列表
+     * @param item 要添加的项（必须包含 path 字段）
+     * @returns 是否添加成功
+     */
+    async addItem(item: any): Promise<boolean> {
+      if (!item.path) {
+        log.error('添加插件额外列表项失败: 缺少 path 字段');
+        return false;
+      }
+
+      // 自动设置 fullPath
+      const newItem = {
+        ...item,
+        fullPath: `${prefix}:${item.path}`
+      };
+
+      // 获取全局列表
+      const allList = await ipcRouter.storeGet("pluginExtraList" as any) || [];
+
+      // 检查是否已存在相同 fullPath 的项
+      const existingIndex = allList.findIndex((i: any) => i.fullPath === newItem.fullPath);
+      if (existingIndex !== -1) {
+        log.warn(`插件额外列表中已存在 fullPath 为 ${newItem.fullPath} 的项`);
+        return false;
+      }
+
+      // 添加到全局列表
+      allList.push(newItem);
+      await ipcRouter.storeSet("pluginExtraList" as any, allList);
+      log.info(`成功添加插件额外列表项: ${newItem.fullPath}`);
+      return true;
+    },
+
+    /**
+     * 更新插件额外列表中的某一项（根据 path 匹配当前插件的项）
+     * @param item 要更新的项（必须包含 path 字段）
+     * @returns 是否更新成功
+     */
+    async updateItem(item: any): Promise<boolean> {
+      if (!item.path) {
+        log.error('更新插件额外列表项失败: 缺少 path 字段');
+        return false;
+      }
+
+      const fullPath = `${prefix}:${item.path}`;
+
+      // 获取全局列表
+      const allList = await ipcRouter.storeGet("pluginExtraList" as any) || [];
+      const index = allList.findIndex((i: any) => i.fullPath === fullPath);
+
+      if (index === -1) {
+        log.warn(`未找到 fullPath 为 ${fullPath} 的插件额外列表项`);
+        return false;
+      }
+
+      // 更新项，保持 fullPath 正确
+      allList[index] = {
+        ...item,
+        fullPath: fullPath
+      };
+
+      await ipcRouter.storeSet("pluginExtraList" as any, allList);
+      log.info(`成功更新插件额外列表项: ${fullPath}`);
+      return true;
+    },
+
+    /**
+     * 从全局列表中删除当前插件的某一项（根据 path 匹配）
+     * @param path 要删除项的 path
+     * @returns 是否删除成功
+     */
+    async removeItem(path: string): Promise<boolean> {
+      if (!path) {
+        log.error('删除插件额外列表项失败: path 不能为空');
+        return false;
+      }
+
+      const fullPath = `${prefix}:${path}`;
+
+      // 获取全局列表
+      const allList = await ipcRouter.storeGet("pluginExtraList" as any) || [];
+      const index = allList.findIndex((i: any) => i.fullPath === fullPath);
+
+      if (index === -1) {
+        log.warn(`未找到 fullPath 为 ${fullPath} 的插件额外列表项`);
+        return false;
+      }
+
+      // 从全局列表中删除
+      allList.splice(index, 1);
+      await ipcRouter.storeSet("pluginExtraList" as any, allList);
+      log.info(`成功删除插件额外列表项: ${fullPath}`);
+      return true;
+    },
+
+    /**
+     * 清空当前插件的所有额外列表项（从全局列表中移除）
+     * @returns 是否清空成功
+     */
+    async clearList(): Promise<boolean> {
+      // 获取全局列表
+      const allList = await ipcRouter.storeGet("pluginExtraList" as any) || [];
+
+      // 过滤掉当前插件的所有项
+      const filteredList = allList.filter((item: any) => !item.fullPath?.startsWith(`${prefix}:`));
+
+      await ipcRouter.storeSet("pluginExtraList" as any, filteredList);
+      log.info(`成功清空当前插件的额外列表项`);
+      return true;
+    },
+
+    /**
+     * 批量设置当前插件的额外列表（会覆盖当前插件的所有项）
+     * @param items 新的列表数组
+     * @returns 是否设置成功
+     */
+    async setList(items: any[]): Promise<boolean> {
+      if (!Array.isArray(items)) {
+        log.error('设置插件额外列表失败: items 必须是数组');
+        return false;
+      }
+
+      // 验证每个 item 都有 path 字段，并自动设置 fullPath
+      const processedItems = items.map(item => {
+        if (!item.path) {
+          log.warn('跳过没有 path 字段的项:', item);
+          return null;
+        }
+        return {
+          ...item,
+          fullPath: `${prefix}:${item.path}`
+        };
+      }).filter(item => item !== null);
+
+      // 获取全局列表
+      const allList = await ipcRouter.storeGet("pluginExtraList" as any) || [];
+
+      // 过滤掉当前插件的所有旧项
+      const otherPluginItems = allList.filter((item: any) => !item.fullPath?.startsWith(`${prefix}:`));
+
+      // 合并其他插件的项和当前插件的新项
+      const newAllList = [...otherPluginItems, ...processedItems];
+
+      await ipcRouter.storeSet("pluginExtraList" as any, newAllList);
+      log.info(`成功设置插件额外列表，共 ${processedItems.length} 项`);
+      return true;
+    },
+  },
 };
 
 export type Naimo = typeof naimo;

@@ -9,7 +9,7 @@ import { PluginSourceType, type InstallOptions, type UninstallOptions } from '@/
 export class LocalPluginInstaller extends BasePluginInstaller {
   readonly name = '本地插件'
   readonly type = PluginSourceType.LOCAL
-  readonly weight = 2
+  readonly weight = 100
   readonly pluginType = 'local'
 
   /** 判断是否为本地插件来源 */

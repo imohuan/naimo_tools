@@ -3,7 +3,7 @@ import { usePluginStoreNew } from "../../plugin"
 import { BaseListModule } from "./base"
 
 export class PluginModule extends BaseListModule {
-  weight = 20
+  weight = 42
   name = "扩展列表"
   isDragEnabled = false
   maxDisplayCount = 16
@@ -23,6 +23,8 @@ export class PluginModule extends BaseListModule {
         enablePin: item?.notVisibleSearch ? false : true
       }
     }))
-    return [...localItems, ...pluginItems]
+    return [...localItems, ...pluginItems].map(m => {
+      return m.options?.pluginType === "temporary" ? { ...m, weight: 1000 } : m
+    })
   }
-}   
+}

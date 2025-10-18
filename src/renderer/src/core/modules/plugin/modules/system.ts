@@ -9,7 +9,7 @@ import { PluginSourceType, type InstallOptions, type UninstallOptions } from '@/
 export class SystemPluginInstaller extends BasePluginInstaller {
   readonly name = '系统插件'
   readonly type = PluginSourceType.SYSTEM
-  readonly weight = 1
+  readonly weight = 100
   readonly pluginType = 'system'
 
   /** 插件模块缓存（排除 _ 开头的文件） */

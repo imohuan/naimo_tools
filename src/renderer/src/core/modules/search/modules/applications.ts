@@ -30,6 +30,7 @@ export class AppModule implements SearchModule {
         path,
         name,
         type: "text",
+        weight: this.weight,
         __metadata: {
           enableDelete: false,
           enablePin: true

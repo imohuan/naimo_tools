@@ -7,7 +7,7 @@ import { isString } from "lodash-es"
 export class TemporaryPluginInstaller extends BasePluginInstaller {
   readonly name = '临时插件'
   readonly type = PluginSourceType.TEMPORARY
-  readonly weight = 1
+  readonly weight = 1000
   readonly pluginType = 'temporary'
 
   canHandle(source: any): boolean {

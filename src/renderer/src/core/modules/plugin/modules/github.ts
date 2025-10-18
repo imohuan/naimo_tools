@@ -32,7 +32,7 @@ export interface GithubSearchResult {
 export class GithubPluginInstaller extends BasePluginInstaller {
   readonly name = 'GitHub插件'
   readonly type = PluginSourceType.REMOTE
-  readonly weight = 3
+  readonly weight = 100
   readonly pluginType = 'github'
 
   private searchResult: GithubSearchResult = {
