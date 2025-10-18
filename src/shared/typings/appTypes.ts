@@ -35,6 +35,8 @@ export interface AppConfig {
   pinnedApps?: AppItem[];
   /** 文件列表 */
   fileList?: AppItem[];
+  /** 插件额外列表 */
+  pluginExtraList?: AppItem[];
   /** 已安装的插件列表 */
   installedPlugins?: string[];
   /** 快捷键配置 */

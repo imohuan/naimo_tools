@@ -16,6 +16,9 @@ export const modules: Record<string, SearchModule> = {}
 // 实例化所有导入的模块
 for (const path in moduleFiles) {
   const moduleName = path.replace('./modules/', '').replace('.ts', '')
+  // 排除 base 基类
+  if (moduleName === 'base') continue
+
   const moduleExports = moduleFiles[path]
 
   // 查找模块导出的类（通常是首字母大写的导出）
