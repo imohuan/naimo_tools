@@ -144,6 +144,8 @@ const initializeWindow = async (): Promise<void> => {
         windowTitle: windowTitle.value,
       });
 
+      naimo.router.windowOpenViewDevTools(viewId.value);
+
       // 验证窗口ID是否有效
       if (windowId.value <= 0) {
         console.warn("⚠️ 窗口ID无效:", windowId.value);

@@ -12,7 +12,7 @@ async function invokeWindowRoute<T = any>(route: string, ...args: any[]): Promis
   }
 }
 
-const { storeSet, storeGet, windowShowPopupMenu } = ipcRouter
+const { storeSet, storeGet, windowShowPopupMenu, windowClosePluginView, windowSetViewZoomFactor } = ipcRouter
 
 const windowControl = {
   minimize: () => invokeWindowRoute<boolean>("minimize"),
@@ -47,7 +47,11 @@ const windowControl = {
   isAlwaysOnTop: () => invokeWindowRoute<boolean>("is-always-on-top"),
 
   router: {
-    storeSet, storeGet, windowShowPopupMenu
+    storeSet,
+    storeGet,
+    windowShowPopupMenu,
+    windowClosePluginView,
+    windowSetViewZoomFactor
   },
 
   // 监听分离窗口初始化事件

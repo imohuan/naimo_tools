@@ -52,6 +52,8 @@ const props = withDefaults(defineProps<Props>(), {
   iconWidth: "20px",
 });
 
+const isDetachedWindow = computed(() => props.iconType === "menu");
+
 // 插件设置选项
 const pluginOptions = [
   { key: "autoSeparate" as keyof PluginSetting, label: "自动分离为独立窗口" },
@@ -232,33 +234,44 @@ const showPluginMenu = async () => {
     }
 
     // 构建菜单项
-    const menuItems = [
-      {
+    const menuItems = [];
+
+    // 在非分离窗口中显示分离窗口选项
+    if (!isDetachedWindow.value) {
+      menuItems.push({
         label: "分离为独立窗口 ( Alt + D)",
         type: "normal" as const,
         id: "separate-window",
-      },
-      {
-        label: "插件应用设置",
-        type: "normal" as const,
-        submenu: pluginOptions.map((option) => ({
-          label: option.label,
-          type: "checkbox" as const,
-          checked: currentSettings[option.key] as boolean,
-          id: `setting-${option.key}`,
-        })),
-      },
-      {
-        label: "插件页面缩放",
-        type: "normal" as const,
-        submenu: zoomOptions,
-      },
-      {
+      });
+    }
+
+    // 插件应用设置（所有窗口都显示）
+    menuItems.push({
+      label: "插件应用设置",
+      type: "normal" as const,
+      submenu: pluginOptions.map((option) => ({
+        label: option.label,
+        type: "checkbox" as const,
+        checked: currentSettings[option.key] as boolean,
+        id: `setting-${option.key}`,
+      })),
+    });
+
+    // 插件页面缩放（所有窗口都显示）
+    menuItems.push({
+      label: "插件页面缩放",
+      type: "normal" as const,
+      submenu: zoomOptions,
+    });
+
+    // 在非分离窗口中显示结束运行选项
+    if (!isDetachedWindow.value) {
+      menuItems.push({
         label: "结束运行",
         type: "normal" as const,
         id: "terminate",
-      },
-    ];
+      });
+    }
 
     // 显示系统弹出菜单
     const selectedId: string | null = await naimo.router.windowShowPopupMenu({
