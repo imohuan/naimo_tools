@@ -2,7 +2,7 @@
  * Naimo Tools 插件 API 类型声明
  * 
  * @version 2.0
- * @date 2025-10-12
+ * @date 2025-10-18
  * 
  * 本文件由脚本自动生成，请勿手动修改
  * 生成脚本: scripts/generate-naimo-types.js
@@ -82,12 +82,6 @@ export type AppItem = (RegexSearch | TextSearch | ImgSearch | FileSearch) & {
 		enablePin?: boolean;
 	};
 };
-declare enum LifecycleType {
-	/** 前台模式：关闭时销毁 */
-	FOREGROUND = "foreground",
-	/** 后台模式：关闭时隐藏，支持后台运行 */
-	BACKGROUND = "background"
-}
 /**
  * 插件功能进入/搜索时传递的数据类型定义
  */
@@ -123,11 +117,8 @@ export type PluginItem = Partial<AppItem> & {
 	icon: string | null;
 	/** 插件ID */
 	pluginId?: string;
-	/** 开机启动 */
-	autoStart?: boolean;
 	/** 生命周期类型 */
-	lifecycleType?: LifecycleType;
-	/** 单例 默认 true */
+	/** 无需配置：单例 默认 true */
 	singleton?: boolean;
 	/** 推荐 */
 	recommend?: boolean;
@@ -726,6 +717,8 @@ declare const naimo: {
 		getName: () => Promise<string>;
 		/** 获取文件图标 */
 		getFileIcon: (path: string) => Promise<string | null>;
+		/** 获取本地文本地址 */
+		getLocalText: (path: string) => Promise<string>;
 		/** 获取本地地址图片 */
 		getLocalImage: (path: string) => Promise<string>;
 		/** 判断是否为 macOS 系统 */
@@ -843,6 +836,42 @@ declare const naimo: {
 	 * @param value
 	 */
 	visibleInput(value: boolean): void;
+	extraList: {
+		/**
+		 * 获取当前插件的额外列表（从全局列表中过滤）
+		 * @returns 当前插件的额外列表数组
+		 */
+		getList(): Promise<any[]>;
+		/**
+		 * 添加一个项到全局插件额外列表
+		 * @param item 要添加的项（必须包含 path 字段）
+		 * @returns 是否添加成功
+		 */
+		addItem(item: any): Promise<boolean>;
+		/**
+		 * 更新插件额外列表中的某一项（根据 path 匹配当前插件的项）
+		 * @param item 要更新的项（必须包含 path 字段）
+		 * @returns 是否更新成功
+		 */
+		updateItem(item: any): Promise<boolean>;
+		/**
+		 * 从全局列表中删除当前插件的某一项（根据 path 匹配）
+		 * @param path 要删除项的 path
+		 * @returns 是否删除成功
+		 */
+		removeItem(path: string): Promise<boolean>;
+		/**
+		 * 清空当前插件的所有额外列表项（从全局列表中移除）
+		 * @returns 是否清空成功
+		 */
+		clearList(): Promise<boolean>;
+		/**
+		 * 批量设置当前插件的额外列表（会覆盖当前插件的所有项）
+		 * @param items 新的列表数组
+		 * @returns 是否设置成功
+		 */
+		setList(items: any[]): Promise<boolean>;
+	};
 };
 export type Naimo = typeof naimo;
 

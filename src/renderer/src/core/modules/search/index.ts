@@ -81,7 +81,7 @@ export const useSearchStore = defineStore('search', () => {
 
   // 对每个分类的 items 按 weight 降序排序
   const sortItemsByWeight = (items: AppItem[]) => {
-    return items.sort((a, b) => (a.weight || 0) - (b.weight || 0))
+    return items.sort((a, b) => (b.weight || 0) - (a.weight || 0))
   }
 
   /** 将items转为category格式 */
