@@ -13,6 +13,7 @@ export function useAppActions() {
       // 判断是否为插件项目
       /** 不完整的 PluginItem 类型 */
       const pickPluginItem = appItem as PluginItem
+      const command = (appItem as AppItem)?.command
       if (app.plugin.isPluginItem(pickPluginItem)) {
         console.log("🔌 检测到插件项目，使用插件执行逻辑:", appItem.name);
         const fullPath = pickPluginItem.fullPath || `${pickPluginItem.pluginId}:${pickPluginItem.path}`
@@ -38,13 +39,14 @@ export function useAppActions() {
         console.log("📱 检测到普通应用项目，使用默认执行逻辑:", appItem.name);
         // 判断地址是否存在
         const exists = await naimo.router.appCheckPathExists(appItem.path);
-        if (!exists) {
+        if (!exists && !command) {
           console.error("❌ 应用地址不存在:", appItem.path);
           // 删除该应用
           handleAppDelete(appItem as any);
           return false;
         }
-        const success = await naimo.router.appLaunchApp(appItem.path);
+        // 优先使用 command，没有 command 才使用 path
+        const success = await naimo.router.appLaunchApp(appItem.path, command);
         if (success) {
           await updateRecentApps(appItem as AppItem);
           return true;

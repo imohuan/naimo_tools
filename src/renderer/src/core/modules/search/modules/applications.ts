@@ -24,11 +24,12 @@ export class AppModule implements SearchModule {
     // 缓存未命中，从接口获取
     console.log('🔄 从接口加载应用列表')
     const apps = await naimo.router.appSearchApps() || []
-    const items = apps.map(({ icon, path, name }) => {
+    const items = apps.map(({ icon, path, name, command }) => {
       return {
         icon,
         path,
         name,
+        command,
         type: "text",
         weight: this.weight,
         __metadata: {

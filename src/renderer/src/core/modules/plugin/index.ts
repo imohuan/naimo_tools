@@ -479,6 +479,7 @@ export const usePluginStoreNew = defineStore("pluginNew", () => {
       name: app.name,
       path: app.path,
       icon: app.icon,
+      ...(app.command && { command: app.command }),
       ...(app.fullPath && { fullPath: app.fullPath }), // 包含 fullPath 作为唯一标识
       ...(app.category && { category: app.category }),
       ...(app.description && { description: app.description }),

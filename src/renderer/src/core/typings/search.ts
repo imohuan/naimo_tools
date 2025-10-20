@@ -112,6 +112,8 @@ export type AppItem = (RegexSearch | TextSearch | ImgSearch | FileSearch) & {
   platform?: ("windows" | "macos" | "linux")[];
   /** 应用描述 */
   description?: string;
+  /** 执行命令（系统功能使用，优先于 path） */
+  command?: string;
   /** 匿名搜索字段列表（用于匿名搜索匹配） */
   anonymousSearchFields?: string[];
   /** 不主动显示搜索框 */

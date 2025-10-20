@@ -8,6 +8,12 @@ import { join, extname, basename } from "path";
 import { shell } from "electron";
 import type { Logger } from "electron-log";
 import type { WorkerMessage, WorkerResponse } from "./icon-extractor";
+import type { AppPath } from "./typings";
+import { getSystemTools } from './system-tools';
+
+// 导出系统工具模块
+export * from './system-tools';
+
 
 let iconWorker: UtilityProcess | null = null;
 let requestIdCounter = 0;
@@ -16,15 +22,6 @@ const pendingIconRequests = new Map();
 /** 预缓存是否已完成 */
 let preCacheInitialized = false;
 
-/** 应用路径 */
-export interface AppPath {
-  /** 应用名称 */
-  name: string;
-  /** 应用路径 */
-  path: string;
-  /** 应用图标 */
-  icon?: string | null;
-}
 
 /**
  * 创建子进程 (图标提取)
@@ -230,24 +227,38 @@ export function getIconDataURLAsync(
 }
 
 /**
- * 获取所有应用
+ * 获取所有应用（包括系统功能）
  * @param cacheIconsDir 缓存目录路径
  * @returns 应用列表
  */
 export async function getApps(cacheIconsDir: string): Promise<AppPath[]> {
-  const [powerShellApps, startMenuApps] = await Promise.all([
+  const [powerShellApps, startMenuApps, systemTools] = await Promise.all([
     getAppsFromPowerShell(),
     getAppsFromStartMenu(),
+    getSystemTools()
   ]);
 
-  const allApps: AppPath[] = [...startMenuApps, ...powerShellApps];
+  // 处理系统功能：将 description 作为 name
+  const processedSystemTools = systemTools.map(tool => ({
+    name: tool.description || tool.name,
+    path: tool.path,
+    command: tool.command
+  }));
+
+  const allApps: AppPath[] = [...startMenuApps, ...powerShellApps, ...processedSystemTools];
   const uniqueApps = new Map<string, AppPath>();
 
   for (const app of allApps) {
     if (!app.path) continue;
-    const key = app.path.toLowerCase();
+    // 对于有 command 的项目（系统功能），使用 command 作为去重 key
+    // 对于没有 command 的项目（普通应用），使用 path 作为去重 key
+    const key = (app.command || app.path).toLowerCase();
     if (!uniqueApps.has(key)) {
-      uniqueApps.set(key, { name: app.name, path: app.path });
+      uniqueApps.set(key, {
+        name: app.name,
+        path: app.path,
+        command: app.command
+      });
     }
   }
 

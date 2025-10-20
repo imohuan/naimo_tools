@@ -1,10 +1,10 @@
 /**
  * 自动生成的 IPC 类型定义
- * 生成时间: 2025-10-18T08:40:56.226Z
+ * 生成时间: 2025-10-20T11:48:56.922Z
  * 请勿手动修改此文件
  */
 
-import { AppPath } from '@libs/app-search';
+import { AppPath } from '@libs/app-search/typings';
 import { DbDoc, DbResult, OpenDialogOptions, SaveDialogOptions, MessageBoxOptions, Display, SystemPathName } from '@shared/typings/naimoApiTypes';
 import { DebugInfo } from '@main/services/DebugService';
 import { AppConfig } from '@shared/typings/appTypes';
@@ -88,16 +88,18 @@ interface appInterface {
  * 启动应用
  * @param IPC事件对象
  * @param 应用路径
+ * @param 执行命令（可选，优先于 path）
  * @returns 是否启动成功
  */
-  "app-launch-app": (appPath: string) => Promise<boolean>;
+  "app-launch-app": (appPath: string, command?: string) => Promise<boolean>;
   /**
  * 启动应用
  * @param IPC事件对象
  * @param 应用路径
+ * @param 执行命令（可选，优先于 path）
  * @returns 是否启动成功
  */
-  "appLaunchApp": (appPath: string) => Promise<boolean>;
+  "appLaunchApp": (appPath: string, command?: string) => Promise<boolean>;
 
   /**
  * 提取文件图标

@@ -5,13 +5,19 @@
 
 import { app, shell } from "electron";
 import log from "electron-log";
-import { getApps, AppPath, getIconDataURLAsync } from "@libs/app-search";
+import { getApps, getIconDataURLAsync } from "@libs/app-search";
+import { AppPath, } from "@libs/app-search/typings";
 import { join } from "path";
 import { access } from "fs/promises";
+import { exec, execFile } from "child_process";
+import { promisify } from "util";
 import { appBootstrap } from '@main/main';
 import { NewWindowManager } from '@main/window/NewWindowManager';
 import { ViewType } from '@renderer/src/typings';
 import { AutoLaunchService } from '@main/services/AutoLaunchService';
+
+const execAsync = promisify(exec);
+const execFileAsync = promisify(execFile);
 
 
 /**
@@ -128,19 +134,59 @@ export async function searchApps(): Promise<Array<AppPath>> {
  * 启动应用
  * @param event IPC事件对象
  * @param appPath 应用路径
+ * @param command 执行命令（可选，优先于 path）
  * @returns 是否启动成功
  */
-export async function launchApp(event: Electron.IpcMainInvokeEvent, appPath: string): Promise<boolean> {
+export async function launchApp(
+  event: Electron.IpcMainInvokeEvent,
+  appPath: string,
+  command?: string
+): Promise<boolean> {
   try {
-    log.info("🚀 启动应用:", appPath);
-    await shell.openPath(appPath); // 使用 shell.openPath 启动应用
-    log.info("✅ 应用启动成功");
+    // 优先使用 command，没有 command 才使用 path
+    if (command) {
+      const cmd = command.trim();
+      log.info("🚀 执行命令:", cmd);
+
+      // 1) 处理 Windows Shell/Settings URI（如 shell:RecycleBinFolder / ms-settings:display）
+      if (/^(shell:|ms-settings:)/i.test(cmd)) {
+        try {
+          await shell.openExternal(cmd);
+          log.info("✅ 通过 shell.openExternal 打开成功");
+        } catch (e) {
+          // 回退到 explorer.exe 以确保在部分环境下也能打开
+          const explorer = join(process.env.SystemRoot || 'C://Windows', 'explorer.exe');
+          await execFileAsync(explorer, [cmd]);
+          log.info("✅ 通过 explorer.exe 打开成功");
+        }
+      }
+      // 2) 处理 MSC 管理控制台（需要 mmc.exe 打开）
+      else if (/\.msc$/i.test(cmd)) {
+        const system32 = join(process.env.SystemRoot || 'C://Windows', 'System32');
+        const mmc = join(system32, 'mmc.exe');
+        const mscPath = join(system32, cmd);
+        await execFileAsync(mmc, [mscPath]);
+        log.info("✅ 通过 mmc.exe 打开 MSC 成功");
+      }
+      // 其他命令：交给系统 PATH 解析
+      else {
+        await execAsync(cmd);
+        log.info("✅ 命令执行成功");
+      }
+    } else {
+      log.info("🚀 启动应用:", appPath);
+      await shell.openPath(appPath);
+      log.info("✅ 应用启动成功");
+    }
     return true;
   } catch (error) {
     log.error("❌ 启动应用失败:", error);
     return false;
   }
 }
+
+// 执行command
+
 
 /**
  * 提取文件图标

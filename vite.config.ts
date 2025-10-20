@@ -11,10 +11,10 @@ export default defineConfig({
   build: {
     outDir: resolve(__dirname, 'dist/main'),
     // emptyOutDir: true,
-    // sourcemap: isDevelopment, // 始终生成 source map，便于调试生产环境错误
-    // minify: isDevelopment ? false : 'terser', // 开发环境不压缩，便于调试
-    sourcemap: true,
-    minify: 'esbuild',
+    sourcemap: isDevelopment, // 始终生成 source map，便于调试生产环境错误
+    minify: isDevelopment ? false : 'esbuild', // 开发环境不压缩，便于调试
+    // sourcemap: true,
+    // minify: 'esbuild',
     rollupOptions: {
       input: {
         main: resolve(__dirname, 'src/main/main.ts'),
