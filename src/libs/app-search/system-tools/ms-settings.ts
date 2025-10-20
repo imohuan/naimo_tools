@@ -160,7 +160,7 @@ const MS_SETTINGS: SettingItem[] = [
  * 获取所有 Windows 设置项
  */
 export function getMsSettings(): SystemFeature[] {
-  const settingsExePath = join(SYSTEM32_PATH, 'SystemSettings.exe');
+  const settingsExePath = join(SYSTEM32_PATH, 'SystemSettingsAdminFlows.exe');
 
   return MS_SETTINGS.map(item => ({
     name: item.name,

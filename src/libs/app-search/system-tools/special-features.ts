@@ -74,18 +74,6 @@ const SPECIAL_FEATURES: SpecialFeature[] = [
     desc: '所有控制面板设置'
   },
   {
-    name: '磁盘碎片整理',
-    command: 'dfrgui.exe',
-    iconPath: join(SYSTEM32_PATH, 'dfrgui.exe'),
-    desc: '优化和碎片整理驱动器'
-  },
-  {
-    name: '磁盘清理',
-    command: 'cleanmgr.exe',
-    iconPath: join(SYSTEM32_PATH, 'cleanmgr.exe'),
-    desc: '释放磁盘空间'
-  },
-  {
     name: '磁盘检查',
     command: 'chkdsk',
     iconPath: join(SYSTEM32_PATH, 'cmd.exe'),
@@ -108,36 +96,6 @@ const SPECIAL_FEATURES: SpecialFeature[] = [
     command: 'fsmgmt.msc',
     iconPath: join(SYSTEM32_PATH, 'mmc.exe'),
     desc: '查看和管理共享文件夹'
-  },
-  {
-    name: 'Windows 内存诊断',
-    command: 'MdSched.exe',
-    iconPath: join(SYSTEM32_PATH, 'MdSched.exe'),
-    desc: '检测内存问题'
-  },
-  {
-    name: '系统配置实用程序',
-    command: 'msconfig.exe',
-    iconPath: join(SYSTEM32_PATH, 'msconfig.exe'),
-    desc: '配置启动选项和服务'
-  },
-  {
-    name: '注册表编辑器',
-    command: 'regedit.exe',
-    iconPath: join(SYSTEM32_PATH, 'regedit.exe'),
-    desc: 'Windows 注册表编辑'
-  },
-  {
-    name: '私有字符编辑器',
-    command: 'eudcedit.exe',
-    iconPath: join(SYSTEM32_PATH, 'eudcedit.exe'),
-    desc: '创建自定义字符'
-  },
-  {
-    name: 'Windows To Go',
-    command: 'pwcreator.exe',
-    iconPath: join(SYSTEM32_PATH, 'pwcreator.exe'),
-    desc: '创建 Windows To Go 工作区'
   },
   {
     name: 'BitLocker 驱动器加密',

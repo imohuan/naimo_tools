@@ -35,7 +35,6 @@ const COMMON_TOOLS: ToolConfig[] = [
   { exe: 'snippingtool.exe', name: '截图工具', desc: '屏幕截图工具' },
   { exe: 'SnippingTool.exe', name: '截图工具（经典）', desc: 'Windows 截图工具' },
   { exe: 'explorer.exe', name: '文件资源管理器', desc: 'Windows 资源管理器' },
-  { exe: 'write.exe', name: '写字板', desc: '富文本编辑器' },
   { exe: 'wordpad.exe', name: '写字板', desc: 'Windows 写字板' },
   { exe: 'magnify.exe', name: '放大镜', desc: '屏幕放大工具' },
   { exe: 'osk.exe', name: '屏幕键盘', desc: '虚拟键盘' },

@@ -296,6 +296,7 @@ export const useSearchStore = defineStore('search', () => {
       if (import.meta.env.DEV) categories.push('plugin')
       else if (item.fullPath && "pluginId" in item) return pluginStore.temporaryFullPaths.includes(item.fullPath)
       const includeCategory = categories.includes(item.category || '')
+      if (includeCategory && item.category === "applications" && item?.command?.trim()) return false
       return includeCategory
     })
 
