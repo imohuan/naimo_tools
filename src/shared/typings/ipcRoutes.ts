@@ -1,6 +1,6 @@
 /**
  * 自动生成的 IPC 类型定义
- * 生成时间: 2025-10-22T04:09:29.570Z
+ * 生成时间: 2025-10-22T05:37:40.133Z
  * 请勿手动修改此文件
  */
 
@@ -1528,13 +1528,15 @@ interface windowInterface {
   /**
  * 关闭插件视图（新架构专用）
 关闭所有不支持后台运行的插件视图，隐藏支持后台运行的插件视图
+ * @param 是否强制关闭所有插件视图，忽略后台运行配置
  */
-  "window-close-plugin-view": () => Promise<{ success: boolean; error?: string; closedCount?: number; hiddenCount?: number }>;
+  "window-close-plugin-view": (forceClose?: boolean) => Promise<{ success: boolean; error?: string; closedCount?: number; hiddenCount?: number }>;
   /**
  * 关闭插件视图（新架构专用）
 关闭所有不支持后台运行的插件视图，隐藏支持后台运行的插件视图
+ * @param 是否强制关闭所有插件视图，忽略后台运行配置
  */
-  "windowClosePluginView": () => Promise<{ success: boolean; error?: string; closedCount?: number; hiddenCount?: number }>;
+  "windowClosePluginView": (forceClose?: boolean) => Promise<{ success: boolean; error?: string; closedCount?: number; hiddenCount?: number }>;
 
   /** 创建设置页面 WebContentsView */
   "window-create-settings-view": () => Promise<{ success: boolean; viewId?: string; error?: string }>;

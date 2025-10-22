@@ -179,8 +179,7 @@ const separateWindow = async () => {
  */
 const terminatePlugin = async () => {
   try {
-    const result = await naimo.router.windowClosePluginView();
-
+    const result = await naimo.router.windowClosePluginView(true);
     if (result.success) {
       console.log("✅ 已结束运行");
     } else {

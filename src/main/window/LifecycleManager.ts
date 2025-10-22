@@ -206,21 +206,24 @@ export class LifecycleManager {
         }
       }
 
-      const { strategy } = lifecycleState
+      // 前台模式：完全销毁视图
+      const destroyResult = await this.destroyView(viewId)
+      log.info(`视图已销毁（前台模式）: ${viewId}`)
+      return destroyResult
+      // const { strategy } = lifecycleState
+      // if (strategy.type === LifecycleType.BACKGROUND && strategy.persistOnClose) {
+      //   // 后台模式：暂停视图但保持状态
+      //   const pauseResult = await this.pauseView(viewId)
 
-      if (strategy.type === LifecycleType.BACKGROUND && strategy.persistOnClose) {
-        // 后台模式：暂停视图但保持状态
-        const pauseResult = await this.pauseView(viewId)
+      //   log.info(`视图已暂停（后台模式）: ${viewId}`)
+      //   return pauseResult
+      // } else {
+      //   // 前台模式：完全销毁视图
+      //   const destroyResult = await this.destroyView(viewId)
 
-        log.info(`视图已暂停（后台模式）: ${viewId}`)
-        return pauseResult
-      } else {
-        // 前台模式：完全销毁视图
-        const destroyResult = await this.destroyView(viewId)
-
-        log.info(`视图已销毁（前台模式）: ${viewId}`)
-        return destroyResult
-      }
+      //   log.info(`视图已销毁（前台模式）: ${viewId}`)
+      //   return destroyResult
+      // }
     } catch (error) {
       log.error(`处理视图关闭失败: ${viewId}`, error)
       return {

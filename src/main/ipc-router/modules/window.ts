@@ -1100,8 +1100,9 @@ export async function createPluginView(event: Electron.IpcMainInvokeEvent, param
 /**
  * 关闭插件视图（新架构专用）
  * 关闭所有不支持后台运行的插件视图，隐藏支持后台运行的插件视图
+ * @param forceClose 是否强制关闭所有插件视图，忽略后台运行配置
  */
-export async function closePluginView(event: Electron.IpcMainInvokeEvent): Promise<{ success: boolean; error?: string; closedCount?: number; hiddenCount?: number }> {
+export async function closePluginView(event: Electron.IpcMainInvokeEvent, forceClose?: boolean): Promise<{ success: boolean; error?: string; closedCount?: number; hiddenCount?: number }> {
   try {
     const manager = NewWindowManager.getInstance()
     const lifecycleManager = manager.getLifecycleManager()
@@ -1126,6 +1127,12 @@ export async function closePluginView(event: Electron.IpcMainInvokeEvent): Promi
 
       // 排除已分离的视图
       if (detachManager.isViewDetached(viewInfo.id)) {
+        continue
+      }
+
+      // 如果强制关闭，所有插件视图都直接关闭
+      if (forceClose) {
+        nonBackgroundPluginViews.push(viewInfo)
         continue
       }
 
@@ -1200,7 +1207,11 @@ export async function closePluginView(event: Electron.IpcMainInvokeEvent): Promi
       }
     }
 
-    log.info(`插件视图处理完成，成功关闭 ${closedCount} 个不支持后台运行的插件视图，隐藏 ${hiddenCount} 个支持后台运行的插件视图`)
+    if (forceClose) {
+      log.info(`插件视图强制关闭完成，成功关闭 ${closedCount} 个插件视图`)
+    } else {
+      log.info(`插件视图处理完成，成功关闭 ${closedCount} 个不支持后台运行的插件视图，隐藏 ${hiddenCount} 个支持后台运行的插件视图`)
+    }
 
     if (errors.length > 0) {
       log.warn('部分插件视图处理失败:', errors)
