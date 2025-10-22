@@ -1,6 +1,6 @@
 /**
  * 自动生成的 IPC 类型定义
- * 生成时间: 2025-10-22T05:37:40.133Z
+ * 生成时间: 2025-10-22T05:52:03.340Z
  * 请勿手动修改此文件
  */
 
@@ -1250,9 +1250,9 @@ interface windowInterface {
   "windowMaximize": () => Promise<boolean>;
 
   /** 关闭窗口 - 基于视图类别的智能控制 */
-  "window-close": () => Promise<boolean>;
+  "window-close": (viewInfo?: any) => Promise<boolean>;
   /** 关闭窗口 - 基于视图类别的智能控制 */
-  "windowClose": () => Promise<boolean>;
+  "windowClose": (viewInfo?: any) => Promise<boolean>;
 
   /** 无注释 */
   "window-is-main-view": () => Promise<boolean>;

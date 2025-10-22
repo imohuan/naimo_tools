@@ -126,11 +126,11 @@ export async function maximize(event: Electron.IpcMainInvokeEvent): Promise<bool
 /**
  * 关闭窗口 - 基于视图类别的智能控制
  */
-export async function close(event: Electron.IpcMainInvokeEvent): Promise<boolean> {
+export async function close(event: Electron.IpcMainInvokeEvent, viewInfo?: any): Promise<boolean> {
   try {
     const manager = NewWindowManager.getInstance();
     const viewManager = manager.getViewManager();
-    const currentViewInfo = viewManager.getCurrentViewInfo(event.sender);
+    const currentViewInfo = viewInfo || viewManager.getCurrentViewInfo(event.sender);
 
     if (!currentViewInfo) {
       log.warn('关闭失败：无法获取当前视图信息');
@@ -1127,6 +1127,10 @@ export async function closePluginView(event: Electron.IpcMainInvokeEvent, forceC
 
       // 排除已分离的视图
       if (detachManager.isViewDetached(viewInfo.id)) {
+        if (forceClose) {
+          // 直接关闭分离窗口
+          await close(event, viewInfo)
+        }
         continue
       }
 

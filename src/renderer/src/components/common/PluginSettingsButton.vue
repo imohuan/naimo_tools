@@ -273,13 +273,13 @@ const showPluginMenu = async () => {
     });
 
     // 在非分离窗口中显示结束运行选项
-    if (!isDetachedWindow.value) {
-      menuItems.push({
-        label: "结束运行",
-        type: "normal" as const,
-        id: "terminate",
-      });
-    }
+    // if (!isDetachedWindow.value) {
+    menuItems.push({
+      label: "结束运行",
+      type: "normal" as const,
+      id: "terminate",
+    });
+    // }
 
     // 显示系统弹出菜单
     const selectedId: string | null = await naimo.router.windowShowPopupMenu({

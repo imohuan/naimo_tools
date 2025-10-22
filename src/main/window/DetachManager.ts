@@ -374,12 +374,13 @@ export class DetachManager {
         log.warn('ViewManager 未设置或不支持 updateViewParentWindow 方法')
       }
 
-      // 设置视图的分离状态
+      // 设置视图的分离状态和分类
       if (this.viewManager) {
         const viewInfo = this.viewManager.getViewInfo(sourceView.id)
         if (viewInfo) {
           viewInfo.state.isDetached = true
-          log.info(`已设置视图 ${sourceView.id} 的分离状态: isDetached = true`)
+          viewInfo.config.category = ViewCategory.DETACHED_WINDOW
+          log.info(`已设置视图 ${sourceView.id} 的分离状态: isDetached = true, category = ${ViewCategory.DETACHED_WINDOW}`)
         }
       }
 
@@ -499,12 +500,13 @@ export class DetachManager {
         log.warn('ViewManager 未设置或不支持 updateViewParentWindow 方法')
       }
 
-      // 清除视图的分离状态
+      // 清除视图的分离状态并恢复分类
       if (this.viewManager) {
         const viewInfo = this.viewManager.getViewInfo(detachedWindowInfo.sourceViewId)
         if (viewInfo) {
           viewInfo.state.isDetached = false
-          log.info(`已清除视图 ${detachedWindowInfo.sourceViewId} 的分离状态: isDetached = false`)
+          viewInfo.config.category = ViewCategory.MAIN_WINDOW
+          log.info(`已清除视图 ${detachedWindowInfo.sourceViewId} 的分离状态: isDetached = false, category = ${ViewCategory.MAIN_WINDOW}`)
         }
       }
 
