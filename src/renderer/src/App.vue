@@ -73,7 +73,7 @@ import { HotkeyType, useApp, type HotkeyConfig } from "@/core";
 
 // 类型导入
 import type { AppItem, AttachedInfo } from "@/core/typings/search";
-import { LifecycleType, type PluginItemData } from "./typings";
+import { LifecycleType, type PluginItem, type PluginItemData } from "./typings";
 
 // ==================== 初始化 ====================
 // 应用状态管理
@@ -105,11 +105,19 @@ const flatItems = computed(() => {
 
 // 搜索和应用操作
 const {
-  handlePrepareAction,
+  handlePrepareAction: _handlePrepareAction,
   handleCategoryDragEnd,
   handleAppDelete,
   handleAppPin,
 } = useAppActions();
+
+const handlePrepareAction = async (
+  appItem: AppItem | PluginItem,
+  hotkeyEmit: boolean = false
+) => {
+  selectedIndex.value = 0;
+  return _handlePrepareAction(appItem, hotkeyEmit);
+};
 
 const handleCategoryToggle = (categoryId: string) => {
   app.search.toggleCategory(categoryId);
@@ -124,6 +132,8 @@ const contentAreaVisible = computed(() => app.ui.isContentVisible);
 // ==================== 核心业务函数 ====================
 // 搜索处理函数
 const handleSearch = async (value: string) => {
+  selectedIndex.value = 0;
+
   const currentPlugin = app.ui.activePlugin;
   if (currentPlugin && isPluginWindowOpen.value) {
     console.log("🔍 执行已激活插件的自定义搜索:", {
@@ -339,6 +349,7 @@ const { handleKeyNavigation } = useKeyboardNavigation(
   searchCategories,
   selectedIndex,
   (app: AppItem) => {
+    // console.log("🔍 收到键盘导航事件:", app);
     handlePrepareAction(app);
     handleSearch("");
   }

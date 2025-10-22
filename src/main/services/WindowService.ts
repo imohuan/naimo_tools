@@ -94,7 +94,7 @@ export class WindowService implements Service {
         this.broadcastToAllWindows(channel, data, {
           filter: (viewInfo) => {
             // 判断是否是设置窗口
-            if (viewInfo.config.type === ViewType.SETTINGS) {
+            if (viewInfo.config.type === ViewType.SETTINGS || viewInfo.config.type === ViewType.PLUGIN) {
               return true
             }
             return false

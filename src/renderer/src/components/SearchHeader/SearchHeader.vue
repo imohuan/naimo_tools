@@ -31,7 +31,9 @@
         :has-plugin="!!currentPluginItem"
       />
 
-      <!-- 搜索输入框 -->
+      <!-- 搜索输入框 
+      @enter="emit('search', searchText)"
+      -->
       <SearchInput
         ref="searchInputRef"
         :model-value="searchText"
@@ -40,7 +42,6 @@
         "
         :should-show-search-box="shouldShowSearchBox"
         @update:model-value="emit('update:searchText', $event)"
-        @enter="emit('search', searchText)"
         @input="emit('input', searchText)"
         @paste="handlePaste"
         @clear-files="handleClearFiles"

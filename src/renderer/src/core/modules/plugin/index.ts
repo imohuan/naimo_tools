@@ -70,6 +70,16 @@ export const usePluginStoreNew = defineStore("pluginNew", () => {
   const pluginCount = computed(() => installedPlugins.value.length);
   const enabledCount = computed(() => enabledPlugins.value.length);
 
+  const officialPluginIds = computed(() => {
+    return githubPlugins.value.filter((p: any) => {
+      return p?.github ? p.github?.user === "imohuan" : false
+    }).map((p) => p.id);
+  });
+
+  const isOfficialPlugin = (pluginId: string) => {
+    return officialPluginIds.value.includes(pluginId);
+  };
+
   const needUpdatePlugins = computed(() => {
     const pluginMap = new Map([...systemPlugins.value, ...localPlugins.value].map((p) => [p.id, p]));
     console.log("needUpdatePlugins", pluginMap, githubPlugins.value);
@@ -544,6 +554,8 @@ export const usePluginStoreNew = defineStore("pluginNew", () => {
 
     // 计算属性
     enabledPlugins,
+    officialPluginIds,
+    isOfficialPlugin,
     systemPlugins, // 已禁用系统插件
     localPlugins,
     githubPlugins,

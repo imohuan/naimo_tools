@@ -38,7 +38,7 @@ declare module 'vue' {
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     SearchCategories: typeof import('./../src/components/Search/SearchCategories.vue')['default']
-    SearchHeader: typeof import('./../src/components/Search/SearchHeader.vue')['default']
+    SearchHeader: typeof import('./../src/components/SearchHeader/SearchHeader.vue')['default']
     SearchInput: typeof import('./../src/components/Search/SearchInput.vue')['default']
     SettingsBackground: typeof import('./../src/components/ContentArea/SettingsBackground.vue')['default']
     SettingsButton: typeof import('./../src/components/SearchHeader/SettingsButton.vue')['default']

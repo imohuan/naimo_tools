@@ -16,28 +16,37 @@ export abstract class BaseListModule implements SearchModule {
 
   async getItems() {
     const items = (await naimo.router.storeGet(this.storeKey)) || [];
-    // 为每个 item 添加 __metadata
-    return items.map((item: AppItem) => ({
-      ...item,
-      ...(item?.weight ? { weight: item.weight } : { weight: this.weight }),
-      __metadata: {
-        enableDelete: true,
-        enablePin: false,
-      },
-    }));
+    // 为每个 item 添加 __metadata 和 fullPath
+    return items.map((item: AppItem) => {
+      const fullPath = item.command ? `${item.path}:${item.command}` : item.path;
+
+      const newItem = {
+        ...item,
+        ...(item?.weight ? { weight: item.weight } : { weight: this.weight }),
+        ...(item?.fullPath ? { fullPath: item.fullPath } : { fullPath }),
+        __metadata: {
+          enableDelete: true,
+          enablePin: false,
+        },
+      }
+
+      return newItem;
+    });
   }
 
   async deleteItem(item: AppItem): Promise<void> {
-    // 使用 fullPath 作为唯一标识，如果没有则 fallback 到 path
-    await storeUtils.removeListItem(this.storeKey, item.fullPath, "fullPath");
+    // 使用 fullPath 作为唯一标识
+    const identifier = item.fullPath || item.path;
+    await storeUtils.removeListItem(this.storeKey, identifier, "fullPath");
   }
 
   async addItem(item: AppItem): Promise<void> {
     // 使用 fullPath 作为唯一标识
     const updateItem = {
-      fullPath: item?.fullPath || item.path,
       ...item,
+      fullPath: item.command ? `${item.path}:${item.command}` : item.path,
     };
+
     await storeUtils.addListItem(this.storeKey, updateItem, {
       unique: true,
       uniqueField: "fullPath",

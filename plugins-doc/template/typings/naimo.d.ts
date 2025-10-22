@@ -2,7 +2,7 @@
  * Naimo Tools 插件 API 类型声明
  * 
  * @version 2.0
- * @date 2025-10-18
+ * @date 2025-10-21
  * 
  * 本文件由脚本自动生成，请勿手动修改
  * 生成脚本: scripts/generate-naimo-types.js
@@ -68,6 +68,8 @@ export type AppItem = (RegexSearch | TextSearch | ImgSearch | FileSearch) & {
 	platform?: ("windows" | "macos" | "linux")[];
 	/** 应用描述 */
 	description?: string;
+	/** 执行命令（系统功能使用，优先于 path） */
+	command?: string;
 	/** 匿名搜索字段列表（用于匿名搜索匹配） */
 	anonymousSearchFields?: string[];
 	/** 不主动显示搜索框 */
@@ -596,6 +598,12 @@ declare const naimo: {
 		throw_error: (error: any, options?: {
 			title?: string;
 		}) => void;
+	};
+	compress: {
+		/** 压缩文件夹为zip文件 */
+		zip: (sourceDir: string, outputPath: string) => Promise<boolean>;
+		/** 解压zip文件到指定目录 */
+		unzip: (zipPath: string, targetDir: string) => Promise<boolean>;
 	};
 	/** 下载管理 */
 	download: {

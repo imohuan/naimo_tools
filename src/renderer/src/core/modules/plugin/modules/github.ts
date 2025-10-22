@@ -303,7 +303,13 @@ export class GithubPluginInstaller extends BasePluginInstaller {
         const plugin = item.config
         if (!plugin) return null
         this.setPluginType(plugin)
-        return plugin
+        return {
+          ...plugin, github: {
+            user: item.user,
+            repo: item.repo,
+            fullName: item.fullName,
+          }
+        }
       })
       .filter(Boolean) as PluginConfig[]
   }

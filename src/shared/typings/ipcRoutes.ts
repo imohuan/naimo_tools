@@ -1,6 +1,6 @@
 /**
  * 自动生成的 IPC 类型定义
- * 生成时间: 2025-10-20T17:33:09.508Z
+ * 生成时间: 2025-10-22T04:09:29.570Z
  * 请勿手动修改此文件
  */
 
@@ -979,6 +979,21 @@ interface pluginInterface {
  * @returns 是否卸载成功
  */
   "pluginUninstallPlugin": (pluginId: string) => Promise<boolean>;
+
+  /**
+ * 解压zip文件到指定目录
+ * @param zip文件路径
+ * @param 目标目录路径
+ * @returns 是否解压成功
+ */
+  "plugin-unzip-file": (zipPath: string, targetDir: string) => Promise<boolean>;
+  /**
+ * 解压zip文件到指定目录
+ * @param zip文件路径
+ * @param 目标目录路径
+ * @returns 是否解压成功
+ */
+  "pluginUnzipFile": (zipPath: string, targetDir: string) => Promise<boolean>;
 
   /**
  * 将文件夹打包为zip文件
@@ -2132,6 +2147,12 @@ export const ROUTE_INFO: RouteInfo[] = [
     comment: "卸载插件",
     module: "plugin",
     function: "uninstallPlugin"
+  },
+  {
+    route: "plugin-unzip-file",
+    comment: "解压zip文件到指定目录",
+    module: "plugin",
+    function: "unzipFile"
   },
   {
     route: "plugin-zip-directory",

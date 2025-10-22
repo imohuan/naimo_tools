@@ -35,6 +35,14 @@ const naimo = {
     },
   },
 
+  // ========== 压缩管理 ==========
+  compress: {
+    /** 压缩文件夹为zip文件 */
+    zip: (sourceDir: string, outputPath: string) => ipcRouter.pluginZipDirectory(sourceDir, outputPath),
+    /** 解压zip文件到指定目录 */
+    unzip: (zipPath: string, targetDir: string) => ipcRouter.pluginUnzipFile(zipPath, targetDir),
+  },
+
   // ========== 下载管理 ==========
   /** 下载管理 */
   download: downloadManagerRenderer,

@@ -275,6 +275,22 @@ export async function uninstallPlugin(event: Electron.IpcMainInvokeEvent, plugin
 
 
 /**
+ * 解压zip文件到指定目录
+ * @param zipPath zip文件路径
+ * @param targetDir 目标目录路径
+ * @returns 是否解压成功
+ */
+export async function unzipFile(event: Electron.IpcMainInvokeEvent, zipPath: string, targetDir: string): Promise<boolean> {
+  try {
+    await extractPluginZip(zipPath, targetDir);
+    return true;
+  } catch (error) {
+    log.error(`解压文件失败: ${zipPath}`, error);
+    return false;
+  }
+}
+
+/**
  * 将文件夹打包为zip文件
  * @param sourceDir 源文件夹路径
  * @param outputPath 输出zip文件路径

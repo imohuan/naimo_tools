@@ -117,9 +117,11 @@ const pluginStore = usePluginStoreNew();
 const isItemSelected = (app: AppItem, categoryId: string): boolean => {
   // 只有当前选中的索引对应的项目才被选中，并且要匹配分类
   const selectedItem = props.flatItems[props.selectedIndex];
-  // 使用 fullPath 作为唯一标识，如果没有则 fallback 到 path
+
+  // 使用 fullPath 作为唯一标识
   const appIdentifier = app.fullPath || app.path;
   const selectedIdentifier = selectedItem?.fullPath || selectedItem?.path;
+
   return (
     selectedIdentifier === appIdentifier &&
     selectedItem?.categoryId === categoryId

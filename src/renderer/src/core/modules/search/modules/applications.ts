@@ -30,6 +30,7 @@ export class AppModule implements SearchModule {
         path,
         name,
         command,
+        fullPath: command ? `${path}:${command}` : path,
         type: "text",
         weight: this.weight,
         __metadata: {

@@ -79,9 +79,34 @@ export const useSearchStore = defineStore('search', () => {
   /** 结果模式 */
   const resultMode = ref<"default" | "search">("default")
 
+
   // 对每个分类的 items 按 weight 降序排序
   const sortItemsByWeight = (items: AppItem[]) => {
-    return items.sort((a, b) => (b.weight || 0) - (a.weight || 0))
+    const pluginStore = usePluginStoreNew()
+    return items.sort((a, b) => {
+      // 检查是否在 temporaryFullPaths 中
+      const aInTemp = a.fullPath ? pluginStore.temporaryFullPaths.includes(a.fullPath) : false
+      const bInTemp = b.fullPath ? pluginStore.temporaryFullPaths.includes(b.fullPath) : false
+
+      // 如果一个在临时路径中，另一个不在，优先排在前面的
+      if (aInTemp && !bInTemp) return -1
+      if (!aInTemp && bInTemp) return 1
+
+      // 检查是否是官方插件
+      const aIsOfficial = (a as PluginItem)?.pluginId ? pluginStore.isOfficialPlugin((a as PluginItem).pluginId!) : false
+      const bIsOfficial = (b as PluginItem)?.pluginId ? pluginStore.isOfficialPlugin((b as PluginItem).pluginId!) : false
+      if (aIsOfficial && !bIsOfficial) return 1
+      if (!aIsOfficial && bIsOfficial) return -1
+
+      // 是否是命令
+      const aIsCommand = a.command ? true : false
+      const bIsCommand = b.command ? true : false
+      if (aIsCommand && !bIsCommand) return 1
+      if (!aIsCommand && bIsCommand) return -1
+
+      // 如果都在或都不在，按 weight 排序
+      return (b.weight || 0) - (a.weight || 0)
+    })
   }
 
   /** 将items转为category格式 */

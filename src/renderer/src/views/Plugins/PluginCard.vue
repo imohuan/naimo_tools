@@ -1,9 +1,21 @@
 <template>
   <div
-    class="bg-white rounded-lg border border-gray-200 p-2 hover:border-gray-500 transition-all duration-200 cursor-pointer"
+    class="relative bg-white rounded-lg border border-gray-200 p-2 hover:border-gray-500 transition-all duration-200 cursor-pointer"
     :class="{ 'opacity-60': !plugin.enabled }"
     @click="$emit('click', plugin)"
   >
+    <!-- 临时标签 -->
+    <div
+      v-if="pluginStore.isOfficialPlugin(plugin.id)"
+      class="absolute inset-0 overflow-hidden"
+    >
+      <div
+        class="absolute bg-blue-500 text-white text-[8px] px-10 py-0.5 z-20 shadow-md temp-ribbon"
+      >
+        官方
+      </div>
+    </div>
+
     <!-- 插件头部信息 -->
     <div class="flex items-start gap-2">
       <div class="w-8 h-8 flex-shrink-0">
@@ -112,6 +124,7 @@ import IconMdiDownload from "~icons/mdi/download";
 import IconMdiDeleteOutline from "~icons/mdi/delete-outline";
 /** @ts-ignore */
 import IconMdiUpdate from "~icons/mdi/update";
+import { usePluginStoreNew } from "@/core";
 
 interface Props {
   plugin: PluginConfig;
@@ -128,6 +141,8 @@ defineEmits<{
   uninstall: [pluginId: string];
   update: [plugin: PluginConfig];
 }>();
+
+const pluginStore = usePluginStoreNew();
 </script>
 
 <style scoped>
@@ -138,5 +153,15 @@ defineEmits<{
   line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+.temp-ribbon {
+  transform: rotate(45deg);
+  transform-origin: center;
+  position: absolute;
+  bottom: 10px;
+  left: -30px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
 }
 </style>

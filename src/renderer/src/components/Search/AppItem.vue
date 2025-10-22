@@ -5,7 +5,7 @@
       'selected-item': isSelected,
       'unselected-item': !isSelected,
     }"
-    :data-key="`${categoryId}-${app.path}`"
+    :data-key="`${categoryId}-${app.fullPath || app.path}`"
     @dblclick="handleAppClick"
     @contextmenu="handleContextMenu"
     ref="itemRef"
