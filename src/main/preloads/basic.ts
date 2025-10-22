@@ -4,6 +4,7 @@ import { RendererErrorHandler } from "@libs/unhandled/renderer";
 import { ipcRouter } from "@shared/utils/ipcRouterClient";
 import { isDevelopment } from "@shared/utils";
 import { resolve, dirname } from "path";
+import { enhanceElectronLogRenderer } from "@libs/logger-enhancer/renderer";
 
 import { autoPuppeteerRenderer } from "@libs/auto-puppeteer/renderer";
 import { downloadManagerRenderer } from "@libs/download-manager/renderer";
@@ -59,9 +60,26 @@ function dynamicRequire(moduleId: string): any {
 // 安装错误处理 - 确保在最早时机安装
 RendererErrorHandler.getInstance().install();
 
+// 启用渲染进程日志增强功能
+enhanceElectronLogRenderer();
+
 // 在这里设置断点 - Preload脚本入口点
 const preloadStartTime = Date.now();
 console.log("Preload启动时间:", new Date(preloadStartTime).toLocaleTimeString());
+
+// 测试日志增强功能
+log.info("Basic preload 脚本已加载，日志增强功能已启用");
+log.debug("这是调试日志测试");
+log.warn("这是警告日志测试");
+log.error("这是错误日志测试");
+
+// 测试调用栈
+try {
+  const err = new Error();
+  log.debug("Preload 调用栈测试:", err.stack?.split('\n').slice(0, 8));
+} catch (e) {
+  log.error("调用栈测试失败:", e);
+}
 // 主要的preload脚本 shared\typings\global.d.ts
 const prefix = "[Renderer] ";
 

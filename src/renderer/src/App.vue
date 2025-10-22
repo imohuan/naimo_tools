@@ -391,6 +391,7 @@ const handleExecuted = async (event: {
     searchText: app.ui.searchText,
     hotkeyEmit: event.hotkeyEmit,
     fullPath,
+    isTemporary: app.plugin.temporaryFullPaths.includes(fullPath),
   };
 
   // 如果插件有 onEnter 回调，则执行回调

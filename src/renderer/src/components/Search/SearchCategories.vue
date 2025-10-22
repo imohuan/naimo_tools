@@ -7,9 +7,7 @@
     >
       <!-- 分类标题 -->
       <div class="flex items-center justify-between mb-1 px-1">
-        <h3
-          class="text-sm font-medium text-gray-700 transition-colors duration-200 hover:text-gray-900"
-        >
+        <h3 class="text-sm font-medium text-gray-700">
           {{ category.name }}
         </h3>
         <div class="flex items-center space-x-2">
@@ -21,12 +19,9 @@
           <button
             v-if="category.items.length > category.maxDisplayCount"
             @click="handleCategoryToggle(category.id)"
-            class="text-xs text-blue-600 hover:text-blue-800 transition-all duration-200 hover:bg-blue-50 px-2 py-1 rounded-md hover:scale-105 active:scale-95"
+            class="text-xs text-blue-600 hover:text-blue-800 hover:bg-blue-50 px-2 py-1 rounded-md"
           >
-            <span
-              class="transition-all duration-200"
-              :class="{ 'rotate-180': category.isExpanded }"
-            >
+            <span :class="{ 'rotate-180': category.isExpanded }">
               {{
                 category.isExpanded
                   ? `收起(${category.items.length})`
@@ -38,15 +33,13 @@
       </div>
 
       <!-- 分类内容 -->
-      <div
-        class="category-content overflow-hidden transition-all duration-300 ease-in-out"
-      >
+      <div class="category-content overflow-hidden">
         <VueDraggable
           v-model="category.items"
           :disabled="!category.isDragEnabled"
           @end="() => onDragEnd(category.id)"
           item-key="fullPath"
-          class="grid grid-cols-6 sm:grid-cols-7 md:grid-cols-8 lg:grid-cols-9 gap-1 min-h-0 transition-all duration-300"
+          class="grid grid-cols-6 sm:grid-cols-7 md:grid-cols-8 lg:grid-cols-9 gap-1 min-h-0"
           ghost-class="sortable-ghost"
           chosen-class="sortable-chosen"
           drag-class="sortable-drag"
@@ -270,7 +263,6 @@ const handlePluginUninstall = (app: AppItem) => {
 .category-section {
   border-bottom: 1px solid #f3f4f6;
   padding-bottom: 0.5rem;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .category-section:last-child {
@@ -290,44 +282,9 @@ const handlePluginUninstall = (app: AppItem) => {
 /* 分类标题悬停效果 */
 .category-section:hover h3 {
   color: #1f2937;
-  /* transform: translateX(2px); */
 }
 
-/* 应用项目的入场动画 */
-.draggable-item {
-  animation: fadeInUp 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-}
-
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* 分类展开时的动画 */
-.category-content {
-  animation: expandCategory 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-}
-
-@keyframes expandCategory {
-  from {
-    opacity: 0.8;
-    transform: scale(0.98);
-  }
-
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-/* VueDraggable 拖拽样式 - 现代化设计 */
+/* VueDraggable 拖拽样式 - 简化版本，移除动画 */
 .sortable-ghost {
   opacity: 0.3 !important;
   background: rgba(243, 244, 246, 0.8) !important;
@@ -335,7 +292,6 @@ const handlePluginUninstall = (app: AppItem) => {
   border-radius: 8px !important;
   box-shadow: 0 0 0 2px rgba(156, 163, 175, 0.1) !important;
   transform: scale(0.95) !important;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
 .sortable-ghost * {
@@ -352,7 +308,6 @@ const handlePluginUninstall = (app: AppItem) => {
     0 0 0 2px rgba(156, 163, 175, 0.1) !important;
   border-radius: 8px !important;
   z-index: 1000 !important;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
 .sortable-drag {
@@ -365,42 +320,15 @@ const handlePluginUninstall = (app: AppItem) => {
     0 8px 20px rgba(0, 0, 0, 0.2),
     0 0 0 3px rgba(156, 163, 175, 0.15) !important;
   border-radius: 8px !important;
-  transition: none !important;
   filter: brightness(1.05) !important;
-}
-
-/* 拖拽时的其他项目动画 */
-.sortable-chosen ~ .draggable-item {
-  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
 /* 确保拖拽结束后清除所有变换 */
 .draggable-item {
   transform: none !important;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
 .draggable-item:not(.sortable-chosen):not(.sortable-drag):not(.sortable-ghost) {
   transform: none !important;
-}
-
-/* 拖拽时的网格动画 */
-.grid {
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
-}
-
-/* 拖拽开始时的微妙动画 */
-@keyframes dragStart {
-  0% {
-    transform: scale(1);
-  }
-
-  100% {
-    transform: scale(1.05) translateY(-2px);
-  }
-}
-
-.sortable-chosen {
-  animation: dragStart 0.2s cubic-bezier(0.4, 0, 0.2, 1) forwards !important;
 }
 </style>

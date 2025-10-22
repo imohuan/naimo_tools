@@ -46,12 +46,15 @@ interface Props {
   iconWidth?: string;
   /** 插件视图ID（可选，分离窗口中使用，如果不提供则自动构造） */
   viewId?: string;
+  /** 是否为临时插件（控制是否显示打开控制台选项） */
+  isTemporary?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
   pluginName: "插件",
   iconType: "dots",
   iconWidth: "20px",
+  isTemporary: false,
 });
 
 const isDetachedWindow = computed(() => props.iconType === "menu");
@@ -175,6 +178,28 @@ const separateWindow = async () => {
 };
 
 /**
+ * 打开控制台
+ */
+const openConsole = async () => {
+  try {
+    const viewInfo = await getPluginViewInfo();
+    if (!viewInfo) {
+      console.error("❌ 无法获取插件视图信息");
+      return;
+    }
+
+    const result = await naimo.router.windowOpenViewDevTools(viewInfo.id);
+    if (result.success) {
+      console.log("✅ 控制台已打开");
+    } else {
+      console.error("❌ 打开控制台失败:", result.error);
+    }
+  } catch (error) {
+    console.error("❌ 打开控制台失败:", error);
+  }
+};
+
+/**
  * 结束运行
  */
 const terminatePlugin = async () => {
@@ -272,6 +297,15 @@ const showPluginMenu = async () => {
       submenu: zoomOptions,
     });
 
+    // 打开控制台（只有临时插件才显示）
+    if (props.isTemporary) {
+      menuItems.push({
+        label: "打开控制台",
+        type: "normal" as const,
+        id: "open-console",
+      });
+    }
+
     // 在非分离窗口中显示结束运行选项
     // if (!isDetachedWindow.value) {
     menuItems.push({
@@ -294,6 +328,12 @@ const showPluginMenu = async () => {
     // 处理分离窗口
     if (selectedId === "separate-window") {
       await separateWindow();
+      return;
+    }
+
+    // 处理打开控制台
+    if (selectedId === "open-console") {
+      await openConsole();
       return;
     }
 

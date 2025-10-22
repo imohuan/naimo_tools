@@ -7,8 +7,12 @@ import { RendererErrorHandler } from "@libs/unhandled/renderer";
 import { ipcRouter } from "@shared/utils/ipcRouterClient";
 import { eventRouter } from "@shared/utils/eventRouterClient";
 import { isFunction } from "@shared/utils/common/typeUtils";
+import { enhanceElectronLogRenderer } from "@libs/logger-enhancer/renderer";
 import { automateWithJson, fetchHTML, fetchJSON, parseHtmlByConfig, createRendererUBrowser, createInstantUBrowser } from "@libs/auto-puppeteer/renderer";
 import { PluginItemData, PluginItem } from "@renderer/src/typings";
+
+// 启用渲染进程日志增强功能
+enhanceElectronLogRenderer();
 
 // @ts-ignore
 const prefix = `${__METADATA__['fullPath']?.split(':')?.[0] || __METADATA__['title']}`;

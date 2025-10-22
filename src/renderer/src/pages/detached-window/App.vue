@@ -23,6 +23,7 @@
         :is-fullscreen="isFullscreen"
         :plugin-name="pluginName"
         :plugin-id="pluginId"
+        :is-temporary="isTemporary"
         @reattach="handleReattach"
         @minimize="handleMinimize"
         @maximize="handleMaximize"
@@ -89,6 +90,7 @@ const windowIcon = ref<string>("");
 const pluginId = ref<string>("");
 const pluginName = ref<string>("");
 const pluginVersion = ref<string>("");
+const isTemporary = ref<boolean>(false);
 
 // UI配置
 const showStatusBar = ref(false);
@@ -130,6 +132,7 @@ const initializeWindow = async (): Promise<void> => {
       pluginId.value = data.pluginId || "";
       pluginName.value = data.pluginName || "";
       pluginVersion.value = data.pluginVersion || "";
+      isTemporary.value = data.isTemporary || false;
 
       // 更新窗口标题
       windowTitle.value = effectiveTitle.value;
@@ -144,7 +147,7 @@ const initializeWindow = async (): Promise<void> => {
         windowTitle: windowTitle.value,
       });
 
-      naimo.router.windowOpenViewDevTools(viewId.value);
+      // naimo.router.windowOpenViewDevTools(viewId.value);
 
       // 验证窗口ID是否有效
       if (windowId.value <= 0) {

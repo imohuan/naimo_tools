@@ -2,6 +2,7 @@ import log from 'electron-log';
 import { shell } from 'electron';
 import { dirname } from 'path';
 import { isProduction } from '@shared/utils';
+import { enhanceElectronLog } from '@libs/logger-enhancer/main';
 
 /**
  * 日志配置管理类
@@ -27,12 +28,15 @@ export class LogConfigManager {
     log.transports.console.level = 'debug';
     log.transports.file.level = 'debug';
 
-    // 配置日志格式
+    // 配置日志格式 - 移除 {text} 占位符，因为我们现在在消息中直接包含位置信息
     log.transports.file.format = '[{y}-{m}-{d} {h}:{i}:{s}.{ms}] [{level}] {text}';
     log.transports.console.format = '[{h}:{i}:{s}.{ms}] [{level}] {text}';
 
     // 启用 electron-log 内置 IPC 支持
     log.transports.ipc.level = 'debug';
+
+    // 启用增强日志功能（自动添加文件名和行号）
+    enhanceElectronLog();
 
     // 记录启动信息
     LogConfigManager.logStartupInfo();

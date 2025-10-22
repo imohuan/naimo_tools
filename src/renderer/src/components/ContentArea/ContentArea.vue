@@ -1,6 +1,6 @@
 <template>
   <div
-    class="flex-1 w-full overflow-hidden transition-all duration-300 bg-white relative rounded-b-xl"
+    class="flex-1 w-full overflow-hidden bg-white relative rounded-b-xl"
     v-show="contentAreaVisible"
   >
     <!-- 统一的内容容器 - 所有内容都在这个容器内 -->

@@ -1,6 +1,10 @@
 import { ipcRouter } from "@shared/utils/ipcRouterClient";
 import { contextBridge, ipcRenderer } from "electron";
 import log from "electron-log/renderer";
+import { enhanceElectronLogRenderer } from "@libs/logger-enhancer/renderer";
+
+// 启用渲染进程日志增强功能
+enhanceElectronLogRenderer();
 
 async function invokeWindowRoute<T = any>(route: string, ...args: any[]): Promise<T> {
   try {
@@ -12,7 +16,7 @@ async function invokeWindowRoute<T = any>(route: string, ...args: any[]): Promis
   }
 }
 
-const { storeSet, storeGet, windowShowPopupMenu, windowClosePluginView, windowSetViewZoomFactor } = ipcRouter
+const { storeSet, storeGet, windowShowPopupMenu, windowClosePluginView, windowSetViewZoomFactor, windowOpenViewDevTools } = ipcRouter
 
 const windowControl = {
   minimize: () => invokeWindowRoute<boolean>("minimize"),
@@ -51,7 +55,8 @@ const windowControl = {
     storeGet,
     windowShowPopupMenu,
     windowClosePluginView,
-    windowSetViewZoomFactor
+    windowSetViewZoomFactor,
+    windowOpenViewDevTools
   },
 
   // 监听分离窗口初始化事件

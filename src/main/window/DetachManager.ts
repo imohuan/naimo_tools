@@ -56,6 +56,7 @@ export interface DetachedWindowInfo {
   pluginInfo?: {
     fullPath: string  // 格式: "pluginId:path"
     name: string
+    isTemporary: boolean
   }
 }
 
@@ -843,6 +844,7 @@ export class DetachManager {
           viewId: sourceView.id,
           pluginId: pluginInfo?.fullPath?.split(':')[0] || '',
           pluginName: pluginName,
+          isTemporary: pluginInfo?.isTemporary || false,
           pluginVersion: sourceView.config.pluginMetadata?.version || '',
           timestamp: Date.now()
         }
@@ -911,6 +913,7 @@ export class DetachManager {
       return {
         fullPath: metadata.fullPath,
         name: metadata.name || '',
+        isTemporary: metadata.isTemporary || false,
       }
     }
     return undefined

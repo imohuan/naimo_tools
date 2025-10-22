@@ -3,7 +3,7 @@
  * 负责 WebContentsView 的创建、切换、布局和生命周期管理
  */
 
-import { BaseWindow, WebContentsView, ipcMain, screen } from 'electron'
+import { BaseWindow, WebContentsView, ipcMain, screen, shell } from 'electron'
 import { resolve } from 'path'
 import log from 'electron-log'
 import { DEFAULT_WINDOW_LAYOUT, OPEN_DEVTOOLS } from '@shared/constants'
@@ -854,9 +854,99 @@ export class ViewManager {
       this.handleViewClosed(viewInfo)
     })
 
+    // 处理外部链接打开
+    this.setupExternalLinkHandlers(viewInfo)
+
     // 为非搜索框视图添加 Alt+D 快捷键监听
     if (id !== 'main-view') {
       this.setupDetachShortcuts(viewInfo)
+    }
+  }
+
+  /**
+   * 设置外部链接处理器
+   * @param viewInfo 视图信息
+   */
+  private setupExternalLinkHandlers(viewInfo: WebContentsViewInfo): void {
+    const { view, id } = viewInfo
+
+    // 处理 new-window 事件（window.open, target="_blank" 等）
+    view.webContents.setWindowOpenHandler(({ url }) => {
+      log.info(`[${id}] 检测到新窗口请求: ${url}`)
+
+      // 检查是否为外部链接
+      if (this.isExternalUrl(url)) {
+        log.info(`[${id}] 外部链接，使用默认浏览器打开: ${url}`)
+        shell.openExternal(url).catch(error => {
+          log.error(`[${id}] 打开外部链接失败: ${url}`, error)
+        })
+        return { action: 'deny' } // 阻止在应用内打开
+      }
+
+      // 内部链接允许打开
+      log.info(`[${id}] 内部链接，允许打开: ${url}`)
+      return { action: 'allow' }
+    })
+
+    // 处理 will-navigate 事件（页面导航）
+    view.webContents.on('will-navigate', (event, navigationUrl) => {
+      log.info(`[${id}] 检测到页面导航: ${navigationUrl}`)
+
+      // 检查是否为外部链接
+      if (this.isExternalUrl(navigationUrl)) {
+        log.info(`[${id}] 外部链接导航，使用默认浏览器打开: ${navigationUrl}`)
+        event.preventDefault() // 阻止导航
+
+        shell.openExternal(navigationUrl).catch(error => {
+          log.error(`[${id}] 打开外部链接失败: ${navigationUrl}`, error)
+        })
+      }
+    })
+
+    log.debug(`[${id}] 外部链接处理器已设置`)
+  }
+
+  /**
+   * 判断是否为外部链接
+   * @param url URL地址
+   * @returns 是否为外部链接
+   */
+  private isExternalUrl(url: string): boolean {
+    try {
+      const urlObj = new URL(url)
+
+      // 检查协议
+      const allowedProtocols = ['http:', 'https:', 'mailto:', 'tel:', 'ftp:']
+      if (!allowedProtocols.includes(urlObj.protocol)) {
+        return false
+      }
+
+      // 检查域名是否为本地或开发服务器
+      const hostname = urlObj.hostname.toLowerCase()
+
+      // 本地域名
+      const localHostnames = [
+        'localhost',
+        '127.0.0.1',
+        '0.0.0.0',
+        '::1'
+      ]
+
+      if (localHostnames.includes(hostname)) {
+        return false
+      }
+
+      // 检查是否为开发服务器端口（通常是5173）
+      const port = urlObj.port
+      if (port === '5173' || port === '3000' || port === '8080') {
+        return false
+      }
+
+      // 其他情况视为外部链接
+      return true
+    } catch (error) {
+      // URL解析失败，可能是相对路径或无效URL，不视为外部链接
+      return false
     }
   }
 

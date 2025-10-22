@@ -1,6 +1,6 @@
 /**
  * 自动生成的 IPC 类型定义
- * 生成时间: 2025-10-22T05:52:03.340Z
+ * 生成时间: 2025-10-22T08:17:22.714Z
  * 请勿手动修改此文件
  */
 
@@ -40,18 +40,18 @@ interface appInterface {
 
   /** 获取系统信息 */
   "app-get-system-info": () => Promise<{
-  platform: string;
-  arch: string;
-  version: string;
-  uptime: number;
-}>;
+    platform: string;
+    arch: string;
+    version: string;
+    uptime: number;
+  }>;
   /** 获取系统信息 */
   "appGetSystemInfo": () => Promise<{
-  platform: string;
-  arch: string;
-  version: string;
-  uptime: number;
-}>;
+    platform: string;
+    arch: string;
+    version: string;
+    uptime: number;
+  }>;
 
   /** 退出应用 */
   "app-quit": () => Promise<void>;
@@ -787,14 +787,14 @@ interface hotkeyInterface {
 
   /** 获取所有已注册的全局快捷键 */
   "hotkey-get-all-registered-global-hotkeys": () => Promise<Array<{
-  id: string;
-  accelerator: string;
-}>>;
+    id: string;
+    accelerator: string;
+  }>>;
   /** 获取所有已注册的全局快捷键 */
   "hotkeyGetAllRegisteredGlobalHotkeys": () => Promise<Array<{
-  id: string;
-  accelerator: string;
-}>>;
+    id: string;
+    accelerator: string;
+  }>>;
 }
 
 interface inputInterface {
@@ -923,18 +923,18 @@ interface logInterface {
 
   /** 获取日志文件信息 */
   "log-get-log-info": () => Promise<{
-  path: string;
-  size: number;
-  lastModified: Date;
-  lineCount: number;
-}>;
+    path: string;
+    size: number;
+    lastModified: Date;
+    lineCount: number;
+  }>;
   /** 获取日志文件信息 */
   "logGetLogInfo": () => Promise<{
-  path: string;
-  size: number;
-  lastModified: Date;
-  lineCount: number;
-}>;
+    path: string;
+    size: number;
+    lastModified: Date;
+    lineCount: number;
+  }>;
 }
 
 interface pluginInterface {
@@ -1019,9 +1019,9 @@ interface screenCaptureInterface {
  * @returns 屏幕源列表
  */
   "screen-capture-get-sources": (options: {
-  types: ("screen" | "window")[];
-  thumbnailSize?: { width: number; height: number };
-}) => Promise<Electron.DesktopCapturerSource[]>;
+    types: ("screen" | "window")[];
+    thumbnailSize?: { width: number; height: number };
+  }) => Promise<Electron.DesktopCapturerSource[]>;
   /**
  * 获取屏幕源列表
  * @param IPC事件对象
@@ -1029,9 +1029,9 @@ interface screenCaptureInterface {
  * @returns 屏幕源列表
  */
   "screenCaptureGetSources": (options: {
-  types: ("screen" | "window")[];
-  thumbnailSize?: { width: number; height: number };
-}) => Promise<Electron.DesktopCapturerSource[]>;
+    types: ("screen" | "window")[];
+    thumbnailSize?: { width: number; height: number };
+  }) => Promise<Electron.DesktopCapturerSource[]>;
 
   /**
  * 截图并裁剪，返回临时文件地址或复制到剪切板
@@ -1396,38 +1396,38 @@ interface windowInterface {
  * @returns UI常量配置对象，包含headerHeight、maxHeight、padding
  */
   "window-get-u-i-constants": () => Promise<{
-  headerHeight: number;
-  maxHeight: number;
-  padding: number;
-}>;
+    headerHeight: number;
+    maxHeight: number;
+    padding: number;
+  }>;
   /**
  * 获取UI常量配置
  * @returns UI常量配置对象，包含headerHeight、maxHeight、padding
  */
   "windowGetUIConstants": () => Promise<{
-  headerHeight: number;
-  maxHeight: number;
-  padding: number;
-}>;
+    headerHeight: number;
+    maxHeight: number;
+    padding: number;
+  }>;
 
   /** 显示视图（新架构） */
   "window-show-new-view": (params: {
-  type: ViewType
-  path?: string
-  url?: string
-  pluginItem?: PluginItem
-  forceNew?: boolean
-  lifecycleType?: LifecycleType
-}) => Promise<{ success: boolean; viewId?: string; error?: string }>;
+    type: ViewType
+    path?: string
+    url?: string
+    pluginItem?: PluginItem
+    forceNew?: boolean
+    lifecycleType?: LifecycleType
+  }) => Promise<{ success: boolean; viewId?: string; error?: string }>;
   /** 显示视图（新架构） */
   "windowShowNewView": (params: {
-  type: ViewType
-  path?: string
-  url?: string
-  pluginItem?: PluginItem
-  forceNew?: boolean
-  lifecycleType?: LifecycleType
-}) => Promise<{ success: boolean; viewId?: string; error?: string }>;
+    type: ViewType
+    path?: string
+    url?: string
+    pluginItem?: PluginItem
+    forceNew?: boolean
+    lifecycleType?: LifecycleType
+  }) => Promise<{ success: boolean; viewId?: string; error?: string }>;
 
   /** 隐藏视图（新架构） */
   "window-hide-new-view": (viewId: string) => Promise<{ success: boolean; error?: string }>;
@@ -1446,18 +1446,18 @@ interface windowInterface {
 
   /** 分离视图（新架构） */
   "window-detach-new-view": (viewId: string, config?: {
-  title?: string
-  width?: number
-  height?: number
-  showControlBar?: boolean
-}) => Promise<{ success: boolean; detachedWindowId?: number; error?: string }>;
+    title?: string
+    width?: number
+    height?: number
+    showControlBar?: boolean
+  }) => Promise<{ success: boolean; detachedWindowId?: number; error?: string }>;
   /** 分离视图（新架构） */
   "windowDetachNewView": (viewId: string, config?: {
-  title?: string
-  width?: number
-  height?: number
-  showControlBar?: boolean
-}) => Promise<{ success: boolean; detachedWindowId?: number; error?: string }>;
+    title?: string
+    width?: number
+    height?: number
+    showControlBar?: boolean
+  }) => Promise<{ success: boolean; detachedWindowId?: number; error?: string }>;
 
   /** 重新附加视图（新架构） */
   "window-reattach-new-view": (detachedWindowId: number) => Promise<{ success: boolean; error?: string }>;
@@ -1486,16 +1486,16 @@ interface windowInterface {
 
   /** 更新窗口管理器配置（新架构） */
   "window-update-new-window-manager-config": (config: {
-  memoryRecycleThreshold?: number
-  autoRecycleInterval?: number
-  maxActiveViews?: number
-}) => Promise<{ success: boolean; error?: string }>;
+    memoryRecycleThreshold?: number
+    autoRecycleInterval?: number
+    maxActiveViews?: number
+  }) => Promise<{ success: boolean; error?: string }>;
   /** 更新窗口管理器配置（新架构） */
   "windowUpdateNewWindowManagerConfig": (config: {
-  memoryRecycleThreshold?: number
-  autoRecycleInterval?: number
-  maxActiveViews?: number
-}) => Promise<{ success: boolean; error?: string }>;
+    memoryRecycleThreshold?: number
+    autoRecycleInterval?: number
+    maxActiveViews?: number
+  }) => Promise<{ success: boolean; error?: string }>;
 
   /** 销毁窗口管理器（新架构） */
   "window-destroy-new-window-manager": () => Promise<{ success: boolean; error?: string }>;
@@ -1504,26 +1504,26 @@ interface windowInterface {
 
   /** 创建插件视图（新架构专用 - 懒加载架构） */
   "window-create-plugin-view": (params: {
-  fullPath: string
-  title: string
-  lifecycleType: LifecycleType
-  url: string  // 可选：没有则后台加载 about:blank（用于无 UI 的后台插件）
-  preload: string
-  singleton?: boolean
-  noSwitch?: boolean  // 是否不切换到该视图（静默创建，用于自启动插件）
-  data?: any  // 传递给插件的任意参数
-}) => Promise<{ success: boolean; viewId?: string; error?: string; detached?: boolean }>;
+    fullPath: string
+    title: string
+    lifecycleType: LifecycleType
+    url: string  // 可选：没有则后台加载 about:blank（用于无 UI 的后台插件）
+    preload: string
+    singleton?: boolean
+    noSwitch?: boolean  // 是否不切换到该视图（静默创建，用于自启动插件）
+    data?: any  // 传递给插件的任意参数
+  }) => Promise<{ success: boolean; viewId?: string; error?: string; detached?: boolean }>;
   /** 创建插件视图（新架构专用 - 懒加载架构） */
   "windowCreatePluginView": (params: {
-  fullPath: string
-  title: string
-  lifecycleType: LifecycleType
-  url: string  // 可选：没有则后台加载 about:blank（用于无 UI 的后台插件）
-  preload: string
-  singleton?: boolean
-  noSwitch?: boolean  // 是否不切换到该视图（静默创建，用于自启动插件）
-  data?: any  // 传递给插件的任意参数
-}) => Promise<{ success: boolean; viewId?: string; error?: string; detached?: boolean }>;
+    fullPath: string
+    title: string
+    lifecycleType: LifecycleType
+    url: string  // 可选：没有则后台加载 about:blank（用于无 UI 的后台插件）
+    preload: string
+    singleton?: boolean
+    noSwitch?: boolean  // 是否不切换到该视图（静默创建，用于自启动插件）
+    data?: any  // 传递给插件的任意参数
+  }) => Promise<{ success: boolean; viewId?: string; error?: string; detached?: boolean }>;
 
   /**
  * 关闭插件视图（新架构专用）
@@ -1555,18 +1555,18 @@ interface windowInterface {
  * @returns 序列化后的视图信息，如果找不到则返回null
  */
   "window-get-current-view-info": () => Promise<{
-  id: string;
-  parentWindowId: number;
-  config: any;
-  state: {
-    isVisible: boolean;
-    isActive: boolean;
-    lastAccessTime: number;
-    memoryUsage?: number;
-    isDetached?: boolean;
-  };
-  createdAt: string; // 序列化为ISO字符串
-} | null>;
+    id: string;
+    parentWindowId: number;
+    config: any;
+    state: {
+      isVisible: boolean;
+      isActive: boolean;
+      lastAccessTime: number;
+      memoryUsage?: number;
+      isDetached?: boolean;
+    };
+    createdAt: string; // 序列化为ISO字符串
+  } | null>;
   /**
  * 获取当前WebContentsView的完整信息
 通过webContents查找对应的WebContentsViewInfo，并返回序列化后的信息
@@ -1574,18 +1574,18 @@ interface windowInterface {
  * @returns 序列化后的视图信息，如果找不到则返回null
  */
   "windowGetCurrentViewInfo": () => Promise<{
-  id: string;
-  parentWindowId: number;
-  config: any;
-  state: {
-    isVisible: boolean;
-    isActive: boolean;
-    lastAccessTime: number;
-    memoryUsage?: number;
-    isDetached?: boolean;
-  };
-  createdAt: string; // 序列化为ISO字符串
-} | null>;
+    id: string;
+    parentWindowId: number;
+    config: any;
+    state: {
+      isVisible: boolean;
+      isActive: boolean;
+      lastAccessTime: number;
+      memoryUsage?: number;
+      isDetached?: boolean;
+    };
+    createdAt: string; // 序列化为ISO字符串
+  } | null>;
 
   /**
  * 显示系统弹出菜单
@@ -1664,7 +1664,7 @@ interface windowInterface {
 }
 
 // 合并所有 IPC 路由类型
-export interface AllIpcRouter extends appInterface, clipboardInterface, dbInterface, debugInterface, dialogInterface, displayInterface, filesystemInterface, hotkeyInterface, inputInterface, logInterface, pluginInterface, screenCaptureInterface, shellInterface, storeInterface, windowInterface {}
+export interface AllIpcRouter extends appInterface, clipboardInterface, dbInterface, debugInterface, dialogInterface, displayInterface, filesystemInterface, hotkeyInterface, inputInterface, logInterface, pluginInterface, screenCaptureInterface, shellInterface, storeInterface, windowInterface { }
 
 // 路由信息类型
 export interface RouteInfo {

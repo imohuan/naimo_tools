@@ -123,6 +123,8 @@ export interface PluginItemData {
   hotkeyEmit: boolean;
   /** 功能完整路径（包含插件ID前缀） */
   fullPath: string
+  /** 是否为临时插件 */
+  isTemporary: boolean
 }
 
 /** 插件配置接口 */

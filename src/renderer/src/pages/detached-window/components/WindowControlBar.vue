@@ -62,6 +62,7 @@
           :plugin-id="props.pluginId"
           :plugin-name="props.pluginName"
           :view-id="props.viewId"
+          :is-temporary="props.isTemporary"
           icon-type="menu"
           class="pointer-events-none"
         />
@@ -172,6 +173,8 @@ interface Props {
   pluginId?: string;
   /** 插件名称 */
   pluginName?: string;
+  /** 是否为临时插件 */
+  isTemporary?: boolean;
 }
 
 /** 组件事件 */
@@ -197,6 +200,7 @@ const props = withDefaults(defineProps<Props>(), {
   isFullscreen: false,
   pluginId: "",
   pluginName: "",
+  isTemporary: false,
 });
 
 const emit = defineEmits<Emits>();

@@ -1,10 +1,12 @@
 <template>
   <div class="h-full flex items-center gap-1" :style="noDragStyles">
+    {{ app.ui.activePlugin?.options }}
     <!-- 插件设置按钮 - 仅在打开插件窗口时显示 -->
     <PluginSettingsButton
       v-if="app.ui.isPluginActive && app.ui.activePlugin?.pluginId"
       :plugin-id="app.ui.activePlugin.pluginId"
       :plugin-name="app.ui.activePlugin.name"
+      :is-temporary="isTemporary"
       icon-type="dots"
       icon-width="10px"
     />
@@ -37,4 +39,10 @@ const emit = defineEmits<{
 }>();
 
 const app = useApp();
+
+const isTemporary = computed(() => {
+  return app.plugin.temporaryFullPaths.includes(
+    app.ui.activePlugin?.fullPath || ""
+  );
+});
 </script>

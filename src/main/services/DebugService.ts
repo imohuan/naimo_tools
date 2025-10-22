@@ -235,7 +235,7 @@ export class DebugService implements Service {
       })
 
       // 打开开发者工具（开发环境）
-      if (process.env.NODE_ENV === 'development') {
+      if (process.env.NODE_ENV === 'development' && OPEN_DEVTOOLS) {
         this.debugWindow.webContents.openDevTools({ mode: 'detach' })
       }
 

@@ -1186,6 +1186,7 @@ export class NewWindowManager {
     if (params.pluginItem) {
       config.pluginMetadata = {
         fullPath: params.pluginItem.fullPath || `${params.pluginItem.pluginId}:${params.pluginItem.path}`,
+        isTemporary: params.pluginItem?.isTemporary || false,
         name: params.pluginItem.name
       }
 
@@ -1560,7 +1561,8 @@ export class NewWindowManager {
         icon: null,
         lifecycleType: params.lifecycleType,
         singleton: isSingleton,
-        preload: finalPreloadPath
+        preload: finalPreloadPath,
+        isTemporary: params.data?.isTemporary || false
       }
 
       // 确定生命周期类型
