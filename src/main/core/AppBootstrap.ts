@@ -53,6 +53,11 @@ export interface AppBootstrapConfig {
       offsetY?: number
     }
   }
+  loading?: {
+    enabled?: boolean
+    width?: number
+    height?: number
+  }
 }
 
 /**
@@ -106,6 +111,12 @@ export class AppBootstrap {
           offsetY: 20
         },
         ...config.debug
+      },
+      loading: {
+        enabled: false, // 默认启用加载窗口
+        width: 400,
+        height: 300,
+        ...config.loading
       }
     }
 
@@ -183,7 +194,7 @@ export class AppBootstrap {
     // 注册加载窗口服务
     this.serviceContainer.register({
       name: 'loadingService',
-      factory: () => new LoadingService({ width: 400, height: 300 }),
+      factory: () => new LoadingService(this.config.loading || {}),
       singleton: true
     })
 
@@ -222,8 +233,9 @@ export class AppBootstrap {
    * 按正确顺序初始化服务
    */
   private async initializeServicesInOrder(): Promise<void> {
+    // 根据配置决定是否包含加载窗口服务
     const initOrder = [
-      'loadingService',     // 加载窗口服务 - 最先显示
+      ...(this.config.loading?.enabled ? ['loadingService'] : []), // 加载窗口服务 - 最先显示（可选）
       'coreService',        // 核心服务 - 包括图标工作进程和应用列表加载
       'errorService',       // 错误服务 - 尽早初始化以捕获错误
       'autoLaunchService',  // 开机自启服务 - 在核心服务之后
@@ -243,7 +255,7 @@ export class AppBootstrap {
         }
 
         // 特殊处理：在核心服务初始化完成后（getApps 已完成），更新加载状态
-        if (serviceName === 'coreService' && this.serviceContainer.has('loadingService')) {
+        if (serviceName === 'coreService' && this.config.loading?.enabled && this.serviceContainer.has('loadingService')) {
           const loadingService = this.serviceContainer.get('loadingService')
           if (loadingService && typeof loadingService.updateStatus === 'function') {
             loadingService.updateStatus('正在创建窗口...')
@@ -252,7 +264,7 @@ export class AppBootstrap {
         }
 
         // 特殊处理：窗口服务初始化完成后，关闭加载窗口
-        if (serviceName === 'windowService' && this.serviceContainer.has('loadingService')) {
+        if (serviceName === 'windowService' && this.config.loading?.enabled && this.serviceContainer.has('loadingService')) {
           const loadingService = this.serviceContainer.get('loadingService')
           if (loadingService && typeof loadingService.close === 'function') {
             // 稍微延迟关闭，确保主窗口已经显示
@@ -277,7 +289,7 @@ export class AppBootstrap {
       } catch (error) {
         log.error(`${serviceName} 初始化失败:`, error)
         // 如果初始化失败，确保关闭加载窗口
-        if (this.serviceContainer.has('loadingService')) {
+        if (this.config.loading?.enabled && this.serviceContainer.has('loadingService')) {
           const loadingService = this.serviceContainer.get('loadingService')
           if (loadingService && typeof loadingService.close === 'function') {
             loadingService.close()
@@ -357,6 +369,13 @@ export class AppBootstrap {
         const debugService = this.serviceContainer.get('debugService')
         if (debugService && typeof debugService.updateConfig === 'function') {
           debugService.updateConfig(config.debug)
+        }
+      }
+
+      if (config.loading && this.serviceContainer.has('loadingService')) {
+        const loadingService = this.serviceContainer.get('loadingService')
+        if (loadingService && typeof loadingService.updateConfig === 'function') {
+          loadingService.updateConfig(config.loading)
         }
       }
     } catch (error) {

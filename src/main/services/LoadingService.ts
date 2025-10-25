@@ -13,6 +13,7 @@ import type { Service } from '../core/ServiceContainer'
  * 加载窗口服务配置
  */
 export interface LoadingServiceConfig {
+  enabled?: boolean
   width?: number
   height?: number
 }
@@ -26,6 +27,7 @@ export class LoadingService implements Service {
 
   constructor(config: LoadingServiceConfig) {
     this.config = {
+      enabled: true,
       width: 400,
       height: 300,
       ...config
@@ -36,6 +38,12 @@ export class LoadingService implements Service {
    * 初始化加载窗口服务
    */
   async initialize(): Promise<void> {
+    // 如果未启用，则跳过初始化
+    if (!this.config.enabled) {
+      log.info('加载窗口服务已禁用，跳过初始化')
+      return
+    }
+
     log.info('初始化加载窗口服务...')
     await this.show()
     log.info('加载窗口服务初始化完成')
@@ -156,6 +164,14 @@ export class LoadingService implements Service {
    */
   getWindow(): BrowserWindow | null {
     return this.loadingWindow
+  }
+
+  /**
+   * 更新配置
+   */
+  updateConfig(config: Partial<LoadingServiceConfig>): void {
+    this.config = { ...this.config, ...config }
+    log.info('加载窗口服务配置已更新:', config)
   }
 
   /**
