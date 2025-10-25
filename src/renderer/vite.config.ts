@@ -54,6 +54,8 @@ function customHtmlOutputPlugin() {
             newFileName = 'detached-window.html';
           } else if (fileName.includes('debug-window')) {
             newFileName = 'debug-window.html';
+          } else if (fileName.includes('loading-window')) {
+            newFileName = 'loading-window.html';
           } else {
             // 其他文件只保留文件名部分
             newFileName = fileName.split('/').pop() || fileName;
@@ -149,6 +151,7 @@ export default defineConfig({
         'settings': resolve(__dirname, 'src/pages/settings/index.html'),
         'detached-window': resolve(__dirname, 'src/pages/detached-window/index.html'),
         'debug-window': resolve(__dirname, 'src/pages/debug-window/index.html'),
+        'loading-window': resolve(__dirname, 'src/pages/loading-window/index.html'),
         'log-viewer': resolve(__dirname, 'public/log-viewer.html')
       },
       output: {

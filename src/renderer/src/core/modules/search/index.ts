@@ -318,8 +318,11 @@ export const useSearchStore = defineStore('search', () => {
     const pluginStore = usePluginStoreNew()
     results = searchItems.value.filter(item => {
       const categories = ['applications', 'pinned', 'recent', 'files']
-      if (import.meta.env.DEV) categories.push('plugin')
-      else if (item.fullPath && "pluginId" in item) return pluginStore.temporaryFullPaths.includes(item.fullPath)
+      if (import.meta.env.DEV) {
+        categories.push('plugin')
+      } else if (item.fullPath && "pluginId" in item) {
+        if (item.category === "plugin") return pluginStore.temporaryFullPaths.includes(item.fullPath)
+      }
       const includeCategory = categories.includes(item.category || '')
       if (includeCategory && item.category === "applications" && item?.command?.trim()) return false
       return includeCategory

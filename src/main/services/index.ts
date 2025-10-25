@@ -12,6 +12,7 @@ export { WindowService } from './WindowService'
 export { TrayService } from './TrayService'
 export { DebugService } from './DebugService'
 export { AutoLaunchService } from './AutoLaunchService'
+export { LoadingService } from './LoadingService'
 
 // 服务配置类型
 export type { ErrorServiceConfig } from './ErrorService'
@@ -19,6 +20,7 @@ export type { UpdateServiceConfig } from './UpdateService'
 export type { WindowServiceConfig } from './WindowService'
 export type { TrayServiceConfig } from './TrayService'
 export type { DebugServiceConfig } from './DebugService'
+export type { LoadingServiceConfig } from './LoadingService'
 
 // 核心接口（从 core 模块重新导出，方便使用）
 export type { Service } from '../core/ServiceContainer'

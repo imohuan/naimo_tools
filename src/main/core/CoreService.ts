@@ -73,8 +73,9 @@ export class CoreService implements Service {
       await this.waitForAppReady()
 
       // 初始化图标工作进程（必须在 app ready 后）
+      // 这里会等待应用列表加载完成
       if (this.config.enableIconWorker) {
-        this.initializeIconWorker()
+        await this.initializeIconWorker()
       }
 
       // 初始化 IPC 处理器
@@ -164,8 +165,9 @@ export class CoreService implements Service {
 
   /**
    * 初始化图标工作进程
+   * @returns Promise，在应用列表加载完成后 resolve
    */
-  private initializeIconWorker(): void {
+  private async initializeIconWorker(): Promise<void> {
     try {
       // 确定图标工作进程的路径
       const workerPath = resolve(getDirname(import.meta.url), 'iconWorker.js')
@@ -178,10 +180,15 @@ export class CoreService implements Service {
       this.iconWorker = createIconWorker(workerPath, log, cacheIconsDir)
       log.info('✅ 图标工作进程初始化完成')
 
-      // 预加载应用列表（可选）
-      getApps(cacheIconsDir)
+      // 等待应用列表加载完成
+      log.info('🔄 开始加载应用列表...')
+      const startTime = Date.now()
+      await getApps(cacheIconsDir)
+      const duration = Date.now() - startTime
+      log.info(`✅ 应用列表加载完成，耗时: ${duration}ms`)
     } catch (error) {
       log.error('❌ 图标工作进程初始化失败:', error)
+      throw error
     }
   }
 

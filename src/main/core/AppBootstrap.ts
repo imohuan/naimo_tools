@@ -11,6 +11,7 @@ import { WindowService } from '../services/WindowService'
 import { TrayService } from '../services/TrayService'
 import { DebugService } from '../services/DebugService'
 import { AutoLaunchService } from '../services/AutoLaunchService'
+import { LoadingService } from '../services/LoadingService'
 import { AppConfigManager } from '../config/appConfig'
 
 /**
@@ -172,12 +173,18 @@ export class AppBootstrap {
     })
 
     // 注册开机自启服务
-
     this.serviceContainer.register({
       name: 'autoLaunchService',
       factory: (container) => new AutoLaunchService(container.get('configManager')),
       singleton: true,
       dependencies: ['configManager']
+    })
+
+    // 注册加载窗口服务
+    this.serviceContainer.register({
+      name: 'loadingService',
+      factory: () => new LoadingService({ width: 400, height: 300 }),
+      singleton: true
     })
 
     log.debug('所有服务注册完成')
@@ -216,11 +223,12 @@ export class AppBootstrap {
    */
   private async initializeServicesInOrder(): Promise<void> {
     const initOrder = [
-      'coreService',        // 核心服务 - 最先初始化
+      'loadingService',     // 加载窗口服务 - 最先显示
+      'coreService',        // 核心服务 - 包括图标工作进程和应用列表加载
       'errorService',       // 错误服务 - 尽早初始化以捕获错误
       'autoLaunchService',  // 开机自启服务 - 在核心服务之后
       'updateService',      // 更新服务 - 在核心功能之后
-      'windowService',      // 窗口服务
+      'windowService',      // 窗口服务 - 在核心服务完成后创建主窗口
       'debugService',       // 调试服务 - 在窗口服务之后
       'trayService'         // 托盘服务 - 最后初始化
     ]
@@ -232,6 +240,27 @@ export class AppBootstrap {
 
         if (service && typeof service.initialize === 'function') {
           await service.initialize()
+        }
+
+        // 特殊处理：在核心服务初始化完成后（getApps 已完成），更新加载状态
+        if (serviceName === 'coreService' && this.serviceContainer.has('loadingService')) {
+          const loadingService = this.serviceContainer.get('loadingService')
+          if (loadingService && typeof loadingService.updateStatus === 'function') {
+            loadingService.updateStatus('正在创建窗口...')
+            loadingService.updateProgress(100)
+          }
+        }
+
+        // 特殊处理：窗口服务初始化完成后，关闭加载窗口
+        if (serviceName === 'windowService' && this.serviceContainer.has('loadingService')) {
+          const loadingService = this.serviceContainer.get('loadingService')
+          if (loadingService && typeof loadingService.close === 'function') {
+            // 稍微延迟关闭，确保主窗口已经显示
+            setTimeout(() => {
+              loadingService.close()
+              log.debug('加载窗口已关闭')
+            }, 500)
+          }
         }
 
         // 特殊处理：调试服务初始化后，设置窗口管理器引用
@@ -247,6 +276,13 @@ export class AppBootstrap {
         log.debug(`${serviceName} 初始化完成`)
       } catch (error) {
         log.error(`${serviceName} 初始化失败:`, error)
+        // 如果初始化失败，确保关闭加载窗口
+        if (this.serviceContainer.has('loadingService')) {
+          const loadingService = this.serviceContainer.get('loadingService')
+          if (loadingService && typeof loadingService.close === 'function') {
+            loadingService.close()
+          }
+        }
         throw error
       }
     }

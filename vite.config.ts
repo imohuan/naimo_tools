@@ -12,7 +12,8 @@ export default defineConfig({
     outDir: resolve(__dirname, 'dist/main'),
     // emptyOutDir: true,
     sourcemap: true, // 始终生成 source map，便于调试生产环境错误
-    minify: isDevelopment ? false : 'esbuild', // 开发环境不压缩，便于调试
+    // minify: isDevelopment ? false : 'esbuild', // 开发环境不压缩，便于调试
+    minify: false,
     // sourcemap: true,
     // minify: 'esbuild',
     rollupOptions: {

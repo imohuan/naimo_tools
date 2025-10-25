@@ -42,15 +42,12 @@ export abstract class BaseListModule implements SearchModule {
 
   async addItem(item: AppItem): Promise<void> {
     // 使用 fullPath 作为唯一标识
-    const updateItem = {
-      ...item,
-      fullPath: item.command ? `${item.path}:${item.command}` : item.path,
-    };
+    let updateItem: AppItem = { ...item };
+    if ("icon" in item) updateItem.icon = null;
+    updateItem.fullPath = item.command ? `${item.path}:${item.command}` : item.path;
 
     await storeUtils.addListItem(this.storeKey, updateItem, {
-      unique: true,
-      uniqueField: "fullPath",
-      position: "start",
+      unique: true, uniqueField: "fullPath", position: "start",
     });
   }
 
