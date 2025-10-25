@@ -50,14 +50,6 @@ const windowControl = {
   setAlwaysOnTop: (alwaysOnTop: boolean) => invokeWindowRoute<boolean>("set-always-on-top", alwaysOnTop),
   isAlwaysOnTop: () => invokeWindowRoute<boolean>("is-always-on-top"),
 
-  router: {
-    storeSet,
-    storeGet,
-    windowShowPopupMenu,
-    windowClosePluginView,
-    windowSetViewZoomFactor,
-    windowOpenViewDevTools
-  },
 
   // 监听分离窗口初始化事件
   onDetachedWindowInit: (callback: (data: any) => void) => {
@@ -72,4 +64,16 @@ const windowControl = {
   },
 }
 
-contextBridge.exposeInMainWorld("naimo", windowControl)
+contextBridge.exposeInMainWorld("winControl", windowControl)
+
+
+contextBridge.exposeInMainWorld("naimo", {
+  router: {
+    storeSet,
+    storeGet,
+    windowShowPopupMenu,
+    windowClosePluginView,
+    windowSetViewZoomFactor,
+    windowOpenViewDevTools
+  },
+})

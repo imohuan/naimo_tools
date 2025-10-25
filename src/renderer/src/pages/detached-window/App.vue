@@ -115,15 +115,14 @@ const initializeWindow = async (): Promise<void> => {
     console.log("🔧 初始化分离窗口控制栏...");
 
     // 监听主进程发送的初始化数据
-    const naimo = (window as any).naimo;
-    if (!naimo?.onDetachedWindowInit) {
-      console.error("❌ naimo.onDetachedWindowInit 方法不可用");
+    if (!winControl?.onDetachedWindowInit) {
+      console.error("❌ winControl.onDetachedWindowInit 方法不可用");
       showNotification("窗口初始化失败，缺少必要的API", "error");
       return;
     }
 
     // 设置IPC监听器
-    unsubscribeInit = naimo.onDetachedWindowInit((data: any) => {
+    unsubscribeInit = winControl.onDetachedWindowInit((data: any) => {
       console.log("📨 收到分离窗口初始化数据:", data);
 
       // 更新窗口信息
@@ -147,7 +146,7 @@ const initializeWindow = async (): Promise<void> => {
         windowTitle: windowTitle.value,
       });
 
-      // naimo.router.windowOpenViewDevTools(viewId.value);
+      // winControl.router.windowOpenViewDevTools(viewId.value);
 
       // 验证窗口ID是否有效
       if (windowId.value <= 0) {
@@ -243,7 +242,6 @@ const checkFullscreenState = async (): Promise<void> => {
   // 延迟检测，等待窗口调整完成
   checkFullscreenTimer = window.setTimeout(async () => {
     try {
-      const winControl = (window as any).naimo;
       if (!winControl?.isFullscreen) {
         console.warn("⚠️ isFullscreen 方法不可用");
         return;

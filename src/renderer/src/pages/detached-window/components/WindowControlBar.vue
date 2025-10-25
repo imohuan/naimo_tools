@@ -151,7 +151,6 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed } from "vue";
 import { DetachedWindowAction } from "@/typings/windowTypes";
-import type { WindowControlAPI } from "../types/winControl";
 import { DEFAULT_WINDOW_LAYOUT } from "@shared/config/windowLayoutConfig";
 import PluginSettingsButton from "@/components/Common/PluginSettingsButton.vue";
 
@@ -190,7 +189,7 @@ interface Emits {
   /** 控制操作事件 */
   (e: "control-action", action: DetachedWindowAction): void;
 }
-const winControl = (window as any).naimo as Partial<WindowControlAPI>;
+
 const pluginSettingsButton = ref<InstanceType<typeof PluginSettingsButton>>();
 
 const props = withDefaults(defineProps<Props>(), {
@@ -242,7 +241,7 @@ const handleReattach = async (): Promise<void> => {
 
     // 通过IPC调用主进程的重新附加功能
     if (!winControl?.reattach) {
-      console.warn("⚠️ 未找到重新附加API (naimo.reattach)");
+      console.warn("⚠️ 未找到重新附加API (winControl.reattach)");
       showNotification("未找到重新附加能力", "warning");
     } else {
       try {
@@ -282,7 +281,7 @@ const handleMinimize = async (): Promise<void> => {
     // 通过IPC调用主进程的最小化功能 - 使用分离窗口专用的控制方法
 
     if (!winControl?.minimize) {
-      console.warn("⚠️ 未找到最小化API (naimo.minimize)");
+      console.warn("⚠️ 未找到最小化API (winControl.minimize)");
       showNotification("未找到最小化能力", "warning");
     } else {
       try {
@@ -320,7 +319,7 @@ const handleMaximize = async (): Promise<void> => {
 
     // 通过IPC调用主进程的最大化功能 - 使用分离窗口专用的控制方法
     if (!winControl?.maximize) {
-      console.warn("⚠️ 未找到最大化API (naimo.maximize)");
+      console.warn("⚠️ 未找到最大化API (winControl.maximize)");
       showNotification("未找到最大化能力", "warning");
     } else {
       try {
@@ -358,9 +357,8 @@ const handleClose = async (): Promise<void> => {
     emit("close");
 
     // 通过IPC调用主进程的关闭功能 - 使用分离窗口专用的控制方法
-    const winControl = (window as any).naimo as Partial<WindowControlAPI>;
     if (!winControl?.close) {
-      console.warn("⚠️ 未找到关闭API (naimo.close)");
+      console.warn("⚠️ 未找到关闭API (winControl.close)");
       showNotification("未找到关闭能力", "warning");
     } else {
       try {
@@ -391,7 +389,7 @@ const handleToggleAlwaysOnTop = async (): Promise<void> => {
 
     // 通过IPC调用主进程的置顶功能
     if (!winControl?.setAlwaysOnTop) {
-      console.warn("⚠️ 未找到置顶API (naimo.setAlwaysOnTop)");
+      console.warn("⚠️ 未找到置顶API (winControl.setAlwaysOnTop)");
       showNotification("未找到置顶能力", "warning");
     } else {
       try {
@@ -471,7 +469,7 @@ const checkMaximizedState = async (): Promise<void> => {
 const checkAlwaysOnTopState = async (): Promise<void> => {
   try {
     if (!winControl?.isAlwaysOnTop) {
-      console.warn("⚠️ 未找到检查置顶状态API (naimo.isAlwaysOnTop)");
+      console.warn("⚠️ 未找到检查置顶状态API (winControl.isAlwaysOnTop)");
       return;
     }
 
