@@ -1005,10 +1005,11 @@ export class ViewManager {
         )
       }
 
+      const isKeyDown = input.type === 'keyDown'
+
       // Alt + D 快捷键检测
       const isAltPressed = input.alt || input.modifiers?.includes?.('alt')
       const isDKey = input.key === 'D' || input.key === 'd' || input.code === 'KeyD'
-      const isKeyDown = input.type === 'keyDown'
 
       if (isDKey && isKeyDown && isAltPressed) {
         log.info(`[${id}] 触发 Alt+D 快捷键，开始分离视图`)

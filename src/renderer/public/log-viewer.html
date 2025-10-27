@@ -669,6 +669,23 @@
         await this.loadElectronLogsInitial();
       }
 
+      // 使用正则表达式分割日志内容为条目数组
+      // 正确处理多行日志（如错误堆栈）
+      splitLogContent(content) {
+        if (!content || !content.trim()) {
+          return [];
+        }
+
+        // 匹配以时间戳开头的行作为新日志条目的开始
+        // 格式: [YYYY-MM-DD HH:mm:ss.sss]
+        const logEntryRegex = /(?=^\[\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}\])/gm;
+        const logEntries = content.split(logEntryRegex)
+          .filter(entry => entry.trim() !== '')
+          .map(entry => entry.trim());
+
+        return logEntries;
+      }
+
       async initializeMonaco() {
         return new Promise((resolve) => {
           require.config({ paths: { 'vs': 'https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs' } });
@@ -990,8 +1007,8 @@
           this.originalContent = logContent;
           this.previousOriginalContent = logContent;
 
-          // 将内容按行分割
-          this.logLines = logContent.split('\n').filter(line => line.trim() !== '');
+          // 使用正则表达式分割日志条目
+          this.logLines = this.splitLogContent(logContent);
           console.log(`初始加载 ${this.logLines.length} 个日志条目`);
 
           // 应用当前过滤器显示内容
@@ -1032,10 +1049,9 @@
           console.log(`有新内容: ${hasNewContent}`);
 
           if (hasNewContent) {
-            // 计算新增的日志行
-            const newLogLines = logContent.split('\n').filter(line => line.trim() !== '');
-            const previousLogLines = this.previousOriginalContent ?
-              this.previousOriginalContent.split('\n').filter(line => line.trim() !== '') : [];
+            // 使用正则表达式分割日志条目
+            const newLogLines = this.splitLogContent(logContent);
+            const previousLogLines = this.splitLogContent(this.previousOriginalContent);
 
             // 找出新增的行
             const newLines = newLogLines.slice(previousLogLines.length);
@@ -1083,13 +1099,8 @@
           this.originalContent = fileContent;
           this.previousOriginalContent = fileContent;
 
-          // 使用正则表达式分割日志条目，正确处理多行错误堆栈
-          // 匹配以时间戳开头的行作为新日志条目的开始
-          const logEntryRegex = /(?=^\[\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}\])/gm;
-          const logEntries = fileContent.split(logEntryRegex).filter(entry => entry.trim() !== '');
-
-          // 清理每个日志条目，移除开头的换行符
-          this.logLines = logEntries.map(entry => entry.trim());
+          // 使用正则表达式分割日志条目
+          this.logLines = this.splitLogContent(fileContent);
           console.log(`解析到 ${this.logLines.length} 个日志条目`);
           console.log(this.logLines);
 
@@ -1778,22 +1789,22 @@
         }
       }
 
-      // 窗口控制方法
+      // 窗口控制方法 - 使用 BrowserWindow 直接控制
       minimizeWindow() {
         if (naimo && naimo.router) {
-          naimo.router.windowMinimize();
+          naimo.router.windowMinimizeBrowserWindow();
         }
       }
 
       maximizeWindow() {
         if (naimo && naimo.router) {
-          naimo.router.windowMaximize();
+          naimo.router.windowMaximizeBrowserWindow();
         }
       }
 
       closeWindow() {
         if (naimo && naimo.router) {
-          naimo.router.windowClose();
+          naimo.router.windowCloseBrowserWindow();
         }
       }
 

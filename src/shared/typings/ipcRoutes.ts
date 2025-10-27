@@ -1,6 +1,6 @@
 /**
  * 自动生成的 IPC 类型定义
- * 生成时间: 2025-10-27T03:16:49.196Z
+ * 生成时间: 2025-10-27T04:17:55.584Z
  * 请勿手动修改此文件
  */
 
@@ -1661,6 +1661,127 @@ interface windowInterface {
 此函数由 preload 脚本调用，当页面没有阻止 ESC 事件时执行
  */
   "windowHandleDefaultEscShortcut": () => Promise<{ success: boolean; error?: string }>;
+
+  /**
+ * 最小化 BrowserWindow
+直接操作调用者所在的 BrowserWindow
+ */
+  "window-minimize-browser-window": () => Promise<boolean>;
+  /**
+ * 最小化 BrowserWindow
+直接操作调用者所在的 BrowserWindow
+ */
+  "windowMinimizeBrowserWindow": () => Promise<boolean>;
+
+  /**
+ * 最大化/还原 BrowserWindow
+直接操作调用者所在的 BrowserWindow
+ */
+  "window-maximize-browser-window": () => Promise<boolean>;
+  /**
+ * 最大化/还原 BrowserWindow
+直接操作调用者所在的 BrowserWindow
+ */
+  "windowMaximizeBrowserWindow": () => Promise<boolean>;
+
+  /**
+ * 关闭 BrowserWindow
+直接操作调用者所在的 BrowserWindow
+ */
+  "window-close-browser-window": () => Promise<boolean>;
+  /**
+ * 关闭 BrowserWindow
+直接操作调用者所在的 BrowserWindow
+ */
+  "windowCloseBrowserWindow": () => Promise<boolean>;
+
+  /**
+ * 检查 BrowserWindow 是否最大化
+直接检查调用者所在的 BrowserWindow
+ */
+  "window-is-browser-window-maximized": () => Promise<boolean>;
+  /**
+ * 检查 BrowserWindow 是否最大化
+直接检查调用者所在的 BrowserWindow
+ */
+  "windowIsBrowserWindowMaximized": () => Promise<boolean>;
+
+  /**
+ * 检查 BrowserWindow 是否全屏或最大化
+直接检查调用者所在的 BrowserWindow
+ */
+  "window-is-browser-window-fullscreen": () => Promise<boolean>;
+  /**
+ * 检查 BrowserWindow 是否全屏或最大化
+直接检查调用者所在的 BrowserWindow
+ */
+  "windowIsBrowserWindowFullscreen": () => Promise<boolean>;
+
+  /**
+ * 设置 BrowserWindow 置顶状态
+直接操作调用者所在的 BrowserWindow
+ */
+  "window-set-browser-window-always-on-top": (alwaysOnTop: boolean) => Promise<boolean>;
+  /**
+ * 设置 BrowserWindow 置顶状态
+直接操作调用者所在的 BrowserWindow
+ */
+  "windowSetBrowserWindowAlwaysOnTop": (alwaysOnTop: boolean) => Promise<boolean>;
+
+  /**
+ * 检查 BrowserWindow 是否置顶
+直接检查调用者所在的 BrowserWindow
+ */
+  "window-is-browser-window-always-on-top": () => Promise<boolean>;
+  /**
+ * 检查 BrowserWindow 是否置顶
+直接检查调用者所在的 BrowserWindow
+ */
+  "windowIsBrowserWindowAlwaysOnTop": () => Promise<boolean>;
+
+  /**
+ * 设置 BrowserWindow 全屏状态
+直接操作调用者所在的 BrowserWindow
+ */
+  "window-set-browser-window-full-screen": (fullScreen: boolean) => Promise<boolean>;
+  /**
+ * 设置 BrowserWindow 全屏状态
+直接操作调用者所在的 BrowserWindow
+ */
+  "windowSetBrowserWindowFullScreen": (fullScreen: boolean) => Promise<boolean>;
+
+  /**
+ * 显示 BrowserWindow
+直接操作调用者所在的 BrowserWindow
+ */
+  "window-show-browser-window": () => Promise<boolean>;
+  /**
+ * 显示 BrowserWindow
+直接操作调用者所在的 BrowserWindow
+ */
+  "windowShowBrowserWindow": () => Promise<boolean>;
+
+  /**
+ * 隐藏 BrowserWindow
+直接操作调用者所在的 BrowserWindow
+ */
+  "window-hide-browser-window": () => Promise<boolean>;
+  /**
+ * 隐藏 BrowserWindow
+直接操作调用者所在的 BrowserWindow
+ */
+  "windowHideBrowserWindow": () => Promise<boolean>;
+
+  /**
+ * 检查 BrowserWindow 是否可见
+直接检查调用者所在的 BrowserWindow
+ */
+  "window-is-browser-window-visible": () => Promise<boolean>;
+  /**
+ * 检查 BrowserWindow 是否可见
+直接检查调用者所在的 BrowserWindow
+ */
+  "windowIsBrowserWindowVisible": () => Promise<boolean>;
 }
 
 // 合并所有 IPC 路由类型
@@ -2485,6 +2606,72 @@ export const ROUTE_INFO: RouteInfo[] = [
     comment: "处理默认的 ESC 快捷键行为, 此函数由 preload 脚本调用，当页面没有阻止 ESC 事件时执行",
     module: "window",
     function: "handleDefaultEscShortcut"
+  },
+  {
+    route: "window-minimize-browser-window",
+    comment: "最小化 BrowserWindow, 直接操作调用者所在的 BrowserWindow",
+    module: "window",
+    function: "minimizeBrowserWindow"
+  },
+  {
+    route: "window-maximize-browser-window",
+    comment: "最大化/还原 BrowserWindow, 直接操作调用者所在的 BrowserWindow",
+    module: "window",
+    function: "maximizeBrowserWindow"
+  },
+  {
+    route: "window-close-browser-window",
+    comment: "关闭 BrowserWindow, 直接操作调用者所在的 BrowserWindow",
+    module: "window",
+    function: "closeBrowserWindow"
+  },
+  {
+    route: "window-is-browser-window-maximized",
+    comment: "检查 BrowserWindow 是否最大化, 直接检查调用者所在的 BrowserWindow",
+    module: "window",
+    function: "isBrowserWindowMaximized"
+  },
+  {
+    route: "window-is-browser-window-fullscreen",
+    comment: "检查 BrowserWindow 是否全屏或最大化, 直接检查调用者所在的 BrowserWindow",
+    module: "window",
+    function: "isBrowserWindowFullscreen"
+  },
+  {
+    route: "window-set-browser-window-always-on-top",
+    comment: "设置 BrowserWindow 置顶状态, 直接操作调用者所在的 BrowserWindow",
+    module: "window",
+    function: "setBrowserWindowAlwaysOnTop"
+  },
+  {
+    route: "window-is-browser-window-always-on-top",
+    comment: "检查 BrowserWindow 是否置顶, 直接检查调用者所在的 BrowserWindow",
+    module: "window",
+    function: "isBrowserWindowAlwaysOnTop"
+  },
+  {
+    route: "window-set-browser-window-full-screen",
+    comment: "设置 BrowserWindow 全屏状态, 直接操作调用者所在的 BrowserWindow",
+    module: "window",
+    function: "setBrowserWindowFullScreen"
+  },
+  {
+    route: "window-show-browser-window",
+    comment: "显示 BrowserWindow, 直接操作调用者所在的 BrowserWindow",
+    module: "window",
+    function: "showBrowserWindow"
+  },
+  {
+    route: "window-hide-browser-window",
+    comment: "隐藏 BrowserWindow, 直接操作调用者所在的 BrowserWindow",
+    module: "window",
+    function: "hideBrowserWindow"
+  },
+  {
+    route: "window-is-browser-window-visible",
+    comment: "检查 BrowserWindow 是否可见, 直接检查调用者所在的 BrowserWindow",
+    module: "window",
+    function: "isBrowserWindowVisible"
   }
 ];
 

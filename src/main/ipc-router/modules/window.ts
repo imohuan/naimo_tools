@@ -610,14 +610,23 @@ export function openLogViewer(event: Electron.IpcMainInvokeEvent): void {
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: true,
-      preload: resolve(app.getAppPath(), 'dist/main/preloads/basic.js'), // 注入basic.js preload
+      preload: resolve(getDirname(import.meta.url), './preloads/basic.js'),
       webSecurity: true,
     },
   });
 
-  // 加载日志查看器HTML文件
-  const logViewerPath = resolve(app.getAppPath(), 'dist/renderer/log-viewer.html');
-  logWindow.loadFile(logViewerPath);
+  // 根据环境加载不同的日志查看器页面
+  if (process.env.NODE_ENV === 'development') {
+    // 开发环境：从开发服务器加载
+    const devUrl = 'http://localhost:5173/log-viewer.html';
+    logWindow.loadURL(devUrl);
+    log.info(`加载日志查看器（开发模式）: ${devUrl}`);
+  } else {
+    // 生产环境：加载构建后的HTML文件
+    const logViewerPath = resolve(app.getAppPath(), 'dist/renderer/log-viewer.html');
+    logWindow.loadFile(logViewerPath);
+    log.info(`加载日志查看器（生产模式）: ${logViewerPath}`);
+  }
 
   // 窗口准备好后显示
   logWindow.once("ready-to-show", () => {
@@ -629,6 +638,32 @@ export function openLogViewer(event: Electron.IpcMainInvokeEvent): void {
   logWindow.on("closed", () => {
     log.info("日志查看器窗口已关闭");
   });
+
+  // 支持 ctrl + shift + i 打开开发者工具（刷新后依然有效）
+  function registerDevtoolsShortcut(window: Electron.BrowserWindow) {
+    const handler = (event: Electron.Event, input: Electron.Input) => {
+      if (
+        input.key.toLowerCase() === 'i' &&
+        input.control && input.shift &&
+        !input.alt && !input.meta
+      ) {
+        window.webContents.openDevTools({ mode: 'bottom' });
+        event.preventDefault();
+      }
+    };
+    window.webContents.on('before-input-event', handler);
+
+    // 监听渲染进程刷新后，重新注册快捷键
+    window.webContents.on('did-navigate', () => {
+      window.webContents.removeListener('before-input-event', handler);
+      setTimeout(() => {
+        window.webContents.on('before-input-event', handler);
+      }, 100);
+    });
+  }
+
+  registerDevtoolsShortcut(logWindow);
+
 
   // 开发环境下打开开发者工具
   if (process.env.NODE_ENV === "development" && OPEN_DEVTOOLS) {
@@ -659,6 +694,7 @@ import { ViewType, LifecycleType } from '@renderer/src/typings/windowTypes'
 import { ViewCategory, type WebContentsViewInfo } from '@main/typings/windowTypes'
 import type { PluginItem } from '@renderer/src/typings/pluginTypes'
 import { OPEN_DEVTOOLS } from "@shared/constants";
+import { getDirname } from "@main/utils";
 
 
 /**
@@ -1611,5 +1647,259 @@ export async function handleDefaultEscShortcut(event: Electron.IpcMainInvokeEven
   } catch (error) {
     log.error('处理 ESC 快捷键失败:', error);
     return { success: false, error: error instanceof Error ? error.message : '未知错误' };
+  }
+}
+
+// ===== BrowserWindow 直接控制 API =====
+// 以下函数直接控制 BrowserWindow，不经过视图系统
+// 适用于独立窗口（如日志查看器等）的窗口控制
+
+/**
+ * 最小化 BrowserWindow
+ * 直接操作调用者所在的 BrowserWindow
+ */
+export async function minimizeBrowserWindow(event: Electron.IpcMainInvokeEvent): Promise<boolean> {
+  try {
+    const window = BrowserWindow.fromWebContents(event.sender);
+
+    if (!window || window.isDestroyed()) {
+      log.warn('最小化窗口失败：窗口不存在或已销毁');
+      return false;
+    }
+
+    if (window.isMinimized()) {
+      log.debug('窗口已是最小化状态');
+      return true;
+    }
+
+    window.minimize();
+    log.debug(`BrowserWindow 已最小化，ID: ${window.id}`);
+    return true;
+  } catch (error) {
+    log.error('最小化 BrowserWindow 失败:', error);
+    return false;
+  }
+}
+
+/**
+ * 最大化/还原 BrowserWindow
+ * 直接操作调用者所在的 BrowserWindow
+ */
+export async function maximizeBrowserWindow(event: Electron.IpcMainInvokeEvent): Promise<boolean> {
+  try {
+    const window = BrowserWindow.fromWebContents(event.sender);
+
+    if (!window || window.isDestroyed()) {
+      log.warn('最大化窗口失败：窗口不存在或已销毁');
+      return false;
+    }
+
+    if (window.isMaximized()) {
+      window.unmaximize();
+      log.debug(`BrowserWindow 已还原，ID: ${window.id}`);
+    } else {
+      window.maximize();
+      log.debug(`BrowserWindow 已最大化，ID: ${window.id}`);
+    }
+    return true;
+  } catch (error) {
+    log.error('最大化 BrowserWindow 失败:', error);
+    return false;
+  }
+}
+
+/**
+ * 关闭 BrowserWindow
+ * 直接操作调用者所在的 BrowserWindow
+ */
+export async function closeBrowserWindow(event: Electron.IpcMainInvokeEvent): Promise<boolean> {
+  try {
+    const window = BrowserWindow.fromWebContents(event.sender);
+
+    if (!window || window.isDestroyed()) {
+      log.warn('关闭窗口失败：窗口不存在或已销毁');
+      return false;
+    }
+
+    window.close();
+    log.debug(`BrowserWindow 已关闭，ID: ${window.id}`);
+    return true;
+  } catch (error) {
+    log.error('关闭 BrowserWindow 失败:', error);
+    return false;
+  }
+}
+
+/**
+ * 检查 BrowserWindow 是否最大化
+ * 直接检查调用者所在的 BrowserWindow
+ */
+export async function isBrowserWindowMaximized(event: Electron.IpcMainInvokeEvent): Promise<boolean> {
+  try {
+    const window = BrowserWindow.fromWebContents(event.sender);
+
+    if (!window || window.isDestroyed()) {
+      return false;
+    }
+
+    return window.isMaximized();
+  } catch (error) {
+    log.error('检查 BrowserWindow 是否最大化失败:', error);
+    return false;
+  }
+}
+
+/**
+ * 检查 BrowserWindow 是否全屏或最大化
+ * 直接检查调用者所在的 BrowserWindow
+ */
+export async function isBrowserWindowFullscreen(event: Electron.IpcMainInvokeEvent): Promise<boolean> {
+  try {
+    const window = BrowserWindow.fromWebContents(event.sender);
+
+    if (!window || window.isDestroyed()) {
+      return false;
+    }
+
+    const isFullScreen = window.isFullScreen?.() || false;
+    const isMaximized = window.isMaximized();
+
+    log.debug(`BrowserWindow 状态检查 (ID: ${window.id}): 全屏=${isFullScreen}, 最大化=${isMaximized}`);
+
+    return isFullScreen || isMaximized;
+  } catch (error) {
+    log.error('检查 BrowserWindow 是否全屏失败:', error);
+    return false;
+  }
+}
+
+/**
+ * 设置 BrowserWindow 置顶状态
+ * 直接操作调用者所在的 BrowserWindow
+ */
+export async function setBrowserWindowAlwaysOnTop(event: Electron.IpcMainInvokeEvent, alwaysOnTop: boolean): Promise<boolean> {
+  try {
+    const window = BrowserWindow.fromWebContents(event.sender);
+
+    if (!window || window.isDestroyed()) {
+      log.warn('设置窗口置顶失败：窗口不存在或已销毁');
+      return false;
+    }
+
+    window.setAlwaysOnTop(alwaysOnTop);
+    log.debug(`BrowserWindow 置顶状态已设置，ID: ${window.id}, 置顶: ${alwaysOnTop}`);
+    return true;
+  } catch (error) {
+    log.error('设置 BrowserWindow 置顶失败:', error);
+    return false;
+  }
+}
+
+/**
+ * 检查 BrowserWindow 是否置顶
+ * 直接检查调用者所在的 BrowserWindow
+ */
+export async function isBrowserWindowAlwaysOnTop(event: Electron.IpcMainInvokeEvent): Promise<boolean> {
+  try {
+    const window = BrowserWindow.fromWebContents(event.sender);
+
+    if (!window || window.isDestroyed()) {
+      return false;
+    }
+
+    return window.isAlwaysOnTop();
+  } catch (error) {
+    log.error('检查 BrowserWindow 是否置顶失败:', error);
+    return false;
+  }
+}
+
+/**
+ * 设置 BrowserWindow 全屏状态
+ * 直接操作调用者所在的 BrowserWindow
+ */
+export async function setBrowserWindowFullScreen(event: Electron.IpcMainInvokeEvent, fullScreen: boolean): Promise<boolean> {
+  try {
+    const window = BrowserWindow.fromWebContents(event.sender);
+
+    if (!window || window.isDestroyed()) {
+      log.warn('设置窗口全屏失败：窗口不存在或已销毁');
+      return false;
+    }
+
+    window.setFullScreen(fullScreen);
+    log.debug(`BrowserWindow 全屏状态已设置，ID: ${window.id}, 全屏: ${fullScreen}`);
+    return true;
+  } catch (error) {
+    log.error('设置 BrowserWindow 全屏失败:', error);
+    return false;
+  }
+}
+
+/**
+ * 显示 BrowserWindow
+ * 直接操作调用者所在的 BrowserWindow
+ */
+export async function showBrowserWindow(event: Electron.IpcMainInvokeEvent): Promise<boolean> {
+  try {
+    const window = BrowserWindow.fromWebContents(event.sender);
+
+    if (!window || window.isDestroyed()) {
+      log.warn('显示窗口失败：窗口不存在或已销毁');
+      return false;
+    }
+
+    if (window.isMinimized()) {
+      window.restore();
+    }
+
+    window.show();
+    window.focus();
+    log.debug(`BrowserWindow 已显示，ID: ${window.id}`);
+    return true;
+  } catch (error) {
+    log.error('显示 BrowserWindow 失败:', error);
+    return false;
+  }
+}
+
+/**
+ * 隐藏 BrowserWindow
+ * 直接操作调用者所在的 BrowserWindow
+ */
+export async function hideBrowserWindow(event: Electron.IpcMainInvokeEvent): Promise<boolean> {
+  try {
+    const window = BrowserWindow.fromWebContents(event.sender);
+
+    if (!window || window.isDestroyed()) {
+      log.warn('隐藏窗口失败：窗口不存在或已销毁');
+      return false;
+    }
+
+    window.hide();
+    log.debug(`BrowserWindow 已隐藏，ID: ${window.id}`);
+    return true;
+  } catch (error) {
+    log.error('隐藏 BrowserWindow 失败:', error);
+    return false;
+  }
+}
+
+/**
+ * 检查 BrowserWindow 是否可见
+ * 直接检查调用者所在的 BrowserWindow
+ */
+export async function isBrowserWindowVisible(event: Electron.IpcMainInvokeEvent): Promise<boolean> {
+  try {
+    const window = BrowserWindow.fromWebContents(event.sender);
+
+    if (!window || window.isDestroyed()) {
+      return false;
+    }
+
+    return window.isVisible();
+  } catch (error) {
+    log.error('检查 BrowserWindow 是否可见失败:', error);
+    return false;
   }
 }

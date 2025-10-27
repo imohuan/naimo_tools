@@ -2,7 +2,7 @@
  * 核心服务 - 管理应用的核心生命周期
  */
 
-import { app, shell, UtilityProcess } from 'electron'
+import { app, shell, UtilityProcess, Menu } from 'electron'
 import log from 'electron-log'
 import { LogConfigManager } from '../config/logConfig'
 import { cleanupIpcRouter, initializeIpcRouter } from '../ipc-router'
@@ -71,6 +71,10 @@ export class CoreService implements Service {
 
       // 等待应用准备就绪
       await this.waitForAppReady()
+
+      // 禁用默认应用菜单（解决 BaseWindow + WebContentsView 快捷键冲突问题）
+      Menu.setApplicationMenu(null)
+      log.info('已禁用默认应用菜单')
 
       // 初始化图标工作进程（必须在 app ready 后）
       // 这里会等待应用列表加载完成
