@@ -72,14 +72,14 @@ function openLogFile() {
 
 
 // 初始化 auto-puppeteer
-// try {
-//   console.log("🔧 正在初始化 auto-puppeteer...");
-//   await autoPuppeteerMain.initialize();
-//   console.log("✅ auto-puppeteer 初始化完成");
-// } catch (error) {
-//   console.error("❌ auto-puppeteer 初始化失败:", error);
-//   log.error("auto-puppeteer 初始化失败:", error);
-// }
+try {
+  console.log("🔧 正在初始化 auto-puppeteer...");
+  await autoPuppeteerMain.initialize();
+  console.log("✅ auto-puppeteer 初始化完成");
+} catch (error) {
+  console.error("❌ auto-puppeteer 初始化失败:", error);
+  log.error("auto-puppeteer 初始化失败:", error);
+}
 
 // 初始化应用
 appBootstrap

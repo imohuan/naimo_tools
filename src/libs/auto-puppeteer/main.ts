@@ -120,16 +120,16 @@ export class AutoPuppeteerMain {
       }
     });
 
-    this.registerCustomFunction('scroll', async (context: BrowserSession, selectorOrX: string | number, y?: number) => {
-      if (typeof selectorOrX === 'string') {
-        await context.page.evaluate((sel: string) => {
-          const element = document.querySelector(sel);
-          if (element) element.scrollIntoView({ behavior: 'smooth' });
-        }, selectorOrX);
+    this.registerCustomFunction('scroll', async (context: BrowserSession, selector?: string, x: number = 0, y: number = 10000) => {
+      if (selector?.trim()) {
+        await context.page.evaluate((selector: string, x: number, y: number) => {
+          const element = document.querySelector(selector);
+          if (element) element.scrollTo({ top: y, left: x });
+        }, selector, x, y);
       } else {
         await context.page.evaluate((x: number, y: number) => {
           window.scrollTo(x, y);
-        }, selectorOrX, y || 0);
+        }, x, y);
       }
     });
 
@@ -211,31 +211,31 @@ export class AutoPuppeteerMain {
     const browser = await pie.connect(app, puppeteer);
 
     const win = new BrowserWindow({
-      show: config.show !== undefined ? config.show : false,
-      width: config.width,
-      height: config.height,
-      x: config.x,
-      y: config.y,
-      center: config.center,
-      minWidth: config.minWidth,
-      minHeight: config.minHeight,
-      maxWidth: config.maxWidth,
-      maxHeight: config.maxHeight,
-      resizable: config.resizable,
-      movable: config.movable,
-      minimizable: config.minimizable,
-      maximizable: config.maximizable,
-      alwaysOnTop: config.alwaysOnTop,
-      fullscreen: config.fullscreen,
-      fullscreenable: config.fullscreenable,
-      opacity: config.opacity,
-      frame: config.frame,
-      closable: config.closable,
-      focusable: config.focusable,
-      skipTaskbar: config.skipTaskbar,
-      backgroundColor: config.backgroundColor,
-      hasShadow: config.hasShadow,
-      transparent: config.transparent,
+      ...(config?.show ? { show: config.show } : {}),
+      ...(config?.width ? { width: config.width } : {}),
+      ...(config?.height ? { height: config.height } : {}),
+      ...(config?.x ? { x: config.x } : {}),
+      ...(config?.y ? { y: config.y } : {}),
+      ...(config?.center ? { center: config.center } : {}),
+      ...(config?.minWidth ? { minWidth: config.minWidth } : {}),
+      ...(config?.minHeight ? { minHeight: config.minHeight } : {}),
+      ...(config?.maxWidth ? { maxWidth: config.maxWidth } : {}),
+      ...(config?.maxHeight ? { maxHeight: config.maxHeight } : {}),
+      ...(config?.resizable ? { resizable: config.resizable } : {}),
+      ...(config?.movable ? { movable: config.movable } : {}),
+      ...(config?.minimizable ? { minimizable: config.minimizable } : {}),
+      ...(config?.maximizable ? { maximizable: config.maximizable } : {}),
+      ...(config?.alwaysOnTop ? { alwaysOnTop: config.alwaysOnTop } : {}),
+      ...(config?.fullscreen ? { fullscreen: config.fullscreen } : {}),
+      ...(config?.fullscreenable ? { fullscreenable: config.fullscreenable } : {}),
+      ...(config?.opacity ? { opacity: config.opacity } : {}),
+      ...(config?.frame ? { frame: config.frame } : {}),
+      ...(config?.closable ? { closable: config.closable } : {}),
+      ...(config?.focusable ? { focusable: config.focusable } : {}),
+      ...(config?.skipTaskbar ? { skipTaskbar: config.skipTaskbar } : {}),
+      ...(config?.backgroundColor ? { backgroundColor: config.backgroundColor } : {}),
+      ...(config?.hasShadow ? { hasShadow: config.hasShadow } : {}),
+      ...(config?.transparent ? { transparent: config.transparent } : {}),
       webPreferences: config.webPreferences || {
         nodeIntegration: false,
         contextIsolation: true

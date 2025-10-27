@@ -52,6 +52,12 @@ export interface DetachedWindowInfo {
   detachedAt: Date
   /** 是否有控制栏 */
   hasControlBar: boolean
+  /** 是否全屏状态 */
+  isFullScreen?: boolean
+  /** 全屏切换中的状态 */
+  isFullScreenTransitioning?: boolean
+  /** 退出全屏时恢复的窗口尺寸 */
+  previousBounds?: Rectangle
   /** 插件信息 */
   pluginInfo?: {
     fullPath: string  // 格式: "pluginId:path"
@@ -349,7 +355,10 @@ export class DetachManager {
         detachedAt: new Date(),
         hasControlBar: detachConfig.showControlBar,
         pluginInfo: this.extractPluginInfo(sourceView),
-        controlBarView // 添加控制栏视图引用
+        controlBarView, // 添加控制栏视图引用
+        isFullScreen: detachedWindow.isFullScreen?.() ?? false,
+        isFullScreenTransitioning: false,
+        previousBounds: undefined
       }
 
       // 设置分离窗口事件（包括快捷键）
@@ -948,7 +957,6 @@ export class DetachManager {
    */
   private setupDetachedWindowEvents(detachedWindowInfo: DetachedWindowInfo): void {
     const { window, view, windowId, controlBarView } = detachedWindowInfo
-    const controlBarHeight = 40 // 与 layoutViews 中的高度保持一致
 
     // 窗口关闭事件
     window.on('closed', () => {
@@ -971,10 +979,166 @@ export class DetachManager {
       })
     })
 
+    // 监听进入全屏事件
+    window.on('enter-full-screen', () => {
+      log.info(`窗口进入全屏: 窗口ID=${windowId}`)
+
+      // 如果还没有保存窗口尺寸（可能是通过系统快捷键触发的），立即保存
+      if (!detachedWindowInfo.previousBounds) {
+        try {
+          // 尝试获取正常窗口尺寸（非全屏尺寸）
+          if (typeof window.getNormalBounds === 'function') {
+            const normalBounds = window.getNormalBounds()
+            // 验证获取的尺寸不是全屏尺寸
+            const display = screen.getDisplayNearestPoint({ x: normalBounds.x, y: normalBounds.y })
+            const isFullScreenSize = normalBounds.width === display.bounds.width && normalBounds.height === display.bounds.height
+            if (!isFullScreenSize) {
+              detachedWindowInfo.previousBounds = normalBounds
+              log.debug(`[enter-full-screen] 记录窗口尺寸: ${JSON.stringify(normalBounds)}`)
+            } else {
+              log.warn(`[enter-full-screen] 无法获取有效的窗口尺寸，使用配置尺寸`)
+              detachedWindowInfo.previousBounds = detachedWindowInfo.config.bounds
+            }
+          } else {
+            // 降级方案：使用配置中的尺寸
+            detachedWindowInfo.previousBounds = detachedWindowInfo.config.bounds
+            log.debug(`[enter-full-screen] 使用配置尺寸作为恢复目标: ${JSON.stringify(detachedWindowInfo.config.bounds)}`)
+          }
+        } catch (error) {
+          log.warn('[enter-full-screen] 保存窗口尺寸失败，使用配置尺寸:', error)
+          detachedWindowInfo.previousBounds = detachedWindowInfo.config.bounds
+        }
+      }
+
+      detachedWindowInfo.isFullScreen = true
+      detachedWindowInfo.isFullScreenTransitioning = false
+
+      // 使用 setTimeout 确保获取到最新的窗口尺寸
+      setTimeout(() => {
+        if (window.isDestroyed()) {
+          log.warn(`进入全屏时窗口已销毁: 窗口ID=${windowId}`)
+          return
+        }
+
+        // 隐藏控制栏
+        if (controlBarView && !controlBarView.webContents.isDestroyed()) {
+          try {
+            window.contentView.removeChildView(controlBarView)
+            log.info(`全屏模式：已隐藏控制栏视图`)
+          } catch (error) {
+            log.warn('隐藏控制栏失败:', error)
+          }
+        }
+
+        // 调整内容视图为全窗口大小
+        if (view && !view.webContents.isDestroyed()) {
+          const windowBounds = window.getBounds()
+          const fullScreenBounds = {
+            x: 0,
+            y: 0,
+            width: windowBounds.width,
+            height: windowBounds.height
+          }
+          view.setBounds(fullScreenBounds)
+          log.info(`全屏模式：内容视图已调整为全窗口大小`)
+        }
+
+        // 进入全屏后聚焦到内容视图
+        setTimeout(() => {
+          if (!window.isDestroyed() && view && !view.webContents.isDestroyed()) {
+            view.webContents.focus()
+            log.debug(`进入全屏：内容视图已重新聚焦`)
+          }
+        }, 100)
+      }, 50)
+    })
+
+    // 监听退出全屏事件
+    window.on('leave-full-screen', () => {
+      log.info(`窗口退出全屏: 窗口ID=${windowId}`)
+      detachedWindowInfo.isFullScreen = false
+      detachedWindowInfo.isFullScreenTransitioning = true  // 立即标记为切换中
+
+      // 使用 setTimeout 确保窗口完全退出全屏后再调整布局
+      setTimeout(() => {
+        // 检查窗口是否仍然有效
+        if (window.isDestroyed()) {
+          log.warn(`退出全屏时窗口已销毁: 窗口ID=${windowId}`)
+          detachedWindowInfo.isFullScreenTransitioning = false
+          return
+        }
+
+        // 恢复控制栏（需要先添加控制栏，再添加内容视图，这样控制栏在底层）
+        if (controlBarView && !controlBarView.webContents.isDestroyed()) {
+          try {
+            // 先移除内容视图
+            if (view && !view.webContents.isDestroyed()) {
+              window.contentView.removeChildView(view)
+            }
+
+            // 添加控制栏
+            window.contentView.addChildView(controlBarView)
+
+            // 重新添加内容视图
+            if (view && !view.webContents.isDestroyed()) {
+              window.contentView.addChildView(view)
+            }
+
+            log.info(`退出全屏：已恢复控制栏视图`)
+          } catch (error) {
+            log.warn('恢复控制栏失败:', error)
+          }
+        }
+
+        // 恢复正常布局
+        if (view && !view.webContents.isDestroyed() && controlBarView && !controlBarView.webContents.isDestroyed()) {
+          this.updateViewBounds(window, view, controlBarView)
+          log.info(`退出全屏：已恢复正常布局`)
+        }
+
+        // 恢复窗口尺寸
+        if (detachedWindowInfo.previousBounds) {
+          try {
+            window.setBounds(detachedWindowInfo.previousBounds)
+            log.info(`退出全屏：窗口尺寸已恢复为 ${JSON.stringify(detachedWindowInfo.previousBounds)}`)
+          } catch (error) {
+            log.warn('恢复窗口尺寸失败:', error)
+          }
+          // 不要立即清空 previousBounds，延迟清空以防快速切换
+          setTimeout(() => {
+            detachedWindowInfo.previousBounds = undefined
+          }, 200)
+        } else {
+          log.warn(`退出全屏时没有保存的窗口尺寸，使用配置尺寸`)
+          try {
+            window.setBounds(detachedWindowInfo.config.bounds)
+            log.info(`退出全屏：窗口尺寸已恢复为配置值 ${JSON.stringify(detachedWindowInfo.config.bounds)}`)
+          } catch (error) {
+            log.error('恢复配置尺寸失败:', error)
+          }
+        }
+
+        // 聚焦到内容视图
+        setTimeout(() => {
+          if (!window.isDestroyed() && view && !view.webContents.isDestroyed()) {
+            view.webContents.focus()
+            log.debug(`退出全屏：内容视图已重新聚焦`)
+          }
+        }, 100)
+
+        detachedWindowInfo.isFullScreenTransitioning = false
+      }, 100)
+    })
+
     // 窗口大小调整事件 - 实时更新视图边界
     const updateLayout = () => {
       // 严格检查所有对象是否有效（避免访问已销毁或undefined的对象）
       if (!window || !view || !controlBarView) {
+        return
+      }
+
+      // 全屏模式下不需要更新布局
+      if (detachedWindowInfo.isFullScreen) {
         return
       }
 
@@ -1043,6 +1207,8 @@ export class DetachManager {
           window.removeAllListeners('resized')
           window.removeAllListeners('focus')
           window.removeAllListeners('blur')
+          window.removeAllListeners('enter-full-screen')
+          window.removeAllListeners('leave-full-screen')
           log.debug(`已清理窗口事件监听器: ${windowId}`)
         } catch (error) {
           log.warn('清理窗口事件监听器时出错:', error)
@@ -1138,6 +1304,13 @@ export class DetachManager {
     //   return
     // }
 
+    // F11 切换全屏
+    if (input.key === 'F11' && input.type === 'keyDown') {
+      this.toggleFullScreen(detachedWindowInfo)
+      event.preventDefault()
+      return
+    }
+
     // Alt+R 重新附加
     if (input.key === 'r' && input.alt && input.type === 'keyDown') {
       // 直接调用 reattachView 方法，将视图重新附加回原窗口
@@ -1155,6 +1328,77 @@ export class DetachManager {
       })
       event.preventDefault()
       return
+    }
+  }
+
+  /**
+   * 切换全屏模式
+   * @param detachedWindowInfo 分离窗口信息
+   */
+  private toggleFullScreen(detachedWindowInfo: DetachedWindowInfo): void {
+    try {
+      const { window, windowId } = detachedWindowInfo
+
+      if (!window || window.isDestroyed()) {
+        log.warn(`无法切换全屏，窗口已销毁: ${windowId}`)
+        return
+      }
+
+      if (detachedWindowInfo.isFullScreenTransitioning) {
+        log.warn(`全屏状态切换中，忽略新的切换请求: 窗口ID=${windowId}`)
+        return
+      }
+
+      // 获取当前全屏状态（优先使用缓存状态）
+      const isCurrentlyFullScreen = detachedWindowInfo.isFullScreen ?? window.isFullScreen?.() ?? false
+      const newFullScreenState = !isCurrentlyFullScreen
+
+      log.info(`切换分离窗口全屏状态: 窗口ID=${windowId}, 当前=${isCurrentlyFullScreen}, 目标=${newFullScreenState}`)
+
+      // 在进入全屏之前记录窗口尺寸，退出时恢复
+      // 只有在没有保存的尺寸或者当前确实不是全屏时才记录
+      if (!isCurrentlyFullScreen && !detachedWindowInfo.previousBounds) {
+        try {
+          const currentBounds = window.getBounds()
+          // 确保记录的是正常窗口尺寸，不是全屏尺寸
+          const display = screen.getDisplayNearestPoint({ x: currentBounds.x, y: currentBounds.y })
+          const isFullScreenSize = currentBounds.width === display.bounds.width && currentBounds.height === display.bounds.height
+
+          if (!isFullScreenSize) {
+            if (typeof window.getNormalBounds === 'function') {
+              detachedWindowInfo.previousBounds = window.getNormalBounds()
+            } else {
+              detachedWindowInfo.previousBounds = currentBounds
+            }
+            log.debug(`记录退出全屏后的窗口尺寸: ${JSON.stringify(detachedWindowInfo.previousBounds)}`)
+          } else {
+            log.warn(`当前窗口尺寸疑似全屏尺寸，跳过记录: ${JSON.stringify(currentBounds)}`)
+          }
+        } catch (error) {
+          log.warn('记录窗口尺寸失败:', error)
+          const fallbackBounds = window.getBounds()
+          detachedWindowInfo.previousBounds = fallbackBounds
+        }
+      } else if (!isCurrentlyFullScreen && detachedWindowInfo.previousBounds) {
+        log.debug(`已有保存的窗口尺寸，跳过记录: ${JSON.stringify(detachedWindowInfo.previousBounds)}`)
+      }
+
+      detachedWindowInfo.isFullScreenTransitioning = true
+
+      // 设置全屏状态
+      // 布局调整会在 enter-full-screen 或 leave-full-screen 事件中自动处理
+      if (typeof window.setFullScreen === 'function') {
+        window.setFullScreen(newFullScreenState)
+        detachedWindowInfo.isFullScreen = newFullScreenState
+        log.info(`已请求窗口全屏状态切换: 窗口ID=${windowId}, 目标=${newFullScreenState}`)
+      } else {
+        log.warn(`窗口不支持 setFullScreen 方法: 窗口ID=${windowId}`)
+        detachedWindowInfo.isFullScreenTransitioning = false
+        return
+      }
+    } catch (error) {
+      detachedWindowInfo.isFullScreenTransitioning = false
+      log.error(`切换全屏失败: 窗口ID=${detachedWindowInfo.windowId}`, error)
     }
   }
 
