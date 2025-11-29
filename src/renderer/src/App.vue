@@ -699,6 +699,18 @@ onMounted(async () => {
     app.ui.toggleSearchBoxVisibility(data.value);
   });
 
+  // 监听设置更新事件
+  naimo.event.onSettingsUpdated(async (_event, data) => {
+    console.log("📡 [App.vue] 收到设置更新事件:", data);
+    try {
+      // 刷新搜索显示配置（如果相关配置已更改）
+      await app.search.refreshDisplayConfig();
+      console.log("✅ [App.vue] 已刷新搜索显示配置");
+    } catch (error) {
+      console.error("❌ [App.vue] 刷新搜索显示配置失败:", error);
+    }
+  });
+
   // naimo.event.onViewEscPressed 替代了
   // useEventListener(document, "keydown", (event) => {
   //   if (event.key === "Escape") {

@@ -1,6 +1,6 @@
 /**
  * 自动生成的事件类型定义
- * 生成时间: 2025-11-29T06:12:53.660Z
+ * 生成时间: 2025-11-29T06:37:30.226Z
  * 请勿手动修改此文件
  */
 
@@ -87,6 +87,11 @@ interface EventInterface {
   "hotkey-updated": (handler: (event: any, data: EventData<'hotkey-updated'>) => void) => () => void;
   /** 监听 hotkey-updated 事件 */
   "onHotkeyUpdated": (handler: (event: any, data: EventData<'hotkey-updated'>) => void) => () => void;
+
+  /** 监听 settings-updated 事件 */
+  "settings-updated": (handler: (event: any, data: EventData<'settings-updated'>) => void) => () => void;
+  /** 监听 settings-updated 事件 */
+  "onSettingsUpdated": (handler: (event: any, data: EventData<'settings-updated'>) => void) => () => void;
 
   /** 监听 window-all-blur 事件 */
   "window-all-blur": (handler: (event: any, data: EventData<'window-all-blur'>) => void) => () => void;
@@ -214,6 +219,11 @@ export const EVENT_INFO = [
     name: "hotkey-updated",
     comment: "监听 hotkey-updated 事件",
     method: "onHotkeyUpdated"
+  },
+  {
+    name: "settings-updated",
+    comment: "监听 settings-updated 事件",
+    method: "onSettingsUpdated"
   },
   {
     name: "window-all-blur",

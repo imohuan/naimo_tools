@@ -2,7 +2,7 @@
  * Naimo Tools 插件 API 类型声明
  * 
  * @version 2.0
- * @date 2025-10-25
+ * @date 2025-11-29
  * 
  * 本文件由脚本自动生成，请勿手动修改
  * 生成脚本: scripts/generate-naimo-types.js

@@ -48,8 +48,8 @@ function extractEventNames(content) {
         break
       }
 
-      // 匹配事件定义行
-      const match = trimmedLine.match(/^'([^']+)':\s*{/)
+      // 匹配事件定义行（支持单引号和双引号）
+      const match = trimmedLine.match(/^["']([^"']+)["']:\s*{/)
       if (match) {
         events.push(match[1])
       }

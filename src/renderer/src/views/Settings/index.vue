@@ -456,8 +456,20 @@ const saveAllSettings = async () => {
 
     if (pluginSettingsSuccess) {
       console.log("✅ 所有设置保存成功");
-      // 刷新搜索显示配置（如果相关配置已更改）
-      await app.search.refreshDisplayConfig();
+      // 通知主窗口设置已更新
+      try {
+        await window.naimo.router.appForwardMessageToMainView(
+          "settings-updated",
+          {
+            appSettingsCount,
+            pluginSettingsCount: Object.keys(pluginSettings).length,
+            timestamp: Date.now(),
+          }
+        );
+        console.log("📡 [Settings] 已通知主窗口设置更新");
+      } catch (error) {
+        console.error("❌ [Settings] 通知主窗口失败:", error);
+      }
       // 更新初始值，表示已保存
       initialValues.value = JSON.parse(JSON.stringify(settingValues.value));
       showSaveFeedback(

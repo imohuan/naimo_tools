@@ -280,6 +280,23 @@ export function sendHotkeyUpdated(
 }
 
 /**
+ * 发送 settings-updated 事件
+ * @param webContents 目标 WebContents
+ * @param data 事件数据
+ */
+export function sendSettingsUpdated(
+  webContents: WebContents,
+  data: EventData<'settings-updated'>
+): void {
+  if (webContents && !webContents.isDestroyed()) {
+    webContents.send('settings-updated', data)
+    log.debug(`事件已发送: settings-updated`, { data })
+  } else {
+    log.warn(`无法发送事件: WebContents已销毁 - settings-updated`)
+  }
+}
+
+/**
  * 发送 window-all-blur 事件
  * @param webContents 目标 WebContents
  * @param data 事件数据
@@ -450,6 +467,7 @@ export const mainEvents = {
   pluginMessage: sendPluginMessage,
   pluginExit: sendPluginExit,
   hotkeyUpdated: sendHotkeyUpdated,
+  settingsUpdated: sendSettingsUpdated,
   windowAllBlur: sendWindowAllBlur,
   windowMainHide: sendWindowMainHide,
   windowMainShow: sendWindowMainShow,
