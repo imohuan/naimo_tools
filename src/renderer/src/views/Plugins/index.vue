@@ -34,23 +34,21 @@
       <!-- 插件列表页面 -->
       <template v-else>
         <!-- 顶部区域：搜索框、分类列表、分页 -->
-        <div
-          class="px-3 py-2 bg-white border border-gray-200 rounded-lg shadow-sm"
-        >
-          <div class="flex items-center justify-between gap-3">
-            <div class="flex-1 flex items-center gap-3">
+        <div class="px-3 py-1.5 bg-white/95 border border-gray-200 rounded">
+          <div class="flex items-center justify-between gap-2">
+            <div class="flex-1 flex items-center gap-2">
               <!-- 搜索框 -->
-              <div class="relative w-48">
+              <div class="relative w-56">
                 <input
                   v-model="searchQuery"
                   type="text"
                   placeholder="搜索插件"
-                  class="w-full pl-8 pr-3 py-1.5 text-sm border border-gray-300 rounded-md bg-gray-50 focus:bg-white focus:border-blue-400 focus:ring-1 focus:ring-blue-100 focus:outline-none transition-all duration-200 placeholder-gray-500"
+                  class="w-full pl-8 pr-3 h-8 text-xs rounded-md border border-gray-200 bg-gray-100/70 focus:bg-white focus:border-blue-400 focus:ring-1 focus:ring-blue-100 focus:outline-none transition-all duration-200 placeholder-gray-400"
                 />
                 <div
-                  class="absolute left-2.5 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm"
+                  class="absolute left-2.5 top-1/2 transform -translate-y-1/2 text-gray-400"
                 >
-                  🔍
+                  <IconMdiMagnify class="w-3.5 h-3.5" />
                 </div>
               </div>
 
@@ -62,7 +60,7 @@
                 >
                 <select
                   v-model="categoryFilter"
-                  class="px-2 py-1.5 border border-gray-300 rounded-md text-xs bg-gray-50 focus:bg-white focus:border-blue-400 focus:ring-1 focus:ring-blue-100 focus:outline-none transition-all duration-200 cursor-pointer"
+                  class="px-2 py-1 border border-gray-200 rounded-md text-xs bg-gray-100/70 focus:bg-white focus:border-blue-400 focus:ring-1 focus:ring-blue-100 focus:outline-none transition-all duration-200 cursor-pointer"
                 >
                   <option value="all">全部</option>
                   <option value="installed">已安装</option>
@@ -79,11 +77,11 @@
             </div>
 
             <!-- 分页控件 -->
-            <div class="flex items-center gap-1.5">
+            <div class="flex items-center gap-1">
               <button
                 @click="previousPage"
                 :disabled="currentPage === 1"
-                class="p-1.5 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 group"
+                class="p-1 rounded-full hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 group"
                 title="上一页"
               >
                 <IconMdiChevronLeft
@@ -91,14 +89,14 @@
                 />
               </button>
               <span
-                class="px-2 py-1.5 text-xs text-gray-600 bg-gray-50 rounded-md font-medium"
+                class="px-1.5 py-0.5 text-[11px] text-gray-600 bg-gray-50 rounded-full font-medium"
               >
                 {{ currentPage }} / {{ totalPages }}
               </span>
               <button
                 @click="nextPage"
                 :disabled="currentPage === totalPages"
-                class="p-1.5 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 group"
+                class="p-1 rounded-full hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 group"
                 title="下一页"
               >
                 <IconMdiChevronRight
@@ -199,6 +197,8 @@ import PluginDetail from "./PluginDetail.vue";
 import IconMdiChevronLeft from "~icons/mdi/chevron-left";
 /** @ts-ignore */
 import IconMdiChevronRight from "~icons/mdi/chevron-right";
+/** @ts-ignore */
+import IconMdiMagnify from "~icons/mdi/magnify";
 import { uniqueArrayByProperty } from "@/core/utils/unique";
 
 const app = useApp();

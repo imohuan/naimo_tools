@@ -11,43 +11,49 @@
           <p class="text-xs text-gray-600 mt-1">可以在任何应用程序中使用</p>
         </div>
 
-        <div class="space-y-4">
+        <div class="space-y-3">
           <div
             v-for="hotkey in config.global"
             :key="hotkey.id"
-            class="flex items-center justify-between p-4 bg-gray-50 rounded-lg"
+            class="px-3 py-2.5 bg-gray-50 rounded-lg space-y-1.5"
           >
-            <div class="flex-1">
-              <div class="font-medium text-gray-900">{{ hotkey.name }}</div>
-              <div class="text-sm text-gray-600 mt-1">
-                {{ hotkey.description }}
+            <!-- 标题 + 右侧操作一行显示 -->
+            <div class="flex items-center justify-between gap-2">
+              <div class="flex-1">
+                <div class="font-medium text-gray-900">
+                  {{ hotkey.name }}
+                </div>
+              </div>
+              <div class="flex items-center space-x-3">
+                <div class="flex items-center space-x-2">
+                  <kbd
+                    class="px-1.5 py-0.5 text-xs font-semibold text-gray-800 bg-gray-100 border border-gray-200 rounded"
+                  >
+                    {{ formatHotkeyDisplay(hotkey.keys.split("+")) }}
+                  </kbd>
+                </div>
+                <div class="flex items-center space-x-2">
+                  <label class="flex items-center">
+                    <input
+                      type="checkbox"
+                      :checked="hotkey.enabled"
+                      @change="toggleIndividualHotkey(hotkey)"
+                      class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                    />
+                    <span class="ml-2 text-sm text-gray-700">启用</span>
+                  </label>
+                  <button
+                    @click="startEditingHotkey(hotkey.id, hotkey.type)"
+                    class="px-3 py-1 text-xs font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 hover:border-blue-300 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent transition-all duration-200 shadow-sm"
+                  >
+                    重新设置
+                  </button>
+                </div>
               </div>
             </div>
-            <div class="flex items-center space-x-3">
-              <div class="flex items-center space-x-2">
-                <kbd
-                  class="px-2 py-1 text-xs font-semibold text-gray-800 bg-gray-100 border border-gray-200 rounded"
-                >
-                  {{ formatHotkeyDisplay(hotkey.keys.split("+")) }}
-                </kbd>
-              </div>
-              <div class="flex items-center space-x-2">
-                <label class="flex items-center">
-                  <input
-                    type="checkbox"
-                    :checked="hotkey.enabled"
-                    @change="toggleIndividualHotkey(hotkey)"
-                    class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
-                  />
-                  <span class="ml-2 text-sm text-gray-700">启用</span>
-                </label>
-                <button
-                  @click="startEditingHotkey(hotkey.id, hotkey.type)"
-                  class="px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 hover:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 shadow-sm"
-                >
-                  重新设置
-                </button>
-              </div>
+            <!-- 描述独占一行 -->
+            <div class="text-xs text-gray-600">
+              {{ hotkey.description }}
             </div>
           </div>
         </div>
@@ -63,43 +69,49 @@
           <p class="text-xs text-gray-600 mt-1">仅在 Naimo 获得焦点时生效</p>
         </div>
 
-        <div class="space-y-4">
+        <div class="space-y-3">
           <div
             v-for="hotkey in config.application"
             :key="hotkey.id"
-            class="flex items-center justify-between p-4 bg-gray-50 rounded-lg"
+            class="px-3 py-2.5 bg-gray-50 rounded-lg space-y-1.5"
           >
-            <div class="flex-1">
-              <div class="font-medium text-gray-900">{{ hotkey.name }}</div>
-              <div class="text-sm text-gray-600 mt-1">
-                {{ hotkey.description }}
+            <!-- 标题 + 右侧操作一行显示 -->
+            <div class="flex items-center justify-between gap-2">
+              <div class="flex-1">
+                <div class="font-medium text-gray-900">
+                  {{ hotkey.name }}
+                </div>
+              </div>
+              <div class="flex items-center space-x-3">
+                <div class="flex items-center space-x-2">
+                  <kbd
+                    class="px-1.5 py-0.5 text-xs font-semibold text-gray-800 bg-gray-100 border border-gray-200 rounded"
+                  >
+                    {{ formatHotkeyDisplay(hotkey.keys.split("+")) }}
+                  </kbd>
+                </div>
+                <div class="flex items-center space-x-2">
+                  <label class="flex items-center">
+                    <input
+                      type="checkbox"
+                      :checked="hotkey.enabled"
+                      @change="toggleIndividualHotkey(hotkey)"
+                      class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                    />
+                    <span class="ml-2 text-sm text-gray-700">启用</span>
+                  </label>
+                  <button
+                    @click="startEditingHotkey(hotkey.id, hotkey.type)"
+                    class="px-3 py-1 text-xs font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 hover:border-blue-300 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent transition-all duration-200 shadow-sm"
+                  >
+                    重新设置
+                  </button>
+                </div>
               </div>
             </div>
-            <div class="flex items-center space-x-3">
-              <div class="flex items-center space-x-2">
-                <kbd
-                  class="px-2 py-1 text-xs font-semibold text-gray-800 bg-gray-100 border border-gray-200 rounded"
-                >
-                  {{ formatHotkeyDisplay(hotkey.keys.split("+")) }}
-                </kbd>
-              </div>
-              <div class="flex items-center space-x-2">
-                <label class="flex items-center">
-                  <input
-                    type="checkbox"
-                    :checked="hotkey.enabled"
-                    @change="toggleIndividualHotkey(hotkey)"
-                    class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
-                  />
-                  <span class="ml-2 text-sm text-gray-700">启用</span>
-                </label>
-                <button
-                  @click="startEditingHotkey(hotkey.id, hotkey.type)"
-                  class="px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 hover:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 shadow-sm"
-                >
-                  重新设置
-                </button>
-              </div>
+            <!-- 描述独占一行 -->
+            <div class="text-xs text-gray-600">
+              {{ hotkey.description }}
             </div>
           </div>
         </div>

@@ -1,6 +1,6 @@
 /**
  * 自动生成的 IPC 类型定义
- * 生成时间: 2025-10-27T04:17:55.584Z
+ * 生成时间: 2025-11-29T04:34:04.550Z
  * 请勿手动修改此文件
  */
 
@@ -43,6 +43,8 @@ interface appInterface {
   platform: string;
   arch: string;
   version: string;
+  electronVersion: string;
+  chromeVersion: string;
   uptime: number;
 }>;
   /** 获取系统信息 */
@@ -50,6 +52,8 @@ interface appInterface {
   platform: string;
   arch: string;
   version: string;
+  electronVersion: string;
+  chromeVersion: string;
   uptime: number;
 }>;
 

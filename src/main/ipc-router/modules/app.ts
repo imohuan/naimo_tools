@@ -6,19 +6,18 @@
 import { app, shell } from "electron";
 import log from "electron-log";
 import { getApps, getIconDataURLAsync } from "@libs/app-search";
-import { AppPath, } from "@libs/app-search/typings";
+import { AppPath } from "@libs/app-search/typings";
 import { join } from "path";
 import { access } from "fs/promises";
 import { exec, execFile } from "child_process";
 import { promisify } from "util";
-import { appBootstrap } from '@main/main';
-import { NewWindowManager } from '@main/window/NewWindowManager';
-import { ViewType } from '@renderer/src/typings';
-import { AutoLaunchService } from '@main/services/AutoLaunchService';
+import { appBootstrap } from "@main/main";
+import { NewWindowManager } from "@main/window/NewWindowManager";
+import { ViewType } from "@renderer/src/typings";
+import { AutoLaunchService } from "@main/services/AutoLaunchService";
 
 const execAsync = promisify(exec);
 const execFileAsync = promisify(execFile);
-
 
 /**
  * 获取应用版本
@@ -62,12 +61,16 @@ export function getSystemInfo(event: Electron.IpcMainInvokeEvent): {
   platform: string;
   arch: string;
   version: string;
+  electronVersion: string;
+  chromeVersion: string;
   uptime: number;
 } {
   return {
     platform: process.platform,
     arch: process.arch,
     version: process.version,
+    electronVersion: process.versions.electron || "",
+    chromeVersion: process.versions.chrome || "",
     uptime: process.uptime(),
   };
 }
@@ -100,7 +103,9 @@ export function showAbout(event: Electron.IpcMainInvokeEvent): void {
 /**
  * 获取应用配置
  */
-export function getConfig(event: Electron.IpcMainInvokeEvent): Record<string, any> {
+export function getConfig(
+  event: Electron.IpcMainInvokeEvent
+): Record<string, any> {
   return {
     version: app.getVersion(),
     name: app.getName(),
@@ -155,15 +160,21 @@ export async function launchApp(
           log.info("✅ 通过 shell.openExternal 打开成功");
         } catch (e) {
           // 回退到 explorer.exe 以确保在部分环境下也能打开
-          const explorer = join(process.env.SystemRoot || 'C://Windows', 'explorer.exe');
+          const explorer = join(
+            process.env.SystemRoot || "C://Windows",
+            "explorer.exe"
+          );
           await execFileAsync(explorer, [cmd]);
           log.info("✅ 通过 explorer.exe 打开成功");
         }
       }
       // 2) 处理 MSC 管理控制台（需要 mmc.exe 打开）
       else if (/\.msc$/i.test(cmd)) {
-        const system32 = join(process.env.SystemRoot || 'C://Windows', 'System32');
-        const mmc = join(system32, 'mmc.exe');
+        const system32 = join(
+          process.env.SystemRoot || "C://Windows",
+          "System32"
+        );
+        const mmc = join(system32, "mmc.exe");
         const mscPath = join(system32, cmd);
         await execFileAsync(mmc, [mscPath]);
         log.info("✅ 通过 mmc.exe 打开 MSC 成功");
@@ -187,7 +198,6 @@ export async function launchApp(
 
 // 执行command
 
-
 /**
  * 提取文件图标
  * @param event IPC事件对象
@@ -203,7 +213,11 @@ export async function extractFileIcon(
   try {
     log.info("🖼️ 提取文件图标:", filePath, useExtension ? "(扩展名模式)" : "");
     const cacheIconsDir = join(app.getPath("userData"), "icons");
-    const icon = await getIconDataURLAsync(filePath, cacheIconsDir, useExtension);
+    const icon = await getIconDataURLAsync(
+      filePath,
+      cacheIconsDir,
+      useExtension
+    );
 
     if (icon) {
       log.info("✅ 文件图标提取成功");
@@ -216,7 +230,6 @@ export async function extractFileIcon(
     return null;
   }
 }
-
 
 /**
  * 广播插件事件到所有视图
@@ -231,23 +244,23 @@ export async function forwardMessageToMainView(
   data: any
 ): Promise<boolean> {
   try {
-    const windowService = appBootstrap.getService('windowService');
+    const windowService = appBootstrap.getService("windowService");
 
     if (!windowService) {
-      log.warn('窗口服务未初始化，无法广播插件事件');
+      log.warn("窗口服务未初始化，无法广播插件事件");
       return false;
     }
 
     const windowManager: NewWindowManager = windowService.getWindowManager();
     if (!windowManager) {
-      log.warn('窗口管理器未初始化，无法广播插件事件');
+      log.warn("窗口管理器未初始化，无法广播插件事件");
       return false;
     }
 
     // 获取所有视图并广播事件
-    const viewManager = windowManager.getViewManager()
+    const viewManager = windowManager.getViewManager();
     if (!viewManager) {
-      log.warn('视图管理器未初始化，无法广播插件事件');
+      log.warn("视图管理器未初始化，无法广播插件事件");
       return false;
     }
     // 吸附
@@ -265,7 +278,7 @@ export async function forwardMessageToMainView(
         if (!viewInfo.view.webContents.isDestroyed()) {
           viewInfo.view.webContents.send(channel, {
             ...data,
-            timestamp: Date.now()
+            timestamp: Date.now(),
           });
           sentCount++;
         }
@@ -273,7 +286,7 @@ export async function forwardMessageToMainView(
         log.error(`向视图 ${viewInfo.id} 发送插件事件失败:`, error);
       }
     } else {
-      log.warn('主视图信息不存在，无法广播插件事件');
+      log.warn("主视图信息不存在，无法广播插件事件");
     }
 
     if (sentCount > 0) {
@@ -289,7 +302,6 @@ export async function forwardMessageToMainView(
   }
 }
 
-
 /**
  * 广播插件事件到所有视图
  * @param event IPC事件
@@ -304,16 +316,16 @@ export async function forwardMessageToPluginView(
   data: any
 ): Promise<boolean> {
   try {
-    const windowService = appBootstrap.getService('windowService');
+    const windowService = appBootstrap.getService("windowService");
 
     if (!windowService) {
-      log.warn('窗口服务未初始化，无法广播插件事件');
+      log.warn("窗口服务未初始化，无法广播插件事件");
       return false;
     }
 
     const windowManager: NewWindowManager = windowService.getWindowManager();
     if (!windowManager) {
-      log.warn('窗口管理器未初始化，无法广播插件事件');
+      log.warn("窗口管理器未初始化，无法广播插件事件");
       return false;
     }
 
@@ -332,11 +344,11 @@ export async function forwardMessageToPluginView(
           viewInfo.view &&
           viewInfo.view.webContents &&
           !viewInfo.view.webContents.isDestroyed() &&
-          viewInfo.id.startsWith('plugin:' + pluginPath)
+          viewInfo.id.startsWith("plugin:" + pluginPath)
         ) {
           viewInfo.view.webContents.send(channel, {
             ...data,
-            timestamp: Date.now()
+            timestamp: Date.now(),
           });
           sentCount++;
         }
@@ -358,7 +370,6 @@ export async function forwardMessageToPluginView(
   }
 }
 
-
 /**
  * 设置开机自启
  * @param event IPC事件对象
@@ -370,20 +381,21 @@ export async function setAutoLaunch(
   enabled: boolean
 ): Promise<boolean> {
   try {
-    log.info(`设置开机自启: ${enabled ? '启用' : '禁用'}`);
+    log.info(`设置开机自启: ${enabled ? "启用" : "禁用"}`);
 
-    const autoLaunchService = appBootstrap.getService<AutoLaunchService>('autoLaunchService');
+    const autoLaunchService =
+      appBootstrap.getService<AutoLaunchService>("autoLaunchService");
 
     if (!autoLaunchService) {
-      log.warn('开机自启服务未初始化');
+      log.warn("开机自启服务未初始化");
       return false;
     }
 
     await autoLaunchService.setAutoLaunch(enabled);
-    log.info(`✅ 开机自启已${enabled ? '启用' : '禁用'}`);
+    log.info(`✅ 开机自启已${enabled ? "启用" : "禁用"}`);
     return true;
   } catch (error) {
-    log.error('❌ 设置开机自启失败:', error);
+    log.error("❌ 设置开机自启失败:", error);
     return false;
   }
 }
@@ -397,18 +409,19 @@ export async function getAutoLaunchStatus(
   event: Electron.IpcMainInvokeEvent
 ): Promise<boolean> {
   try {
-    const autoLaunchService = appBootstrap.getService<AutoLaunchService>('autoLaunchService');
+    const autoLaunchService =
+      appBootstrap.getService<AutoLaunchService>("autoLaunchService");
 
     if (!autoLaunchService) {
-      log.warn('开机自启服务未初始化');
+      log.warn("开机自启服务未初始化");
       return false;
     }
 
     const isEnabled = await autoLaunchService.isEnabled();
-    log.debug(`开机自启状态: ${isEnabled ? '已启用' : '已禁用'}`);
+    log.debug(`开机自启状态: ${isEnabled ? "已启用" : "已禁用"}`);
     return isEnabled;
   } catch (error) {
-    log.error('❌ 获取开机自启状态失败:', error);
+    log.error("❌ 获取开机自启状态失败:", error);
     return false;
   }
 }
@@ -419,7 +432,10 @@ export async function getAutoLaunchStatus(
  * @param path 路径
  * @returns 是否存在
  */
-export async function checkPathExists(event: Electron.IpcMainInvokeEvent, path: string): Promise<boolean> {
+export async function checkPathExists(
+  event: Electron.IpcMainInvokeEvent,
+  path: string
+): Promise<boolean> {
   try {
     log.info("🔍 检查路径是否存在:", path);
     await access(path);

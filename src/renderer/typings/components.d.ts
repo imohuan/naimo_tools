@@ -21,6 +21,7 @@ declare module 'vue' {
     IconMdiDockWindow: typeof import('~icons/mdi/dock-window')['default']
     IconMdiDownload: typeof import('~icons/mdi/download')['default']
     IconMdiLoading: typeof import('~icons/mdi/loading')['default']
+    IconMdiMagnify: typeof import('~icons/mdi/magnify')['default']
     IconMdiPin: typeof import('~icons/mdi/pin')['default']
     IconMdiPinOutline: typeof import('~icons/mdi/pin-outline')['default']
     IconMdiPuzzle: typeof import('~icons/mdi/puzzle')['default']

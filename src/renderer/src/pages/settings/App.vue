@@ -48,7 +48,7 @@
     <div class="flex-1 flex flex-col">
       <!-- 内容头部 -->
       <div
-        class="p-3 border-b border-gray-200 bg-white flex items-center justify-between"
+        class="hidden p-3 border-b border-gray-200 bg-white flex items-center justify-between"
       >
         <div>
           <h2 class="text-base font-medium text-gray-900">

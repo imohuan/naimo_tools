@@ -1,13 +1,13 @@
 <template>
   <div
-    class="relative bg-white rounded-lg border border-gray-200 p-2 hover:border-gray-500 transition-all duration-200 cursor-pointer"
+    class="relative bg-white/95 rounded-lg border border-gray-100 p-2 shadow-sm hover:shadow-md hover:border-blue-200 transition-all duration-200 cursor-pointer"
     :class="{ 'opacity-60': !plugin.enabled }"
     @click="$emit('click', plugin)"
   >
     <!-- 临时标签 -->
     <div
       v-if="pluginStore.isOfficialPlugin(plugin.id)"
-      class="absolute inset-0 overflow-hidden"
+      class="absolute inset-0 overflow-hidden pointer-events-none"
     >
       <div
         class="absolute bg-blue-500 text-white text-[8px] px-10 py-0.5 z-20 shadow-md temp-ribbon"
@@ -30,19 +30,23 @@
           </template>
         </IconDisplay>
       </div>
-      <div class="flex-1 min-w-0">
-        <div class="flex items-center justify-between mb-2">
-          <div class="flex items-center gap-3">
-            <h3 class="text font-semibold text-gray-900">
+      <div class="w-full flex-1 min-w-0">
+        <div
+          class="w-full flex items-center justify-between mb-2 overflow-hidden"
+        >
+          <div class="w-full flex items-center gap-1 overflow-hidden">
+            <h3
+              class="inline-block flex-1 truncate text font-semibold text-gray-900"
+            >
               {{ plugin.name }}
-              <span
-                class="bg-gray-100 px-2 py-1 rounded text-xs transform scale-75 origin-center-left inline-block"
-                >v{{ plugin.version }}</span
-              >
             </h3>
+            <span
+              class="bg-gray-100 px-2 py-1 rounded text-xs transform scale-75 origin-center-left inline-block"
+              >v{{ plugin.version }}</span
+            >
           </div>
           <!-- 安装/卸载/更新图标按钮 -->
-          <div class="flex items-center gap-1">
+          <div class="flex items-center gap-1" @click.stop>
             <!-- 更新按钮（已安装且有新版本） -->
             <button
               v-if="isInstalled && hasUpdate"

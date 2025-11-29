@@ -8,15 +8,20 @@ export function useAppActions() {
   const app = useApp();
 
   // 预处理并执行应用或插件项目
-  const handlePrepareAction = async (appItem: AppItem | PluginItem, hotkeyEmit: boolean = false) => {
+  const handlePrepareAction = async (
+    appItem: AppItem | PluginItem,
+    hotkeyEmit: boolean = false
+  ) => {
     try {
       // 判断是否为插件项目
       /** 不完整的 PluginItem 类型 */
-      const pickPluginItem = appItem as PluginItem
-      const command = (appItem as AppItem)?.command
+      const pickPluginItem = appItem as PluginItem;
+      const command = (appItem as AppItem)?.command;
       if (app.plugin.isPluginItem(pickPluginItem)) {
         console.log("🔌 检测到插件项目，使用插件执行逻辑:", appItem.name);
-        const fullPath = pickPluginItem.fullPath || `${pickPluginItem.pluginId}:${pickPluginItem.path}`
+        const fullPath =
+          pickPluginItem.fullPath ||
+          `${pickPluginItem.pluginId}:${pickPluginItem.path}`;
 
         /** 完整的 PluginItem 类型 */
         const pluginItem = app.plugin.getInstalledPluginItem(fullPath);
@@ -29,7 +34,10 @@ export function useAppActions() {
         }
 
         // 发送全局事件通知插件执行完成
-        appEventManager.emit("plugin:executed", { fullPath: fullPath, hotkeyEmit, });
+        appEventManager.emit("plugin:executed", {
+          fullPath: fullPath,
+          hotkeyEmit,
+        });
 
         // 更新使用统计
         await updateRecentApps(pluginItem as AppItem);
@@ -64,8 +72,12 @@ export function useAppActions() {
     try {
       if (appItem.notVisibleSearch || appItem.type !== "text") return;
       const appCopy = app.plugin.getSerializedPluginItem(appItem as PluginItem);
-      await app.search.addItem({ ...appCopy, category: "recent", __metadata: { enableDelete: true, enablePin: false } } as AppItem);
-      app.search.performSearch("")
+      await app.search.addItem({
+        ...appCopy,
+        category: "recent",
+        __metadata: { enableDelete: true, enablePin: false },
+      } as AppItem);
+      app.search.performSearch("");
     } catch (error) {
       console.error("更新最近使用应用记录失败:", error);
     }
@@ -75,7 +87,7 @@ export function useAppActions() {
   const handleAppDelete = async (appItem: AppItem) => {
     try {
       await app.search.deleteItem(appItem);
-      app.search.performSearch("")
+      app.search.performSearch("");
     } catch (error) {
       console.error(`删除应用失败:`, error);
     }
@@ -86,7 +98,12 @@ export function useAppActions() {
     try {
       // 创建可序列化的应用副本
       const appCopy = app.plugin.getSerializedPluginItem(appItem as PluginItem);
-      const searchItem = { ...appCopy, type: "text", category: "pinned", __metadata: { enableDelete: true, enablePin: false } } as any;
+      const searchItem = {
+        ...appCopy,
+        type: "text",
+        category: "pinned",
+        __metadata: { enableDelete: true, enablePin: false },
+      } as any;
       await app.search.addItem(searchItem);
       await app.search.performSearch("");
     } catch (error) {
@@ -95,7 +112,10 @@ export function useAppActions() {
   };
 
   // 处理分类内拖拽排序
-  const handleCategoryDragEnd = async (categoryId: string, newItems: AppItem[]) => {
+  const handleCategoryDragEnd = async (
+    categoryId: string,
+    newItems: AppItem[]
+  ) => {
     try {
       const serializableItems = newItems.map((item) =>
         app.plugin.getSerializedPluginItem(item as PluginItem)

@@ -116,7 +116,9 @@ const handlePrepareAction = async (
   hotkeyEmit: boolean = false
 ) => {
   selectedIndex.value = 0;
-  return _handlePrepareAction(appItem, hotkeyEmit);
+  await _handlePrepareAction(appItem, hotkeyEmit);
+  app.ui.searchText = "";
+  handleSearch("");
 };
 
 const handleCategoryToggle = (categoryId: string) => {

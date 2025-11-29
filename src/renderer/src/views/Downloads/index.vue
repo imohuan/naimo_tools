@@ -31,14 +31,20 @@
             </div>
           </div>
 
-          <!-- 右侧：添加下载按钮 -->
-          <button
-            @click="showAddDownloadDialog = true"
-            class="px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded hover:bg-blue-700 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-colors"
-          >
-            <IconMdiPlus class="w-3 h-3 mr-1 inline" />
-            添加下载
-          </button>
+          <!-- 右侧：操作按钮 -->
+          <div class="flex items-center space-x-2">
+            <button
+              @click="showAddDownloadDialog = true"
+              class="px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded hover:bg-blue-700 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-colors"
+            >
+              <IconMdiPlus class="w-3 h-3 mr-1 inline" />
+              添加下载
+            </button>
+            <ClearHistoryButton
+              :download-ids="downloadIds"
+              @cleared="handleDownloadsCleared"
+            />
+          </div>
         </div>
       </div>
 
@@ -115,6 +121,7 @@
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import DownloadItem from "./DownloadItem.vue";
 import AddDownloadDialog from "./AddDownloadDialog.vue";
+import ClearHistoryButton from "./ClearHistoryButton.vue";
 /** @ts-ignore */
 import IconMdiPlus from "~icons/mdi/plus";
 /** @ts-ignore */
@@ -147,6 +154,7 @@ const downloads = ref<DownloadStatus[]>([]);
 const activeTab = ref("all");
 const showAddDownloadDialog = ref(false);
 const currentSpeed = ref(0);
+const downloadIds = computed(() => downloads.value.map((d) => d.id));
 
 // Tab 配置
 const tabs = [
@@ -338,6 +346,12 @@ const deleteDownload = async (id: string) => {
   } catch (error) {
     console.error("删除下载任务失败:", error);
   }
+};
+
+const handleDownloadsCleared = async () => {
+  downloads.value = [];
+  calculateTotalSpeed();
+  await loadDownloads();
 };
 
 const handleAddDownload = async (params: {
