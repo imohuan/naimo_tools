@@ -179,6 +179,12 @@
         v-model="localValue"
       />
 
+      <!-- GitHub 镜像 URL 配置 -->
+      <MirrorUrlsSetting
+        v-else-if="setting.type === 'mirrorUrls'"
+        v-model="localValue"
+      />
+
       <!-- 其他类型使用输入框 -->
       <input
         v-else
@@ -215,6 +221,7 @@ import { computed, ref } from "vue";
 import type { SettingConfig } from "@/typings";
 import type { SelectOption } from "@/typings/composableTypes";
 import StringArraySetting from "./StringArraySetting.vue";
+import MirrorUrlsSetting from "./MirrorUrlsSetting.vue";
 
 // 组件属性
 interface Props {

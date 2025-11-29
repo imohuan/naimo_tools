@@ -2,6 +2,22 @@
 import { PluginSetting } from "@renderer/src/core/typings/plugin";
 import type { AppItem } from "@renderer/src/core/typings/search";
 
+/** 镜像 URL 配置项 */
+export interface MirrorUrlItem {
+  /** 模式：前缀模式（在原始URL前添加前缀）或基础模式（直接使用提供的URL） */
+  mode: "prefix" | "base";
+  /** 前缀模式的URL前缀 */
+  prefix?: string;
+  /** 前缀模式选择的模板列表 */
+  templates?: (
+    | "searchUrlTemplate"
+    | "downloadUrlTemplate"
+    | "rawFileUrlTemplate"
+  )[];
+  /** 基础模式的完整URL模板 */
+  baseUrl?: string;
+}
+
 export interface AppConfig {
   /** 主题模式，支持 light 或 dark */
   theme: "light" | "dark";
@@ -31,8 +47,8 @@ export interface AppConfig {
   alwaysOnTop?: boolean;
   /** 是否启用 GitHub 自动镜像访问 */
   autoMirrorAccess?: boolean;
-  /** GitHub 镜像 URL 列表 */
-  mirrorUrls?: string[];
+  /** GitHub 镜像 URL 配置列表 */
+  mirrorUrls?: MirrorUrlItem[];
   /** 是否在搜索界面显示扩展列表 */
   showExtensionList?: boolean;
   /** 是否在搜索界面显示应用列表 */

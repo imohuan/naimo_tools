@@ -9,7 +9,7 @@
     </div>
 
     <!-- 主要内容 -->
-    <div v-else class="flex-1 flex flex-col">
+    <div v-else class="h-full flex-1 flex flex-col">
       <!-- 保存反馈提示 -->
       <div
         v-if="saveFeedback.show"
@@ -50,127 +50,126 @@
         </div>
       </div>
 
-      <!-- 顶部区域：操作按钮 -->
-      <div
-        v-if="settingsList.length > 0"
-        class="px-3 py-2 bg-white border border-gray-200 rounded-lg"
-      >
-        <div class="flex items-center justify-between gap-3">
-          <div class="flex items-center gap-2">
-            <span class="text-sm font-medium text-gray-700">设置管理</span>
-            <span class="text-xs text-gray-500"
-              >({{ settingsList.length }} 个设置组)</span
-            >
-          </div>
-          <div class="flex items-center gap-2">
-            <button
-              @click="resetAllSettings"
-              class="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-50 rounded-md transition-all duration-200 border border-gray-300"
-            >
-              重置所有设置
-            </button>
-            <button
-              @click="saveAllSettings"
-              :disabled="!hasChanges"
-              :class="[
-                'px-3 py-1.5 text-sm rounded-md transition-all duration-200',
-                hasChanges
-                  ? 'bg-blue-600 text-white hover:bg-blue-700 cursor-pointer'
-                  : 'bg-gray-300 text-gray-500 cursor-not-allowed',
-              ]"
-            >
-              保存所有设置
-            </button>
+      <!-- 右侧内容区域：flex 布局 -->
+      <div v-if="settingsList.length > 0" class="flex-1 flex flex-col min-h-0">
+        <!-- 顶部区域：操作按钮（固定，不滚动） -->
+        <div
+          class="flex-shrink-0 px-3 py-2 bg-white border border-gray-200 rounded-lg mb-2 mr-2"
+        >
+          <div class="flex items-center justify-between gap-3">
+            <div class="flex items-center gap-2">
+              <span class="text-sm font-medium text-gray-700">设置管理</span>
+              <span class="text-xs text-gray-500"
+                >({{ settingsList.length }} 个设置组)</span
+              >
+            </div>
+            <div class="flex items-center gap-2">
+              <button
+                @click="resetAllSettings"
+                class="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-50 rounded-md transition-all duration-200 border border-gray-300"
+              >
+                重置所有设置
+              </button>
+              <button
+                @click="saveAllSettings"
+                :disabled="!hasChanges"
+                :class="[
+                  'px-3 py-1.5 text-sm rounded-md transition-all duration-200',
+                  hasChanges
+                    ? 'bg-blue-600 text-white hover:bg-blue-700 cursor-pointer'
+                    : 'bg-gray-300 text-gray-500 cursor-not-allowed',
+                ]"
+              >
+                保存所有设置
+              </button>
+            </div>
           </div>
         </div>
-      </div>
 
-      <!-- 设置列表 -->
-      <div
-        v-if="settingsList.length > 0"
-        class="flex-1 pt-2 flex flex-col pb-2"
-      >
-        <div class="grid grid-cols-1 gap-2">
-          <div
-            v-for="settingGroup in settingsList"
-            :key="settingGroup.id"
-            class="bg-white rounded-lg border border-gray-200 p-2 transition-all duration-200"
-          >
-            <!-- 设置组头部信息 -->
+        <!-- 设置列表（可滚动区域） -->
+        <div class="flex-1 overflow-auto pb-2 min-h-0 pr-1">
+          <div class="grid grid-cols-1 gap-2">
             <div
-              class="flex items-start gap-2 cursor-pointer hover:bg-gray-50 rounded-md p-2 -m-2 transition-colors"
-              @click="toggleCollapse(settingGroup.id)"
+              v-for="settingGroup in settingsList"
+              :key="settingGroup.id"
+              class="bg-white rounded-lg border border-gray-200 p-2 transition-all duration-200"
             >
-              <div class="w-8 h-8 flex-shrink-0">
-                <IconDisplay
-                  :src="settingGroup.icon"
-                  container-class="w-full h-full bg-gray-100 rounded"
-                  fallback-class="w-full h-full flex items-center justify-center bg-gray-100 rounded"
-                >
-                  <template #fallback>
-                    <span class="text-blue-600 text-sm">🔧</span>
-                  </template>
-                </IconDisplay>
-              </div>
-              <div class="flex-1 min-w-0">
-                <div class="flex items-center justify-between mb-2">
-                  <div class="flex items-center gap-3">
-                    <h3 class="text font-semibold text-gray-900">
-                      {{ settingGroup.name }}
-                      <!-- <span
+              <!-- 设置组头部信息 -->
+              <div
+                class="flex items-start gap-2 cursor-pointer hover:bg-gray-50 rounded-md p-2 -m-2 transition-colors"
+                @click="toggleCollapse(settingGroup.id)"
+              >
+                <div class="w-8 h-8 flex-shrink-0">
+                  <IconDisplay
+                    :src="settingGroup.icon"
+                    container-class="w-full h-full bg-gray-100 rounded"
+                    fallback-class="w-full h-full flex items-center justify-center bg-gray-100 rounded"
+                  >
+                    <template #fallback>
+                      <span class="text-blue-600 text-sm">🔧</span>
+                    </template>
+                  </IconDisplay>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center justify-between mb-2">
+                    <div class="flex items-center gap-3">
+                      <h3 class="text font-semibold text-gray-900">
+                        {{ settingGroup.name }}
+                        <!-- <span
                         v-if="settingGroup.type === 'plugin'"
                         class="bg-gray-100 px-2 py-1 rounded text-xs transform scale-75 origin-center-left inline-block"
                         >v1.0.0</span
                       > -->
-                    </h3>
+                      </h3>
+                    </div>
+                    <!-- 折叠/展开图标 -->
+                    <div class="p-1.5 text-gray-400">
+                      <svg
+                        :class="[
+                          'w-4 h-4 transition-transform duration-200',
+                          isCollapsed(settingGroup.id)
+                            ? 'rotate-0'
+                            : 'rotate-180',
+                        ]"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M19 9l-7 7-7-7"
+                        />
+                      </svg>
+                    </div>
                   </div>
-                  <!-- 折叠/展开图标 -->
-                  <div class="p-1.5 text-gray-400">
-                    <svg
-                      :class="[
-                        'w-4 h-4 transition-transform duration-200',
-                        isCollapsed(settingGroup.id)
-                          ? 'rotate-0'
-                          : 'rotate-180',
-                      ]"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M19 9l-7 7-7-7"
-                      />
-                    </svg>
-                  </div>
+                  <p
+                    v-if="settingGroup.description"
+                    class="text-xs text-gray-500"
+                  >
+                    {{ settingGroup.description }}
+                  </p>
                 </div>
-                <p
-                  v-if="settingGroup.description"
-                  class="text-xs text-gray-500"
-                >
-                  {{ settingGroup.description }}
-                </p>
               </div>
-            </div>
 
-            <!-- 设置项 -->
-            <div
-              v-show="!isCollapsed(settingGroup.id)"
-              class="overflow-hidden transition-all duration-300 ease-in-out px-2"
-            >
-              <div class="space-y-1">
-                <SettingItemComponent
-                  v-for="setting in settingGroup.settings"
-                  :key="setting.name"
-                  :setting="setting"
-                  :setting-id="settingGroup.id"
-                  :value="settingValues[settingGroup.id][setting.name]"
-                  @update:value="
-                    updateSettingValue(settingGroup.id, setting.name, $event)
-                  "
-                />
+              <!-- 设置项 -->
+              <div
+                v-show="!isCollapsed(settingGroup.id)"
+                class="overflow-hidden transition-all duration-300 ease-in-out px-2"
+              >
+                <div class="space-y-1">
+                  <SettingItemComponent
+                    v-for="setting in settingGroup.settings"
+                    :key="setting.name"
+                    :setting="setting"
+                    :setting-id="settingGroup.id"
+                    :value="settingValues[settingGroup.id][setting.name]"
+                    @update:value="
+                      updateSettingValue(settingGroup.id, setting.name, $event)
+                    "
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -429,7 +428,12 @@ const saveAllSettings = async () => {
       if (settingGroup.type === "app") {
         for (const setting of settingGroup.settings) {
           const value = settingValues.value[settingGroup.id][setting.name];
-          await storeUtils.set(setting.name as any, value);
+          // 对于数组和对象类型，使用 toRaw 获取原始值，避免保存 Vue 响应式代理对象
+          const rawValue =
+            Array.isArray(value) || (value && typeof value === "object")
+              ? toRaw(value)
+              : value;
+          await storeUtils.set(setting.name as any, rawValue);
           appSettingsCount++;
         }
       }

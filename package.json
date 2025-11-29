@@ -88,6 +88,7 @@
     "axios": "^1.12.2",
     "cheerio": "^1.1.2",
     "clean-stack": "^5.2.0",
+    "clipboardy": "^5.0.1",
     "electron-dl-manager": "^4.2.0",
     "electron-log": "^5.4.3",
     "electron-store": "^10.1.0",

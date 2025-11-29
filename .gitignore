@@ -16,6 +16,7 @@ plugins/
 dist/
 out/
 build/
+test/
 setup\NSIS\nsis-3.08
 
 # 开发日志

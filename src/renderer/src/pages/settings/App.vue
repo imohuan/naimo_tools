@@ -70,7 +70,12 @@
       </div>
 
       <!-- 内容主体 - 使用 router-view 和 keep-alive -->
-      <div class="flex-1 p-3 relative overflow-auto">
+      <div
+        :class="[
+          'flex-1 p-3 relative overflow-auto',
+          route.path === '/settings' ? 'pr-0' : '',
+        ]"
+      >
         <router-view v-slot="{ Component }">
           <keep-alive>
             <component :is="Component" />

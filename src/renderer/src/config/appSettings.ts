@@ -28,25 +28,6 @@ export const appSettingsConfig: Omit<SettingItem, "type">[] = [
         defaultValue: false,
       },
       {
-        name: "autoMirrorAccess",
-        title: "自动镜像访问",
-        description:
-          "在访问 GitHub 相关资源时，自动检测并选择可用且最快的镜像（若官方可用则优先使用官方）",
-        type: "checkbox",
-        defaultValue: false,
-        wrap: true,
-      },
-      {
-        name: "mirrorUrls",
-        title: "GitHub 镜像列表",
-        description:
-          "配置 GitHub 访问镜像的 URL 列表，支持增删改查。可使用 {url} 占位符或直接在末尾拼接原始地址。",
-        // 自定义类型，由 SettingItem 组件进行特殊渲染
-        wrap: true,
-        type: "stringArray",
-        defaultValue: [],
-      },
-      {
         name: "showExtensionList",
         title: "显示扩展列表",
         description: "在搜索界面中显示扩展应用列表",
@@ -60,6 +41,25 @@ export const appSettingsConfig: Omit<SettingItem, "type">[] = [
         type: "checkbox",
         defaultValue: true,
       },
+      {
+        name: "autoMirrorAccess",
+        title: "自动镜像访问",
+        description:
+          "在访问 GitHub 相关资源时，自动检测并选择可用且最快的镜像（若官方可用则优先使用官方）",
+        type: "checkbox",
+        defaultValue: false,
+      },
+      {
+        name: "mirrorUrls",
+        title: "GitHub 镜像列表",
+        description:
+          "配置 GitHub 访问镜像的 URL。支持前缀模式（在原始URL前添加前缀）和基础模式（直接使用完整URL模板）。",
+        // 自定义类型，由 MirrorUrlsSetting 组件进行特殊渲染
+        wrap: true,
+        type: "mirrorUrls",
+        defaultValue: [],
+      },
+
       // {
       //   name: "alwaysOnTop",
       //   title: "窗口置顶",
