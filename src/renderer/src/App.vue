@@ -143,7 +143,6 @@ const handleSearch = async (value: string) => {
       searchText: value,
       attachedFilesCount: attachedFiles.value.length,
     });
-
     naimo.router.appForwardMessageToPluginView(
       currentPlugin.path,
       "plugin-search",
@@ -630,30 +629,61 @@ onMounted(async () => {
     console.log("🔗 收到视图重新附加事件:", data);
     const { config } = data;
 
+    // 如果来源是设置页面视图，则只需要恢复设置页面，而不是按插件逻辑处理
+    if (data.sourceViewId === "settings-view") {
+      console.log("⚙️ 视图重新附加来源为设置页面，恢复设置界面");
+      try {
+        await windowManager.openSettings();
+        // 确保主窗口本身可见
+        show();
+      } catch (error) {
+        console.error("❌ 恢复设置页面失败:", error);
+      }
+      return;
+    }
+
     if (!config?.pluginInfo) {
       console.warn("⚠️ 视图重新附加事件缺少插件信息");
       return;
     }
 
     try {
-      const pluginItem = app.plugin.getInstalledPluginItem(
-        config.pluginInfo.fullPath
-      );
+      const pluginInfo = config.pluginInfo;
+      // 兼容旧数据：如果没有 fullPath，则尝试用 pluginId 和 path 组装
+      const fullPath =
+        pluginInfo.fullPath ||
+        (pluginInfo.pluginId && pluginInfo.path
+          ? `${pluginInfo.pluginId}:${pluginInfo.path}`
+          : undefined);
+
+      if (!fullPath) {
+        console.warn(
+          "⚠️ 视图重新附加事件插件信息不完整，缺少 fullPath / pluginId / path",
+          pluginInfo
+        );
+        return;
+      }
+
+      const pluginItem = app.plugin.getInstalledPluginItem(fullPath);
 
       if (!pluginItem) {
-        console.error("❌ 未找到插件配置:", config.pluginInfo.fullPath);
+        console.error("❌ 未找到插件配置:", fullPath);
         return;
       }
 
       console.log("✅ 找到插件配置:", pluginItem);
-      clearSearchAndPlugin();
-      handleExecuted({
-        fullPath: config.pluginInfo.fullPath,
-        hotkeyEmit: false,
-      });
+
+      // 视图已在主进程完成重新附加，这里只需要恢复前端的 UI 状态
+      // 不再重新执行插件（避免重复触发 onEnter / 命令）
+      app.ui.openPluginWindow(pluginItem);
+      await nextTick();
+      contentAreaRef.value?.handleResize();
+      // 确保主窗口本身可见
+      show();
+
       console.log(
-        "✅ 插件状态已恢复:",
-        pluginItem?.name || config.pluginInfo.name
+        "✅ 插件视图已重新附加并恢复 UI 状态:",
+        pluginItem?.name || pluginInfo.name
       );
     } catch (error) {
       console.error("❌ 处理视图重新附加失败:", error);

@@ -6,7 +6,7 @@ import type {
   PluginItem,
   CommandConfig,
 } from "@/typings/pluginTypes";
-import type { PluginInstaller, PluginSetting, } from "@/core/typings/plugin";
+import type { PluginInstaller, PluginSetting } from "@/core/typings/plugin";
 import { LocalPluginInstaller } from "./modules/local";
 import { GithubPluginInstaller } from "./modules/github";
 import { TemporaryPluginInstaller } from "./modules/temporary";
@@ -51,14 +51,18 @@ export const usePluginStoreNew = defineStore("pluginNew", () => {
   const pluginSettings = shallowRef<Map<string, PluginSetting>>(new Map());
 
   // ==================== 计算属性 ====================
-  const enabledPlugins = computed(() => installedPlugins.value.filter((p) => p.enabled));
+  const enabledPlugins = computed(() =>
+    installedPlugins.value.filter((p) => p.enabled)
+  );
   const systemPlugins = computed(() =>
     availablePlugins.value.filter((p) => p.options?.pluginType === "system")
   );
   const localPlugins = computed(() =>
     availablePlugins.value.filter((p) => p.options?.pluginType === "local")
   );
-  const temporaryPlugins = computed(() => availablePlugins.value.filter((p) => p.options?.pluginType === "temporary"))
+  const temporaryPlugins = computed(() =>
+    availablePlugins.value.filter((p) => p.options?.pluginType === "temporary")
+  );
   const temporaryItems = computed(() =>
     temporaryPlugins.value.flatMap((plugin) => plugin.feature)
   );
@@ -71,9 +75,11 @@ export const usePluginStoreNew = defineStore("pluginNew", () => {
   const enabledCount = computed(() => enabledPlugins.value.length);
 
   const officialPluginIds = computed(() => {
-    return githubPlugins.value.filter((p: any) => {
-      return p?.github ? p.github?.user === "imohuan" : false
-    }).map((p) => p.id);
+    return githubPlugins.value
+      .filter((p: any) => {
+        return p?.github ? p.github?.user === "imohuan" : false;
+      })
+      .map((p) => p.id);
   });
 
   const isOfficialPlugin = (pluginId: string) => {
@@ -81,31 +87,36 @@ export const usePluginStoreNew = defineStore("pluginNew", () => {
   };
 
   const needUpdatePlugins = computed(() => {
-    const pluginMap = new Map([...systemPlugins.value, ...localPlugins.value].map((p) => [p.id, p]));
+    const pluginMap = new Map(
+      [...systemPlugins.value, ...localPlugins.value].map((p) => [p.id, p])
+    );
     console.log("needUpdatePlugins", pluginMap, githubPlugins.value);
     const needUpdate = githubPlugins.value.filter((p) => {
-      const plugin = pluginMap.has(p.id) ? pluginMap.get(p.id) : null
-      if (!plugin) return false
+      const plugin = pluginMap.has(p.id) ? pluginMap.get(p.id) : null;
+      if (!plugin) return false;
 
       // 使用 semver 比较版本号：如果远程版本大于本地版本，则需要更新
       try {
-        const remoteVersion = semver.valid(semver.coerce(p.version))
-        const localVersion = semver.valid(semver.coerce(plugin.version))
+        const remoteVersion = semver.valid(semver.coerce(p.version));
+        const localVersion = semver.valid(semver.coerce(plugin.version));
 
         // 如果两个版本号都有效，则比较；否则使用字符串比较
         if (remoteVersion && localVersion) {
-          return semver.gt(remoteVersion, localVersion)
+          return semver.gt(remoteVersion, localVersion);
         }
-        return plugin.version !== p.version
+        return plugin.version !== p.version;
       } catch (error) {
         // 如果 semver 解析失败，降级到字符串比较
-        console.warn(`版本号解析失败: ${plugin.id}, 本地: ${plugin.version}, 远程: ${p.version}`, error)
-        return plugin.version !== p.version
+        console.warn(
+          `版本号解析失败: ${plugin.id}, 本地: ${plugin.version}, 远程: ${p.version}`,
+          error
+        );
+        return plugin.version !== p.version;
       }
-    })
+    });
 
-    return needUpdate
-  })
+    return needUpdate;
+  });
 
   // ==================== 安装器管理 ====================
 
@@ -115,8 +126,8 @@ export const usePluginStoreNew = defineStore("pluginNew", () => {
     installer.getList = async (options?: any) => {
       const list = await oldGetList(options);
       list.forEach((p) => installer.setupPluginFeatures(p));
-      return list
-    }
+      return list;
+    };
     installers.set(installer.type, installer);
   });
 
@@ -142,7 +153,8 @@ export const usePluginStoreNew = defineStore("pluginNew", () => {
 
   // ==================== 工具方法 ====================
   /** 获取插件详情 */
-  const getPlugin = (id: string) => availablePlugins.value.find((p) => p.id === id);
+  const getPlugin = (id: string) =>
+    availablePlugins.value.find((p) => p.id === id);
 
   /** 合并插件到可用列表（去重） */
   const mergePlugins = (newPlugins: PluginConfig[]) => {
@@ -164,7 +176,10 @@ export const usePluginStoreNew = defineStore("pluginNew", () => {
     return pluginSettings.value.get(pluginId) || {};
   };
 
-  const setPluginSettings = async (pluginId: string, settings: PluginSetting) => {
+  const setPluginSettings = async (
+    pluginId: string,
+    settings: PluginSetting
+  ) => {
     const oldSettings = getPluginSettings(pluginId);
     const newSettings = { ...oldSettings, ...settings };
     pluginSettings.value.set(pluginId, newSettings);
@@ -194,38 +209,52 @@ export const usePluginStoreNew = defineStore("pluginNew", () => {
         try {
           // 构建插件视图参数
           const fullPath = `${plugin.id}`;
-          const url = plugin.main || '';
-          const preloadPath = plugin.preload || '';
+          const url = plugin.main || "";
+          const preloadPath = plugin.preload || "";
 
           // 如果没有 URL，跳过（避免创建空白视图）
           if (!url && !preloadPath) {
-            console.warn(`⚠️ 插件 ${plugin.name} 没有 main 或 preload，跳过自启动`);
+            console.warn(
+              `⚠️ 插件 ${plugin.name} 没有 main 或 preload，跳过自启动`
+            );
             continue;
           }
 
           // 确定生命周期类型：优先使用 pluginSetting.backgroundRun
-          let lifecycleType: 'FOREGROUND' | 'BACKGROUND' = 'FOREGROUND';
-          if (settings && typeof (settings as any).backgroundRun === 'boolean') {
-            lifecycleType = (settings as any).backgroundRun ? 'BACKGROUND' : 'FOREGROUND';
-            console.log(`🔄 自启动插件 ${plugin.id} 使用 backgroundRun: ${(settings as any).backgroundRun}, lifecycleType: ${lifecycleType}`);
+          let lifecycleType: "FOREGROUND" | "BACKGROUND" = "FOREGROUND";
+          if (
+            settings &&
+            typeof (settings as any).backgroundRun === "boolean"
+          ) {
+            lifecycleType = (settings as any).backgroundRun
+              ? "BACKGROUND"
+              : "FOREGROUND";
+            console.log(
+              `🔄 自启动插件 ${plugin.id} 使用 backgroundRun: ${(settings as any).backgroundRun}, lifecycleType: ${lifecycleType}`
+            );
           }
 
           // 调用 IPC 创建插件视图（静默模式）
           const result = await naimo.router.windowCreatePluginView({
             fullPath,
             title: plugin.name,
-            url: url || 'about:blank',
+            url: url || "about:blank",
             lifecycleType,
             preload: preloadPath,
             singleton: plugin.singleton !== false,
             noSwitch: true, // 静默创建，不切换视图
-            data: { autoStart: true } // 标记为自启动
+            data: { autoStart: true }, // 标记为自启动
           });
 
           if (result.success) {
-            console.log(`✅ 自启动插件视图创建成功: ${fullPath} -> ${result.viewId}`);
+            console.log(
+              `✅ 自启动插件视图创建成功: ${fullPath} -> ${result.viewId}`
+            );
           } else {
-            console.warn(`⚠️ 自启动插件视图创建失败: ${fullPath}`, result.error);
+            console.warn(
+              `⚠️ 自启动插件视图创建失败: ${fullPath}`,
+              result.error
+            );
           }
         } catch (error) {
           console.error(`❌ 创建自启动插件视图时出错: ${plugin.id}`, error);
@@ -242,7 +271,7 @@ export const usePluginStoreNew = defineStore("pluginNew", () => {
     const system = await modules.system.getList();
     const temporary = await modules.temporary.getList();
     return [...local, ...system, ...temporary];
-  }
+  };
 
   /** 初始化插件系统 */
   const initialize = loading.withLoading(async () => {
@@ -261,11 +290,15 @@ export const usePluginStoreNew = defineStore("pluginNew", () => {
     if (silent.value) {
       // 加载插件设置
       const pluginSetting = (await storeUtils.get("pluginSetting")) || {};
-      pluginSettings.value = new Map(Object.entries(pluginSetting as Record<string, PluginSetting>));
+      pluginSettings.value = new Map(
+        Object.entries(pluginSetting as Record<string, PluginSetting>)
+      );
       console.log(`📋 加载了 ${pluginSettings.value.size} 个插件的设置`);
 
       // 实际安装和安装监听事件
-      const waitInstalls = availablePlugins.value.filter((p) => installedIds.includes(p.id) || p.options?.pluginType === "system")
+      const waitInstalls = availablePlugins.value.filter(
+        (p) => installedIds.includes(p.id) || p.options?.pluginType === "system"
+      );
       await Promise.all(waitInstalls.map((p) => install(p)));
       // 初始化自启动插件（后台静默创建，不切换到该插件窗口）
       await initAutoStartPlugins();
@@ -278,54 +311,70 @@ export const usePluginStoreNew = defineStore("pluginNew", () => {
     }
 
     _setupEventListeners();
-    console.log(`✅ 初始化完成，已安装 ${installedPlugins.value.length} 个插件`);
+    console.log(
+      `✅ 初始化完成，已安装 ${installedPlugins.value.length} 个插件`
+    );
     console.log(`✅ 当前插件`, { ...installedPlugins.value });
   }, "初始化插件系统失败");
 
   /** 安装插件 */
-  const install = loading.withLoading(async (source: PluginConfig | string, focus: boolean = false) => {
-    console.log(`📦 开始安装:`, typeof source === "string" ? source : source.id);
-    const installer = findInstaller(source);
-    if (!installer) throw new Error(`未找到支持的安装器: ${source}`);
-    console.log(`使用 ${installer.name} 安装`);
-    const plugin = await installer.install(source);
+  const install = loading.withLoading(
+    async (source: PluginConfig | string, focus: boolean = false) => {
+      console.log(
+        `📦 开始安装:`,
+        typeof source === "string" ? source : source.id
+      );
+      const installer = findInstaller(source);
+      if (!installer) throw new Error(`未找到支持的安装器: ${source}`);
+      console.log(`使用 ${installer.name} 安装`);
+      const plugin = await installer.install(source);
 
-    // 检查是否已安装
-    const index = installedPlugins.value.findIndex((p) => p.id === plugin.id);
-    if (index !== -1) {
-      console.log(`ℹ️ 插件已安装: ${plugin.id}`);
-      if (!focus) return plugin;
-      installedPlugins.value.splice(index, 1);
-    }
+      // 检查是否已安装
+      const index = installedPlugins.value.findIndex((p) => p.id === plugin.id);
+      if (index !== -1) {
+        console.log(`ℹ️ 插件已安装: ${plugin.id}`);
+        if (!focus) return plugin;
+        installedPlugins.value.splice(index, 1);
+      }
 
-    // 添加到已安装列表
-    installedPlugins.value.push(plugin);
-    triggerRef(installedPlugins);
+      // 添加到已安装列表
+      installedPlugins.value.push(plugin);
+      triggerRef(installedPlugins);
 
-    // 添加到可用列表（如果不存在）
-    const availableIndex = availablePlugins.value.findIndex((p) => p.id === plugin.id);
-    if (availableIndex !== -1) availablePlugins.value.splice(availableIndex, 1);
-    availablePlugins.value.push(plugin);
-    triggerRef(availablePlugins);
+      // 添加到可用列表（如果不存在）
+      const availableIndex = availablePlugins.value.findIndex(
+        (p) => p.id === plugin.id
+      );
+      if (availableIndex !== -1)
+        availablePlugins.value.splice(availableIndex, 1);
+      availablePlugins.value.push(plugin);
+      triggerRef(availablePlugins);
 
-    await saveInstalledPluginIds();
-    if (!silent.value) {
-      await naimo.router.appForwardMessageToMainView("plugin-installed", {
-        pluginId: plugin.id, sender: id,
-      });
-    }
+      await saveInstalledPluginIds();
+      if (!silent.value) {
+        await naimo.router.appForwardMessageToMainView("plugin-installed", {
+          pluginId: plugin.id,
+          sender: id,
+        });
+      }
 
-    appEventManager.emit("plugin:installed", { pluginId: plugin.id, });
-    console.log(`✅ 安装成功: ${plugin.id}`);
+      appEventManager.emit("plugin:installed", { pluginId: plugin.id });
+      console.log(`✅ 安装成功: ${plugin.id}`);
 
-    if (plugin.main?.startsWith(".")) {
-      naimo.log.warn(`插件路径依然是相对路径 ${plugin.main}\n请检查插件配置，需要将插件路径改为绝对路径`)
-      naimo.log.warn(`插件路径信息: ${installer.type} - ${plugin.options?.getResourcePath?.toString()}`)
-      debugger
-    }
+      if (plugin.main?.startsWith(".")) {
+        naimo.log.warn(
+          `插件路径依然是相对路径 ${plugin.main}\n请检查插件配置，需要将插件路径改为绝对路径`
+        );
+        naimo.log.warn(
+          `插件路径信息: ${installer.type} - ${plugin.options?.getResourcePath?.toString()}`
+        );
+        debugger;
+      }
 
-    return plugin;
-  }, "安装插件失败");
+      return plugin;
+    },
+    "安装插件失败"
+  );
 
   /** 卸载插件 */
   const uninstall = loading.withLoading(async (id: string) => {
@@ -337,7 +386,8 @@ export const usePluginStoreNew = defineStore("pluginNew", () => {
     // 使用对应的安装器卸载
     const installer = findInstaller(plugin);
     if (!installer) throw new Error(`未找到支持的安装器: ${plugin.id}`);
-    if (!(await installer.uninstall(id, { skip: silent.value }))) throw new Error(`卸载插件失败: ${id}`);
+    if (!(await installer.uninstall(id, { skip: silent.value })))
+      throw new Error(`卸载插件失败: ${id}`);
 
     // 从列表移除
     installedPlugins.value = installedPlugins.value.filter((p) => p.id !== id);
@@ -347,10 +397,11 @@ export const usePluginStoreNew = defineStore("pluginNew", () => {
     if (!silent.value) {
       await updateAllLists();
       await naimo.router.appForwardMessageToMainView("plugin-uninstalled", {
-        pluginId: id, sender: id,
+        pluginId: id,
+        sender: id,
       });
     }
-    appEventManager.emit("plugin:uninstalled", { pluginId: id, });
+    appEventManager.emit("plugin:uninstalled", { pluginId: id });
     console.log(`✅ 卸载成功: ${id}`);
     return true;
   }, "卸载插件失败");
@@ -360,7 +411,9 @@ export const usePluginStoreNew = defineStore("pluginNew", () => {
     const plugin = getPlugin(id);
     if (!plugin) throw new Error(`插件未安装: ${id}`);
     plugin.enabled = enabled !== undefined ? enabled : !plugin.enabled;
-    console.log(`✅ 切换插件状态: ${id} -> ${plugin.enabled ? "启用" : "禁用"}`);
+    console.log(
+      `✅ 切换插件状态: ${id} -> ${plugin.enabled ? "启用" : "禁用"}`
+    );
     return true;
   }, "切换插件状态失败");
 
@@ -377,7 +430,7 @@ export const usePluginStoreNew = defineStore("pluginNew", () => {
       if (!githubPlugin) {
         throw new Error(`未在 GitHub 插件列表中找到插件: ${pluginId}`);
       }
-      newPluginConfig = githubPlugin
+      newPluginConfig = githubPlugin;
     } else {
       // 如果是插件配置对象
       pluginId = source.id;
@@ -405,15 +458,23 @@ export const usePluginStoreNew = defineStore("pluginNew", () => {
       // 5. 安装新版本
       console.log(`📥 安装新版本: ${pluginId}`);
 
-      const updatedPlugin: PluginConfig = await install(newPluginConfig?.downloadUrl ? newPluginConfig?.downloadUrl : newPluginConfig)
-      console.log(`✅ 插件更新成功: ${pluginId} (${oldVersion} -> ${newVersion})`);
+      const updatedPlugin: PluginConfig = await install(
+        newPluginConfig?.downloadUrl
+          ? newPluginConfig?.downloadUrl
+          : newPluginConfig
+      );
+      console.log(
+        `✅ 插件更新成功: ${pluginId} (${oldVersion} -> ${newVersion})`
+      );
 
       // 6. 触发更新事件
       appEventManager.emit("plugin:updated", {
-        pluginId, oldVersion, newVersion
+        pluginId,
+        oldVersion,
+        newVersion,
       });
 
-      await updateAllLists()
+      await updateAllLists();
       return updatedPlugin;
     } catch (error) {
       console.error(`❌ 插件更新失败: ${pluginId}`, error);
@@ -436,8 +497,8 @@ export const usePluginStoreNew = defineStore("pluginNew", () => {
     triggerRef(githubPlugins);
 
     mergePlugins(list);
-    return list
-  }
+    return list;
+  };
 
   /** 加载更多 GitHub 插件 */
   const loadMoreGithubPlugins = listLoading.withLoading(async () => {
@@ -464,27 +525,33 @@ export const usePluginStoreNew = defineStore("pluginNew", () => {
     availablePlugins.value = [...locals, ...github];
   };
 
-  const getInstalledPluginItem = (fullPath: string) => {
+  const getInstalledPluginItem = (fullPath: string | undefined | null) => {
+    // fullPath 为空时直接返回，避免对 undefined 调用 split
+    if (!fullPath) {
+      console.warn("getInstalledPluginItem: fullPath 为空");
+      return null;
+    }
+
     // fullPath 格式: "pluginId:path"
-    const parts = fullPath.split(':');
+    const parts = fullPath.split(":");
     if (parts.length < 2) {
-      console.warn('getInstalledPluginItem: fullPath 格式错误，应为 "pluginId:path"');
+      console.warn(
+        'getInstalledPluginItem: fullPath 格式错误，应为 "pluginId:path"'
+      );
       return null;
     }
 
     const pluginId = parts[0];
-    const path = parts.slice(1).join(':'); // 支持 path 中包含冒号
+    const path = parts.slice(1).join(":"); // 支持 path 中包含冒号
 
     const plugin = enabledPlugins.value.find((p) => p.id === pluginId);
-    return (
-      (plugin?.feature?.find((item) => item.path === path)) || null
-    );
-  }
+    return plugin?.feature?.find((item) => item.path === path) || null;
+  };
 
   const getSerializedPluginItem = (app: PluginItem): PluginItem => {
     const serialized: PluginItem = {
       // 搜索类型字段（必需）
-      type: app.type || 'text',
+      type: app.type || "text",
       // 应用相关字段
       name: app.name,
       path: app.path,
@@ -494,12 +561,14 @@ export const usePluginStoreNew = defineStore("pluginNew", () => {
       ...(app.category && { category: app.category }),
       ...(app.description && { description: app.description }),
       ...(app.weight && { weight: app.weight }),
-      ...(app.anonymousSearchFields && { anonymousSearchFields: app.anonymousSearchFields }),
+      ...(app.anonymousSearchFields && {
+        anonymousSearchFields: app.anonymousSearchFields,
+      }),
       // 插件相关字段
       ...(app.pluginId && { pluginId: app.pluginId }),
     } as PluginItem;
     return serialized;
-  }
+  };
 
   // ==================== 事件监听 ====================
   const _setupEventListeners = () => {
@@ -521,7 +590,10 @@ export const usePluginStoreNew = defineStore("pluginNew", () => {
         await install(plugin);
         console.log(`✅ [PluginStoreNew] 主窗口安装完成: ${data.pluginId}`);
       } catch (err) {
-        console.error(`❌ [PluginStoreNew] 主窗口安装失败: ${data.pluginId}`, err);
+        console.error(
+          `❌ [PluginStoreNew] 主窗口安装失败: ${data.pluginId}`,
+          err
+        );
       }
     });
 
@@ -538,7 +610,10 @@ export const usePluginStoreNew = defineStore("pluginNew", () => {
         await uninstall(data.pluginId);
         console.log(`✅ [PluginStoreNew] 主窗口卸载完成: ${data.pluginId}`);
       } catch (err) {
-        console.error(`❌ [PluginStoreNew] 主窗口卸载失败: ${data.pluginId}`, err);
+        console.error(
+          `❌ [PluginStoreNew] 主窗口卸载失败: ${data.pluginId}`,
+          err
+        );
       }
     });
   };

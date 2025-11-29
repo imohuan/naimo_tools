@@ -1,5 +1,5 @@
 <template>
-  <div class="flex items-start gap-6 py-3">
+  <div class="py-3" :class="wrapperClass">
     <!-- 左侧：设置项标题和描述 -->
     <div class="flex-1 min-w-0">
       <label class="block text-sm font-medium text-gray-900 mb-1">
@@ -12,7 +12,7 @@
     </div>
 
     <!-- 右侧：动态渲染设置控件 -->
-    <div class="flex-shrink-0 w-64">
+    <div :class="controlClass">
       <!-- 输入框 -->
       <div v-if="setting.type === 'input'" class="relative">
         <input
@@ -173,6 +173,12 @@
         </button>
       </div>
 
+      <!-- 字符串数组（如镜像 URL 列表） -->
+      <StringArraySetting
+        v-else-if="setting.type === 'stringArray'"
+        v-model="localValue"
+      />
+
       <!-- 其他类型使用输入框 -->
       <input
         v-else
@@ -208,6 +214,7 @@
 import { computed, ref } from "vue";
 import type { SettingConfig } from "@/typings";
 import type { SelectOption } from "@/typings/composableTypes";
+import StringArraySetting from "./StringArraySetting.vue";
 
 // 组件属性
 interface Props {
@@ -232,10 +239,19 @@ const togglePasswordVisibility = () => {
   showPassword.value = !showPassword.value;
 };
 
-// 本地值计算属性
+// 本地值计算属性（通用）
 const localValue = computed({
   get: () => props.value,
   set: (newValue) => emit("update:value", newValue),
+});
+
+// 布局样式：支持左右布局 / 换行布局
+const wrapperClass = computed(() => {
+  return props.setting.wrap ? "flex flex-col gap-2" : "flex items-start gap-6";
+});
+
+const controlClass = computed(() => {
+  return props.setting.wrap ? "w-full" : "flex-shrink-0 w-64";
 });
 
 // 更新子设置项的值

@@ -170,23 +170,4 @@ naimo.event.onViewReattached(async (event, data) => {
 });
 </script>
 
-<style scoped>
-/* 自定义滚动条样式 */
-.overflow-auto::-webkit-scrollbar {
-  width: 6px;
-}
-
-.overflow-auto::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 3px;
-}
-
-.overflow-auto::-webkit-scrollbar-thumb {
-  background: #c1c1c1;
-  border-radius: 3px;
-}
-
-.overflow-auto::-webkit-scrollbar-thumb:hover {
-  background: #a8a8a8;
-}
-</style>
+<style scoped></style>

@@ -9,22 +9,47 @@
  */
 export type SettingConfig = {
   /** 设置项名称（唯一标识） */
-  name: string
+  name: string;
   /** 设置项标题 */
-  title: string
+  title: string;
   /** 设置项描述 */
-  description: string
+  description: string;
   /** 设置项类型 */
-  type: "input" | "select" | "checkbox" | "radio" | "textarea" | "number" | "date" | "time" | "datetime" | "file" | "image" | "video" | "audio" | "url" | "email" | "password" | "tel" | "search" | "range" | "color" | "hidden"
+  type:
+    | "input"
+    | "select"
+    | "checkbox"
+    | "radio"
+    | "textarea"
+    | "number"
+    | "date"
+    | "time"
+    | "datetime"
+    | "file"
+    | "image"
+    | "video"
+    | "audio"
+    | "url"
+    | "email"
+    | "password"
+    | "tel"
+    | "search"
+    | "range"
+    | "color"
+    | "hidden"
+    /** 自定义：字符串数组类型（例如 URL 列表） */
+    | "stringArray";
+  /** 是否需要换行显示（true 时控件在标题下方单独一行） */
+  wrap?: boolean;
   /** 默认值（可以是值或返回值的函数） */
-  defaultValue?: (() => any) | any
+  defaultValue?: (() => any) | any;
   /** 是否必填 */
-  required?: boolean
+  required?: boolean;
   /** 选项配置（用于 select、range 等类型） */
-  option?: any
+  option?: any;
   /** 子设置项（嵌套设置） */
-  children?: SettingConfig[]
-}
+  children?: SettingConfig[];
+};
 
 /**
  * 通用设置项接口
@@ -32,16 +57,15 @@ export type SettingConfig = {
  */
 export interface SettingItem {
   /** 设置组唯一标识 */
-  id: string
+  id: string;
   /** 设置组名称 */
-  name: string
+  name: string;
   /** 设置组图标 */
-  icon?: string
+  icon?: string;
   /** 设置组描述 */
-  description?: string
+  description?: string;
   /** 设置项列表 */
-  settings: SettingConfig[]
+  settings: SettingConfig[];
   /** 设置类型：app-应用设置, plugin-插件设置 */
-  type: 'app' | 'plugin'
+  type: "app" | "plugin";
 }
-

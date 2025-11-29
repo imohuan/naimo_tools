@@ -71,7 +71,13 @@
             </button>
             <button
               @click="saveAllSettings"
-              class="px-3 py-1.5 text-sm bg-blue-600 text-white hover:bg-blue-700 rounded-md transition-all duration-200"
+              :disabled="!hasChanges"
+              :class="[
+                'px-3 py-1.5 text-sm rounded-md transition-all duration-200',
+                hasChanges
+                  ? 'bg-blue-600 text-white hover:bg-blue-700 cursor-pointer'
+                  : 'bg-gray-300 text-gray-500 cursor-not-allowed',
+              ]"
             >
               保存所有设置
             </button>
@@ -175,7 +181,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, toRaw } from "vue";
+import { ref, onMounted, toRaw, computed } from "vue";
 import { useApp } from "@/core";
 import { storeUtils } from "@/core/utils/store";
 import type { SettingConfig, SettingItem } from "@/typings";
@@ -189,6 +195,7 @@ const app = useApp();
 const loading = ref(true);
 const settingsList = ref<SettingItem[]>([]);
 const settingValues = ref<Record<string, Record<string, any>>>({});
+const initialValues = ref<Record<string, Record<string, any>>>({});
 
 // 保存反馈状态
 const saveFeedback = ref<{
@@ -203,6 +210,42 @@ const saveFeedback = ref<{
 
 // 折叠状态管理
 const collapsedSettings = ref<Set<string>>(new Set());
+
+// 深度比较两个对象是否相等
+const deepEqual = (obj1: any, obj2: any): boolean => {
+  if (obj1 === obj2) return true;
+  if (obj1 == null || obj2 == null) return obj1 === obj2;
+  if (typeof obj1 !== typeof obj2) return false;
+
+  // 处理数组
+  if (Array.isArray(obj1) && Array.isArray(obj2)) {
+    if (obj1.length !== obj2.length) return false;
+    return obj1.every((val, index) => deepEqual(val, obj2[index]));
+  }
+
+  // 处理对象
+  if (typeof obj1 === "object" && typeof obj2 === "object") {
+    const keys1 = Object.keys(obj1);
+    const keys2 = Object.keys(obj2);
+
+    if (keys1.length !== keys2.length) return false;
+
+    for (const key of keys1) {
+      if (!keys2.includes(key)) return false;
+      if (!deepEqual(obj1[key], obj2[key])) return false;
+    }
+
+    return true;
+  }
+
+  // 基本类型比较
+  return obj1 === obj2;
+};
+
+// 检测是否有变化
+const hasChanges = computed(() => {
+  return !deepEqual(settingValues.value, initialValues.value);
+});
 
 // 切换折叠状态
 const toggleCollapse = (id: string) => {
@@ -324,6 +367,9 @@ const getAllSettings = async () => {
 
     // 默认全部折叠
     collapsedSettings.value = new Set(allSettings.map((item) => item.id));
+
+    // 保存初始值用于变化检测
+    initialValues.value = JSON.parse(JSON.stringify(settingValues.value));
   } catch (error) {
     console.error("获取设置失败:", error);
   } finally {
@@ -410,6 +456,10 @@ const saveAllSettings = async () => {
 
     if (pluginSettingsSuccess) {
       console.log("✅ 所有设置保存成功");
+      // 刷新搜索显示配置（如果相关配置已更改）
+      await app.search.refreshDisplayConfig();
+      // 更新初始值，表示已保存
+      initialValues.value = JSON.parse(JSON.stringify(settingValues.value));
       showSaveFeedback(
         true,
         `所有设置保存成功 (${appSettingsCount} 项应用设置, ${
@@ -444,6 +494,9 @@ const resetAllSettings = async () => {
 
     // 清空插件设置存储
     await storeUtils.set("pluginSettings", {});
+
+    // 更新初始值，表示已重置
+    initialValues.value = JSON.parse(JSON.stringify(settingValues.value));
 
     showSaveFeedback(
       true,

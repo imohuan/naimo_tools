@@ -1,6 +1,6 @@
 // 共享类型定义
-import { PluginSetting, } from '@renderer/src/core/typings/plugin';
-import type { AppItem } from '@renderer/src/core/typings/search'
+import { PluginSetting } from "@renderer/src/core/typings/plugin";
+import type { AppItem } from "@renderer/src/core/typings/search";
 
 export interface AppConfig {
   /** 主题模式，支持 light 或 dark */
@@ -29,6 +29,14 @@ export interface AppConfig {
   autoStart?: boolean;
   /** 是否窗口置顶 */
   alwaysOnTop?: boolean;
+  /** 是否启用 GitHub 自动镜像访问 */
+  autoMirrorAccess?: boolean;
+  /** GitHub 镜像 URL 列表 */
+  mirrorUrls?: string[];
+  /** 是否在搜索界面显示扩展列表 */
+  showExtensionList?: boolean;
+  /** 是否在搜索界面显示应用列表 */
+  showApplicationList?: boolean;
   /** 最近使用的应用列表 */
   recentApps?: AppItem[];
   /** 已固定的应用列表 */

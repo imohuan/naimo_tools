@@ -2,10 +2,10 @@ import type { SettingItem } from "@/typings";
 
 /**
  * 软件设置配置
- * 
+ *
  * 此配置定义了应用程序的各种系统设置项
  * 这些设置会在设置页面中渲染，用户可以修改并保存
- * 
+ *
  * 注意：
  * - 设置项的 name 字段必须对应 AppConfig 接口中的字段名
  * - 不包括运行时数据（如 recentApps, pinnedApps 等）
@@ -13,7 +13,7 @@ import type { SettingItem } from "@/typings";
  */
 
 /** 应用设置配置 */
-export const appSettingsConfig: Omit<SettingItem, 'type'>[] = [
+export const appSettingsConfig: Omit<SettingItem, "type">[] = [
   {
     id: "app",
     name: "系统设置",
@@ -26,6 +26,39 @@ export const appSettingsConfig: Omit<SettingItem, 'type'>[] = [
         description: "开机时自动启动应用程序",
         type: "checkbox",
         defaultValue: false,
+      },
+      {
+        name: "autoMirrorAccess",
+        title: "自动镜像访问",
+        description:
+          "在访问 GitHub 相关资源时，自动检测并选择可用且最快的镜像（若官方可用则优先使用官方）",
+        type: "checkbox",
+        defaultValue: false,
+        wrap: true,
+      },
+      {
+        name: "mirrorUrls",
+        title: "GitHub 镜像列表",
+        description:
+          "配置 GitHub 访问镜像的 URL 列表，支持增删改查。可使用 {url} 占位符或直接在末尾拼接原始地址。",
+        // 自定义类型，由 SettingItem 组件进行特殊渲染
+        wrap: true,
+        type: "stringArray",
+        defaultValue: [],
+      },
+      {
+        name: "showExtensionList",
+        title: "显示扩展列表",
+        description: "在搜索界面中显示扩展应用列表",
+        type: "checkbox",
+        defaultValue: true,
+      },
+      {
+        name: "showApplicationList",
+        title: "显示应用列表",
+        description: "在搜索界面中显示应用列表",
+        type: "checkbox",
+        defaultValue: true,
       },
       // {
       //   name: "alwaysOnTop",
@@ -79,4 +112,3 @@ export const appSettingsConfig: Omit<SettingItem, 'type'>[] = [
     ],
   },
 ];
-
