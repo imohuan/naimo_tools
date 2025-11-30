@@ -361,7 +361,6 @@ const handleExecuted = async (event: {
   hotkeyEmit: boolean;
 }) => {
   console.log("🔌 收到插件执行事件:", event);
-
   const { fullPath } = event;
   const pluginId = fullPath.split(":")[0];
 

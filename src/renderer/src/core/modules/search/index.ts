@@ -241,7 +241,6 @@ export const useSearchStore = defineStore("search", () => {
 
     // 加载图标
     const itemsWithIcons = await loadAppIcons(newItems);
-    console.log("itemsWithIcons", itemsWithIcons);
 
     searchItems.value = itemsWithIcons;
     triggerRef(searchItems);

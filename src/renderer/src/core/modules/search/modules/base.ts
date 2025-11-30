@@ -1,6 +1,7 @@
 import type { AppItem, SearchModule } from "@/core/typings/search";
 import type { AppConfig } from "@shared/typings";
 import { storeUtils } from "@/core/utils/store";
+import type { PluginItem } from "@/typings";
 
 /**
  * 基础列表模块
@@ -9,26 +10,42 @@ import { storeUtils } from "@/core/utils/store";
 export abstract class BaseListModule implements SearchModule {
   abstract weight: number;
   abstract name: string;
-  protected abstract storeKey: keyof AppConfig
+  protected abstract storeKey: keyof AppConfig;
 
   isDragEnabled = true;
   maxDisplayCount = 16;
+
+  getFullPath(item: AppItem | PluginItem) {
+    if ("fullPath" in item && item.fullPath) {
+      return item.fullPath;
+    }
+
+    if ("pluginId" in item && item.pluginId) {
+      return `${item.pluginId}:${item.path}`;
+    }
+
+    if ("command" in item && item.command) {
+      return `${item.path}:${item.command}`;
+    }
+
+    return item.path;
+  }
 
   async getItems() {
     const items = (await naimo.router.storeGet(this.storeKey)) || [];
     // 为每个 item 添加 __metadata 和 fullPath
     return items.map((item: AppItem) => {
-      const fullPath = item.command ? `${item.path}:${item.command}` : item.path;
+      const fullPath = this.getFullPath(item);
 
       const newItem = {
         ...item,
         ...(item?.weight ? { weight: item.weight } : { weight: this.weight }),
-        ...(item?.fullPath ? { fullPath: item.fullPath } : { fullPath }),
+        fullPath,
         __metadata: {
           enableDelete: true,
           enablePin: false,
         },
-      }
+      };
 
       return newItem;
     });
@@ -43,11 +60,15 @@ export abstract class BaseListModule implements SearchModule {
   async addItem(item: AppItem): Promise<void> {
     // 使用 fullPath 作为唯一标识
     let updateItem: AppItem = { ...item };
-    if ("icon" in item) updateItem.icon = null;
-    updateItem.fullPath = item.command ? `${item.path}:${item.command}` : item.path;
+    if ("icon" in item && item.icon && item.icon.startsWith("data:image/"))
+      updateItem.icon = null;
+
+    updateItem.fullPath = this.getFullPath(item);
 
     await storeUtils.addListItem(this.storeKey, updateItem, {
-      unique: true, uniqueField: "fullPath", position: "start",
+      unique: true,
+      uniqueField: "fullPath",
+      position: "start",
     });
   }
 
@@ -55,4 +76,3 @@ export abstract class BaseListModule implements SearchModule {
     await storeUtils.setListItems(this.storeKey, items);
   }
 }
-

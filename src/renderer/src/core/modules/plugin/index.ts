@@ -368,7 +368,6 @@ export const usePluginStoreNew = defineStore("pluginNew", () => {
         naimo.log.warn(
           `插件路径信息: ${installer.type} - ${plugin.options?.getResourcePath?.toString()}`
         );
-        debugger;
       }
 
       return plugin;
