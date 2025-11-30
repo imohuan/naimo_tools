@@ -1,6 +1,6 @@
 /**
  * 自动生成的 IPC 类型定义
- * 生成时间: 2025-11-30T04:24:49.401Z
+ * 生成时间: 2025-11-30T05:05:37.393Z
  * 请勿手动修改此文件
  */
 
@@ -1084,13 +1084,13 @@ interface pluginInterface {
  * @param zip文件路径
  * @returns 插件安装路径，如果安装失败则返回null
  */
-  "plugin-install-plugin-from-zip": (zipPath: string) => Promise<{ path: string, configPath: string, isDefault: boolean } | null>;
+  "plugin-install-plugin-from-zip": (zipPath: string) => Promise<{ path: string; configPath: string; isDefault: boolean } | null>;
   /**
  * 安装插件zip文件
  * @param zip文件路径
  * @returns 插件安装路径，如果安装失败则返回null
  */
-  "pluginInstallPluginFromZip": (zipPath: string) => Promise<{ path: string, configPath: string, isDefault: boolean } | null>;
+  "pluginInstallPluginFromZip": (zipPath: string) => Promise<{ path: string; configPath: string; isDefault: boolean } | null>;
 
   /**
  * 卸载插件

@@ -3,28 +3,37 @@
  * 处理插件的安装、卸载、目录管理等功能
  */
 
-import log from 'electron-log';
-import { app } from 'electron';
-import { readdir, readFile, stat, mkdir, rmdir, rename, copyFile } from 'fs/promises';
-import { join, resolve, basename, extname } from 'path';
-import { createReadStream, createWriteStream, read } from 'fs';
+import log from "electron-log";
+import { app } from "electron";
+import {
+  readdir,
+  readFile,
+  stat,
+  mkdir,
+  rmdir,
+  rename,
+  copyFile,
+} from "fs/promises";
+import { join, resolve, basename, extname } from "path";
+import { createReadStream, createWriteStream, read } from "fs";
 // @ts-ignore
-import unzipper from 'unzipper';
-import archiver from 'archiver';
-import { getDirname } from '@main/utils';
-
+import unzipper from "unzipper";
+import archiver from "archiver";
+import { getDirname } from "@main/utils";
 
 /**
  * 获取插件目录路径
  */
-export function getPluginsDirectory(event: Electron.IpcMainInvokeEvent): string {
+export function getPluginsDirectory(
+  event: Electron.IpcMainInvokeEvent
+): string {
   // dist/main
-  const __dirname = getDirname(import.meta.url)
-  const localDir = resolve(__dirname, '..', '..', 'plugins-temp');
-  if (process.env.NODE_ENV === 'development') {
+  const __dirname = getDirname(import.meta.url);
+  const localDir = resolve(__dirname, "..", "..", "plugins-temp");
+  if (process.env.NODE_ENV === "development") {
     return localDir;
   } else {
-    return resolve(app.getPath('userData'), 'plugins');
+    return resolve(app.getPath("userData"), "plugins");
   }
 }
 
@@ -35,14 +44,16 @@ export function getPluginsDirectory(event: Electron.IpcMainInvokeEvent): string 
  */
 function getPluginConfigPath(pluginPath: string): string {
   // return join(pluginPath, 'config.js');
-  return join(pluginPath, 'manifest.json');
+  return join(pluginPath, "manifest.json");
 }
 
 /**
  * 获取所有已安装的插件（仅第三方插件）
  * @returns 插件信息数组，包含路径和配置文件路径
  */
-export async function getAllInstalledPlugins(event: Electron.IpcMainInvokeEvent): Promise<any[]> {
+export async function getAllInstalledPlugins(
+  event: Electron.IpcMainInvokeEvent
+): Promise<any[]> {
   try {
     const pluginsDir = getPluginsDirectory(event);
     const plugins: any[] = [];
@@ -62,7 +73,9 @@ export async function getAllInstalledPlugins(event: Electron.IpcMainInvokeEvent)
           try {
             await stat(configPath);
             plugins.push({
-              path: pluginPath, configPath: configPath, isDefault: false
+              path: pluginPath,
+              configPath: configPath,
+              isDefault: false,
             });
           } catch (error) {
             log.warn(`跳过无效的用户插件: ${pluginName} (配置文件不存在)`);
@@ -70,13 +83,13 @@ export async function getAllInstalledPlugins(event: Electron.IpcMainInvokeEvent)
         }
       }
     } catch (error) {
-      log.warn('用户插件目录不存在或无法访问:', error);
+      log.warn("用户插件目录不存在或无法访问:", error);
     }
 
     log.debug(`获取到 ${plugins.length} 个第三方插件`);
     return plugins;
   } catch (error) {
-    log.error('获取已安装插件失败:', error);
+    log.error("获取已安装插件失败:", error);
     throw error;
   }
 }
@@ -86,19 +99,23 @@ export async function getAllInstalledPlugins(event: Electron.IpcMainInvokeEvent)
  * @param zipPath zip文件路径
  * @param targetDir 目标目录
  */
-async function extractPluginZip(zipPath: string, targetDir: string): Promise<void> {
+async function extractPluginZip(
+  zipPath: string,
+  targetDir: string
+): Promise<void> {
   try {
     // 确保目标目录存在
     await mkdir(targetDir, { recursive: true });
 
     // 使用unzipper解压文件
-    const stream = createReadStream(zipPath)
-      .pipe(unzipper.Extract({ path: targetDir }));
+    const stream = createReadStream(zipPath).pipe(
+      unzipper.Extract({ path: targetDir })
+    );
 
     // 等待解压完成
     await new Promise((resolve, reject) => {
-      stream.on('close', resolve);
-      stream.on('error', reject);
+      stream.on("close", resolve);
+      stream.on("error", reject);
     });
 
     log.debug(`插件zip文件解压成功: ${zipPath} -> ${targetDir}`);
@@ -124,10 +141,12 @@ async function fixGithubZipStructure(targetDir: string): Promise<string> {
       if (itemStat.isDirectory()) {
         // 检查这个子目录是否包含插件文件（manifest.json或config.js）
         const subItems = await readdir(singleItemPath);
-        const hasPluginConfig = subItems.some(item => item === 'manifest.json');
+        const hasPluginConfig = subItems.some(
+          (item) => item === "manifest.json"
+        );
 
-        const manifestPath = join(singleItemPath, 'manifest.json');
-        const manifest = await readFile(manifestPath, 'utf-8');
+        const manifestPath = join(singleItemPath, "manifest.json");
+        const manifest = await readFile(manifestPath, "utf-8");
         const manifestJson = JSON.parse(manifest);
         const pluginId = manifestJson.id;
 
@@ -135,7 +154,7 @@ async function fixGithubZipStructure(targetDir: string): Promise<string> {
           log.debug(`检测到GitHub zip结构，正在修复: ${singleItemPath}`);
 
           // 获取父目录的父目录路径
-          const parentOfParent = join(targetDir, '..');
+          const parentOfParent = join(targetDir, "..");
           // 获取子目录的名称（这是真实的插件名称）
           // const realPluginName = items[0];
           const realPluginName = pluginId;
@@ -153,12 +172,16 @@ async function fixGithubZipStructure(targetDir: string): Promise<string> {
           // 将整个子目录移动到父目录的父目录
           try {
             await rename(singleItemPath, newTargetPath);
-            log.debug(`已将插件目录移动: ${singleItemPath} -> ${newTargetPath}`);
+            log.debug(
+              `已将插件目录移动: ${singleItemPath} -> ${newTargetPath}`
+            );
           } catch (renameError) {
             // 如果重命名失败，尝试复制然后删除
             await copyDirectory(singleItemPath, newTargetPath);
             await rmdir(singleItemPath, { recursive: true });
-            log.debug(`已复制并删除插件目录: ${singleItemPath} -> ${newTargetPath}`);
+            log.debug(
+              `已复制并删除插件目录: ${singleItemPath} -> ${newTargetPath}`
+            );
           }
 
           // 删除原来的父目录（现在应该是空的）
@@ -211,7 +234,10 @@ async function copyDirectory(src: string, dest: string): Promise<void> {
  * @param zipPath zip文件路径
  * @returns 插件安装路径，如果安装失败则返回null
  */
-export async function installPluginFromZip(event: Electron.IpcMainInvokeEvent, zipPath: string): Promise<{ path: string, configPath: string, isDefault: boolean } | null> {
+export async function installPluginFromZip(
+  event: Electron.IpcMainInvokeEvent,
+  zipPath: string
+): Promise<{ path: string; configPath: string; isDefault: boolean } | null> {
   try {
     const pluginsDir = getPluginsDirectory(event);
 
@@ -251,7 +277,10 @@ export async function installPluginFromZip(event: Electron.IpcMainInvokeEvent, z
  * @param pluginId 插件ID
  * @returns 是否卸载成功
  */
-export async function uninstallPlugin(event: Electron.IpcMainInvokeEvent, pluginId: string): Promise<boolean> {
+export async function uninstallPlugin(
+  event: Electron.IpcMainInvokeEvent,
+  pluginId: string
+): Promise<boolean> {
   try {
     const pluginsDir = getPluginsDirectory(event);
     const pluginPath = join(pluginsDir, pluginId);
@@ -273,14 +302,17 @@ export async function uninstallPlugin(event: Electron.IpcMainInvokeEvent, plugin
   }
 }
 
-
 /**
  * 解压zip文件到指定目录
  * @param zipPath zip文件路径
  * @param targetDir 目标目录路径
  * @returns 是否解压成功
  */
-export async function unzipFile(event: Electron.IpcMainInvokeEvent, zipPath: string, targetDir: string): Promise<boolean> {
+export async function unzipFile(
+  event: Electron.IpcMainInvokeEvent,
+  zipPath: string,
+  targetDir: string
+): Promise<boolean> {
   try {
     await extractPluginZip(zipPath, targetDir);
     return true;
@@ -296,48 +328,54 @@ export async function unzipFile(event: Electron.IpcMainInvokeEvent, zipPath: str
  * @param outputPath 输出zip文件路径
  * @returns 是否打包成功
  */
-export async function zipDirectory(event: Electron.IpcMainInvokeEvent, sourceDir: string, outputPath: string): Promise<boolean> {
+export async function zipDirectory(
+  event: Electron.IpcMainInvokeEvent,
+  sourceDir: string,
+  outputPath: string
+): Promise<boolean> {
   return new Promise((resolve, reject) => {
     try {
       // 检查源目录是否存在
-      stat(sourceDir).then(() => {
-        const output = createWriteStream(outputPath);
-        const archive = archiver('zip', {
-          zlib: { level: 9 } // 设置压缩级别
+      stat(sourceDir)
+        .then(() => {
+          const output = createWriteStream(outputPath);
+          const archive = archiver("zip", {
+            zlib: { level: 9 }, // 设置压缩级别
+          });
+
+          output.on("close", () => {
+            log.info(`文件夹打包成功: ${sourceDir} -> ${outputPath}`);
+            resolve(true);
+          });
+
+          archive.on("error", (err: any) => {
+            log.error(`文件夹打包失败: ${sourceDir}`, err);
+            reject(err);
+          });
+
+          // 构建glob模式来过滤文件
+          const globOptions = {
+            ignore: [
+              // 过滤掉zip文件
+              "**/*.zip",
+              // 过滤掉目标文件
+              `**/${basename(outputPath)}`,
+            ],
+          };
+
+          log.debug("使用过滤选项:", globOptions);
+
+          archive.pipe(output);
+          archive.glob("**/*", {
+            cwd: sourceDir,
+            ignore: globOptions.ignore,
+          });
+          archive.finalize();
+        })
+        .catch((error) => {
+          log.error(`源目录不存在: ${sourceDir}`, error);
+          reject(error);
         });
-
-        output.on('close', () => {
-          log.info(`文件夹打包成功: ${sourceDir} -> ${outputPath}`);
-          resolve(true);
-        });
-
-        archive.on('error', (err: any) => {
-          log.error(`文件夹打包失败: ${sourceDir}`, err);
-          reject(err);
-        });
-
-        // 构建glob模式来过滤文件
-        const globOptions = {
-          ignore: [
-            // 过滤掉zip文件
-            '**/*.zip',
-            // 过滤掉目标文件
-            `**/${basename(outputPath)}`
-          ]
-        };
-
-        log.debug('使用过滤选项:', globOptions);
-
-        archive.pipe(output);
-        archive.glob('**/*', {
-          cwd: sourceDir,
-          ignore: globOptions.ignore
-        });
-        archive.finalize();
-      }).catch((error) => {
-        log.error(`源目录不存在: ${sourceDir}`, error);
-        reject(error);
-      });
     } catch (error) {
       log.error(`创建zip文件失败: ${sourceDir}`, error);
       reject(error);

@@ -3,6 +3,8 @@
  */
 
 import log from "electron-log";
+import { app } from "electron";
+import { join } from "path";
 import { AppConfigManager } from "../config/appConfig";
 import {
   HttpServer,
@@ -10,7 +12,6 @@ import {
   HttpServerStatus,
 } from "../server/HttpServer";
 import type { Service } from "../core/ServiceContainer";
-import { getProjectRoot } from "../utils/windowConfig";
 
 /**
  * HTTP 服务类
@@ -62,10 +63,10 @@ export class HttpService implements Service {
         await this.stop();
       }
 
-      // 创建新的服务器实例，使用固定的项目根目录作为静态文件根目录
+      // 创建新的服务器实例，使用固定的用户数据目录下的 static 文件夹作为静态文件根目录
       const serverConfig: HttpServerConfig = {
         port: httpConfig.port,
-        staticRoot: getProjectRoot(),
+        staticRoot: join(app.getPath("userData"), "static"),
       };
 
       this.httpServer = new HttpServer(serverConfig);

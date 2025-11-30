@@ -5,16 +5,16 @@
 
 import { createRequire } from "node:module";
 import { Server } from "http";
-import { readdir, stat } from "fs/promises";
 import { join, normalize, dirname } from "path";
-import { existsSync } from "fs";
 import { networkInterfaces } from "os";
 import electronLog from "electron-log";
+import axios, { type AxiosRequestConfig, type AxiosResponse } from "axios";
 import type { Express, Request, Response, NextFunction } from "express";
 
 // 使用 createRequire 导入 CommonJS 模块
 const require = createRequire(import.meta.url);
 const express = require("express");
+const serveIndex = require("serve-index");
 
 // 创建独立的服务器日志实例，输出到 server.log
 const createServerLogger = () => {
@@ -104,50 +104,32 @@ export class HttpServer {
       });
     });
 
+    // API 代理路由 - 参考 api_proxy.py 实现
+    this.app.all("/raw", async (req: Request, res: Response) => {
+      await this.handleProxyRequest(req, res);
+    });
+
     // 静态文件服务
     if (this.staticRoot) {
+      // 静态文件服务
       this.app.use(
         express.static(this.staticRoot, {
           index: "index.html",
+          fallthrough: true, // 允许继续执行下一个中间件（serve-index）
           setHeaders: (res: Response, path: string) => {
             res.setHeader("Cache-Control", "public, max-age=3600");
           },
         })
       );
 
-      // 自定义目录列表处理
-      this.app.use(async (req: Request, res: Response, next: NextFunction) => {
-        try {
-          const safePath = this.sanitizePath(req.path);
-          if (!safePath) {
-            return next();
-          }
-
-          const filePath = join(this.staticRoot!, safePath);
-
-          if (!existsSync(filePath)) {
-            return next();
-          }
-
-          const stats = await stat(filePath);
-
-          if (stats.isDirectory()) {
-            const indexPath = join(filePath, "index.html");
-            if (!existsSync(indexPath)) {
-              // 列出目录内容
-              const files = await readdir(filePath);
-              const html = this.generateDirectoryListing(files, req.path);
-              res.send(html);
-              return;
-            }
-          }
-
-          next();
-        } catch (error) {
-          log.error("处理目录列表失败:", error);
-          next();
-        }
-      });
+      // 目录列表服务（使用 serve-index 中间件）
+      // 当访问目录且目录下没有 index.html 时，会显示目录列表
+      this.app.use(
+        serveIndex(this.staticRoot, {
+          icons: true, // 显示文件图标
+          view: "details", // 显示详细信息（大小、修改时间等）
+        })
+      );
     }
 
     // 404 处理
@@ -162,6 +144,266 @@ export class HttpServer {
         this.sendError(res, 500, "Internal Server Error");
       }
     );
+  }
+
+  /**
+   * 验证 URL 是否有效
+   */
+  private isValidUrl(url: string): boolean {
+    try {
+      const urlObj = new URL(url);
+      return urlObj.protocol === "http:" || urlObj.protocol === "https:";
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * 处理代理请求
+   */
+  private async handleProxyRequest(req: Request, res: Response): Promise<void> {
+    try {
+      // 从 query 参数获取目标 URL
+      const targetUrl = req.query.url as string | undefined;
+
+      if (!targetUrl) {
+        res.status(400).json({
+          error: "缺少必需参数: url",
+          message: "请提供要转发的目标 URL（通过 query 参数）",
+        });
+        return;
+      }
+
+      // 验证 URL
+      if (!this.isValidUrl(targetUrl)) {
+        res.status(400).json({
+          error: "无效的 URL",
+          message: `提供的 URL 格式不正确: ${targetUrl}`,
+        });
+        return;
+      }
+
+      // 从 query 参数确定请求方法
+      let method = (req.query.method as string | undefined)?.toUpperCase();
+      if (!method) {
+        method = req.method;
+      }
+
+      // 如果方法是 OPTIONS，直接返回
+      if (method === "OPTIONS") {
+        res.status(200).end();
+        return;
+      }
+
+      // 准备请求配置
+      const requestConfig: AxiosRequestConfig = {
+        method: method as any,
+        url: targetUrl,
+        timeout: 30000, // 30 秒超时
+        maxRedirects: 5,
+        validateStatus: () => true, // 接受所有状态码
+        responseType: "arraybuffer", // 使用 arraybuffer，axios 会自动解压 gzip/deflate
+        decompress: true, // 确保自动解压
+      };
+
+      // 处理请求头
+      const headers: Record<string, string> = {};
+
+      // 从 query 参数获取自定义头部
+      const customHeaders = req.query.headers as string | undefined;
+      if (customHeaders) {
+        try {
+          const parsedHeaders = JSON.parse(customHeaders);
+          if (typeof parsedHeaders === "object" && parsedHeaders !== null) {
+            Object.assign(headers, parsedHeaders);
+          }
+        } catch (e) {
+          log.warn("解析自定义头部失败:", e);
+        }
+      }
+
+      // 复制原始请求的一些头部
+      // 注意：不转发 Accept-Encoding，让服务器返回未压缩的内容，避免解压问题
+      const forwardHeaders = [
+        "User-Agent",
+        "Accept",
+        "Accept-Language",
+        // "Accept-Encoding", // 不转发，避免压缩问题
+      ];
+      for (const headerName of forwardHeaders) {
+        const headerValue = req.headers[headerName.toLowerCase()];
+        if (headerValue && typeof headerValue === "string") {
+          headers[headerName] = headerValue;
+        }
+      }
+
+      if (Object.keys(headers).length > 0) {
+        requestConfig.headers = headers;
+      }
+
+      // 处理请求体
+      if (["POST", "PUT", "PATCH"].includes(method)) {
+        const contentType = req.headers["content-type"] || "";
+        const contentTypeLower = contentType.toLowerCase();
+
+        if (contentTypeLower.includes("application/json")) {
+          // JSON 数据
+          const jsonData = req.body;
+          if (jsonData && typeof jsonData === "object") {
+            // 如果 body 中有 data 字段，使用它；否则使用整个 body
+            requestConfig.data =
+              jsonData.data !== undefined ? jsonData.data : jsonData;
+            if (!headers["Content-Type"]) {
+              headers["Content-Type"] = "application/json";
+            }
+          }
+        } else if (
+          contentTypeLower.includes("application/x-www-form-urlencoded")
+        ) {
+          // 表单数据
+          requestConfig.data = req.body;
+          if (!headers["Content-Type"]) {
+            headers["Content-Type"] =
+              contentType || "application/x-www-form-urlencoded";
+          }
+        } else if (req.body) {
+          // 原始数据（可能是 Buffer、字符串或其他格式）
+          requestConfig.data = req.body;
+          if (contentType) {
+            headers["Content-Type"] = contentType;
+          }
+        }
+      }
+
+      // 处理查询参数（除了 url、method、headers）
+      const params: Record<string, string> = {};
+      for (const [key, value] of Object.entries(req.query)) {
+        if (!["url", "method", "headers"].includes(key)) {
+          params[key] = String(value);
+        }
+      }
+
+      if (Object.keys(params).length > 0) {
+        requestConfig.params = params;
+      }
+
+      log.info(`转发请求: ${method} ${targetUrl}`);
+
+      // 发送请求
+      const response: AxiosResponse = await axios(requestConfig);
+
+      // 准备响应头部
+      const responseHeaders: Record<string, string> = {};
+
+      // 复制响应头部（排除一些不需要的）
+      // 注意：axios 会自动解压 gzip/deflate，所以排除 content-encoding
+      const excludeHeaders = [
+        "content-encoding", // axios 已解压，不需要
+        "transfer-encoding", // 不需要
+        "connection", // 不需要
+        "content-length", // 需要重新计算，因为解压后大小变了
+      ];
+
+      // 先保存 Content-Type（如果存在）
+      let originalContentType: string | undefined;
+
+      for (const [key, value] of Object.entries(response.headers)) {
+        const lowerKey = key.toLowerCase();
+        if (lowerKey === "content-type") {
+          originalContentType = String(value);
+        } else if (!excludeHeaders.includes(lowerKey)) {
+          responseHeaders[key] = String(value);
+        }
+      }
+
+      // 将 ArrayBuffer 转换为 Buffer
+      let responseData: Buffer;
+      if (response.data instanceof ArrayBuffer) {
+        responseData = Buffer.from(response.data);
+      } else if (Buffer.isBuffer(response.data)) {
+        responseData = response.data;
+      } else {
+        responseData = Buffer.from(String(response.data), "utf-8");
+      }
+
+      // 设置正确的 Content-Length（解压后的大小）
+      responseHeaders["Content-Length"] = String(responseData.length);
+
+      // 确保 Content-Type 正确设置
+      if (originalContentType) {
+        let contentType = originalContentType;
+        const contentTypeLower = contentType.toLowerCase();
+
+        // 对于文本类型，如果没有 charset，添加 charset=utf-8
+        if (
+          contentTypeLower.includes("text/") ||
+          contentTypeLower.includes("application/json") ||
+          contentTypeLower.includes("application/javascript") ||
+          contentTypeLower.includes("application/xml") ||
+          contentTypeLower.includes("application/xhtml")
+        ) {
+          if (!contentTypeLower.includes("charset")) {
+            contentType = `${originalContentType}; charset=utf-8`;
+          }
+        }
+        responseHeaders["Content-Type"] = contentType;
+      } else {
+        // 如果没有 Content-Type，根据内容推断或使用默认值
+        // 尝试检测是否为 HTML
+        const dataStart = responseData
+          .slice(0, Math.min(1024, responseData.length))
+          .toString("utf-8");
+        if (
+          dataStart.trim().toLowerCase().startsWith("<!doctype") ||
+          dataStart.trim().toLowerCase().startsWith("<html")
+        ) {
+          responseHeaders["Content-Type"] = "text/html; charset=utf-8";
+        } else {
+          responseHeaders["Content-Type"] = "application/octet-stream";
+        }
+      }
+
+      // 添加 CORS 头部
+      responseHeaders["Access-Control-Allow-Origin"] = "*";
+      responseHeaders["Access-Control-Allow-Methods"] =
+        "GET, POST, PUT, DELETE, PATCH, OPTIONS";
+      responseHeaders["Access-Control-Allow-Headers"] =
+        "Content-Type, Authorization";
+
+      // 设置响应头部
+      for (const [key, value] of Object.entries(responseHeaders)) {
+        res.setHeader(key, value);
+      }
+
+      // 返回响应（使用 Buffer）
+      res.status(response.status).send(responseData);
+    } catch (error: any) {
+      const targetUrl = (req.query.url as string) || "未知";
+
+      if (axios.isAxiosError(error)) {
+        if (error.code === "ECONNABORTED") {
+          log.error(`请求超时: ${targetUrl}`);
+          res.status(504).json({
+            error: "请求超时",
+            message: `请求目标 URL 超时: ${targetUrl}`,
+          });
+        } else {
+          log.error(`请求失败: ${targetUrl} - ${error.message}`);
+          res.status(502).json({
+            error: "请求失败",
+            message: error.message,
+            url: targetUrl,
+          });
+        }
+      } else {
+        log.error(`服务器错误: ${targetUrl} - ${error}`, error);
+        res.status(500).json({
+          error: "服务器错误",
+          message: error instanceof Error ? error.message : String(error),
+          url: targetUrl,
+        });
+      }
+    }
   }
 
   /**
@@ -248,38 +490,6 @@ export class HttpServer {
   }
 
   /**
-   * 生成目录列表 HTML
-   */
-  private generateDirectoryListing(files: string[], url: string): string {
-    const items = files
-      .map((file) => {
-        const href = url.endsWith("/") ? `${url}${file}` : `${url}/${file}`;
-        return `<li><a href="${href}">${file}</a></li>`;
-      })
-      .join("\n");
-
-    return `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <title>目录列表: ${url}</title>
-  <style>
-    body { font-family: Arial, sans-serif; margin: 40px; }
-    h1 { color: #333; }
-    ul { list-style-type: none; padding: 0; }
-    li { margin: 5px 0; }
-    a { color: #0066cc; text-decoration: none; }
-    a:hover { text-decoration: underline; }
-  </style>
-</head>
-<body>
-  <h1>目录列表: ${url}</h1>
-  <ul>${items}</ul>
-</body>
-</html>`;
-  }
-
-  /**
    * 发送错误响应
    */
   private sendError(res: Response, statusCode: number, message: string): void {
@@ -299,33 +509,6 @@ export class HttpServer {
 </html>`;
 
     res.status(statusCode).send(html);
-  }
-
-  /**
-   * 清理路径，防止路径遍历攻击
-   */
-  private sanitizePath(url: string): string | null {
-    try {
-      // 移除查询参数和哈希
-      const path = url.split("?")[0].split("#")[0];
-
-      // 规范化路径
-      const normalized = normalize(path);
-
-      // 移除开头的斜杠
-      const cleanPath = normalized.startsWith("/")
-        ? normalized.slice(1)
-        : normalized;
-
-      // 检查是否包含路径遍历字符
-      if (cleanPath.includes("..") || cleanPath.includes("\\")) {
-        return null;
-      }
-
-      return cleanPath;
-    } catch (error) {
-      return null;
-    }
   }
 
   /**
