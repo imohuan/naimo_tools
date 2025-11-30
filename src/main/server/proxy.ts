@@ -4,6 +4,7 @@
 
 import axios, { type AxiosRequestConfig, type AxiosResponse } from "axios";
 import type { Request, Response } from "express";
+import { PassThrough } from "stream";
 import { writeFile, mkdir } from "fs/promises";
 import { join } from "path";
 import { isValidUrl } from "./utils";
@@ -264,10 +265,10 @@ export async function handleProxyRequest(
       }
     }
 
-    // 处理查询参数（除了 url、method、headers）
+    // 处理查询参数（除了 url、method、headers、stream）
     const params: Record<string, string> = {};
     for (const [key, value] of Object.entries(req.query)) {
-      if (!["url", "method", "headers"].includes(key)) {
+      if (!["url", "method", "headers", "stream"].includes(key)) {
         params[key] = String(value);
       }
     }
@@ -276,10 +277,196 @@ export async function handleProxyRequest(
       requestConfig.params = params;
     }
 
-    log.info(`转发请求: ${method} ${targetUrl}`);
+    // 检测是否为流式内容
+    // 1. 通过 query 参数显式指定（支持 stream=false 来禁用流式）
+    const streamParam = req.query.stream as string | undefined;
+    const explicitStream = streamParam === "true" || streamParam === "1";
+    const explicitNoStream = streamParam === "false" || streamParam === "0";
+
+    // 2. 通过 Accept 头部检测
+    const acceptHeader = getHeader("Accept") || req.headers.accept || "";
+    const acceptStreaming =
+      acceptHeader.includes("text/event-stream") ||
+      acceptHeader.includes("application/x-ndjson");
+
+    // 3. 检测是否为 Gemini API（通过 URL 模式）
+    const isGeminiAPI =
+      targetUrl.includes("generativelanguage.googleapis.com") ||
+      targetUrl.includes("googleapis.com/generativelanguage") ||
+      targetUrl.includes("gemini");
+
+    // 4. 检测请求体中是否包含流式参数（如 stream: true）
+    let bodyStreaming = false;
+    if (req.body && typeof req.body === "object") {
+      const bodyStr = JSON.stringify(req.body);
+      // 检测 JSON body 中是否包含 "stream":true
+      bodyStreaming =
+        /"stream"\s*:\s*true/i.test(bodyStr) ||
+        /"streaming"\s*:\s*true/i.test(bodyStr);
+    }
+
+    // 默认使用 stream 模式（可以处理流式和非流式响应）
+    // 只有在明确指定不使用流式时才使用 arraybuffer
+    // 这样可以从响应头判断是否为流式，并实时传输
+    const useStreamMode = !explicitNoStream;
+
+    // 记录流式请求的原因（用于日志）
+    const streamingReason = explicitStream
+      ? "显式指定"
+      : acceptStreaming
+        ? "Accept 头部"
+        : isGeminiAPI
+          ? "Gemini API"
+          : bodyStreaming
+            ? "请求体参数"
+            : "默认模式";
+
+    if (useStreamMode) {
+      requestConfig.responseType = "stream";
+    } else {
+      requestConfig.responseType = "arraybuffer"; // 使用 arraybuffer，axios 会自动解压 gzip/deflate
+    }
+
+    log.info(
+      `转发请求: ${method} ${targetUrl}${useStreamMode ? ` (流式模式: ${streamingReason})` : " (缓冲模式)"}${
+        isGeminiAPI ? " [Gemini API]" : ""
+      }`
+    );
 
     // 发送请求
     const response: AxiosResponse = await axios(requestConfig);
+
+    // 从响应头检测是否为流式内容
+    const responseContentType =
+      response.headers["content-type"] ||
+      response.headers["Content-Type"] ||
+      "";
+    const transferEncoding =
+      response.headers["transfer-encoding"] ||
+      response.headers["Transfer-Encoding"] ||
+      "";
+    const isChunked = transferEncoding.toLowerCase().includes("chunked");
+
+    // 流式响应的判断条件（从响应头判断）：
+    // 1. Transfer-Encoding 为 chunked（最可靠的指标）
+    // 2. Content-Type 为流式类型
+    const isStreamingResponse =
+      isChunked ||
+      responseContentType.toLowerCase().includes("text/event-stream") ||
+      responseContentType.toLowerCase().includes("application/x-ndjson") ||
+      responseContentType.toLowerCase().includes("application/stream+json");
+
+    // 检查是否为流对象（有 pipe 方法）
+    const isStream =
+      response.data &&
+      typeof response.data === "object" &&
+      typeof (response.data as any).pipe === "function";
+
+    // 如果使用了 stream 模式且是流对象
+    if (useStreamMode && isStream) {
+      // 如果检测到是流式响应，直接管道传输（实时流式传输）
+      if (isStreamingResponse) {
+        log.debug(`检测到流式响应，使用实时传输: ${targetUrl}`);
+
+        // 获取响应 Content-Type
+        const responseContentTypeForLog =
+          response.headers["content-type"] ||
+          response.headers["Content-Type"] ||
+          "";
+
+        // 判断是否需要保存日志（只保存文本类内容）
+        const shouldSaveLog = isTextContent(responseContentTypeForLog);
+
+        // 设置响应头部
+        const responseHeadersForLog: Record<string, string> = {};
+        for (const [key, value] of Object.entries(response.headers)) {
+          const lowerKey = key.toLowerCase();
+          // 排除一些不需要的头部
+          if (
+            !["content-encoding", "transfer-encoding", "connection"].includes(
+              lowerKey
+            )
+          ) {
+            res.setHeader(key, String(value));
+            responseHeadersForLog[key] = String(value);
+          }
+        }
+
+        // 添加 CORS 头部
+        res.setHeader("Access-Control-Allow-Origin", "*");
+        res.setHeader("Access-Control-Allow-Methods", "*");
+        res.setHeader("Access-Control-Allow-Headers", "*");
+
+        // 设置状态码
+        res.status(response.status);
+
+        // 直接将流管道到响应，并处理错误
+        const stream = response.data as any;
+
+        // 如果需要保存日志，创建一个 PassThrough 流来收集数据
+        let logDataCollector: PassThrough | null = null;
+        let collectedData = Buffer.alloc(0);
+
+        if (shouldSaveLog && logsDir) {
+          logDataCollector = new PassThrough();
+          logDataCollector.on("data", (chunk: Buffer) => {
+            collectedData = Buffer.concat([collectedData, chunk]);
+          });
+          // 将流同时发送到响应和日志收集器
+          stream.pipe(logDataCollector);
+        }
+
+        stream.on("error", (error: Error) => {
+          log.error("流传输错误:", error);
+          if (!res.headersSent) {
+            res.status(500).json({
+              error: "流传输错误",
+              message: error.message,
+            });
+          } else {
+            res.destroy();
+          }
+        });
+
+        // 当流结束时，保存日志
+        stream.on("end", () => {
+          if (shouldSaveLog && logsDir && collectedData.length > 0) {
+            // 异步保存日志，不阻塞
+            saveRequestLog(
+              logsDir,
+              {
+                method: method,
+                url: targetUrl,
+                headers: headers,
+                query: req.query,
+                body: req.body,
+              },
+              {
+                status: response.status,
+                headers: responseHeadersForLog,
+                contentType: responseContentTypeForLog,
+                body: collectedData.toString("utf-8"),
+              }
+            ).catch((error) => {
+              log.warn("保存流式请求日志失败:", error);
+            });
+          }
+        });
+
+        res.on("close", () => {
+          // 如果客户端关闭连接，销毁流
+          if (stream.destroy) {
+            stream.destroy();
+          }
+          if (logDataCollector && logDataCollector.destroy) {
+            logDataCollector.destroy();
+          }
+        });
+
+        stream.pipe(res);
+        return;
+      }
+    }
 
     // 准备响应头部
     const responseHeaders: Record<string, string> = {};
