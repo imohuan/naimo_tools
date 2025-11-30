@@ -78,6 +78,13 @@ export interface AppConfig {
   pluginSetting?: Record<string, PluginSetting>;
   /** 临时插件列表 */
   temporaryPlugins?: string[];
+  /** HTTP 服务配置 */
+  httpServer?: {
+    /** 是否启用 HTTP 服务 */
+    enabled: boolean;
+    /** 服务端口 */
+    port: number;
+  };
 }
 
 export interface LogLevel {

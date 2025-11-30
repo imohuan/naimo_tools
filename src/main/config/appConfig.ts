@@ -1,8 +1,8 @@
-import { app } from 'electron';
-import Store from 'electron-store';
-import log from 'electron-log';
-import { AppConfig } from '@shared/typings/appTypes';
-import { isProduction } from '@shared/utils';
+import { app } from "electron";
+import Store from "electron-store";
+import log from "electron-log";
+import { AppConfig } from "@shared/typings/appTypes";
+import { isProduction } from "@shared/utils";
 
 /**
  * 应用配置管理类
@@ -13,71 +13,112 @@ export class AppConfigManager {
 
   constructor() {
     this.store = new Store<AppConfig>({
-      name: 'app-config',
-      cwd: app.getPath('userData'),
+      name: "app-config",
+      cwd: app.getPath("userData"),
       clearInvalidConfig: true,
       defaults: {
-        theme: 'light',
-        language: 'zh-CN',
+        theme: "light",
+        language: "zh-CN",
         windowSize: {
           width: 800,
-          height: 600
+          height: 600,
         },
-        logLevel: isProduction() ? 'info' : 'debug',
+        logLevel: isProduction() ? "info" : "debug",
         uiConstants: {
           headerHeight: 50,
           maxHeight: 420,
-          padding: 8
+          padding: 8,
         },
-        autoStart: false
+        autoStart: false,
+        httpServer: {
+          enabled: true,
+          port: 3000,
+        },
       },
       schema: {
         theme: {
-          type: 'string',
-          enum: ['light', 'dark'],
-          default: 'light'
+          type: "string",
+          enum: ["light", "dark"],
+          default: "light",
         },
         language: {
-          type: 'string',
-          pattern: '^[a-z]{2}-[A-Z]{2}$',
-          default: 'zh-CN'
+          type: "string",
+          pattern: "^[a-z]{2}-[A-Z]{2}$",
+          default: "zh-CN",
         },
         windowSize: {
-          type: 'object',
+          type: "object",
           properties: {
-            width: { type: 'number', minimum: 400, maximum: 3840, default: 800 },
-            height: { type: 'number', minimum: 50, maximum: 2160, default: 100 }
+            width: {
+              type: "number",
+              minimum: 400,
+              maximum: 3840,
+              default: 800,
+            },
+            height: {
+              type: "number",
+              minimum: 50,
+              maximum: 2160,
+              default: 100,
+            },
           },
-          required: ['width', 'height'],
+          required: ["width", "height"],
           additionalProperties: false,
-          default: { width: 800, height: 100 }
+          default: { width: 800, height: 100 },
         },
         logLevel: {
-          type: 'string',
-          enum: ['error', 'warn', 'info', 'debug'],
-          default: isProduction() ? 'info' : 'debug'
+          type: "string",
+          enum: ["error", "warn", "info", "debug"],
+          default: isProduction() ? "info" : "debug",
         },
         uiConstants: {
-          type: 'object',
+          type: "object",
           properties: {
-            headerHeight: { type: 'number', minimum: 20, maximum: 200, default: 50 },
-            maxHeight: { type: 'number', minimum: 200, maximum: 2000, default: 420 },
-            padding: { type: 'number', minimum: 0, maximum: 100, default: 8 }
+            headerHeight: {
+              type: "number",
+              minimum: 20,
+              maximum: 200,
+              default: 50,
+            },
+            maxHeight: {
+              type: "number",
+              minimum: 200,
+              maximum: 2000,
+              default: 420,
+            },
+            padding: { type: "number", minimum: 0, maximum: 100, default: 8 },
           },
-          required: ['headerHeight', 'maxHeight', 'padding'],
+          required: ["headerHeight", "maxHeight", "padding"],
           additionalProperties: false,
-          default: { headerHeight: 50, maxHeight: 420, padding: 8 }
+          default: { headerHeight: 50, maxHeight: 420, padding: 8 },
         },
         autoStart: {
-          type: 'boolean',
-          default: false
-        }
-      }
+          type: "boolean",
+          default: false,
+        },
+        httpServer: {
+          type: "object",
+          properties: {
+            enabled: { type: "boolean", default: false },
+            port: {
+              type: "number",
+              minimum: 1024,
+              maximum: 65535,
+              default: 3000,
+            },
+          },
+          required: ["enabled", "port"],
+          additionalProperties: false,
+          default: { enabled: false, port: 3000 },
+        },
+      },
     });
 
     this.store.set("uiConstants", {
-      headerHeight: 50, maxHeight: 420, padding: 8
-    })
+      headerHeight: 50,
+      maxHeight: 420,
+      padding: 8,
+    });
 
     log.debug(`存储配置文件路径: ${this.store.path}`);
   }
@@ -99,8 +140,11 @@ export class AppConfigManager {
   /**
    * 获取指定配置项
    */
-  get<K extends keyof AppConfig>(key: K, defaultValue: AppConfig[K] | undefined = undefined): AppConfig[K] | undefined {
-    return this.store.get(key) ?? defaultValue
+  get<K extends keyof AppConfig>(
+    key: K,
+    defaultValue: AppConfig[K] | undefined = undefined
+  ): AppConfig[K] | undefined {
+    return this.store.get(key) ?? defaultValue;
   }
 
   /**
@@ -124,7 +168,7 @@ export class AppConfigManager {
    */
   clear(): void {
     this.store.clear();
-    log.debug('所有配置已清空');
+    log.debug("所有配置已清空");
   }
 
   /**

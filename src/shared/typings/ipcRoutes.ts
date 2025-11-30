@@ -1,12 +1,13 @@
 /**
  * 自动生成的 IPC 类型定义
- * 生成时间: 2025-11-30T03:18:02.952Z
+ * 生成时间: 2025-11-30T04:24:49.401Z
  * 请勿手动修改此文件
  */
 
 import { AppPath } from '@libs/app-search/typings';
 import { DbDoc, DbResult, OpenDialogOptions, SaveDialogOptions, MessageBoxOptions, Display, SystemPathName } from '@shared/typings/naimoApiTypes';
 import { DebugInfo } from '@main/services/DebugService';
+import { HttpServerStatus } from '@main/server/HttpServer';
 import { AppConfig } from '@shared/typings/appTypes';
 import { ViewType, LifecycleType } from '@renderer/src/typings/windowTypes';
 import { PluginItem } from '@renderer/src/typings/pluginTypes';
@@ -799,6 +800,126 @@ interface hotkeyInterface {
   id: string;
   accelerator: string;
 }>>;
+}
+
+interface httpInterface {
+  /**
+ * 启动 HTTP 服务器
+ * @param IPC事件对象
+ * @returns 是否启动成功
+ */
+  "http-start": () => Promise<boolean>;
+  /**
+ * 启动 HTTP 服务器
+ * @param IPC事件对象
+ * @returns 是否启动成功
+ */
+  "httpStart": () => Promise<boolean>;
+
+  /**
+ * 停止 HTTP 服务器
+ * @param IPC事件对象
+ * @returns 是否停止成功
+ */
+  "http-stop": () => Promise<boolean>;
+  /**
+ * 停止 HTTP 服务器
+ * @param IPC事件对象
+ * @returns 是否停止成功
+ */
+  "httpStop": () => Promise<boolean>;
+
+  /**
+ * 重启 HTTP 服务器
+ * @param IPC事件对象
+ * @returns 是否重启成功
+ */
+  "http-restart": () => Promise<boolean>;
+  /**
+ * 重启 HTTP 服务器
+ * @param IPC事件对象
+ * @returns 是否重启成功
+ */
+  "httpRestart": () => Promise<boolean>;
+
+  /**
+ * 获取 HTTP 服务器状态
+ * @param IPC事件对象
+ * @returns 服务器状态信息
+ */
+  "http-get-status": () => Promise<HttpServerStatus>;
+  /**
+ * 获取 HTTP 服务器状态
+ * @param IPC事件对象
+ * @returns 服务器状态信息
+ */
+  "httpGetStatus": () => Promise<HttpServerStatus>;
+
+  /**
+ * 设置 HTTP 服务器端口
+ * @param IPC事件对象
+ * @param 端口号
+ * @returns 是否设置成功
+ */
+  "http-set-port": (port: number) => Promise<boolean>;
+  /**
+ * 设置 HTTP 服务器端口
+ * @param IPC事件对象
+ * @param 端口号
+ * @returns 是否设置成功
+ */
+  "httpSetPort": (port: number) => Promise<boolean>;
+
+  /**
+ * 设置静态文件服务根目录
+ * @param IPC事件对象
+ * @param 静态文件根目录路径
+ * @returns 是否设置成功
+ */
+  "http-set-static-root": (staticRoot: string | null) => Promise<boolean>;
+  /**
+ * 设置静态文件服务根目录
+ * @param IPC事件对象
+ * @param 静态文件根目录路径
+ * @returns 是否设置成功
+ */
+  "httpSetStaticRoot": (staticRoot: string | null) => Promise<boolean>;
+
+  /**
+ * 启用或禁用 HTTP 服务器
+ * @param IPC事件对象
+ * @param 是否启用
+ * @returns 是否设置成功
+ */
+  "http-set-enabled": (enabled: boolean) => Promise<boolean>;
+  /**
+ * 启用或禁用 HTTP 服务器
+ * @param IPC事件对象
+ * @param 是否启用
+ * @returns 是否设置成功
+ */
+  "httpSetEnabled": (enabled: boolean) => Promise<boolean>;
+
+  /**
+ * 获取 HTTP 服务器配置
+ * @param IPC事件对象
+ * @returns 服务器配置信息
+ */
+  "http-get-config": () => Promise<{
+  enabled: boolean;
+  port: number;
+  staticRoot?: string;
+} | null>;
+  /**
+ * 获取 HTTP 服务器配置
+ * @param IPC事件对象
+ * @returns 服务器配置信息
+ */
+  "httpGetConfig": () => Promise<{
+  enabled: boolean;
+  port: number;
+  staticRoot?: string;
+} | null>;
 }
 
 interface inputInterface {
@@ -1789,7 +1910,7 @@ interface windowInterface {
 }
 
 // 合并所有 IPC 路由类型
-export interface AllIpcRouter extends appInterface, clipboardInterface, dbInterface, debugInterface, dialogInterface, displayInterface, filesystemInterface, hotkeyInterface, inputInterface, logInterface, pluginInterface, screenCaptureInterface, shellInterface, storeInterface, windowInterface {}
+export interface AllIpcRouter extends appInterface, clipboardInterface, dbInterface, debugInterface, dialogInterface, displayInterface, filesystemInterface, hotkeyInterface, httpInterface, inputInterface, logInterface, pluginInterface, screenCaptureInterface, shellInterface, storeInterface, windowInterface {}
 
 // 路由信息类型
 export interface RouteInfo {
@@ -2190,6 +2311,54 @@ export const ROUTE_INFO: RouteInfo[] = [
     comment: "获取所有已注册的全局快捷键",
     module: "hotkey",
     function: "getAllRegisteredGlobalHotkeys"
+  },
+  {
+    route: "http-start",
+    comment: "启动 HTTP 服务器",
+    module: "http",
+    function: "start"
+  },
+  {
+    route: "http-stop",
+    comment: "停止 HTTP 服务器",
+    module: "http",
+    function: "stop"
+  },
+  {
+    route: "http-restart",
+    comment: "重启 HTTP 服务器",
+    module: "http",
+    function: "restart"
+  },
+  {
+    route: "http-get-status",
+    comment: "获取 HTTP 服务器状态",
+    module: "http",
+    function: "getStatus"
+  },
+  {
+    route: "http-set-port",
+    comment: "设置 HTTP 服务器端口",
+    module: "http",
+    function: "setPort"
+  },
+  {
+    route: "http-set-static-root",
+    comment: "设置静态文件服务根目录",
+    module: "http",
+    function: "setStaticRoot"
+  },
+  {
+    route: "http-set-enabled",
+    comment: "启用或禁用 HTTP 服务器",
+    module: "http",
+    function: "setEnabled"
+  },
+  {
+    route: "http-get-config",
+    comment: "获取 HTTP 服务器配置",
+    module: "http",
+    function: "getConfig"
   },
   {
     route: "input-paste-text",
