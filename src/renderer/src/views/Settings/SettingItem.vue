@@ -267,7 +267,18 @@ const wrapperClass = computed(() => {
 });
 
 const controlClass = computed(() => {
-  return props.setting.wrap ? "w-full" : "flex-shrink-0 w-64";
+  // 包裹布局时控件占满一行
+  if (props.setting.wrap) {
+    return "w-full";
+  }
+
+  // 布尔类型（checkbox）占用更小宽度
+  if (props.setting.type === "checkbox") {
+    return "flex-shrink-0 w-16";
+  }
+
+  // 其他类型使用较宽输入区域
+  return "flex-shrink-0 w-64";
 });
 
 // 更新子设置项的值

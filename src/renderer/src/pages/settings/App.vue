@@ -5,8 +5,18 @@
     <!-- 左侧菜单栏 -->
     <div class="w-48 bg-white border-r border-gray-200 flex flex-col">
       <!-- 设置标题 -->
-      <div class="p-4 border-b border-gray-200">
+      <div
+        class="p-4 border-b border-gray-200 flex items-center justify-between"
+      >
         <h1 class="text-lg font-semibold text-gray-900">设置</h1>
+        <button
+          type="button"
+          class="ml-2 inline-flex items-center justify-center rounded-md p-1 text-gray-500 hover:bg-blue-50 hover:text-blue-600 active:bg-blue-100 transition-colors"
+          @click="handleReload"
+          title="刷新"
+        >
+          <IconMdiRefresh class="w-4 h-4" />
+        </button>
       </div>
 
       <!-- 菜单项 -->
@@ -103,6 +113,8 @@ import IconMdiClose from "~icons/mdi/close";
 import IconMdiSettings from "~icons/mdi/settings";
 /** @ts-ignore */
 import IconMdiDownload from "~icons/mdi/download";
+/** @ts-ignore */
+import IconMdiRefresh from "~icons/mdi/refresh";
 
 import GithubToken from "./components/GithubToken.vue";
 
@@ -133,6 +145,11 @@ const iconMap: Record<string, any> = {
 const getIcon = (icon?: string) => {
   if (!icon) return IconMdiSettings;
   return iconMap[icon] || IconMdiSettings;
+};
+
+// 刷新当前页面
+const handleReload = () => {
+  window.location.reload();
 };
 
 // 关闭设置 - 通知主进程关闭此 WebContentsView

@@ -364,8 +364,10 @@ const getAllSettings = async () => {
     console.log("🔍 最终设置列表:", allSettings);
     settingsList.value = allSettings;
 
-    // 默认全部折叠
-    collapsedSettings.value = new Set(allSettings.map((item) => item.id));
+    // 默认折叠除「系统设置」外的所有设置组
+    collapsedSettings.value = new Set(
+      allSettings.filter((item) => item.id !== "app").map((item) => item.id)
+    );
 
     // 保存初始值用于变化检测
     initialValues.value = JSON.parse(JSON.stringify(settingValues.value));

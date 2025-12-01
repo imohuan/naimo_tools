@@ -16,6 +16,17 @@ const routes: RouteRecordRaw[] = [
     redirect: "/plugins",
   },
   {
+    path: "/settings",
+    name: "settings",
+    component: () => import("@/views/Settings/index.vue"),
+    meta: {
+      title: "设置",
+      description: "配置应用程序和插件的个性化设置",
+      icon: "mdi:settings",
+      keepAlive: true,
+    },
+  },
+  {
     path: "/plugins",
     name: "plugins",
     component: () => import("@/views/Plugins/index.vue"),
@@ -45,17 +56,6 @@ const routes: RouteRecordRaw[] = [
       title: "自定义快捷键",
       description: "创建和管理您的自定义快捷键",
       icon: "mdi:cog",
-      keepAlive: true,
-    },
-  },
-  {
-    path: "/settings",
-    name: "settings",
-    component: () => import("@/views/Settings/index.vue"),
-    meta: {
-      title: "设置",
-      description: "配置应用程序和插件的个性化设置",
-      icon: "mdi:settings",
       keepAlive: true,
     },
   },

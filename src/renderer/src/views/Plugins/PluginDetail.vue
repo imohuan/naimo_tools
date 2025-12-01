@@ -1,7 +1,7 @@
 <template>
   <div class="h-full flex flex-col bg-gray-50 mb-3">
     <div
-      class="bg-white rounded-lg shadow-sm border border-gray-200 h-full overflow-hidden"
+      class="bg-white rounded-lg shadow-sm border border-gray-200 h-full overflow-hidden flex flex-col"
     >
       <!-- 详情页面头部 -->
       <div
@@ -46,35 +46,37 @@
       </div>
 
       <!-- 详情页面内容 -->
-      <div class="flex-1 p-4 overflow-y-auto">
-        <!-- 描述 -->
-        <div class="mb-4">
-          <h3 class="text-base font-medium text-gray-900 mb-2">描述</h3>
-          <p class="text-sm text-gray-700 leading-relaxed">
-            {{ plugin.description || "暂无描述" }}
-          </p>
-        </div>
+      <div class="flex-1 flex flex-col min-h-0">
+        <div class="flex-1 p-4 overflow-y-auto min-h-0">
+          <!-- 描述 -->
+          <div class="mb-4">
+            <h3 class="text-base font-medium text-gray-900 mb-2">描述</h3>
+            <p class="text-sm text-gray-700 leading-relaxed">
+              {{ plugin.description || "暂无描述" }}
+            </p>
+          </div>
 
-        <!-- 插件项目列表（feature）-->
-        <div v-if="plugin.feature && plugin.feature.length > 0" class="mb-4">
-          <h3 class="text-base font-medium text-gray-900 mb-2">功能项目</h3>
-          <div class="space-y-1.5">
-            <div
-              v-for="(item, index) in plugin.feature"
-              :key="index"
-              class="bg-gray-50 rounded-md p-2.5"
-            >
-              <div class="flex items-center justify-between mb-1">
-                <span class="text-sm font-medium text-gray-900">{{
-                  item.name
-                }}</span>
-                <span class="text-xs text-gray-500">{{
-                  item.path || "无路径"
-                }}</span>
+          <!-- 插件项目列表（feature）-->
+          <div v-if="plugin.feature && plugin.feature.length > 0" class="mb-4">
+            <h3 class="text-base font-medium text-gray-900 mb-2">功能项目</h3>
+            <div class="space-y-1.5">
+              <div
+                v-for="(item, index) in plugin.feature"
+                :key="index"
+                class="bg-gray-50 rounded-md p-2.5"
+              >
+                <div class="flex items-center justify-between mb-1">
+                  <span class="text-sm font-medium text-gray-900">{{
+                    item.name
+                  }}</span>
+                  <span class="text-xs text-gray-500">{{
+                    item.path || "无路径"
+                  }}</span>
+                </div>
+                <p v-if="item.description" class="text-xs text-gray-600 mt-1">
+                  {{ item.description }}
+                </p>
               </div>
-              <p v-if="item.description" class="text-xs text-gray-600 mt-1">
-                {{ item.description }}
-              </p>
             </div>
           </div>
         </div>
@@ -98,8 +100,8 @@
           </div>
         </div> -->
 
-        <!-- 安装状态和操作 -->
-        <div class="border-t border-gray-200 pt-4">
+        <!-- 安装状态和操作（固定在底部） -->
+        <div class="border-t border-gray-200 px-4 py-3 bg-white">
           <!-- 版本更新提示 -->
           <div
             v-if="isInstalled && hasUpdate && installedVersion"
