@@ -115,5 +115,7 @@ interface Props {
   showApplyButton?: boolean;
 }
 
-const props = defineProps<Props>();
+withDefaults(defineProps<Props>(), {
+  showApplyButton: true,
+});
 </script>

@@ -42,6 +42,19 @@ export const appSettingsConfig: Omit<SettingItem, "type">[] = [
         defaultValue: true,
       },
       {
+        name: "httpServer",
+        title: "HTTP 服务器",
+        description:
+          "配置本地 HTTP 服务器，用于提供静态文件服务。可以设置端口号、启用/禁用服务，并测试服务器连接。",
+        // 自定义类型，由 HttpServerSetting 组件进行特殊渲染
+        wrap: true,
+        type: "httpServer",
+        defaultValue: {
+          enabled: false,
+          port: 8080,
+        },
+      },
+      {
         name: "autoMirrorAccess",
         title: "自动镜像访问",
         description:
@@ -58,19 +71,6 @@ export const appSettingsConfig: Omit<SettingItem, "type">[] = [
         wrap: true,
         type: "mirrorUrls",
         defaultValue: [],
-      },
-      {
-        name: "httpServer",
-        title: "HTTP 服务器",
-        description:
-          "配置本地 HTTP 服务器，用于提供静态文件服务。可以设置端口号、启用/禁用服务，并测试服务器连接。",
-        // 自定义类型，由 HttpServerSetting 组件进行特殊渲染
-        wrap: true,
-        type: "httpServer",
-        defaultValue: {
-          enabled: false,
-          port: 8080,
-        },
       },
       // https://ghfast.top/https://github.com/imohuan/vueflow-workflow/archive/refs/heads/main.zip
       // https://ghfast.top/https://github.com/imohuan/naimo_tools/archive/refs/heads/main.zip

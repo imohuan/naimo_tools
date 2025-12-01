@@ -335,8 +335,24 @@ const openDownloadFolder = async (filePath: string) => {
 
 const deleteDownload = async (id: string) => {
   try {
-    // 调用后端删除API
-    await (naimo.download as any).deleteDownload(id);
+    const target = downloads.value.find((d) => d.id === id);
+
+    // 如果任务仍在进行中或等待中，先尝试取消任务
+    if (
+      target &&
+      (target.status === "downloading" || target.status === "pending")
+    ) {
+      try {
+        console.log(`前端：删除前先取消正在进行的任务 ${id}`);
+        await naimo.download.cancelDownload(id);
+      } catch (cancelError) {
+        console.warn("删除前取消下载任务失败，继续删除本地记录:", cancelError);
+      }
+    }
+
+    // 调用后端删除API（只删除记录，可选是否连同文件一并删除）
+    await naimo.download.deleteDownload(id, false);
+
     // 从本地列表中移除
     const index = downloads.value.findIndex((d) => d.id === id);
     if (index !== -1) {
