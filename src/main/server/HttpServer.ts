@@ -104,12 +104,30 @@ export class HttpServer {
     }
 
     return new Promise<void>((resolve) => {
-      this.server!.close(() => {
+      const server = this.server!;
+
+      // 设置超时，防止卡住
+      const timeout = setTimeout(() => {
+        log.warn("HTTP 服务器停止超时，强制关闭");
+        // 强制关闭所有连接
+        server.closeAllConnections?.();
+        this.isRunning = false;
+        this.server = null;
+        resolve();
+      }, 5000); // 5秒超时
+
+      server.close(() => {
+        clearTimeout(timeout);
         this.isRunning = false;
         this.server = null;
         log.info("HTTP 服务器已停止");
         resolve();
       });
+
+      // 如果服务器有活跃连接，强制关闭它们
+      if (server.closeAllConnections) {
+        server.closeAllConnections();
+      }
     });
   }
 

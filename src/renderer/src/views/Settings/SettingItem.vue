@@ -19,7 +19,7 @@
           v-model="localValue"
           :type="getInputType(setting.type)"
           :placeholder="`请输入${setting.title}`"
-          class="w-full px-3 py-2 border border-gray-300 rounded-md outline-none text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          class="w-full px-2 py-1 border border-gray-300 rounded-md outline-none text-xs focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
         />
       </div>
 
@@ -29,7 +29,7 @@
           v-model="localValue"
           :type="showPassword ? 'text' : 'password'"
           :placeholder="`请输入${setting.title}`"
-          class="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md outline-none text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          class="w-full px-2 py-1 pr-10 border border-gray-300 rounded-md outline-none text-xs focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
         />
         <button
           type="button"
@@ -81,7 +81,7 @@
         v-model="localValue"
         :placeholder="`请输入${setting.title}`"
         rows="3"
-        class="w-full px-3 py-2 border border-gray-300 rounded-md outline-none text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+        class="w-full px-2 py-1 border border-gray-300 rounded-md outline-none text-xs focus:ring-1 focus:ring-blue-500 focus:border-blue-500 resize-none"
       />
 
       <!-- 数字输入 -->
@@ -90,22 +90,24 @@
         v-model.number="localValue"
         type="number"
         :placeholder="`请输入${setting.title}`"
-        class="w-full px-3 py-2 border border-gray-300 rounded-md outline-none text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+        class="w-full px-2 py-1 border border-gray-300 rounded-md outline-none text-xs focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
       />
 
-      <!-- 复选框 -->
+      <!-- 开关 -->
       <div v-else-if="setting.type === 'checkbox'" class="flex items-center">
-        <input
-          v-model="localValue"
-          type="checkbox"
-          :id="`${settingId}-${setting.name}`"
-          class="h-4 w-4 outline-none text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-        />
         <label
           :for="`${settingId}-${setting.name}`"
-          class="ml-2 text-sm text-gray-700"
+          class="relative inline-flex items-center cursor-pointer"
         >
-          {{ setting.title }}
+          <input
+            v-model="localValue"
+            type="checkbox"
+            :id="`${settingId}-${setting.name}`"
+            class="sr-only peer"
+          />
+          <div
+            class="w-9 h-5 bg-gray-300 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-500 peer-focus:ring-offset-2 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600 dark:bg-gray-600"
+          ></div>
         </label>
       </div>
 
@@ -113,7 +115,7 @@
       <select
         v-else-if="setting.type === 'select'"
         v-model="localValue"
-        class="w-full px-3 py-2 border border-gray-300 outline-none rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+        class="w-full px-2 py-1 border border-gray-300 outline-none rounded-md text-xs focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
       >
         <option value="">请选择{{ setting.title }}</option>
         <option
@@ -136,7 +138,7 @@
           v-model="localValue"
           type="text"
           :placeholder="`请输入${setting.title}`"
-          class="flex-1 px-3 py-2 border border-gray-300 rounded-md outline-none text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          class="flex-1 px-2 py-1 border border-gray-300 rounded-md outline-none text-xs focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
         />
       </div>
 
@@ -163,7 +165,7 @@
           v-model="localValue"
           type="text"
           :placeholder="`请输入${setting.title}`"
-          class="flex-1 px-3 py-2 border outline-none border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          class="flex-1 px-2 py-1 border outline-none border-gray-300 rounded-md text-xs focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
         />
         <button
           type="button"
@@ -185,13 +187,19 @@
         v-model="localValue"
       />
 
+      <!-- HTTP 服务器配置 -->
+      <HttpServerSetting
+        v-else-if="setting.type === 'httpServer'"
+        v-model="localValue"
+      />
+
       <!-- 其他类型使用输入框 -->
       <input
         v-else
         v-model="localValue"
         :type="getInputType(setting.type)"
         :placeholder="`请输入${setting.title}`"
-        class="w-full px-3 py-2 border outline-none border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+        class="w-full px-2 py-1 border outline-none border-gray-300 rounded-md text-xs focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
       />
     </div>
 
@@ -221,7 +229,8 @@ import { computed, ref } from "vue";
 import type { SettingConfig } from "@/typings";
 import type { SelectOption } from "@/typings/composableTypes";
 import StringArraySetting from "./StringArraySetting.vue";
-import MirrorUrlsSetting from "./MirrorUrlsSetting.vue";
+import MirrorUrlsSetting from "./MirrorUrlsSetting/MirrorUrlsSetting.vue";
+import HttpServerSetting from "./HttpServerSetting.vue";
 
 // 组件属性
 interface Props {

@@ -387,6 +387,63 @@ const count = ref(0);
 3. **日志断点**: 记录信息而不暂停执行
 4. **性能调试**: 使用 Chrome DevTools 的 Performance 面板
 
+## GITHUB 镜像
+
+```
+# 下载
+https://gh.h233.eu.org/
+https://ghproxy.1888866.xyz/
+https://gh.ddlc.top/
+https://gh-proxy.com/
+https://cors.isteed.cc/github.com
+https://hub.gitmirror.com/
+https://ghproxy.it/
+https://github.boki.moe/
+https://gh-proxy.net/
+https://gh.jasonzeng.dev/
+https://gh.monlor.com/
+https://fastgit.cc/
+https://github.tbedu.top/
+https://firewall.lxstd.org/
+https://github.ednovas.xyz/
+https://ghfile.geekertao.top/
+https://ghp.keleyaa.com/
+https://gh.chjina.com/
+https://ghpxy.hwinzniej.top/
+https://cdn.crashmc.com/
+https://git.yylx.win/
+https://gitproxy.mrhjx.cn/
+https://ghproxy.cxkpro.top/
+https://gh.xxooo.cf/
+https://github.limoruirui.com/
+https://gh.idayer.com/
+https://gh.llkk.cc/
+https://down.npee.cn/?
+https://raw.ihtw.moe/github.com
+https://gh.nxnow.top/
+https://gh.zwy.one/
+https://ghproxy.monkeyray.net/
+https://gh.xx9527.cn/
+https://ghfast.top/
+https://wget.la/
+
+# 搜索，RAW
+
+https://gh-proxy.org/
+https://hk.gh-proxy.org/
+https://hk.gh-proxy.com/
+https://cdn.gh-proxy.org/
+https://edgeone.gh-proxy.org/
+
+https://wget.la/
+https://hub.glowp.xyz/
+https://ghfast.top/
+https://gh.catmak.name/
+https://g.blfrp.cn/
+https://github.3x25.com/
+
+```
+
 ## 🎯 最佳实践
 
 ### 代码组织

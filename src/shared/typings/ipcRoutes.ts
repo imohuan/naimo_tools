@@ -1,6 +1,6 @@
 /**
  * 自动生成的 IPC 类型定义
- * 生成时间: 2025-11-30T05:36:12.951Z
+ * 生成时间: 2025-12-01T06:56:11.067Z
  * 请勿手动修改此文件
  */
 
@@ -920,6 +920,42 @@ interface httpInterface {
   port: number;
   staticRoot?: string;
 } | null>;
+}
+
+interface httpClientInterface {
+  /**
+ * 测试多个 URL（仅检查可用性）
+ * @param IPC事件对象
+ * @param URL 列表
+ * @param 测试选项
+ * @returns 测试结果列表
+ */
+  "http-client-test-urls": (urls: string[], options: UrlTestOptions) => Promise<UrlTestResult[]>;
+  /**
+ * 测试多个 URL（仅检查可用性）
+ * @param IPC事件对象
+ * @param URL 列表
+ * @param 测试选项
+ * @returns 测试结果列表
+ */
+  "httpClientTestUrls": (urls: string[], options: UrlTestOptions) => Promise<UrlTestResult[]>;
+
+  /**
+ * 发起 HTTP 请求（返回完整响应数据）
+ * @param IPC事件对象
+ * @param 请求 URL
+ * @param 请求选项
+ * @returns 请求结果
+ */
+  "http-client-request": (url: string, options: RequestOptions) => Promise<RequestResult>;
+  /**
+ * 发起 HTTP 请求（返回完整响应数据）
+ * @param IPC事件对象
+ * @param 请求 URL
+ * @param 请求选项
+ * @returns 请求结果
+ */
+  "httpClientRequest": (url: string, options: RequestOptions) => Promise<RequestResult>;
 }
 
 interface inputInterface {
@@ -1910,7 +1946,7 @@ interface windowInterface {
 }
 
 // 合并所有 IPC 路由类型
-export interface AllIpcRouter extends appInterface, clipboardInterface, dbInterface, debugInterface, dialogInterface, displayInterface, filesystemInterface, hotkeyInterface, httpInterface, inputInterface, logInterface, pluginInterface, screenCaptureInterface, shellInterface, storeInterface, windowInterface {}
+export interface AllIpcRouter extends appInterface, clipboardInterface, dbInterface, debugInterface, dialogInterface, displayInterface, filesystemInterface, hotkeyInterface, httpInterface, httpClientInterface, inputInterface, logInterface, pluginInterface, screenCaptureInterface, shellInterface, storeInterface, windowInterface {}
 
 // 路由信息类型
 export interface RouteInfo {
@@ -2359,6 +2395,18 @@ export const ROUTE_INFO: RouteInfo[] = [
     comment: "获取 HTTP 服务器配置",
     module: "http",
     function: "getConfig"
+  },
+  {
+    route: "http-client-test-urls",
+    comment: "测试多个 URL（仅检查可用性）",
+    module: "httpClient",
+    function: "testUrls"
+  },
+  {
+    route: "http-client-request",
+    comment: "发起 HTTP 请求（返回完整响应数据）",
+    module: "httpClient",
+    function: "request"
   },
   {
     route: "input-paste-text",

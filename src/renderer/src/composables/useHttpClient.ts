@@ -91,7 +91,7 @@ export async function testUrlsRaw(
   // 在 Electron 环境中，使用 IPC 调用主进程测试 URL（绕过 CORS）
   if (typeof window !== "undefined" && window.naimo?.router) {
     try {
-      const results = await window.naimo.router.urlTesterTestUrls(
+      const results = await window.naimo.router.httpClientTestUrls(
         uniqueUrls,
         options
       );
@@ -179,7 +179,7 @@ export async function request(
   // 在 Electron 环境中，使用 IPC 调用主进程发起请求（绕过 CORS）
   if (typeof window !== "undefined" && window.naimo?.router) {
     try {
-      const result = await window.naimo.router.urlTesterRequest(url, options);
+      const result = await window.naimo.router.httpClientRequest(url, options);
       return result;
     } catch (error: any) {
       console.error("通过 IPC 发起请求失败，回退到 fetch:", error);
@@ -276,7 +276,7 @@ export async function request(
  * 组合式函数：用于组件中测试 URL 列表和发起请求
  * 提供 testing 状态和封装后的 testUrls、request 方法
  */
-export function useUrlTester() {
+export function useHttpClient() {
   const testing = ref(false);
   const requesting = ref(false);
 

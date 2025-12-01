@@ -79,7 +79,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from "vue";
-import { useUrlTester, type UrlTestResult } from "@/composables/useUrlTester";
+import { useHttpClient, type UrlTestResult } from "@/composables/useHttpClient";
 
 interface Props {
   /** 字符串数组值 */
@@ -106,7 +106,7 @@ const internalList = computed<string[]>({
   },
 });
 
-const { testing, testUrls, getFastestAvailable } = useUrlTester();
+const { testing, testUrls, getFastestAvailable } = useHttpClient();
 const testResults = ref<UrlTestResult[]>([]);
 
 const addItem = () => {

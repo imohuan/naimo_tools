@@ -40,7 +40,9 @@ export type SettingConfig = {
     /** 自定义：字符串数组类型（例如 URL 列表） */
     | "stringArray"
     /** 自定义：GitHub 镜像 URL 配置类型 */
-    | "mirrorUrls";
+    | "mirrorUrls"
+    /** 自定义：HTTP 服务器配置类型 */
+    | "httpServer";
   /** 是否需要换行显示（true 时控件在标题下方单独一行） */
   wrap?: boolean;
   /** 默认值（可以是值或返回值的函数） */

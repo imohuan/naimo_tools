@@ -428,10 +428,10 @@ const saveAllSettings = async () => {
       if (settingGroup.type === "app") {
         for (const setting of settingGroup.settings) {
           const value = settingValues.value[settingGroup.id][setting.name];
-          // 对于数组和对象类型，使用 toRaw 获取原始值，避免保存 Vue 响应式代理对象
+          // 使用 JSON 序列化/反序列化确保保存的是纯对象，去除所有 Vue 响应式代理
           const rawValue =
             Array.isArray(value) || (value && typeof value === "object")
-              ? toRaw(value)
+              ? JSON.parse(JSON.stringify(value))
               : value;
           await storeUtils.set(setting.name as any, rawValue);
           appSettingsCount++;
