@@ -117,7 +117,6 @@ export class GithubPluginInstaller extends BasePluginInstaller {
 
   /** 搜索 GitHub 插件 */
   private async searchGithubPlugins(search: string, page: number) {
-    await this.urlBuilder.ensureBestTemplates();
     const url = this.urlBuilder.getSearchUrl(search, page);
     const headers = this.githubToken
       ? { Authorization: `Bearer ${this.githubToken}` }
@@ -169,7 +168,6 @@ export class GithubPluginInstaller extends BasePluginInstaller {
     item: GithubPluginItem
   ): Promise<GithubPluginItem> {
     try {
-      await this.urlBuilder.ensureBestTemplates();
       const url = this.urlBuilder.getManifestUrl(item.user, item.repo);
       const config = await request.get<PluginConfig>(url, {
         headers: { "Content-Type": "application/json" },
@@ -204,7 +202,6 @@ export class GithubPluginInstaller extends BasePluginInstaller {
   /** 安装 GitHub 插件 */
   async install(source: any, options?: InstallOptions): Promise<PluginConfig> {
     if (!this.localInstaller) throw new Error("本地安装器未初始化");
-    await this.urlBuilder.ensureBestTemplates();
     // 获取下载URL
     let downloadUrl: string;
     if (typeof source === "object" && source.downloadUrl) {

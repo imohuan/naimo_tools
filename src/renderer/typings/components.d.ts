@@ -17,6 +17,7 @@ declare module 'vue' {
     EmptyState: typeof import('./../src/components/ContentArea/EmptyState.vue')['default']
     FileInfoDisplay: typeof import('./../src/components/SearchHeader/FileInfoDisplay.vue')['default']
     IconDisplay: typeof import('./../src/components/Common/IconDisplay.vue')['default']
+    IconMdiCheck: typeof import('~icons/mdi/check')['default']
     IconMdiClose: typeof import('~icons/mdi/close')['default']
     IconMdiContentCopy: typeof import('~icons/mdi/content-copy')['default']
     IconMdiDockWindow: typeof import('~icons/mdi/dock-window')['default']

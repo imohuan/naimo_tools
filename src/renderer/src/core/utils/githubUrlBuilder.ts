@@ -1,10 +1,4 @@
-import {
-  buildMirrorUrl,
-  testUrlsRaw,
-  type UrlTestResult,
-} from "@/composables/useHttpClient";
 import { storeUtils } from "@/core/utils/store";
-import type { MirrorUrlItem } from "@shared/typings/appTypes";
 
 export interface GithubUrlTemplates {
   /** 搜索仓库的 URL 模板 */
@@ -29,380 +23,22 @@ type TemplateParams = Record<
   string | number | boolean | undefined | null
 >;
 
-type TemplateKey = keyof GithubUrlTemplates;
-
-interface MirrorEntry {
-  value: string;
-  order: number;
-}
-
-interface TemplateCandidate {
-  key: TemplateKey;
-  template: string;
-  testUrl: string;
-  mode: "default" | "prefix" | "base";
-  weight: number;
-}
-
-/**
- * 负责管理 GitHub URL 模板及镜像测试逻辑的内部类
- * - 与存储、网络测试打交道
- * - 对外只暴露获取/设置模板和 ensureBestTemplates
- */
-class GithubTemplateManager {
-  private readonly queryPrefix: string;
-  private readonly cacheKey: string;
-  private readonly cacheTTL = 3 * 60 * 60 * 1000; // 3小时
-
-  private templates: GithubUrlTemplates;
-  private baseTemplates: GithubUrlTemplates;
-
-  private initialized = false;
-  private mirrorInitPromise: Promise<void> | null = null;
-
-  constructor(branch: string, queryPrefix: string, base: GithubUrlTemplates) {
-    this.queryPrefix = queryPrefix;
-    this.baseTemplates = { ...base };
-    this.templates = { ...base };
-    this.cacheKey = `githubTemplatesCache_${branch}`;
-  }
-
-  public getTemplates(): GithubUrlTemplates {
-    return this.templates;
-  }
-
-  public setTemplates(templates: Partial<GithubUrlTemplates>): void {
-    this.baseTemplates = {
-      ...this.baseTemplates,
-      ...templates,
-    };
-    this.templates = {
-      ...this.templates,
-      ...templates,
-    };
-    // 不自动重新测试，仅在 force=true 时重新评估
-  }
-
-  /**
-   * 根据设置自动选择最优模板
-   * - 默认只在首次调用时执行一次
-   * - 之后如需重新评估，显式传入 force=true
-   */
-  public async ensureBestTemplates(force = false): Promise<void> {
-    if (this.mirrorInitPromise) {
-      await this.mirrorInitPromise;
-      if (!force) return;
-    }
-
-    if (this.initialized && !force) {
-      return;
-    }
-
-    // 尝试从全局存储中读取 3 小时内的缓存结果，避免重复测速
-    if (!this.initialized && !force) {
-      const cached = await this.loadFromCache();
-      if (cached) {
-        this.templates = cached;
-        this.initialized = true;
-        return;
-      }
-    }
-
-    this.mirrorInitPromise = this.refreshTemplatesFromMirror();
-    try {
-      await this.mirrorInitPromise;
-      this.initialized = true;
-    } finally {
-      this.mirrorInitPromise = null;
-    }
-  }
-
-  private async refreshTemplatesFromMirror(): Promise<void> {
-    try {
-      const [autoMirrorAccess, rawMirrorList] = await Promise.all([
-        storeUtils.get("autoMirrorAccess"),
-        storeUtils.get("mirrorUrls"),
-      ]);
-
-      const autoEnabled = Boolean(autoMirrorAccess);
-      const mirrorList = Array.isArray(rawMirrorList)
-        ? (rawMirrorList as MirrorUrlItem[])
-        : [];
-
-      if (!autoEnabled || mirrorList.length === 0) {
-        this.templates = { ...this.baseTemplates };
-        return;
-      }
-
-      const templateKeys: TemplateKey[] = [
-        "searchUrlTemplate",
-        "downloadUrlTemplate",
-        "rawFileUrlTemplate",
-      ];
-
-      const updates: Partial<GithubUrlTemplates> = {};
-
-      for (const key of templateKeys) {
-        const bestTemplate = await this.pickBestTemplateForKey(key, mirrorList);
-        updates[key] = bestTemplate || this.baseTemplates[key];
-      }
-
-      this.templates = {
-        ...this.templates,
-        ...updates,
-      };
-    } catch (error) {
-      console.error("自动选择镜像模板失败:", error);
-      this.templates = { ...this.baseTemplates };
-    }
-
-    // 无论成功失败，最终模板结果都写入缓存，供下次快速恢复
-    await this.saveToCache(this.templates);
-  }
-
-  private async pickBestTemplateForKey(
-    key: TemplateKey,
-    mirrorList: MirrorUrlItem[]
-  ): Promise<string | undefined> {
-    const candidates = this.buildTemplateCandidates(key, mirrorList);
-    if (candidates.length === 0) return undefined;
-
-    const uniqueUrls = Array.from(
-      new Set(candidates.map((candidate) => candidate.testUrl).filter(Boolean))
-    );
-    if (uniqueUrls.length === 0) return undefined;
-
-    let results: UrlTestResult[] = [];
-    try {
-      results = await testUrlsRaw(uniqueUrls, {
-        timeout: 3000,
-        method: "HEAD",
-      });
-    } catch (error) {
-      console.error("镜像模板测试失败:", error);
-      return undefined;
-    }
-
-    const resultMap = new Map(results.map((item) => [item.url, item]));
-
-    const officialCandidate = candidates.find(
-      (candidate) => candidate.mode === "default"
-    );
-    const officialResult = officialCandidate
-      ? resultMap.get(officialCandidate.testUrl)
-      : undefined;
-
-    if (officialCandidate && officialResult?.ok) {
-      return officialCandidate.template;
-    }
-
-    const bestMirror = candidates
-      .filter((candidate) => candidate.mode !== "default")
-      .map((candidate) => ({
-        candidate,
-        result: resultMap.get(candidate.testUrl),
-      }))
-      .filter(
-        (
-          entry
-        ): entry is {
-          candidate: TemplateCandidate;
-          result: UrlTestResult;
-        } => Boolean(entry.result?.ok)
-      )
-      .sort((a, b) => {
-        if (a.result.time !== b.result.time) {
-          return a.result.time - b.result.time;
-        }
-        return a.candidate.weight - b.candidate.weight;
-      })[0];
-
-    return bestMirror?.candidate.template;
-  }
-
-  private buildTemplateCandidates(
-    key: TemplateKey,
-    mirrorList: MirrorUrlItem[]
-  ): TemplateCandidate[] {
-    const candidates: TemplateCandidate[] = [];
-    const sampleParams = this.getSampleParams(key);
-    const baseTemplate = this.baseTemplates[key];
-    const baseTestUrl = this.buildTestUrl(baseTemplate, sampleParams);
-
-    if (baseTemplate && baseTestUrl) {
-      candidates.push({
-        key,
-        template: baseTemplate,
-        testUrl: baseTestUrl,
-        mode: "default",
-        weight: -1,
-      });
-    }
-
-    mirrorList.forEach((item, itemIndex) => {
-      const selectedTemplates = this.normalizeTemplateSelection(item.templates);
-      if (!selectedTemplates.includes(key)) return;
-
-      const entries =
-        item.mode === "prefix"
-          ? this.splitEntries(item.prefix)
-          : this.splitEntries(item.baseUrl);
-
-      entries.forEach((entry) => {
-        if (item.mode === "prefix") {
-          if (!baseTemplate || !baseTestUrl) return;
-          const testUrl = buildMirrorUrl(entry.value, baseTestUrl);
-          const template = buildMirrorUrl(entry.value, baseTemplate);
-          if (!testUrl || !template) return;
-          candidates.push({
-            key,
-            template,
-            testUrl,
-            mode: "prefix",
-            weight: itemIndex * 100 + entry.order,
-          });
-        } else {
-          const template = entry.value;
-          const testUrl = this.buildTestUrl(template, sampleParams);
-          if (!testUrl) return;
-          candidates.push({
-            key,
-            template,
-            testUrl,
-            mode: "base",
-            weight: itemIndex * 100 + entry.order,
-          });
-        }
-      });
-    });
-
-    return candidates;
-  }
-
-  private splitEntries(text?: string | null): MirrorEntry[] {
-    if (!text) return [];
-    const segments = text
-      .split(/(?:\r?\n|\|)/)
-      .map((segment) => segment.trim())
-      .filter((segment) => segment.length > 0);
-
-    const entries: MirrorEntry[] = [];
-    segments.forEach((segment, index) => {
-      const disabled = segment.startsWith("# ");
-      const value = disabled ? segment.slice(2).trim() : segment;
-      if (!value || disabled) return;
-      entries.push({
-        value,
-        order: index,
-      });
-    });
-    return entries;
-  }
-
-  private normalizeTemplateSelection(
-    templates?: MirrorUrlItem["templates"]
-  ): TemplateKey[] {
-    if (!templates) return [];
-    const list = Array.isArray(templates) ? templates : [templates];
-    return list.filter(Boolean) as TemplateKey[];
-  }
-
-  private buildTestUrl(
-    template: string | undefined,
-    params: TemplateParams
-  ): string {
-    if (!template) return "";
-    return this.parseTemplate(template, params);
-  }
-
-  private getSampleParams(key: TemplateKey): TemplateParams {
-    if (key === "searchUrlTemplate") {
-      return {
-        queryPrefix: this.queryPrefix,
-        search: "",
-        page: 1,
-      };
-    }
-    if (key === "downloadUrlTemplate") {
-      return {
-        user: "imohuan",
-        repo: "naimo_tools",
-        // 与 MirrorUrlsSetting 中的测试保持一致，使用 main 分支
-        branch: "main",
-      };
-    }
-    return {
-      user: "imohuan",
-      repo: "naimo_tools",
-      // 与 MirrorUrlsSetting 中 raw 文件测试保持一致
-      branch: "main",
-      path: ".npmrc",
-    };
-  }
-
-  private parseTemplate(template: string, params: TemplateParams): string {
-    if (!template) return "";
-    return template.replace(/\{\{\s*(\w+)\s*\}\}/g, (_, key: string) => {
-      const value = params[key];
-      return value === undefined || value === null ? "" : String(value);
-    });
-  }
-
-  /** 从全局存储中加载缓存的模板（3 小时有效期） */
-  private async loadFromCache(): Promise<GithubUrlTemplates | null> {
-    try {
-      if (typeof window === "undefined") return null;
-      const anyWindow = window as any;
-      const router = anyWindow.naimo?.router;
-      if (!router?.storeGet) return null;
-
-      const cached = await router.storeGet(this.cacheKey);
-      if (!cached || typeof cached !== "object") return null;
-
-      const timestamp = (cached as any).timestamp as number | undefined;
-      const templates = (cached as any).templates as
-        | GithubUrlTemplates
-        | undefined;
-
-      if (!timestamp || !templates) return null;
-      if (Date.now() - timestamp > this.cacheTTL) return null;
-
-      return templates;
-    } catch (error) {
-      console.error("加载 GitHub 模板缓存失败:", error);
-      return null;
-    }
-  }
-
-  /** 将当前模板写入全局存储，供下次快速恢复 */
-  private async saveToCache(templates: GithubUrlTemplates): Promise<void> {
-    try {
-      if (typeof window === "undefined") return;
-      const anyWindow = window as any;
-      const router = anyWindow.naimo?.router;
-      if (!router?.storeSet) return;
-
-      await router.storeSet(this.cacheKey, {
-        timestamp: Date.now(),
-        templates,
-      });
-    } catch (error) {
-      console.error("保存 GitHub 模板缓存失败:", error);
-    }
-  }
-}
-
 /**
  * GitHub 相关 URL 构造工具类
  * - 支持使用 {{var}} 模板占位符
  * - 对搜索、配置、下载等 URL 进行集中管理
- * - 镜像相关逻辑委托给 GithubTemplateManager
+ * - 根据应用设置自动切换默认模板与镜像模板
+ *
+ * 镜像选择规则：
+ * - 当 `autoMirrorAccess` 未开启时：始终使用基础模板（代码默认值 + 构造参数 templates）
+ * - 当 `autoMirrorAccess` 开启时：优先使用存储中的 `mirrorUrl`（GithubUrlTemplates 对象）
+ *   - 若某个字段未配置，则回退到基础模板对应字段
  */
 export class GithubUrlBuilder {
   private readonly branch: string;
   private readonly queryPrefix: string;
-  private readonly templateManager: GithubTemplateManager;
 
+  /** 代码内置的默认模板 */
   private readonly defaultTemplates: GithubUrlTemplates = {
     searchUrlTemplate:
       "https://api.github.com/search/repositories?q={{queryPrefix}}{{search}}&page={{page}}",
@@ -412,11 +48,18 @@ export class GithubUrlBuilder {
       "https://raw.githubusercontent.com/{{user}}/{{repo}}/{{branch}}/{{path}}",
   };
 
+  /**
+   * 基础模板：在默认模板基础上，叠加构造参数传入的 templates
+   * - 当未启用自动镜像访问时，直接使用该模板
+   * - 当启用自动镜像访问但未配置 mirrorUrl 时，也回退到该模板
+   */
+  private baseTemplates: GithubUrlTemplates;
+
   constructor(options?: GithubUrlBuilderOptions) {
     this.branch = options?.branch || "build";
     this.queryPrefix = options?.queryPrefix || "naimo_tools-";
 
-    const baseTemplates: GithubUrlTemplates = {
+    this.baseTemplates = {
       searchUrlTemplate:
         options?.templates?.searchUrlTemplate ||
         this.defaultTemplates.searchUrlTemplate,
@@ -427,32 +70,52 @@ export class GithubUrlBuilder {
         options?.templates?.rawFileUrlTemplate ||
         this.defaultTemplates.rawFileUrlTemplate,
     };
-
-    this.templateManager = new GithubTemplateManager(
-      this.branch,
-      this.queryPrefix,
-      baseTemplates
-    );
   }
 
   /**
-   * 设置 URL 模板
+   * 设置 URL 模板（仅影响当前实例的基础模板）
    */
   public setTemplates(templates: Partial<GithubUrlTemplates>): void {
-    this.templateManager.setTemplates(templates);
+    this.baseTemplates = {
+      ...this.baseTemplates,
+      ...templates,
+    };
   }
 
   /**
-   * 根据设置自动选择最优模板
-   * - 当 autoMirrorAccess 启用时，会测试镜像配置并挑选最快可用模板
-   * - 仅首次或 force=true 时会真正执行测试
+   * 获取当前应使用的模板
+   * - 若 autoMirrorAccess 未开启：使用基础模板
+   * - 若 autoMirrorAccess 开启：优先使用 mirrorUrl 中的模板字段，缺失字段回退到基础模板
+   *
+   * 说明：这里通过 `storeUtils.getCached` 同步读取配置，
+   * 前提是应用在设置变更时已通过异步接口将配置写入缓存。
    */
-  public async ensureBestTemplates(force = false): Promise<void> {
-    await this.templateManager.ensureBestTemplates(force);
-  }
-
   private get templates(): GithubUrlTemplates {
-    return this.templateManager.getTemplates();
+    const autoMirrorAccess = storeUtils.getCached("autoMirrorAccess");
+    const enabled = Boolean(autoMirrorAccess);
+
+    if (!enabled) {
+      return this.baseTemplates;
+    }
+
+    // mirrorUrl 为单对象形式，结构与 GithubUrlTemplates 一致
+    const mirrorUrl = storeUtils.getCached("mirrorUrl") as
+      | GithubUrlTemplates
+      | null
+      | undefined;
+
+    if (!mirrorUrl) {
+      return this.baseTemplates;
+    }
+
+    return {
+      searchUrlTemplate:
+        mirrorUrl.searchUrlTemplate || this.baseTemplates.searchUrlTemplate,
+      downloadUrlTemplate:
+        mirrorUrl.downloadUrlTemplate || this.baseTemplates.downloadUrlTemplate,
+      rawFileUrlTemplate:
+        mirrorUrl.rawFileUrlTemplate || this.baseTemplates.rawFileUrlTemplate,
+    };
   }
 
   /**

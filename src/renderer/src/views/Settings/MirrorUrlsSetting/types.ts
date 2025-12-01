@@ -40,6 +40,10 @@ export interface MirrorItemActions {
   getDisableUnavailable: (index: number) => boolean;
   handleDisableToggle: (index: number, event: Event) => void;
   clearAllDisabled: (index: number) => void;
+  /** 将某个测试结果对应的镜像 URL 应用为全局 mirrorUrl 模板 */
+  applyAsMirrorUrl: (index: number, result: TestResultByItem) => Promise<void>;
+  /** 判断某个测试结果是否为当前已应用的 mirrorUrl 对应项（用于选中高亮） */
+  isCurrentMirrorResult: (result: TestResultByItem) => boolean;
 }
 
 export interface TestResultByItem {

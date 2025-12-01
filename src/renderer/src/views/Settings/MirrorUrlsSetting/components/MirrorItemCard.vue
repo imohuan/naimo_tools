@@ -1,5 +1,7 @@
 <template>
-  <div class="p-3 border border-gray-200 rounded-md bg-gray-50 space-y-2">
+  <div
+    class="p-3 border rounded-md space-y-2 transition-colors border-gray-200 bg-gray-50"
+  >
     <div class="flex items-center gap-1">
       <label class="text-xs font-medium text-gray-700 min-w-[40px]">模式</label>
       <CustomSelect
@@ -128,6 +130,10 @@
         :layout="resultLayout"
         :is-copied="actions.isCopied"
         :on-copy="actions.copyToClipboard"
+        :on-apply-mirror-url="
+          (result) => actions.applyAsMirrorUrl(index, result)
+        "
+        :is-current-mirror-result="actions.isCurrentMirrorResult"
       />
       <div class="flex items-center justify-between mt-1">
         <div class="flex items-center gap-1">
@@ -241,6 +247,10 @@
         :layout="resultLayout"
         :is-copied="actions.isCopied"
         :on-copy="actions.copyToClipboard"
+        :on-apply-mirror-url="
+          (result) => actions.applyAsMirrorUrl(index, result)
+        "
+        :is-current-mirror-result="actions.isCurrentMirrorResult"
       />
     </div>
   </div>

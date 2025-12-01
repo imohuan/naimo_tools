@@ -125,7 +125,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from "vue";
 import type { AppConfig } from "@shared/typings/appTypes";
-import { useUrlTester } from "@/composables/useUrlTester";
+import { useHttpClient } from "@/composables/useHttpClient";
 /** @ts-ignore */
 import IconMdiPower from "~icons/mdi/power";
 /** @ts-ignore */
@@ -151,8 +151,8 @@ interface Emits {
 const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
 
-// 使用 URL 测试器
-const { testing, testUrls } = useUrlTester();
+// 使用 HTTP 客户端进行 URL 测试
+const { testing, testUrls } = useHttpClient();
 
 // 内部状态
 const localPort = ref<number>(8080);

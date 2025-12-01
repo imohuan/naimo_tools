@@ -47,8 +47,10 @@ export interface AppConfig {
   alwaysOnTop?: boolean;
   /** 是否启用 GitHub 自动镜像访问 */
   autoMirrorAccess?: boolean;
-  /** GitHub 镜像 URL 配置列表 */
+  /** GitHub 镜像 URL 配置列表（旧版，使用列表形式存储） */
   mirrorUrls?: MirrorUrlItem[];
+  /** GitHub 镜像模板配置（新版，单对象形式，直接对应 GithubUrlTemplates） */
+  mirrorUrl?: import("@renderer/src/core/utils/githubUrlBuilder").GithubUrlTemplates;
   /** 是否在搜索界面显示扩展列表 */
   showExtensionList?: boolean;
   /** 是否在搜索界面显示应用列表 */

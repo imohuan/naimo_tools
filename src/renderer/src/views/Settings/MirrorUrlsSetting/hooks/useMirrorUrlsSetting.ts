@@ -6,6 +6,7 @@ import {
 } from "@/composables/useHttpClient";
 import type { MirrorUrlItem } from "@shared/typings/appTypes";
 import { GithubUrlBuilder } from "@/core/utils/githubUrlBuilder";
+import { storeUtils } from "@/core/utils/store";
 import type {
   MirrorItemActions,
   MirrorUrlsSettingEmits,
@@ -38,6 +39,13 @@ export const templateOptions = [
     value: "rawFileUrlTemplate" as const,
   },
 ];
+
+const baseSearchTemplate =
+  "https://api.github.com/search/repositories?q={{queryPrefix}}{{search}}&page={{page}}";
+const baseDownloadTemplate =
+  "https://github.com/{{user}}/{{repo}}/archive/refs/heads/{{branch}}.zip";
+const baseRawTemplate =
+  "https://raw.githubusercontent.com/{{user}}/{{repo}}/{{branch}}/{{path}}";
 
 interface ParsedEntry {
   value: string;
@@ -73,12 +81,47 @@ export const useMirrorUrlsSetting = (
   const autoDisabledEntries = ref<Map<number, Set<string>>>(new Map());
   const resultLayout = ref<"grid" | "list">("grid");
   const testResultsByItem = ref<TestResultByItem[]>([]);
+  const currentMirrorTestResults = ref<TestResultByItem[]>([]);
   const copyButtonStates = ref<Map<string, boolean>>(new Map());
+
+  type TemplateType =
+    | "searchUrlTemplate"
+    | "downloadUrlTemplate"
+    | "rawFileUrlTemplate";
+
+  // 当前全局 mirrorUrl 模板（用于展示和快速应用）
+  const currentMirrorUrl = ref<{
+    searchUrlTemplate: string;
+    downloadUrlTemplate: string;
+    rawFileUrlTemplate: string;
+  } | null>(null);
 
   const urlBuilder = new GithubUrlBuilder({
     branch: "main",
     queryPrefix: "naimo_tools-",
   });
+
+  // 初始化时从存储中读取已保存的 mirrorUrl（如果有）
+  (async () => {
+    try {
+      const value = (await storeUtils.get("mirrorUrl")) as
+        | {
+            searchUrlTemplate?: string;
+            downloadUrlTemplate?: string;
+            rawFileUrlTemplate?: string;
+          }
+        | undefined;
+      if (value) {
+        currentMirrorUrl.value = {
+          searchUrlTemplate: value.searchUrlTemplate || "",
+          downloadUrlTemplate: value.downloadUrlTemplate || "",
+          rawFileUrlTemplate: value.rawFileUrlTemplate || "",
+        };
+      }
+    } catch (error) {
+      console.error("读取 mirrorUrl 失败:", error);
+    }
+  })();
 
   const addItem = () => {
     const list = [...internalList.value];
@@ -269,6 +312,32 @@ export const useMirrorUrlsSetting = (
   const isCopied = (url: string): boolean => {
     return copyButtonStates.value.get(url) || false;
   };
+  /**
+   * 判断某个测试结果是否对应当前全局 mirrorUrl
+   * 逻辑：使用 currentMirrorUrl.[templateType] 模板，通过与测试时相同的参数解析出 URL，
+   * 然后与当前测试结果的 result.url 做字符串对比。
+   */
+  const isCurrentMirrorResult = (result: TestResultByItem): boolean => {
+    if (!currentMirrorUrl.value) return false;
+
+    const templateType = result.template as TemplateType;
+    const template = currentMirrorUrl.value[templateType];
+    if (!template) return false;
+
+    try {
+      const urlFromTemplate = parseUserTemplate(template, templateType);
+      if (!urlFromTemplate) return false;
+      console.log("[MirrorRresult]", {
+        result,
+        template,
+        urlFromTemplate,
+        ok: urlFromTemplate === result.url,
+      });
+      return urlFromTemplate === result.url;
+    } catch {
+      return false;
+    }
+  };
 
   const displayResultsByItem = computed(() => {
     const map = new Map<number, TestResultByItem[]>();
@@ -397,11 +466,11 @@ export const useMirrorUrlsSetting = (
       | "rawFileUrlTemplate"
   ): string => {
     if (templateType === "searchUrlTemplate") {
-      return urlBuilder.getSearchUrl("", 1);
+      return parseUserTemplate(baseSearchTemplate, templateType);
     } else if (templateType === "downloadUrlTemplate") {
-      return urlBuilder.getDownloadUrlFromUserRepo("imohuan", "naimo_tools");
+      return parseUserTemplate(baseDownloadTemplate, templateType);
     } else if (templateType === "rawFileUrlTemplate") {
-      return urlBuilder.getRawFileUrl("imohuan", "naimo_tools", ".npmrc");
+      return parseUserTemplate(baseRawTemplate, templateType);
     }
     return "";
   };
@@ -433,6 +502,72 @@ export const useMirrorUrlsSetting = (
     }
 
     return urlBuilder.parse(template, params);
+  };
+
+  /** 将某一镜像项的某个测试结果应用为全局 mirrorUrl 模板（仅作用于当前模板类型） */
+  const applyAsMirrorUrl = async (index: number, result: TestResultByItem) => {
+    const list = internalList.value;
+    if (index < 0 || index >= list.length) return;
+    const item = list[index];
+    if (!item || !result) return;
+
+    // 以当前 mirrorUrl 为基础，只覆盖当前模板类型
+    const previous = currentMirrorUrl.value ?? {
+      searchUrlTemplate: baseSearchTemplate,
+      downloadUrlTemplate: baseDownloadTemplate,
+      rawFileUrlTemplate: baseRawTemplate,
+    };
+
+    let nextSearchTemplate = previous.searchUrlTemplate || baseSearchTemplate;
+    let nextDownloadTemplate =
+      previous.downloadUrlTemplate || baseDownloadTemplate;
+    let nextRawTemplate = previous.rawFileUrlTemplate || baseRawTemplate;
+
+    const pickFirstEnabled = (text?: string | null): string | null => {
+      if (!text) return null;
+      const entries = splitEntries(text, { includeDisabled: false });
+      return entries.length > 0 ? entries[0].value : null;
+    };
+
+    if (item.mode === "prefix") {
+      // 前缀模式下，result.sourceValue 即选中的前缀，只影响当前模板类型
+      const prefix = result.sourceValue || pickFirstEnabled(item.prefix);
+      if (prefix) {
+        if (result.template === "searchUrlTemplate") {
+          nextSearchTemplate = `${prefix}${baseSearchTemplate}`;
+        } else if (result.template === "downloadUrlTemplate") {
+          nextDownloadTemplate = `${prefix}${baseDownloadTemplate}`;
+        } else if (result.template === "rawFileUrlTemplate") {
+          nextRawTemplate = `${prefix}${baseRawTemplate}`;
+        }
+      }
+    } else {
+      // 基础模式下，result.sourceValue 即选中的完整模板，只影响当前模板类型
+      const base = result.sourceValue || pickFirstEnabled(item.baseUrl);
+      if (base) {
+        if (result.template === "searchUrlTemplate") {
+          nextSearchTemplate = base;
+        } else if (result.template === "downloadUrlTemplate") {
+          nextDownloadTemplate = base;
+        } else if (result.template === "rawFileUrlTemplate") {
+          nextRawTemplate = base;
+        }
+      }
+    }
+
+    const newMirrorUrl = {
+      searchUrlTemplate: nextSearchTemplate,
+      downloadUrlTemplate: nextDownloadTemplate,
+      rawFileUrlTemplate: nextRawTemplate,
+    };
+
+    try {
+      await storeUtils.set("mirrorUrl", newMirrorUrl as any);
+      currentMirrorUrl.value = newMirrorUrl;
+      console.log("✅ 已将镜像项应用为全局 mirrorUrl:", index);
+    } catch (error) {
+      console.error("保存 mirrorUrl 失败:", error);
+    }
   };
 
   const buildTestUrls = (
@@ -946,6 +1081,84 @@ export const useMirrorUrlsSetting = (
     }
   };
 
+  const testCurrentMirrorTemplates = async (): Promise<void> => {
+    const mirror = currentMirrorUrl.value;
+    if (!mirror) {
+      currentMirrorTestResults.value = [];
+      return;
+    }
+
+    const templateMeta: Array<{
+      type: TemplateType;
+      label: string;
+    }> = [
+      { type: "searchUrlTemplate", label: "搜索 API" },
+      { type: "downloadUrlTemplate", label: "下载 ZIP" },
+      { type: "rawFileUrlTemplate", label: "Raw 文件" },
+    ];
+
+    const initialResults: TestResultByItem[] = [];
+    const urls: string[] = [];
+
+    let urlIndex = 0;
+    for (const meta of templateMeta) {
+      const template = mirror[meta.type];
+      if (!template) continue;
+      const url = parseUserTemplate(template, meta.type);
+      if (!url) continue;
+      urls.push(url);
+      initialResults.push({
+        itemIndex: -1,
+        template: meta.type,
+        templateLabel: meta.label,
+        url,
+        sourceValue: template,
+        urlIndex,
+        result: null,
+        testing: true,
+      });
+      urlIndex += 1;
+    }
+
+    if (urls.length === 0) {
+      currentMirrorTestResults.value = [];
+      return;
+    }
+
+    currentMirrorTestResults.value = initialResults;
+
+    try {
+      const results = await testUrls(urls, {
+        timeout: 3000,
+        method: "HEAD",
+      });
+
+      const updated = initialResults.map((item) => {
+        const matched = results.find((r) => r.url === item.url);
+        return {
+          ...item,
+          result: matched || null,
+          testing: false,
+        };
+      });
+
+      currentMirrorTestResults.value = updated;
+    } catch (error) {
+      console.error("测试当前 mirrorUrl 模板时出错:", error);
+      const failed = initialResults.map((item) => ({
+        ...item,
+        result: {
+          url: item.url,
+          ok: false,
+          time: 0,
+          error: String(error),
+        } as any,
+        testing: false,
+      }));
+      currentMirrorTestResults.value = failed;
+    }
+  };
+
   const itemActions: MirrorItemActions = {
     updateMode,
     getTemplateSelectValue,
@@ -962,11 +1175,13 @@ export const useMirrorUrlsSetting = (
     getItemTestResults,
     copyToClipboard,
     isCopied,
+    isCurrentMirrorResult,
     handleTextareaKeydown,
     sortEntriesByTestResults,
     getDisableUnavailable,
     handleDisableToggle,
     clearAllDisabled,
+    applyAsMirrorUrl,
   };
 
   return {
@@ -979,5 +1194,11 @@ export const useMirrorUrlsSetting = (
     templateOptions,
     itemActions,
     resultLayout,
+    currentMirrorUrl,
+    applyAsMirrorUrl,
+    currentMirrorTestResults,
+    copyToClipboard,
+    isCopied,
+    testCurrentMirrorTemplates,
   };
 };

@@ -1,5 +1,18 @@
 <template>
   <div class="space-y-3 text-xs text-gray-700">
+    <!-- 当前 mirrorUrl 模板预览 + 测试当前模板按钮 -->
+    <CurrentMirrorUrlPreview
+      :current-mirror-url="currentMirrorUrl"
+      :copied-field="copiedField"
+      :testing="testing"
+      :disable-test-all="internalList.length === 0"
+      :on-copy-current="handleCopyCurrent"
+      :preview-results="currentMirrorTestResults"
+      :is-copied="isCopied"
+      :on-copy="copyToClipboard"
+      :on-test-all="testCurrentMirrorTemplates"
+    />
+
     <div class="space-y-3 pr-1">
       <div v-if="internalList.length === 0" class="text-gray-400 text-[11px]">
         暂无配置，点击下方"添加镜像"开始配置。
@@ -71,9 +84,11 @@
 </template>
 
 <script setup lang="ts">
+import { ref } from "vue";
 /** @ts-ignore */
 import IconMdiRefresh from "~icons/mdi/refresh";
 import MirrorItemCard from "./components/MirrorItemCard.vue";
+import CurrentMirrorUrlPreview from "./components/CurrentMirrorUrlPreview.vue";
 import { useMirrorUrlsSetting } from "./hooks/useMirrorUrlsSetting";
 import type { MirrorUrlsSettingEmits, MirrorUrlsSettingProps } from "./types";
 
@@ -90,5 +105,35 @@ const {
   templateOptions,
   itemActions,
   resultLayout,
+  currentMirrorUrl,
+  currentMirrorTestResults,
+  copyToClipboard,
+  isCopied,
+  testCurrentMirrorTemplates,
 } = useMirrorUrlsSetting(props, emit);
+
+type MirrorTemplateField =
+  | "searchUrlTemplate"
+  | "downloadUrlTemplate"
+  | "rawFileUrlTemplate";
+
+const copiedField = ref<MirrorTemplateField | null>(null);
+
+const handleCopyCurrent = async (
+  text: string,
+  field: MirrorTemplateField
+): Promise<void> => {
+  if (!text) return;
+  try {
+    await navigator.clipboard.writeText(text);
+    copiedField.value = field;
+    setTimeout(() => {
+      if (copiedField.value === field) {
+        copiedField.value = null;
+      }
+    }, 1500);
+  } catch (error) {
+    console.error("复制镜像模板失败:", error);
+  }
+};
 </script>

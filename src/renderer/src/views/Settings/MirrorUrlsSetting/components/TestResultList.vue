@@ -9,14 +9,43 @@
     <div
       v-for="(result, idx) in results"
       :key="`${result.itemIndex}-${result.template}-${result.urlIndex}-${idx}`"
-      class="flex flex-col gap-1 px-2 py-1.5 bg-white rounded border border-gray-200 min-w-0 overflow-hidden"
+      class="flex flex-col gap-1 px-2 py-1.5 rounded border min-w-0 overflow-hidden transition-colors"
+      :class="
+        isCurrentMirrorResult && isCurrentMirrorResult(result)
+          ? 'border-blue-400 bg-blue-50/80'
+          : 'border-gray-200 bg-gray-50 '
+      "
     >
-      <span
-        class="text-[10px] font-medium text-gray-600 truncate"
-        :title="result.sourceValue"
-      >
-        {{ result.templateLabel }} · {{ result.sourceValue }}
-      </span>
+      <div class="flex items-center justify-between gap-1 min-w-0">
+        <span
+          class="text-[10px] font-medium text-gray-600 truncate"
+          :title="result.sourceValue"
+        >
+          {{ result.templateLabel }}
+        </span>
+        <button
+          v-if="showApplyButton !== false"
+          type="button"
+          class="p-0.5 rounded transition-colors flex-shrink-0"
+          :class="
+            isCurrentMirrorResult && isCurrentMirrorResult(result)
+              ? 'text-yellow-500 hover:text-yellow-600 hover:bg-yellow-50'
+              : 'text-blue-500 hover:text-blue-600 hover:bg-blue-50'
+          "
+          @click.stop="onApplyMirrorUrl(result)"
+          :title="
+            isCurrentMirrorResult && isCurrentMirrorResult(result)
+              ? '当前已作为 mirrorUrl 模板'
+              : '将此结果设为 mirrorUrl 模板'
+          "
+        >
+          <IconMdiStar
+            v-if="isCurrentMirrorResult && isCurrentMirrorResult(result)"
+            class="w-3 h-3"
+          />
+          <IconMdiStarOutline v-else class="w-3 h-3" />
+        </button>
+      </div>
       <span class="text-[10px] text-gray-400 truncate" :title="result.url">
         {{ result.url }}
       </span>
@@ -71,14 +100,20 @@ import IconMdiRefresh from "~icons/mdi/refresh";
 import IconMdiContentCopy from "~icons/mdi/content-copy";
 /** @ts-ignore */
 import IconMdiCheck from "~icons/mdi/check";
+/** @ts-ignore */
+import IconMdiStarOutline from "~icons/mdi/star-outline";
+/** @ts-ignore */
+import IconMdiStar from "~icons/mdi/star";
 
 interface Props {
   results: TestResultByItem[];
   layout: "grid" | "list";
   isCopied: (url: string) => boolean;
   onCopy: (text: string) => void;
+  onApplyMirrorUrl: (result: TestResultByItem) => void;
+  isCurrentMirrorResult?: (result: TestResultByItem) => boolean;
+  showApplyButton?: boolean;
 }
 
-defineProps<Props>();
+const props = defineProps<Props>();
 </script>
-
